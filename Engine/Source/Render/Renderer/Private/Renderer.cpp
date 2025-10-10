@@ -277,9 +277,10 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		{
 			RenderingContext.BillBoards.push_back(BillBoard);
 		}
-		else if (auto Text = Cast<UTextComponent>(Prim); Text && !Text->IsExactly(UUUIDTextComponent::StaticClass()))
+		else if (auto Text = Cast<UTextComponent>(Prim))
 		{
-			RenderingContext.Texts.push_back(Text);
+			if (!Text->IsExactly(UUUIDTextComponent::StaticClass())) { RenderingContext.Texts.push_back(Text); }
+			else { RenderingContext.UUID = Cast<UUUIDTextComponent>(Text);}
 		}
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{

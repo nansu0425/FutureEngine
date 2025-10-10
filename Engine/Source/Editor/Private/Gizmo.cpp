@@ -78,9 +78,8 @@ void UGizmo::UpdateScale(UCamera* InCamera)
 	RotateCollisionConfig.Scale = Scale;
 }
 
-void UGizmo::RenderGizmo(USceneComponent* SceneComponent, UCamera* InCamera)
+void UGizmo::RenderGizmo(UCamera* InCamera)
 {
-	TargetComponent = SceneComponent;
 	if (!TargetComponent || !InCamera) { return; }
 
 	float RenderScale;

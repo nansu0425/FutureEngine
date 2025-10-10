@@ -19,6 +19,8 @@ public:
 	UActorTerminationWidget(UActorDetailWidget* InActorDetailWidget);
 	~UActorTerminationWidget() override;
 
+	void SetActorDetailWidget(UActorDetailWidget* InActorDetailWidget) { ActorDetailWidget = InActorDetailWidget; }
+
 private:
 	UActorDetailWidget* ActorDetailWidget = nullptr;
 };

@@ -148,7 +148,7 @@ void UActorDetailWidget::RenderComponentTree(AActor* InSelectedActor)
 
 		USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 		// SceneComponent가 아니거나, 부모가 없는 SceneComponent가 최상위입니다.
-		if (!SceneComp || !SceneComp->GetParentAttachment())
+		if (!SceneComp || !SceneComp->GetAttachParent())
 		{
 			RenderComponentNodeRecursive(Component);
 		}
@@ -210,7 +210,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				return;
 			}
 			
-			if (DraggedScene->GetParentComponent() == TargetScene)
+			if (DraggedScene->GetAttachParent() == TargetScene)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
 
@@ -233,7 +233,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 
 						return;
 					}
-					Iter = Iter->GetParentAttachment();
+					Iter = Iter->GetAttachParent();
 				}
 			}
 
@@ -251,7 +251,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				}
 
 				// 자기 부모에게 드롭하는 경우, 아무 작업도 하지 않음
-				if (TargetScene == DraggedScene->GetParentAttachment())
+				if (TargetScene == DraggedScene->GetAttachParent())
 				{
 					ImGui::EndDragDropTarget();		ImGui::TreePop();
 
@@ -259,14 +259,14 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				}
 
 				// 1. 이전 부모로부터 분리
-				if (USceneComponent* OldParent = DraggedScene->GetParentAttachment())
+				if (USceneComponent* OldParent = DraggedScene->GetAttachParent())
 				{
-					OldParent->RemoveChild(DraggedScene);
+					DraggedScene->DetachFromComponent();
 				}
 
 				// 2. 새로운 부모에 연결하고 월드 트랜스폼 유지
 				const FMatrix OldWorldMatrix = DraggedScene->GetWorldTransformMatrix();
-				DraggedScene->SetParentAttachment(TargetScene);
+				DraggedScene->AttachToComponent(TargetScene);
 				const FMatrix NewParentWorldMatrixInverse = TargetScene->GetWorldTransformMatrixInverse();
 				const FMatrix NewLocalMatrix = OldWorldMatrix * NewParentWorldMatrixInverse;
 
@@ -447,13 +447,13 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		{
 			// 3. 선택된 컴포넌트(부모)에 새로 만든 컴포넌트(자식)를 붙임
 			//    (SetupAttachment는 UCLASS 내에서 호출하는 것을 가정)
-			NewSceneComponent->SetParentAttachment(ParentSceneComponent);
+			NewSceneComponent->AttachToComponent(ParentSceneComponent);
 			UE_LOG_SUCCESS("'%s'를 '%s'의 자식으로 추가했습니다.", NewComponentName.ToString().data(), ParentSceneComponent->GetName().ToString().data());
 		}
 		else
 		{
 			// 4. 선택된 컴포넌트가 없으면 액터의 루트 컴포넌트에 붙임
-			NewSceneComponent->SetParentAttachment(InSelectedActor->GetRootComponent());
+			NewSceneComponent->AttachToComponent(InSelectedActor->GetRootComponent());
 			UE_LOG_SUCCESS("'%s'를 액터의 루트에 추가했습니다.", NewComponentName.ToString().data());
 		}
 	}
@@ -569,11 +569,11 @@ void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
 		if (USceneComponent* SceneA = Cast<USceneComponent>(A))
 			if (USceneComponent* SceneB = Cast<USceneComponent>(B))
 			{
-				USceneComponent* ParentA = SceneA->GetParentAttachment();
-				USceneComponent* ParentB = SceneB->GetParentAttachment();
+				USceneComponent* ParentA = SceneA->GetAttachParent();
+				USceneComponent* ParentB = SceneB->GetAttachParent();
 
-				SceneA->SetParentAttachment(ParentB);
-				SceneB->SetParentAttachment(ParentA);
+				SceneA->AttachToComponent(ParentB);
+				SceneB->AttachToComponent(ParentA);
 			}
 	}
 }

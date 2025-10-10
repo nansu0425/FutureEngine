@@ -71,7 +71,7 @@ void FTextPass::Execute(FRenderingContext& Context)
     // Render UUID
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) { return; }
 
-    if (UUUIDTextComponent* PickedBillboard = GEditor->GetEditorModule()->GetPickedBillboard())
+    if (UUUIDTextComponent* PickedBillboard = Context.UUID)
     {
         PickedBillboard->UpdateRotationMatrix(Context.CurrentCamera->GetLocation());
         FString UUIDString = "UID: " + std::to_string(PickedBillboard->GetUUID());

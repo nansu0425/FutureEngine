@@ -17,11 +17,6 @@ public:
 	void TickComponent() override;
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
-
-	USceneComponent* GetParentComponent() const { return ParentAttachment; }
-	void SetParentAttachment(USceneComponent* SceneComponent);
-	void AddChild(USceneComponent* Child) { Children.push_back(Child); }
-	void RemoveChild(USceneComponent* ChildDeleted);
 	
 	virtual void MarkAsDirty();
 
@@ -31,10 +26,7 @@ public:
 	void SetUniformScale(bool bIsUniform);
 
 	bool IsUniformScale() const;
-
-	USceneComponent* GetParentAttachment() { return ParentAttachment; }
-	TArray<USceneComponent*> GetChildren() { return Children; }
-
+	
 	const FVector& GetRelativeLocation() const { return RelativeLocation; }
 	const FVector& GetRelativeRotation() const { return RelativeRotation; }
 	const FVector& GetRelativeScale3D() const { return RelativeScale3D; }
@@ -56,17 +48,26 @@ private:
 	mutable FMatrix WorldTransformMatrix;
 	mutable FMatrix WorldTransformMatrixInverse;
 
-	USceneComponent* ParentAttachment = nullptr;
-	TArray<USceneComponent*> Children;
 	FVector RelativeLocation = FVector{ 0,0,0.f };
 	FVector RelativeRotation = FVector{ 0,0,0.f };
 	FVector RelativeScale3D = FVector{ 0.3f,0.3f,0.3f };
 	bool bIsUniformScale = false;
 
+	// SceneComponent Hierarchy Section
 public:
-	float InactivityTimer = 0.0f;
-	float InactivityThreshold = 5.0f;
+	USceneComponent* GetAttachParent() const { return AttachParent; }
+	void AttachToComponent(USceneComponent* Parent);
+	void DetachFromComponent();
+	bool IsAttachedTo(const USceneComponent* Parent) const { return AttachParent == Parent; }
+	const TArray<USceneComponent*>& GetChildren() const { return AttachChildren; }
+	
+protected:
+	void DetachChild(USceneComponent* ChildToDetach);
 
+private:
+	USceneComponent* AttachParent = nullptr;
+	TArray<USceneComponent*> AttachChildren;
+	
 public:
 	virtual UObject* Duplicate() override;
 

@@ -82,7 +82,7 @@ void UActorTerminationWidget::DeleteSelectedActor(AActor* InSelectedActor)
 
 void UActorTerminationWidget::DeleteSelectedComponent(AActor* InSelectedActor, UActorComponent* InSelectedComponent)
 {
-	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
+	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent, true);
 	if (bSuccess)
 	{
 		ActorDetailWidget->SetSelectedComponent(nullptr);

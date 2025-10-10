@@ -2,6 +2,7 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
+#include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Utility/Public/JsonSerializer.h"
@@ -96,7 +97,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                         // 6. 부착 함수 호출
                         if (ParentComp)
                         {
-                            ChildComp->SetParentAttachment(ParentComp);
+                            ChildComp->AttachToComponent(ParentComp);
                         }
                     }
                     else
@@ -145,7 +146,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
             FString ComponentName = SceneComponent->GetName().ToString();
         	ComponentJson["Name"] = ComponentName;
 
-            USceneComponent* Parent = SceneComponent->GetParentComponent();
+            USceneComponent* Parent = SceneComponent->GetAttachParent();
             FString ParentName = Parent ? Parent->GetName().ToString() : "";
         	ComponentJson["ParentName"] = ParentName;
 
@@ -200,9 +201,9 @@ void AActor::InitializeComponents()
 	USceneComponent* SceneComp = Cast<USceneComponent>(CreateDefaultSubobject(GetDefaultRootComponent()));
 	SetRootComponent(SceneComp);
 
-	UUIDTextComponent = CreateDefaultSubobject<UUUIDTextComponent>();
-	UUIDTextComponent->SetParentAttachment(GetRootComponent());
-	UUIDTextComponent->SetOffset(5.0f);
+	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
+	UUID->AttachToComponent(GetRootComponent());
+	UUID->SetOffset(5.0f);
 }
 
 bool AActor::IsUniformScale() const
@@ -254,42 +255,56 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 	}
 }
 
-bool AActor::RemoveComponent(UActorComponent* InComponentToDelete)
+bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldDetachChildren)
 {
-    auto It = std::find(OwnedComponents.begin(), OwnedComponents.end(), InComponentToDelete);
-    if (It != OwnedComponents.end())
-    {
-        if (InComponentToDelete == RootComponent)
-        {
-			UE_LOG_WARNING("루트 컴포넌트는 제거할 수 없습니다.");
-			return false;
-        }
-        else if (Cast<UUUIDTextComponent>(InComponentToDelete))
-        {
-			UE_LOG_WARNING("UUIDTextComponent는 제거할 수 없습니다.");
-			return false;
-        }
+    if (!InComponentToDelete) { return false; }
+    
+	auto It = std::find(OwnedComponents.begin(), OwnedComponents.end(), InComponentToDelete);
+	if (It == OwnedComponents.end()) { return false; }
 
-        if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
-        {
-            GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
-        }
-        if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
-        {
-            if (SceneComponent->GetParentComponent())
-            {
-                SceneComponent->GetParentComponent()->RemoveChild(SceneComponent);
-            }
-            for (USceneComponent* Child : SceneComponent->GetChildren())
-            {
-				RemoveComponent(Child);
-            }
-		}
-        OwnedComponents.erase(It);
-        SafeDelete(*It);
-        return true;
+    if (InComponentToDelete == RootComponent)
+    {
+    	UE_LOG_WARNING("루트 컴포넌트는 제거할 수 없습니다.");
+        return false;
     }
-    return false;
+
+    
+    if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
+    {
+         GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
+    }
+
+    if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
+    {
+    	USceneComponent* Parent = SceneComponent->GetAttachParent();
+        SceneComponent->DetachFromComponent();
+
+        TArray<USceneComponent*> ChildrenToProcess = SceneComponent->GetChildren();
+        if (bShouldDetachChildren)
+        {
+            for (USceneComponent* Child : ChildrenToProcess)
+            {
+                Child->DetachFromComponent();
+            	Child->AttachToComponent(Parent);
+            }
+        }
+        else
+        {
+            // 자식을 함께 파괴함 (Destroy - 런타임 기본 방식)
+            for (USceneComponent* Child : ChildrenToProcess)
+            {
+                RemoveComponent(Child); 
+            }
+        }
+    }
+
+	if (GEditor->GetEditorModule()->GetSelectedComponent() == InComponentToDelete)
+	{
+		GEditor->GetEditorModule()->SelectComponent(nullptr);
+	}
+	OwnedComponents.erase(It); 
+    SafeDelete(InComponentToDelete); 
+    return true;
 }
 
 void AActor::DuplicateSubObjects(UObject* DuplicatedObject)
