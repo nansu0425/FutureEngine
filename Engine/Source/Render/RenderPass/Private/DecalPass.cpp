@@ -1,11 +1,13 @@
 #include "pch.h"
-#include "Render/RenderPass/Public/DecalPass.h"
-#include "Render/Renderer/Public/Pipeline.h"
-#include "Render/Renderer/Public/RenderResourceFactory.h"
-#include "Render/RenderPass/Public/RenderingContext.h"
 #include "Component/Public/DecalComponent.h"
+#include "Global/Octree.h"
+#include "Level/Public/Level.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/OBB.h"
+#include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/RenderingContext.h"
+#include "Render/Renderer/Public/Pipeline.h"
+#include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
 
@@ -55,16 +57,28 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
 
-        for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
+        TArray<UPrimitiveComponent*> Primitives;
+        // --- Enable Octree Optimization --- 
+        //ULevel* CurrentLevel = GWorld->GetLevel();
+
+        //Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
+
+        //UE_LOG("프리미티브 수: %d", Context.DefaultPrimitives.size());
+        //UE_LOG("옥트리 검출 프리미티브 수: %d", Primitives.size());
+
+        // --- Disable Octree Optimization --- 
+        Primitives = Context.DefaultPrimitives;
+
+        for (UPrimitiveComponent* Prim : Primitives)
         {
             if (!Prim || !Prim->IsVisible()) { continue; }
-            
+
             //const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
-            
-            FModelConstants ModelConstants{Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose()};
+
+            FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
             Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
-            
+
             Pipeline->SetVertexBuffer(Prim->GetVertexBuffer(), sizeof(FNormalVertex));
             if (Prim->GetIndexBuffer() && Prim->GetIndicesData())
             {
@@ -83,4 +97,26 @@ void FDecalPass::Release()
 {
     SafeRelease(ConstantBufferPrim);
     SafeRelease(ConstantBufferDecal);
+}
+
+void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives)
+{
+    /** @todo Use polymorphism to gracefully handle collsion between decal and octree. For now, use explicit casting. */
+    auto BoundingBox = static_cast<const FOBB*>(InDecal->GetBoundingBox());
+
+    if (!BoundingBox->Intersects(InOctree->GetBoundingBox()))
+    {
+        return;
+    }
+
+    if (InOctree->IsLeafNode())
+    {
+        InOctree->GetAllPrimitives(OutPrimitives);
+        return;
+    }
+
+    for (auto Child : InOctree->GetChildren())
+    {
+        Query(Child, InDecal, OutPrimitives);
+    }
 }

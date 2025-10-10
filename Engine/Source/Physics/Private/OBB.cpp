@@ -3,7 +3,7 @@
 
 #include "Physics/Public/AABB.h"
 
-bool FOBB::Intersects(const FAABB& Other)
+bool FOBB::Intersects(const FAABB& Other) const
 {
     FVector Center = Other.GetCenter();
     FVector Extents = (Other.Max - Other.Min) * 0.5f;
@@ -11,7 +11,7 @@ bool FOBB::Intersects(const FAABB& Other)
     return Intersects(OBB);
 }
 
-bool FOBB::Intersects(const FOBB& Other)
+bool FOBB::Intersects(const FOBB& Other) const
 {
     const FVector AxisLhs[] = {
         FVector(ScaleRotation.Data[0][0], ScaleRotation.Data[0][1], ScaleRotation.Data[0][2]),

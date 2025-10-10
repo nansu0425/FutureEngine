@@ -20,10 +20,10 @@ struct FOBB : public IBoundingVolume
     bool RaycastHit() const override { return false;}
 
     /**  @brief Collision detection algorithm based on SAT */
-    bool Intersects(const FAABB& Other);
+    bool Intersects(const FAABB& Other) const;
 
     /**  @brief Collision detection algorithm based on SAT */
-    bool Intersects(const FOBB& Other);
+    bool Intersects(const FOBB& Other) const;
 
     void Update(const FMatrix& WorldMatrix) override;
 
