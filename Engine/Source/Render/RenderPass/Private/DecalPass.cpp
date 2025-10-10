@@ -55,7 +55,6 @@ namespace
 		{
 			FVector axis = testAxes[i];
 			if (axis.LengthSquared() < 0.001f) continue;
-			axis.Normalize();
 
 			float obbMin = std::numeric_limits<float>::max();
 			float obbMax = -std::numeric_limits<float>::max();
