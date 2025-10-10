@@ -1,26 +1,26 @@
 #include "pch.h"
-#include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
+#include "Render/UI/Widget/Public/ActorSpawnWidget.h"
 #include "Level/Public/Level.h"
 
-UPrimitiveSpawnWidget::UPrimitiveSpawnWidget()
-	: UWidget("Primitive Spawn Widget")
+UActorSpawnWidget::UActorSpawnWidget()
+	: UWidget("Actor Spawn Widget")
 {
 	LoadActorClasses();
 }
 
-UPrimitiveSpawnWidget::~UPrimitiveSpawnWidget() = default;
+UActorSpawnWidget::~UActorSpawnWidget() = default;
 
-void UPrimitiveSpawnWidget::Initialize()
+void UActorSpawnWidget::Initialize()
 {
 	// Do Nothing Here
 }
 
-void UPrimitiveSpawnWidget::Update()
+void UActorSpawnWidget::Update()
 {
 	// Do Nothing Here
 }
 
-void UPrimitiveSpawnWidget::RenderWidget()
+void UActorSpawnWidget::RenderWidget()
 {
 	ImGui::Text("Actor 생성");
 	ImGui::Spacing();
@@ -71,7 +71,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
  * @brief Actor 생성 함수
  * 난수를 활용한 Range, Size, Rotion 값 생성으로 Actor Spawn
  */
-void UPrimitiveSpawnWidget::SpawnActors()
+void UActorSpawnWidget::SpawnActors()
 {
 	UE_LOG("ControlPanel: %s 타입의 Actor를 %d개 생성 시도합니다",
 		SelectedActorClassName.ToString().data(), NumberOfSpawn);
@@ -103,7 +103,7 @@ void UPrimitiveSpawnWidget::SpawnActors()
 	}
 }
 
-void UPrimitiveSpawnWidget::LoadActorClasses()
+void UActorSpawnWidget::LoadActorClasses()
 {
 	for (UClass* Class : UClass::FindClasses(AActor::StaticClass()))
 	{ 

@@ -1,7 +1,7 @@
 #pragma once
 #include "Widget.h"
 
-class UPrimitiveSpawnWidget
+class UActorSpawnWidget
 	:public UWidget
 {
 public:
@@ -11,8 +11,8 @@ public:
 	void SpawnActors();
 
 	// Special Member Function
-	UPrimitiveSpawnWidget();
-	~UPrimitiveSpawnWidget() override;
+	UActorSpawnWidget();
+	~UActorSpawnWidget() override;
 
 private:
 	void LoadActorClasses();
