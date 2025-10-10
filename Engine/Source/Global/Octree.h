@@ -44,6 +44,7 @@ public:
 	bool IsLeafNode() const { return IsLeaf(); }
 	const TArray<UPrimitiveComponent*>& GetPrimitives() const { return Primitives; }
 	TArray<FOctree*>& GetChildren() { return Children; }
+	const TArray<FOctree*>& GetChildren() const { return Children; } 
 
 private:
 	bool IsLeaf() const { return Children[0] == nullptr; }

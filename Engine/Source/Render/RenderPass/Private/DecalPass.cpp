@@ -58,16 +58,17 @@ void FDecalPass::Execute(FRenderingContext& Context)
         }
 
         TArray<UPrimitiveComponent*> Primitives;
+
         // --- Enable Octree Optimization --- 
-        //ULevel* CurrentLevel = GWorld->GetLevel();
+        ULevel* CurrentLevel = GWorld->GetLevel();
 
-        //Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
+        Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
 
-        //UE_LOG("프리미티브 수: %d", Context.DefaultPrimitives.size());
-        //UE_LOG("옥트리 검출 프리미티브 수: %d", Primitives.size());
+        UE_LOG("Primitive Count: %d", Context.DefaultPrimitives.size());
+        UE_LOG("Detected Primitive Count: %d", Primitives.size());
 
         // --- Disable Octree Optimization --- 
-        Primitives = Context.DefaultPrimitives;
+        //Primitives = Context.DefaultPrimitives;
 
         for (UPrimitiveComponent* Prim : Primitives)
         {

@@ -41,7 +41,7 @@ bool FOBB::Intersects(const FOBB& Other) const
     {
         for (size_t j = 0; j < 3; ++j)
         {
-            TestAxis[Count] = AxisLhs[i].Cross(AxisRhs[i]);
+            TestAxis[Count] = AxisLhs[i].Cross(AxisRhs[j]);
             if (TestAxis[Count].LengthSquared() > DBL_EPSILON)
             {
                 ++Count;
@@ -61,9 +61,9 @@ bool FOBB::Intersects(const FOBB& Other) const
             Extents.Z * abs(AxisLhs[2].Dot(TestAxis[i]));
 
         float ProjectedRadiusRhs = 
-            Extents.X * abs(AxisRhs[0].Dot(TestAxis[i])) +
-            Extents.Y * abs(AxisRhs[1].Dot(TestAxis[i])) +
-            Extents.Z * abs(AxisRhs[2].Dot(TestAxis[i]));
+            Other.Extents.X * abs(AxisRhs[0].Dot(TestAxis[i])) +
+            Other.Extents.Y * abs(AxisRhs[1].Dot(TestAxis[i])) +
+            Other.Extents.Z * abs(AxisRhs[2].Dot(TestAxis[i]));
 
         if (ProjectedDist > ProjectedRadiusLhs + ProjectedRadiusRhs)
         {
