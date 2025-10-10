@@ -239,6 +239,19 @@ UObject* AActor::Duplicate()
 	return Actor;
 }
 
+UActorComponent* AActor::AddComponent(UClass* InClass)
+{
+	if (!InClass->IsChildOf(UActorComponent::StaticClass())) { return nullptr; }
+	UActorComponent* NewComponent = Cast<UActorComponent>(NewObject(InClass, this));
+
+	if (NewComponent)
+	{
+		RegisterComponent(NewComponent);
+	}
+
+	return NewComponent;
+}
+
 void AActor::RegisterComponent(UActorComponent* InNewComponent)
 {
 	if (!InNewComponent || InNewComponent->GetOwner() != this)

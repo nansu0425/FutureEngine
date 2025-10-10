@@ -84,7 +84,7 @@ public:
 	 * @return 생성된 컴포넌트를 가리키는 포인터
 	 */
 	template<class T>
-	T* AddComponent(const FName& InName)
+	T* AddComponent()
 	{
 		static_assert(std::is_base_of_v<UActorComponent, T>, "추가할 클래스는 UActorComponent를 반드시 상속 받아야 합니다");
 
@@ -97,6 +97,7 @@ public:
 
 		return NewComponent;
 	}
+	UActorComponent* AddComponent(UClass* InClass);
 
 	void RegisterComponent(UActorComponent* InNewComponent);
 
