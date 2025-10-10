@@ -41,15 +41,17 @@ void UActorTerminationWidget::RenderWidget()
 	if (InputManager.IsKeyPressed(EKeyInput::Delete))
 	{
 		// 컴포넌트 선택시 컴포넌트 삭제를 우선
-		if (ActorDetailWidget)
+		if (ImGui::IsWindowFocused() && ActorDetailWidget)
 		{
 			if (UActorComponent* ActorComp = ActorDetailWidget->GetSelectedComponent())
 			{
 				DeleteSelectedComponent(SelectedActor, ActorComp);
-				return;
 			}
 		}
-		DeleteSelectedActor(SelectedActor);
+		else
+		{
+			DeleteSelectedActor(SelectedActor);
+		}
 	}
 }
 
@@ -82,7 +84,7 @@ void UActorTerminationWidget::DeleteSelectedActor(AActor* InSelectedActor)
 
 void UActorTerminationWidget::DeleteSelectedComponent(AActor* InSelectedActor, UActorComponent* InSelectedComponent)
 {
-	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
+	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent, true);
 	if (bSuccess)
 	{
 		ActorDetailWidget->SetSelectedComponent(nullptr);

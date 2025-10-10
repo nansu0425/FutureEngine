@@ -450,9 +450,6 @@
     <ClInclude Include="Source\Texture\Public\Material.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Texture\Public\TextureRenderProxy.h" />
-    <ClInclude Include="Source\Utility\Public\ActorTypeMapper.h">
-      <DeploymentContent>false</DeploymentContent>
-    </ClInclude>
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\ScopeCycleCounter.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
@@ -595,9 +592,6 @@
       <DeploymentContent>false</DeploymentContent>
     </ClCompile>
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
-    <ClCompile Include="Source\Utility\Private\ActorTypeMapper.cpp">
-      <DeploymentContent>false</DeploymentContent>
-    </ClCompile>
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
   </ItemGroup>

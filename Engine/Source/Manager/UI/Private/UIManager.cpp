@@ -555,10 +555,10 @@ float UUIManager::GetMainMenuBarHeight() const
 	return 0.0f;
 }
 
-void UUIManager::OnSelectedActorChanged(AActor* InSelectedActor) const
+void UUIManager::OnSelectedComponentChanged(UActorComponent* InSelectedComponent) const
 {
 	for (UUIWindow* UIWindow : UIWindows)
 	{
-		UIWindow->OnSelectedActorChanged(InSelectedActor);
+		UIWindow->OnSelectedComponentChanged(InSelectedComponent);
 	}
 }

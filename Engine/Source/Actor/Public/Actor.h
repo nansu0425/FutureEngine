@@ -41,9 +41,6 @@ public:
 
 	void SetRootComponent(USceneComponent* InOwnedComponents) { RootComponent = InOwnedComponents; }
 
-	UUUIDTextComponent* GetUUIDTextComponent() const { return UUIDTextComponent; }
-	void SetUUIDTextComponent(UUUIDTextComponent* InUUIDTextComponent) { UUIDTextComponent = InUUIDTextComponent; }
-
 	const FVector& GetActorLocation() const;
 	const FVector& GetActorRotation() const;
 	const FVector& GetActorScale3D() const;
@@ -103,7 +100,7 @@ public:
 
 	void RegisterComponent(UActorComponent* InNewComponent);
 
-	bool RemoveComponent(UActorComponent* InComponentToDelete);
+	bool RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldDetachChildren = false);
 
 	bool CanTick() const { return bCanEverTick; }
 	void SetCanTick(bool InbCanEverTick) { bCanEverTick = InbCanEverTick; }
@@ -118,7 +115,6 @@ protected:
 
 private:
 	USceneComponent* RootComponent = nullptr;
-	UUUIDTextComponent* UUIDTextComponent = nullptr;
 	TArray<UActorComponent*> OwnedComponents;
 	
 public:

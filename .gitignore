@@ -87,7 +87,7 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
-*.obj
+*.objbin
 *.idb
 *.iobj
 *.pch
@@ -425,3 +425,4 @@ WARP.md
 
 # Rider
 .idea/
+*.objbin
