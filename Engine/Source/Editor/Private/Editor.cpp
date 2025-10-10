@@ -469,22 +469,6 @@ void UEditor::ProcessMouseInput()
 	}
 }
 
-TArray<UPrimitiveComponent*> UEditor::FindCandidatePrimitives(ULevel* InLevel)
-{
-	TArray<UPrimitiveComponent*> Candidate;
-	for (AActor* Actor : InLevel->GetLevelActors())
-	{
-		for (auto& ActorComponent : Actor->GetOwnedComponents())
-		{
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(ActorComponent))
-			{
-				Candidate.push_back(Primitive);
-			}
-		}
-	}
-	return Candidate;
-}
-
 FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
@@ -611,6 +595,7 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnSelected();
+		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 	}
 }
 

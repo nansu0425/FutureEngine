@@ -54,7 +54,7 @@ public:
 	void RegisterMainMenuWindow(UMainMenuWindow* InMainMenuWindow);
 	float GetMainMenuBarHeight() const;
 
-	void OnSelectedActorChanged(AActor* InSelectedActor) const;
+	void OnSelectedComponentChanged(UActorComponent* InSelectedComponent) const;
 
 private:
 	TArray<UUIWindow*> UIWindows;

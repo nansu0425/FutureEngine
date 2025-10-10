@@ -20,23 +20,13 @@ void UStaticMeshComponentWidget::RenderWidget()
 		return;
 	}
 
-	AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
-	if (!SelectedActor)
+	UActorComponent* Component = GEditor->GetEditorModule()->GetSelectedComponent();
+	if (!Component)
 	{
 		ImGui::TextUnformatted("No Object Selected");
 		return;
 	}
-
-	for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
-	{
-		StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
-
-		// 위젯이 편집해야 할 대상 컴포넌트가 유효한지 확인합니다.
-		if (StaticMeshComponent)
-		{
-			break;
-		}
-	}
+	StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
 
 	if (!StaticMeshComponent)
 	{

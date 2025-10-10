@@ -506,12 +506,10 @@ void UActorDetailWidget::CancelRenamingActor()
 
 void UActorDetailWidget::RenderTransformEdit()
 {
-	if (!SelectedComponent)
-		return;
+	if (!SelectedComponent) { return; }
 
 	USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedComponent);
-	if (!SceneComponent)
-		return;
+	if (!SceneComponent) { return; }
 
 	ImGui::Text("Transform");
 

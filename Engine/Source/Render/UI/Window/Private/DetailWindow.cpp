@@ -42,26 +42,21 @@ void UDetailWindow::Initialize()
 }
 
 // @brief 새로운 Actor가 피킹된 경우 소유한 컴포넌트 전용 Widget을 표시한다
-void UDetailWindow::OnSelectedActorChanged(AActor* InActor)
+void UDetailWindow::OnSelectedComponentChanged(UActorComponent* Component)
 {
-	ClearWidget();
-	UActorDetailWidget* ActorDetailWidget = new UActorDetailWidget;
-	AddWidget(ActorDetailWidget);
-	AddWidget(new UTargetActorTransformWidget);
-	AddWidget(new UActorTerminationWidget(ActorDetailWidget));
-
-	if (InActor)
+	DeleteWidget(ComponentSpecificWidget);
+	ComponentSpecificWidget = nullptr;
+	
+	if (Component)
 	{
-		for (const auto& Component : InActor->GetOwnedComponents())
+		UClass* WidgetClass = Component->GetSpecificWidgetClass();
+		if (WidgetClass)
 		{
-			UClass* WidgetClass = Component->GetSpecificWidgetClass();
-			if (WidgetClass)
+			UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass));
+			if (NewWidget)
 			{
-				UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass));
-				if (NewWidget)
-				{
-					AddWidget(NewWidget);
-				}
+				AddWidget(NewWidget);
+				ComponentSpecificWidget = NewWidget;
 			}
 		}
 	}

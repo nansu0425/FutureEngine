@@ -97,7 +97,7 @@ public:
 	virtual bool OnWindowClose() { return true; }
 	virtual bool IsSingleton() { return false; }
 
-	virtual void OnSelectedActorChanged(AActor* InSelectedActor) {};
+	virtual void OnSelectedComponentChanged(UActorComponent* Component) {};
 
 	// Getter & Setter
 	const FUIWindowConfig& GetConfig() const { return Config; }
@@ -141,6 +141,7 @@ public:
 	void SetConfig(const FUIWindowConfig& InConfig) { Config = InConfig; }
 	void ToggleVisibility() { SetWindowState(IsVisible() ? EUIWindowState::Hidden : EUIWindowState::Visible); }
 	void AddWidget(UWidget* Widget) { Widgets.push_back(Widget); }
+	void DeleteWidget(UWidget* Widget);
 	void ClearWidget();
 
 	void OnMainWindowResized() const;
@@ -153,10 +154,12 @@ protected:
 
 	// Render
 	void RenderWindow();
-	void RenderWidget() const;
+	void RenderWidget();
 	void Update() const;
 
 private:
+	void ProcessDeleteWidgets();
+	
 	static int32 IssuedWindowID;
 
 	FUIWindowConfig Config;
@@ -172,6 +175,7 @@ private:
 	ImVec2 LastWindowPosition;
 
 	TArray<UWidget*> Widgets;
+	TArray<UWidget*> WidgetsToDelete;
 
 	ImVec2 PositionRatio = { 0.5f, 0.5f };
 	ImVec2 SizeRatio = { 0.5f, 0.5f };
