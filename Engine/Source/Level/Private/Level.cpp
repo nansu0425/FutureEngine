@@ -8,7 +8,6 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/Viewport.h"
 #include "Utility/Public/JsonSerializer.h"
-#include "Utility/Public/ActorTypeMapper.h"
 #include "Global/Octree.h"
 #include <json.hpp>
 
