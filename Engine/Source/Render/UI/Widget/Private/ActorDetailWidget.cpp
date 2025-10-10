@@ -13,6 +13,7 @@
 #include "Component/Mesh/Public/TriangleComponent.h"
 #include "Component/Mesh/Public/CubeComponent.h"
 #include "Component/Mesh/Public/MeshComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
@@ -341,7 +342,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Mesh", "Static Mesh", "BillBoard", "Text"
+			"Mesh", "Static Mesh", "BillBoard", "Text", "Decal"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -424,6 +425,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "Text")
 	{
 		NewComponent = InSelectedActor->AddComponent<UTextComponent>(NewComponentName);
+	}
+	else if (InComponentName == "Decal")
+	{
+		NewComponent = InSelectedActor->AddComponent<UDecalComponent>(NewComponentName);
 	}
 	else
 	{
