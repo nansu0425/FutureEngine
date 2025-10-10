@@ -3,6 +3,77 @@
 
 #include "Physics/Public/AABB.h"
 
+bool FOBB::Intersects(const FAABB& Other)
+{
+    FVector Center = Other.GetCenter();
+    FVector Extents = (Other.Max - Other.Min) * 0.5f;
+    FOBB OBB(Center, Extents, FMatrix::Identity());
+    return Intersects(OBB);
+}
+
+bool FOBB::Intersects(const FOBB& Other)
+{
+    const FVector AxisLhs[] = {
+        FVector(ScaleRotation.Data[0][0], ScaleRotation.Data[0][1], ScaleRotation.Data[0][2]),
+        FVector(ScaleRotation.Data[1][0], ScaleRotation.Data[1][1], ScaleRotation.Data[1][2]),
+        FVector(ScaleRotation.Data[2][0], ScaleRotation.Data[2][1], ScaleRotation.Data[2][2])
+    };
+
+    const FVector AxisRhs[] = {
+        FVector(Other.ScaleRotation.Data[0][0], Other.ScaleRotation.Data[0][1], Other.ScaleRotation.Data[0][2]),
+        FVector(Other.ScaleRotation.Data[1][0], Other.ScaleRotation.Data[1][1], Other.ScaleRotation.Data[1][2]),
+        FVector(Other.ScaleRotation.Data[2][0], Other.ScaleRotation.Data[2][1], Other.ScaleRotation.Data[2][2])
+    };
+
+    FVector TestAxis[15];
+
+    size_t Count = 0;
+
+    TestAxis[Count++] = AxisLhs[0];
+    TestAxis[Count++] = AxisLhs[1];
+    TestAxis[Count++] = AxisLhs[2];
+
+    TestAxis[Count++] = AxisRhs[0];
+    TestAxis[Count++] = AxisRhs[1];
+    TestAxis[Count++] = AxisRhs[2];
+
+    for (size_t i = 0; i < 3; ++i)
+    {
+        for (size_t j = 0; j < 3; ++j)
+        {
+            TestAxis[Count] = AxisLhs[i].Cross(AxisRhs[i]);
+            if (TestAxis[Count].LengthSquared() > DBL_EPSILON)
+            {
+                ++Count;
+            }
+        }
+    }
+
+    const FVector Diff = Other.Center - Center;
+
+    for (size_t i = 0; i < Count; ++i)
+    {
+        float ProjectedDist = abs(Diff.Dot(TestAxis[i]));
+
+        float ProjectedRadiusLhs =
+            Extents.X * abs(AxisLhs[0].Dot(TestAxis[i])) +
+            Extents.Y * abs(AxisLhs[1].Dot(TestAxis[i])) +
+            Extents.Z * abs(AxisLhs[2].Dot(TestAxis[i]));
+
+        float ProjectedRadiusRhs = 
+            Extents.X * abs(AxisRhs[0].Dot(TestAxis[i])) +
+            Extents.Y * abs(AxisRhs[1].Dot(TestAxis[i])) +
+            Extents.Z * abs(AxisRhs[2].Dot(TestAxis[i]));
+
+        if (ProjectedDist > ProjectedRadiusLhs + ProjectedRadiusRhs)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void FOBB::Update(const FMatrix& WorldMatrix)
 {
     Center = WorldMatrix.GetLocation();
