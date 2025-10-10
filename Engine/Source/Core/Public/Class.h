@@ -18,6 +18,7 @@ public:
 public:
     static void SignUpClass(UClass* InClass);
     static UClass* FindClass(const FName& InClassName);
+    static TArray<UClass*> FindClasses(UClass* SuperClass);
 private:
     static TArray<UClass*>& GetAllClasses();
     

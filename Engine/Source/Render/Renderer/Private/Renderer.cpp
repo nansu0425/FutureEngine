@@ -280,7 +280,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Text = Cast<UTextComponent>(Prim))
 		{
 			if (!Text->IsExactly(UUUIDTextComponent::StaticClass())) { RenderingContext.Texts.push_back(Text); }
-			else { RenderingContext.UUID = Cast<UUUIDTextComponent>(Text);}
+			else { RenderingContext.UUIDs.push_back(Cast<UUUIDTextComponent>(Text)); }
 		}
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
