@@ -30,7 +30,6 @@ public:
 	 */
 	virtual UClass* GetSpecificWidgetClass() const { return nullptr; }
 
-
 	EComponentType GetComponentType() { return ComponentType; }
 
 	void SetOwner(AActor* InOwner) { Owner = InOwner; }

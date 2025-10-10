@@ -48,7 +48,6 @@ private:
 	void UpdateBatchLines();
 	void ProcessMouseInput();
 	void UpdateLayout();
-	TArray<UPrimitiveComponent*> FindCandidatePrimitives(ULevel* InLevel);
 
 	// 모든 기즈모 드래그 함수가 ActiveCamera를 받도록 통일
 	FVector GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay);

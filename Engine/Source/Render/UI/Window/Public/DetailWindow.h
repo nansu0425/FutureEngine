@@ -15,5 +15,8 @@ public:
 
 	void Initialize() override;
 
-	void OnSelectedActorChanged(AActor* InActor) override;
+	void OnSelectedComponentChanged(UActorComponent* Component) override;
+
+private:
+	UWidget* ComponentSpecificWidget = nullptr;
 };
