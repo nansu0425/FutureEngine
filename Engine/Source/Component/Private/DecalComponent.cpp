@@ -19,6 +19,17 @@ UDecalComponent::~UDecalComponent()
     SafeDelete(DecalTexture);
 }
 
+void UDecalComponent::SetTexture(UTexture* InTexture)
+{
+	if (DecalTexture == InTexture)
+	{
+		return;
+	}
+
+	SafeDelete(DecalTexture);
+	DecalTexture = InTexture;
+}
+
 UClass* UDecalComponent::GetSpecificWidgetClass() const
 {
     return UDecalTextureSelectionWidget::StaticClass();
