@@ -18,7 +18,7 @@ public:
 	UDecalTextureSelectionWidget();
 	~UDecalTextureSelectionWidget() override;
 
-
+	void SetDecalComponent(UDecalComponent* InComponent) { DecalComponent = InComponent; }
 
 private:
 	UDecalComponent* DecalComponent{};

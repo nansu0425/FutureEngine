@@ -1,75 +1,101 @@
 #include "pch.h"
-#include "Render/UI//Widget/Public/DecalTextureSelectionWidget.h"
-#include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 #include "Component/Public/DecalComponent.h"
-
-#include "Level/Public/Level.h"
-#include "Core/Public/ObjectIterator.h"
-#include "Texture/Public/Material.h"
-#include "Texture/Public/Texture.h"
-#include "Level/Public/Level.h"
 #include "Manager/Asset/Public/AssetManager.h"
-
+#include "Texture/Public/Texture.h"
+#include "Component/Public/ActorComponent.h"
+#include "ImGui/imgui.h"
+#include "Level/Public/Level.h"
+#include <filesystem>
 
 IMPLEMENT_CLASS(UDecalTextureSelectionWidget, UWidget)
 
 void UDecalTextureSelectionWidget::Initialize()
 {
-
 }
 
 void UDecalTextureSelectionWidget::Update()
 {
+    // �� ������ Level�� ���õ� Actor�� Ȯ���ؼ� ���� �ݿ�
+    ULevel* CurrentLevel = GWorld->GetLevel();
+
+    if (CurrentLevel)
+    {
+        UActorComponent* NewSelectedComponent = GEditor->GetEditorModule()->GetSelectedComponent();
+
+        // Update Current Selected Actor
+        if (DecalComponent != NewSelectedComponent)
+        {
+            DecalComponent = Cast<UDecalComponent>(NewSelectedComponent);
+
+        }
+    }
 }
 
 void UDecalTextureSelectionWidget::RenderWidget()
 {
-	if (!DecalComponent)
-		return;
+    if (!DecalComponent)
+    {
+        return;
+    }
 
-	ImGui::Separator();
-	ImGui::Text("Select Sprite");
+    ImGui::Separator();
 
-	ImGui::Spacing();
-	
-	static int current_item = 0; // ���� ���õ� �ε���
-	
-	// ���� ���ڿ� ���
-	TArray<FString> items;
-	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
-		UAssetManager::GetInstance().GetTextureCache();
-	
-	int i = 0;
-	for (auto Itr = TextureCache.begin(); Itr != TextureCache.end(); Itr++, i++)
-	{
-		if (Itr->first == DecalComponent->GetSprite().first)
-			current_item = i;
-	
-		items.push_back(Itr->first.ToString());
-	}
-	
-	sort(items.begin(), items.end());
-	
-	if (ImGui::BeginCombo("Sprite", items[current_item].c_str())) // Label�� ���� �� ǥ��
-	{
-		for (int n = 0; n < items.size(); n++)
-		{
-			bool is_selected = (current_item == n);
-			if (ImGui::Selectable(items[n].c_str(), is_selected))
-			{
-				current_item = n;
-				SetSpriteOfActor(items[current_item]);
-			}
-	
-			if (is_selected)
-				ImGui::SetItemDefaultFocus(); // �⺻ ��Ŀ��
-		}
-		ImGui::EndCombo();
-	}
-	
-	ImGui::Separator();
-	
-	WidgetNum = (WidgetNum + 1) % std::numeric_limits<uint32>::max();
+    // 좌측 미니 프리뷰 (정사각형)
+    const float PreviewSize = 72.0f;
+    ID3D11ShaderResourceView* SRV = nullptr;
+    UTexture* CurrentTexture = DecalComponent->GetTexture();
+    if (CurrentTexture)
+    {
+        SRV = UAssetManager::GetInstance().GetTexture(CurrentTexture->GetFilePath()).Get();
+    }
+
+    if (SRV)
+    {
+        ImGui::Image((ImTextureID)SRV, ImVec2(PreviewSize, PreviewSize), ImVec2(0, 0), ImVec2(1, 1));
+    }
+    else
+    {
+        ImGui::Dummy(ImVec2(PreviewSize, PreviewSize));
+    }
+    ImGui::SameLine();
+
+    // 현재 스프라이트 경로 표시 (파일명만)
+    FString CurrentPath;
+    if (CurrentTexture)
+    {
+        CurrentPath = CurrentTexture->GetFilePath().ToString();
+    }
+
+    FString Preview = "<None>";
+    if (!CurrentPath.empty())
+    {
+        Preview = std::filesystem::path(CurrentPath).stem().string();
+    }
+
+    if (ImGui::BeginCombo("Texture (png)##Combo", Preview.c_str()))
+    {
+        const TMap<FName, ID3D11ShaderResourceView*>& textureCache = UAssetManager::GetInstance().GetTextureCache();
+        for (auto const& [Path, textureView] : textureCache)
+        {
+            const FString PathStr = Path.ToString();
+            const FString DisplayName = std::filesystem::path(PathStr).stem().string();
+            bool bSelected = (PathStr == CurrentPath);
+            if (ImGui::Selectable(DisplayName.c_str(), bSelected))
+            {
+                if (!bSelected)
+                {
+                    UTexture* NewTexture = UAssetManager::GetInstance().CreateTexture(Path);
+                    DecalComponent->SetTexture(NewTexture);
+                }
+            }
+            if (bSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
 }
 
 UDecalTextureSelectionWidget::UDecalTextureSelectionWidget() : UWidget("Decal Texture Selection Widget")
@@ -80,7 +106,6 @@ UDecalTextureSelectionWidget::~UDecalTextureSelectionWidget() = default;
 
 void UDecalTextureSelectionWidget::RenderMaterialSections()
 {
-
 }
 
 void UDecalTextureSelectionWidget::RenderAvailableMaterials(int32 TargetSlotIdex)
@@ -89,10 +114,9 @@ void UDecalTextureSelectionWidget::RenderAvailableMaterials(int32 TargetSlotIdex
 
 void UDecalTextureSelectionWidget::RenderOptions()
 {
-
 }
 
 FString UDecalTextureSelectionWidget::GetMaterialDisplayName(UMaterial* Material) const
 {
-	return FString();
+    return FString();
 }

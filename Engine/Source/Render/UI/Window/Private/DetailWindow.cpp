@@ -4,6 +4,7 @@
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
 #include "Render/UI/Widget/Public/TargetActorTransformWidget.h"
+#include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 
 #include "Manager/UI/Public/UIManager.h"
 #include "Level/Public/Level.h"
