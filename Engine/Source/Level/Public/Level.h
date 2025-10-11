@@ -59,9 +59,11 @@ private:
 	// 지연 삭제를 위한 리스트
 	TArray<AActor*> ActorsToDelete;
 
-	uint64 ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
+	uint64 ShowFlags =
+		static_cast<uint64>(EEngineShowFlags::SF_Primitives) |
 		static_cast<uint64>(EEngineShowFlags::SF_Billboard) |
 		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
 		static_cast<uint64>(EEngineShowFlags::SF_StaticMesh) |
-		static_cast<uint64>(EEngineShowFlags::SF_Text) ;
+		static_cast<uint64>(EEngineShowFlags::SF_Text) |
+		static_cast<uint64>(EEngineShowFlags::SF_Decal);
 };

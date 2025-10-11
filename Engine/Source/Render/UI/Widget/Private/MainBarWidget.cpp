@@ -345,6 +345,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
 
+		// Decal 표시 옵션
+		bool bShowDecal = (ShowFlags & EEngineShowFlags::SF_Decal) != 0;
+		if (ImGui::MenuItem("데칼 표시", nullptr, bShowDecal))
+		{
+			if (bShowDecal)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_Decal);
+				UE_LOG("MainBarWidget: 데칼 비표시");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Decal);
+				UE_LOG("MainBarWidget: 데칼 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+
 		ImGui::EndMenu();
 	}
 }

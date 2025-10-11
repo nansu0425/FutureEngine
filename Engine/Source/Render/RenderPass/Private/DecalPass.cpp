@@ -146,6 +146,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 	TIME_PROFILE(DecalPass)
 
     if (Context.Decals.empty()) { return; }
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
 
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),

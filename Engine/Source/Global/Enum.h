@@ -179,11 +179,12 @@ enum class EViewModeIndex : uint32
  */
 enum class EEngineShowFlags : uint64
 {
-	SF_Primitives = 0x01,
-	SF_Billboard = 0x10,
-	SF_Bounds = 0x20,
-	SF_StaticMesh = 0x30,
-	SF_Text = 0x40,
+	SF_Primitives = 1 << 0,
+	SF_Billboard = 1 << 1,
+	SF_Bounds = 1 << 2,
+	SF_StaticMesh = 1 << 3,
+	SF_Text = 1 << 4,
+	SF_Decal = 1 << 5,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)
