@@ -19,7 +19,7 @@ public:
 	}*/
 
 	virtual void BeginPlay();
-	virtual void TickComponent();
+	virtual void TickComponent(float DeltaTime);
 	virtual void EndPlay();
 
 	virtual void OnSelected();

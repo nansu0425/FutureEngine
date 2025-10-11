@@ -14,10 +14,14 @@ cbuffer DecalConstants : register(b2)
 {
 	row_major float4x4 DecalWorld;
     row_major float4x4 DecalViewProjection;
+	float FadeProgress;
 };
 
 Texture2D DecalTexture : register(t0);
 SamplerState DecalSampler : register(s0);
+
+Texture2D FadeTexture : register(t1);
+SamplerState FadeSampler : register(s1);
 
 struct VS_INPUT
 {
@@ -70,6 +74,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     DecalUV = ((DecalLocalPos.yz / DecalLocalPos.w) * float2(1, -1) + 0.5f);
     
 	float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
+
+	float FadeValue = FadeTexture.Sample(FadeSampler, DecalUV).r;
+	DecalColor.a *= 1.0f - saturate(FadeProgress / FadeValue);
+	
 	if (DecalColor.a < 0.001f) { discard; }
 	
 	return DecalColor;

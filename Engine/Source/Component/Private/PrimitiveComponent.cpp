@@ -13,11 +13,10 @@ UPrimitiveComponent::UPrimitiveComponent()
 	bCanEverTick = true;
 }
 
-void UPrimitiveComponent::TickComponent()
+void UPrimitiveComponent::TickComponent(float DeltaTime)
 {
-	Super::TickComponent();
+    Super::TickComponent(DeltaTime);
 }
-
 void UPrimitiveComponent::OnSelected()
 {
 	SetColor({ 1.f, 0.8f, 0.2f, 0.4f });

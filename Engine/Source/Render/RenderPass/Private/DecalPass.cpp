@@ -190,6 +190,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         FDecalConstants DecalConstants;
         DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
         DecalConstants.DecalViewProjection = View * Decal->GetProjectionMatrix();
+        DecalConstants.FadeProgress = Decal->GetFadeProgress();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
@@ -204,15 +205,21 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
 
+        if (UTexture* FadeTexture = Decal->GetFadeTexture())
+        {
+            if (auto* Proxy = FadeTexture->GetRenderProxy())
+            {
+                Pipeline->SetTexture(1, false, Proxy->GetSRV());
+                Pipeline->SetSamplerState(1, false, Proxy->GetSampler());
+            }
+        }
+
         TArray<UPrimitiveComponent*> Primitives;
 
         // --- Enable Octree Optimization --- 
         ULevel* CurrentLevel = GWorld->GetLevel();
 
         Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
-
-        UE_LOG("Primitive Count: %d", Context.DefaultPrimitives.size());
-        UE_LOG("Detected Primitive Count: %d", Primitives.size());
 
         // --- Disable Octree Optimization --- 
         // Primitives = Context.DefaultPrimitives;
