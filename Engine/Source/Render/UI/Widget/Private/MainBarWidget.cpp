@@ -359,6 +359,7 @@ void UMainBarWidget::RenderShowFlagsMenu()
 				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Decal);
 				UE_LOG("MainBarWidget: 데칼 표시");
 			}
+			CurrentLevel->SetShowFlags(ShowFlags);
 		}
 
 		// Octree 표시 옵션

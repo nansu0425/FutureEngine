@@ -19,4 +19,7 @@ public:
 
 protected:
     class UTexture* DecalTexture = nullptr;
+
+public:
+	virtual UObject* Duplicate() override;
 };
