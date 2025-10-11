@@ -99,6 +99,7 @@ public:
 	void OnMouseHovering() {}
 	void OnMouseDragStart(FVector& CollisionPoint);
 	void OnMouseRelease(EGizmoDirection DirectionReleased) {}
+	void SetEditor(UEditor* InEditor) { this->Editor = InEditor;}
 
 private:
 	static inline int AxisIndex(EGizmoDirection InDirection)
@@ -115,6 +116,7 @@ private:
 	// 렌더 시 하이라이트 색상 계산(상태 오염 방지)
 	FVector4 ColorFor(EGizmoDirection InAxis) const;
 
+	UEditor* Editor = nullptr;
 
 	TArray<FEditorPrimitive> Primitives;
 	USceneComponent* TargetComponent = nullptr;

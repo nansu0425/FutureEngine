@@ -27,23 +27,7 @@ void UTargetActorTransformWidget::Update()
 
 	if (CurrentLevel)
 	{
-		AActor* CurrentSelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
-
-		// Update Current Selected Actor
-		if (SelectedActor != CurrentSelectedActor)
-		{
-			SelectedActor = CurrentSelectedActor;
-		}
-
-		// Get Current Selected Actor Information
-		if (SelectedActor)
-		{
-			UpdateTransformFromActor();
-		}
-		else if (CurrentSelectedActor)
-		{
-			SelectedActor = nullptr;
-		}
+		UpdateTransformFromActor();
 	}
 }
 
@@ -54,8 +38,8 @@ void UTargetActorTransformWidget::RenderWidget()
 	// ImGui::Text("Level Object Count: %u", LevelObjectCount);
 	// ImGui::Text("Level Memory: %.3f KB", static_cast<float>(LevelMemoryByte) / KILO);
 	// ImGui::Separator();
-
-	if (SelectedActor)
+	AActor* CurrentSelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
+	if (CurrentSelectedActor)
 	{
 		ImGui::Separator();
 		ImGui::Text("Transform");
@@ -66,7 +50,7 @@ void UTargetActorTransformWidget::RenderWidget()
 		bRotationChanged |= ImGui::DragFloat3("Rotation", &EditRotation.X, 0.1f);
 
 		// Uniform Scale 옵션
-		bool bUniformScale = SelectedActor->IsUniformScale();
+		bool bUniformScale = CurrentSelectedActor->IsUniformScale();
 		if (bUniformScale)
 		{
 			float UniformScale = EditScale.X;
@@ -84,7 +68,7 @@ void UTargetActorTransformWidget::RenderWidget()
 
 		ImGui::Checkbox("Uniform Scale", &bUniformScale);
 
-		SelectedActor->SetUniformScale(bUniformScale);
+		CurrentSelectedActor->SetUniformScale(bUniformScale);
 	}
 
 	ImGui::Separator();
@@ -103,20 +87,22 @@ void UTargetActorTransformWidget::PostProcess()
 
 void UTargetActorTransformWidget::UpdateTransformFromActor()
 {
-	if (SelectedActor)
+	AActor* CurrentSelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
+	if (CurrentSelectedActor)
 	{
-		EditLocation = SelectedActor->GetActorLocation();
-		EditRotation = SelectedActor->GetActorRotation();
-		EditScale = SelectedActor->GetActorScale3D();
+		EditLocation = CurrentSelectedActor->GetActorLocation();
+		EditRotation = CurrentSelectedActor->GetActorRotation();
+		EditScale = CurrentSelectedActor->GetActorScale3D();
 	}
 }
 
 void UTargetActorTransformWidget::ApplyTransformToActor() const
 {
-	if (SelectedActor)
+	AActor* CurrentSelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
+	if (CurrentSelectedActor)
 	{
-		SelectedActor->SetActorLocation(EditLocation);
-		SelectedActor->SetActorRotation(EditRotation);
-		SelectedActor->SetActorScale3D(EditScale);
+		CurrentSelectedActor->SetActorLocation(EditLocation);
+		CurrentSelectedActor->SetActorRotation(EditRotation);
+		CurrentSelectedActor->SetActorScale3D(EditScale);
 	}
 }

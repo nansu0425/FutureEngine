@@ -223,6 +223,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 	if (Editor->GetSelectedActor() == InActor)
 	{
 		Editor->SelectActor(nullptr);
+		Editor->SelectComponent(nullptr);
 	}
 
 	// Remove

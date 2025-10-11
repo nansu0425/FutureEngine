@@ -46,6 +46,8 @@ UEditor::UEditor()
 	}
 
 	InitializeLayout();
+
+	Gizmo.SetEditor(this);
 }
 
 UEditor::~UEditor()
@@ -344,7 +346,6 @@ void UEditor::ProcessMouseInput()
 	CurrentCamera = &CurrentViewport->Camera;
 
 	AActor* ActorPicked = GetSelectedActor();
-	Gizmo.SetSelectedComponent(Cast<USceneComponent>(GetSelectedComponent()));
 	if (ActorPicked)
 	{
 		// 피킹 전 현재 카메라에 맞는 기즈모 스케일 업데이트
@@ -589,6 +590,6 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnSelected();
-		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 	}
+	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 }
