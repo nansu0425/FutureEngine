@@ -35,6 +35,16 @@ struct FVector
 	 * @brief 두 벡터를 뺀 새로운 벡터를 반환하는 함수
 	 */
 	FVector operator-(const FVector& InOther) const;
+	
+	/**
+	 * @brief 두 벡터를 곱한 새로운 벡터를 반환하는 함수
+	 */
+	FVector operator*(const FVector& InOther) const;
+
+	/**
+	 * @brief 두 벡터를 나눈 새로운 벡터를 반환하는 함수
+	 */
+	FVector operator/(const FVector& InOther) const;
 
 	/**
 	 * @brief 자신의 벡터에서 배율을 곱한 백테를 반환하는 함수

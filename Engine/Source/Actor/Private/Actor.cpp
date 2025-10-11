@@ -113,15 +113,14 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         	if (RootComponent)
         	{
-    			FVector Location, Rotation, Scale;
-		        
-    			FJsonSerializer::ReadVector(InOutHandle, "Location", Location, GetActorLocation());
-    			FJsonSerializer::ReadVector(InOutHandle, "Rotation", Rotation, GetActorRotation());
-    			FJsonSerializer::ReadVector(InOutHandle, "Scale", Scale, GetActorScale3D());
-		        
-    			SetActorLocation(Location);
-    			SetActorRotation(Rotation);
-	    		SetActorScale3D(Scale); 
+    							FVector Location, RotationEuler, Scale;
+    					        
+    			    			FJsonSerializer::ReadVector(InOutHandle, "Location", Location, GetActorLocation());
+    			    			FJsonSerializer::ReadVector(InOutHandle, "Rotation", RotationEuler, GetActorRotation().ToEuler());
+    			    			FJsonSerializer::ReadVector(InOutHandle, "Scale", Scale, GetActorScale3D());
+    					        
+    			    			SetActorLocation(Location);
+    			    			SetActorRotation(FQuaternion::FromEuler(RotationEuler));	    		SetActorScale3D(Scale); 
         	}
         }
     }
@@ -129,7 +128,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     else
     {
 		InOutHandle["Location"] = FJsonSerializer::VectorToJson(GetActorLocation());
-        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(GetActorRotation());
+        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(GetActorRotation().ToEuler());
         InOutHandle["Scale"] = FJsonSerializer::VectorToJson(GetActorScale3D());
 
         JSON ComponentsJson = json::Array(); 
@@ -166,7 +165,7 @@ void AActor::SetActorLocation(const FVector& InLocation) const
 	}
 }
 
-void AActor::SetActorRotation(const FVector& InRotation) const
+void AActor::SetActorRotation(const FQuaternion& InRotation) const
 {
 	if (RootComponent)
 	{
@@ -220,7 +219,7 @@ const FVector& AActor::GetActorLocation() const
 	return RootComponent->GetRelativeLocation();
 }
 
-const FVector& AActor::GetActorRotation() const
+const FQuaternion& AActor::GetActorRotation() const
 {
 	assert(RootComponent);
 	return RootComponent->GetRelativeRotation();

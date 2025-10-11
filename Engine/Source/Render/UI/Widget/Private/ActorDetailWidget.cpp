@@ -266,7 +266,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				DecomposeMatrix(NewLocalMatrix, NewLocation, NewRotation, NewScale);
 
 				DraggedScene->SetRelativeLocation(NewLocation);
-				DraggedScene->SetRelativeRotation(NewRotation);
+				DraggedScene->SetRelativeRotation(FQuaternion::FromEuler(NewRotation));
 				DraggedScene->SetRelativeScale3D(NewScale);
 			}
 			// -----------------------------
@@ -475,10 +475,10 @@ void UActorDetailWidget::RenderTransformEdit()
 		SceneComponent->SetRelativeLocation(ComponentPosition);
 	}
 
-	FVector ComponentRotation = SceneComponent->GetRelativeRotation();
+	FVector ComponentRotation = SceneComponent->GetRelativeRotation().ToEuler();
 	if (ImGui::DragFloat3("Rotation", &ComponentRotation.X, 1.0f))
 	{
-		SceneComponent->SetRelativeRotation(ComponentRotation);
+		SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(ComponentRotation));
 	}
 
 	FVector ComponentScale = SceneComponent->GetRelativeScale3D();

@@ -50,35 +50,28 @@ void UBillBoardComponent::FaceCamera(
     const FVector& FallbackUp
 )
 {
-    // Front 
+    // Front vector points from the billboard to the camera
     FVector Front = (CameraPosition - GetRelativeLocation());
     Front.Normalize();
 
-    // Right 
+    // Right vector is perpendicular to the Front and world's Up vector
     FVector Right = CameraUp.Cross(Front);
     if (Right.Length() <= 0.0001f)
     {
-        // CameraUp Front FallbackUp 
+        // Use a fallback if the camera is looking straight down or up
         Right = FallbackUp.Cross(Front);
     }
     Right.Normalize();
 
-    // Up 
+    // Up vector is perpendicular to the Right and Front vectors
     FVector Up = Front.Cross(Right);
     Up.Normalize();
 
-    float XAngle = atan2(Up.Y, Up.Z);
-    float YAngle = -asin(Up.X);
-    float ZAngle = -atan2(-Right.X, Front.X);
+    // Construct the rotation matrix from the basis vectors
+    FMatrix RotationMatrix = FMatrix(Right, Up, Front);
 
-    // 
-    SetRelativeRotation(
-        FVector(
-            FVector::GetRadianToDegree(XAngle),
-            FVector::GetRadianToDegree(YAngle),
-            FVector::GetRadianToDegree(ZAngle)
-        )
-    );
+    // Convert the rotation matrix to a quaternion and set the relative rotation
+    SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }
 
 const TPair<FName, ID3D11ShaderResourceView*>& UBillBoardComponent::GetSprite() const

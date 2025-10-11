@@ -106,7 +106,7 @@ void UTargetActorTransformWidget::UpdateTransformFromActor()
 	if (SelectedActor)
 	{
 		EditLocation = SelectedActor->GetActorLocation();
-		EditRotation = SelectedActor->GetActorRotation();
+		EditRotation = SelectedActor->GetActorRotation().ToEuler();
 		EditScale = SelectedActor->GetActorScale3D();
 	}
 }
@@ -116,7 +116,7 @@ void UTargetActorTransformWidget::ApplyTransformToActor() const
 	if (SelectedActor)
 	{
 		SelectedActor->SetActorLocation(EditLocation);
-		SelectedActor->SetActorRotation(EditRotation);
+		SelectedActor->SetActorRotation(FQuaternion::FromEuler(EditRotation));
 		SelectedActor->SetActorScale3D(EditScale);
 	}
 }

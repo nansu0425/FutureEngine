@@ -257,6 +257,16 @@ FMatrix FMatrix::GetModelMatrix(const FVector& Location, const FVector& Rotation
 	return  modelMatrix;
 }
 
+FMatrix FMatrix::GetModelMatrix(const FVector& Location, const FQuaternion& Rotation, const FVector& Scale)
+{
+    FMatrix T = TranslationMatrix(Location);
+    FMatrix R = Rotation.ToRotationMatrix();
+    FMatrix S = ScaleMatrix(Scale);
+    FMatrix modelMatrix = S * R * T;
+
+    return  modelMatrix;
+}
+
 FMatrix FMatrix::GetModelMatrixInverse(const FVector& Location, const FVector& Rotation, const FVector& Scale)
 {
 	FMatrix T = TranslationMatrixInverse(Location);
@@ -265,6 +275,17 @@ FMatrix FMatrix::GetModelMatrixInverse(const FVector& Location, const FVector& R
 	FMatrix modelMatrixInverse = T * R * S;
 
 	return modelMatrixInverse;
+}
+
+FMatrix FMatrix::GetModelMatrixInverse(const FVector& Location, const FQuaternion& Rotation, const FVector& Scale)
+{
+    FMatrix T = TranslationMatrixInverse(Location);
+    // The inverse of a rotation matrix is its transpose.
+    FMatrix R = Rotation.ToRotationMatrix().Transpose();
+    FMatrix S = ScaleMatrixInverse(Scale);
+    FMatrix modelMatrixInverse = T * R * S;
+
+    return modelMatrixInverse;
 }
 
 FVector4 FMatrix::VectorMultiply(const FVector4& V, const FMatrix& M)

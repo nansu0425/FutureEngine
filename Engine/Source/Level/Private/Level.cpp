@@ -165,7 +165,7 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 		// 실패하면 DynamicPrimitives 목록에서 찾아서 제거
 		if (auto It = std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), InComponent); It != DynamicPrimitives.end())
 		{
-			*It = std::move(DynamicPrimitives.back());
+			*It = DynamicPrimitives.back();
 			DynamicPrimitives.pop_back();
 		}
 	}
@@ -182,7 +182,10 @@ void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
 
 		if (StaticOctree->Insert(PrimitiveComponent) == false)
 		{
-			DynamicPrimitives.push_back(PrimitiveComponent);
+			if (std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), PrimitiveComponent) == DynamicPrimitives.end())
+			{
+				DynamicPrimitives.push_back(PrimitiveComponent);
+			}
 		}
 	}
 }
