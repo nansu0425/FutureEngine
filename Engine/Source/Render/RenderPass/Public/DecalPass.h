@@ -27,6 +27,9 @@ public:
     void Release() override;
 
 private:
+    // --- Octree Optimization ---
+    void Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives);
+
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;

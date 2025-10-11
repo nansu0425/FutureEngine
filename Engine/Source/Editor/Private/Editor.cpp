@@ -183,12 +183,22 @@ void UEditor::InitializeLayout()
 
 void UEditor::UpdateBatchLines()
 {
+	uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
+
+	if (ShowFlags & EEngineShowFlags::SF_Octree)
+	{
+		BatchLines.UpdateOctreeVertices(GWorld->GetLevel()->GetStaticOctree());
+	}
+	else
+	{
+		// If we are not showing the octree, clear the lines, so they don't persist
+		BatchLines.ClearOctreeLines();
+	}
+
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
-			uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
-
 			if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 			{
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)

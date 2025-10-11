@@ -33,15 +33,17 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	if (bInIsLoading)
 	{
 		FJsonSerializer::ReadVector(InOutHandle, "Location", RelativeLocation, FVector::ZeroVector());
-		FJsonSerializer::ReadVector(InOutHandle, "Rotation", RelativeRotation, FVector::ZeroVector());
+		FVector RotationEuler;
+		FJsonSerializer::ReadVector(InOutHandle, "Rotation", RotationEuler, FVector::ZeroVector());
+		RelativeRotation = FQuaternion::FromEuler(RotationEuler);
+
 		FJsonSerializer::ReadVector(InOutHandle, "Scale", RelativeScale3D, FVector::OneVector());
-		MarkAsDirty();
 	}
 	// 저장
 	else
 	{
 		InOutHandle["Location"] = FJsonSerializer::VectorToJson(RelativeLocation);
-		InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(RelativeRotation);
+		InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(RelativeRotation.ToEuler());
 		InOutHandle["Scale"] = FJsonSerializer::VectorToJson(RelativeScale3D);
 	}
 }
@@ -49,6 +51,11 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 void USceneComponent::AttachToComponent(USceneComponent* Parent)
 {
 	if (!Parent || Parent == this || GetOwner() != Parent->GetOwner()) { return; }
+
+	FVector OldWorldLocation = GetWorldLocation();
+	FQuaternion OldWorldRotation = GetWorldRotationAsQuaternion();
+	FVector OldWorldScale3D = GetWorldScale3D();
+	
 	if (AttachParent)
 	{
 		AttachParent->DetachChild(this);
@@ -56,6 +63,21 @@ void USceneComponent::AttachToComponent(USceneComponent* Parent)
 
 	AttachParent = Parent;
 	Parent->AttachChildren.push_back(this);
+
+	FVector NewRelativeScale = OldWorldScale3D / Parent->GetWorldScale3D();
+
+	// 회전 계산
+	FQuaternion ParentInverseRot = Parent->GetWorldRotationAsQuaternion().Inverse();
+	FQuaternion NewRelativeRotation = ParentInverseRot * OldWorldRotation;
+
+	// 위치 계산
+	FVector WorldOffset = OldWorldLocation - Parent->GetWorldLocation();
+	FVector RotatedOffset = ParentInverseRot.RotateVector(WorldOffset);
+	FVector NewRelativeLocation = RotatedOffset / Parent->GetWorldScale3D();
+
+	SetRelativeLocation(NewRelativeLocation);
+	SetRelativeRotation(NewRelativeRotation);
+	SetRelativeScale3D(NewRelativeScale);
 
 	MarkAsDirty();
 }
@@ -117,7 +139,7 @@ void USceneComponent::SetRelativeLocation(const FVector& Location)
 	}
 }
 
-void USceneComponent::SetRelativeRotation(const FVector& Rotation)
+void USceneComponent::SetRelativeRotation(const FQuaternion& Rotation)
 {
 	RelativeRotation = Rotation;
 	MarkAsDirty();
@@ -143,7 +165,7 @@ const FMatrix& USceneComponent::GetWorldTransformMatrix() const
 {
 	if (bIsTransformDirty)
 	{
-		WorldTransformMatrix = FMatrix::GetModelMatrix(RelativeLocation, FVector::GetDegreeToRadian(RelativeRotation), RelativeScale3D);
+		WorldTransformMatrix = FMatrix::GetModelMatrix(RelativeLocation, RelativeRotation, RelativeScale3D);
 
 		if (AttachParent)
 		{
@@ -167,7 +189,7 @@ const FMatrix& USceneComponent::GetWorldTransformMatrixInverse() const
 			WorldTransformMatrixInverse *= AttachParent->GetWorldTransformMatrixInverse();
 		}
 
-		WorldTransformMatrixInverse *= FMatrix::GetModelMatrixInverse(RelativeLocation, FVector::GetDegreeToRadian(RelativeRotation), RelativeScale3D);
+		WorldTransformMatrixInverse *= FMatrix::GetModelMatrixInverse(RelativeLocation, RelativeRotation, RelativeScale3D);
 
 		bIsTransformDirtyInverse = false;
 	}
@@ -180,9 +202,18 @@ FVector USceneComponent::GetWorldLocation() const
     return GetWorldTransformMatrix().GetLocation();
 }
 
+FQuaternion USceneComponent::GetWorldRotationAsQuaternion() const
+{
+    if (AttachParent)
+    {
+        return AttachParent->GetWorldRotationAsQuaternion() * RelativeRotation;
+    }
+    return RelativeRotation;
+}
+
 FVector USceneComponent::GetWorldRotation() const
 {
-    return GetWorldTransformMatrix().GetRotation();
+    return GetWorldRotationAsQuaternion().ToEuler();
 }
 
 FVector USceneComponent::GetWorldScale3D() const
@@ -205,14 +236,15 @@ void USceneComponent::SetWorldLocation(const FVector& NewLocation)
 
 void USceneComponent::SetWorldRotation(const FVector& NewRotation)
 {
+    FQuaternion NewWorldRotationQuat = FQuaternion::FromEuler(NewRotation);
     if (AttachParent)
     {
-        const FVector ParentWorldRotation = AttachParent->GetWorldRotation();
-        SetRelativeRotation(NewRotation - ParentWorldRotation);
+        FQuaternion ParentWorldRotationQuat = AttachParent->GetWorldRotationAsQuaternion();
+        SetRelativeRotation(NewWorldRotationQuat * ParentWorldRotationQuat.Inverse());
     }
     else
     {
-        SetRelativeRotation(NewRotation);
+        SetRelativeRotation(NewWorldRotationQuat);
     }
 }
 

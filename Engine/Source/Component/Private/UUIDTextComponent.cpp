@@ -26,27 +26,17 @@ void UUUIDTextComponent::OnDeselected()
 	SetVisibility(false);
 }
 
-void UUUIDTextComponent::UpdateRotationMatrix(const FVector& InCameraLocation)
-{
+void UUUIDTextComponent::UpdateRotationMatrix(const FVector& InCameraForward)
+{	
+	FVector Forward = InCameraForward;
+	FVector Right = Forward.Cross(FVector::UpVector()); Right.Normalize();
+	FVector Up = Right.Cross(Forward); Up.Normalize();
+    
+	// Construct the rotation matrix from the basis vectors
+	RTMatrix = FMatrix(Forward, Right, Up);
+	
 	const FVector& OwnerActorLocation = GetOwner()->GetActorLocation();
-
-	FVector ToCamera = InCameraLocation - OwnerActorLocation;
-	ToCamera.Normalize();
-
-	const FVector4 worldUp4 = FVector4(0, 0, 1, 1);
-	const FVector worldUp = { worldUp4.X, worldUp4.Y, worldUp4.Z };
-	FVector Right = worldUp.Cross(ToCamera);
-	Right.Normalize();
-	FVector Up = ToCamera.Cross(Right);
-	Up.Normalize();
-
-	RTMatrix = FMatrix(FVector4(0, 1, 0, 1), worldUp4, FVector4(1,0,0,1));
-	RTMatrix = FMatrix(ToCamera, Right, Up);
-	//RTMatrix = FMatrix::Identity();
-	//UE_LOG("%.2f, %.2f, %.2f", ToCamera.X, ToCamera.Y, ToCamera.Z);
-
 	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, ZOffset);
-	//UE_LOG("%.2f, %.2f, %.2f", Translation.X, Translation.Y, Translation.Z);
 	RTMatrix *= FMatrix::TranslationMatrix(Translation);
 }
 

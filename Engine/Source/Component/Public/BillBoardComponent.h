@@ -12,11 +12,7 @@ public:
 	UBillBoardComponent();
 	~UBillBoardComponent();
 
-	void FaceCamera(
-		const FVector& CameraPosition,
-		const FVector& CameraUp,
-		const FVector& FallbackUp
-	);
+	void FaceCamera(const FVector& CameraForward);
 
 	const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
 	void SetSprite(const TPair<FName, ID3D11ShaderResourceView*>& Sprite);

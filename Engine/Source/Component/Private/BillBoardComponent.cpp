@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Component/Public/BillBoardComponent.h""
+#include "Component/Public/BillBoardComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Physics/Public/AABB.h"
@@ -44,41 +44,17 @@ UBillBoardComponent::~UBillBoardComponent()
         Sampler->Release();
 }
 
-void UBillBoardComponent::FaceCamera(
-    const FVector& CameraPosition,
-    const FVector& CameraUp,
-    const FVector& FallbackUp
-)
+void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {
-    // Front 
-    FVector Front = (CameraPosition - GetRelativeLocation());
-    Front.Normalize();
-
-    // Right 
-    FVector Right = CameraUp.Cross(Front);
-    if (Right.Length() <= 0.0001f)
-    {
-        // CameraUp Front FallbackUp 
-        Right = FallbackUp.Cross(Front);
-    }
-    Right.Normalize();
-
-    // Up 
-    FVector Up = Front.Cross(Right);
-    Up.Normalize();
-
-    float XAngle = atan2(Up.Y, Up.Z);
-    float YAngle = -asin(Up.X);
-    float ZAngle = -atan2(-Right.X, Front.X);
-
-    // 
-    SetRelativeRotation(
-        FVector(
-            FVector::GetRadianToDegree(XAngle),
-            FVector::GetRadianToDegree(YAngle),
-            FVector::GetRadianToDegree(ZAngle)
-        )
-    );
+    FVector Forward = CameraForward;
+    FVector Right = Forward.Cross(FVector::UpVector()); Right.Normalize();
+    FVector Up = Right.Cross(Forward); Up.Normalize();
+    
+    // Construct the rotation matrix from the basis vectors
+    FMatrix RotationMatrix = FMatrix(Forward, Right, Up);
+    
+    // Convert the rotation matrix to a quaternion and set the relative rotation
+    SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }
 
 const TPair<FName, ID3D11ShaderResourceView*>& UBillBoardComponent::GetSprite() const
