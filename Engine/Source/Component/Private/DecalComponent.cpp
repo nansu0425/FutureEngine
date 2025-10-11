@@ -40,41 +40,41 @@ UClass* UDecalComponent::GetSpecificWidgetClass() const
 void UDecalComponent::SetPerspective(bool bEnable)
 {
     bIsPerspective = bEnable;
-    UpdateProjectionMatrix();
     UpdateOBB();
+    UpdateProjectionMatrix();
+
 }
 
 void UDecalComponent::UpdateProjectionMatrix()
 {
-
     FOBB* Fobb = static_cast<FOBB*>(BoundingBox);
-
-
 
     float W = Fobb->Extents.X;
     float H = Fobb->Extents.Z;
 
-    float FoV = 2 * FVector::GetRadianToDegree(atan(H/W));
+    float FoV = 2 * atan(H / W);
     float AspectRatio = Fobb->Extents.Z / Fobb->Extents.Y;
-    float NearClip = 0.0f;
-    float FarClip = Fobb->Extents.X;
+    float NearClip = 0.1f;
+    float FarClip = Fobb->Extents.X * 2;
+
+    float F =  W / H ;
 
     if (bIsPerspective)
     {
         // Manually calculate the perspective projection matrix
-        
+
         // Initialize with a clear state
-        ProjectionMatrix = FMatrix::Identity(); 
+        ProjectionMatrix = FMatrix::Identity();
 
         // | f/aspect   0        0         0 |
         // |    0       f        0         0 |
         // |    0       0   zf/(zf-zn)     1 |
         // |    0       0  -zn*zf/(zf-zn)  0 |
-        ProjectionMatrix.Data[0][0] = FoV / AspectRatio;
-        ProjectionMatrix.Data[1][1] = FoV;
-        ProjectionMatrix.Data[2][2] = FarClip / (FarClip - NearClip);
-        ProjectionMatrix.Data[2][3] = 1.0f;
-        ProjectionMatrix.Data[3][2] = (-NearClip * FarClip) / (FarClip - NearClip);
+        ProjectionMatrix.Data[1][1] = F / AspectRatio;
+        ProjectionMatrix.Data[2][2] = F;
+        ProjectionMatrix.Data[0][0] = FarClip / (FarClip - NearClip);
+        ProjectionMatrix.Data[0][3] = -1.0f;
+        ProjectionMatrix.Data[3][0] = (-NearClip * FarClip) / (FarClip - NearClip);
         ProjectionMatrix.Data[3][3] = 0.0f;
     }
     else
