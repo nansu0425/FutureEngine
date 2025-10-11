@@ -15,6 +15,9 @@ struct FOBB : public IBoundingVolume
     FVector Extents;
     FMatrix ScaleRotation;
 
+    // 정규직교 회전행렬
+    FMatrix Rotation;
+
     
     bool RaycastHit() const override { return false;}
     void Update(const FMatrix& WorldMatrix) override;

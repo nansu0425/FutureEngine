@@ -3,6 +3,7 @@
 #include "Physics/Public/OBB.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
+#include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 
 IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
@@ -16,4 +17,20 @@ UDecalComponent::~UDecalComponent()
 {
     SafeDelete(BoundingBox);
     SafeDelete(DecalTexture);
+}
+
+void UDecalComponent::SetTexture(UTexture* InTexture)
+{
+	if (DecalTexture == InTexture)
+	{
+		return;
+	}
+
+	SafeDelete(DecalTexture);
+	DecalTexture = InTexture;
+}
+
+UClass* UDecalComponent::GetSpecificWidgetClass() const
+{
+    return UDecalTextureSelectionWidget::StaticClass();
 }

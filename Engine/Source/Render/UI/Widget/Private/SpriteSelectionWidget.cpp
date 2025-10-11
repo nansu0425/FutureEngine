@@ -31,7 +31,7 @@ void USpriteSelectionWidget::Update()
 		AActor* NewSelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
 
 		// Update Current Selected Actor
-		if (SelectedActor != NewSelectedActor)
+		if (NewSelectedActor && SelectedActor != NewSelectedActor)
 		{
 			SelectedActor = NewSelectedActor;
 

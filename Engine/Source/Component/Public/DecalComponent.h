@@ -11,8 +11,11 @@ public:
     UDecalComponent();
     ~UDecalComponent();
 
-    void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
+    void SetTexture(class UTexture* InTexture);
     class UTexture* GetTexture() const { return DecalTexture; }
+
+    const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
+    UClass* GetSpecificWidgetClass() const override;
 
 protected:
     class UTexture* DecalTexture = nullptr;

@@ -2,6 +2,7 @@
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/UELogParser.h"
+#include "Utility/Public/ScopeCycleCounter.h"
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWidget, UWidget)
 
@@ -503,6 +504,21 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 	{
 		StatOverlay.ShowAll(true);
 		AddLog(ELogType::Success, "All overlays enabled");
+
+		AddLog(ELogType::System, "--- Time Profile Stats ---");
+		const TArray<FString> ProfileKeys = FScopeCycleCounter::GetTimeProfileKeys();
+		if (ProfileKeys.empty())
+		{
+			AddLog(ELogType::Info, "No time profile data available.");
+		}
+		else
+		{
+			for (const FString& Key : ProfileKeys)
+			{
+				const FTimeProfile& Profile = FScopeCycleCounter::GetTimeProfile(Key);
+				AddLog(ELogType::Info, "  %s: %.4f ms", Key.c_str(), Profile.Milliseconds);
+			}
+		}
 	}
 	else if (StatCommand == "none")
 	{
