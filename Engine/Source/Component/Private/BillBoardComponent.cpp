@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Component/Public/BillBoardComponent.h""
+#include "Component/Public/BillBoardComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Physics/Public/AABB.h"
@@ -44,32 +44,15 @@ UBillBoardComponent::~UBillBoardComponent()
         Sampler->Release();
 }
 
-void UBillBoardComponent::FaceCamera(
-    const FVector& CameraPosition,
-    const FVector& CameraUp,
-    const FVector& FallbackUp
-)
+void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {
-    // Front vector points from the billboard to the camera
-    FVector Front = (CameraPosition - GetRelativeLocation());
-    Front.Normalize();
-
-    // Right vector is perpendicular to the Front and world's Up vector
-    FVector Right = CameraUp.Cross(Front);
-    if (Right.Length() <= 0.0001f)
-    {
-        // Use a fallback if the camera is looking straight down or up
-        Right = FallbackUp.Cross(Front);
-    }
-    Right.Normalize();
-
-    // Up vector is perpendicular to the Right and Front vectors
-    FVector Up = Front.Cross(Right);
-    Up.Normalize();
-
+    FVector Forward = CameraForward;
+    FVector Right = Forward.Cross(FVector::UpVector()); Right.Normalize();
+    FVector Up = Right.Cross(Forward); Up.Normalize();
+    
     // Construct the rotation matrix from the basis vectors
-    FMatrix RotationMatrix = FMatrix(Right, Up, Front);
-
+    FMatrix RotationMatrix = FMatrix(Forward, Right, Up);
+    
     // Convert the rotation matrix to a quaternion and set the relative rotation
     SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }

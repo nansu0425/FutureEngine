@@ -23,7 +23,7 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) return;
     for (UBillBoardComponent* BillBoardComp : Context.BillBoards)
     {
-        BillBoardComp->FaceCamera(Context.CurrentCamera->GetLocation(), Context.CurrentCamera->GetUp(), Context.CurrentCamera->GetRight());
+        BillBoardComp->FaceCamera(Context.CurrentCamera->GetForward());
 
         Pipeline->SetVertexBuffer(BillBoardComp->GetVertexBuffer(), sizeof(FNormalVertex));
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
