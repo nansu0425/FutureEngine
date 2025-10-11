@@ -256,6 +256,11 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 
 void ULevel::UpdateOctree()
 {
+	if (!StaticOctree)
+	{
+		return;
+	}
+	
 	uint32 Count = 0;
 
 	while (!DynamicPrimitiveQueue.empty() && Count < MAX_OBJECTS_TO_INSERT_PER_FRAME)
@@ -288,6 +293,11 @@ void ULevel::UpdateOctree()
 
 void ULevel::OnPrimitiveUpdated(UPrimitiveComponent* InComponent)
 {
+	if (!InComponent)
+	{
+		return;
+	}
+
 	float GameTime = UTimeManager::GetInstance().GetGameTime();
 	if (auto It = DynamicPrimitiveMap.find(InComponent); It != DynamicPrimitiveMap.end())
 	{
@@ -303,6 +313,11 @@ void ULevel::OnPrimitiveUpdated(UPrimitiveComponent* InComponent)
 
 void ULevel::OnPrimitiveUnregistered(UPrimitiveComponent* InComponent)
 {
+	if (!InComponent)
+	{
+		return;
+	}
+
 	if (auto It = DynamicPrimitiveMap.find(InComponent); It != DynamicPrimitiveMap.end())
 	{
 		DynamicPrimitiveMap.erase(It);
