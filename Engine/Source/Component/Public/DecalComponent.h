@@ -135,6 +135,4 @@ private:
 
     /** @brief True if the fade process is currently paused. */
     bool bIsFadePaused = false;
-
-    class UTexture* DecalTexture = nullptr;
 };
