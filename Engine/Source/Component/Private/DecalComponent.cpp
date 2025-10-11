@@ -14,7 +14,7 @@ UDecalComponent::UDecalComponent()
 {
     BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
     SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("Texture")));
-    SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("FadeTexture")));
+    SetFadeTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/PerlinNoiseFadeTexture.png"), FName("FadeTexture")));
 }
 
 UDecalComponent::~UDecalComponent()
@@ -91,7 +91,7 @@ void UDecalComponent::BeginFadeIn()
 	}
 	else
 	{
-		FadeElapsedTime = 1.0f;;
+		FadeProgress = 1.0f;;
 	}
 	
 	bIsFadingIn = true;

@@ -124,33 +124,90 @@ void UDecalTextureSelectionWidget::RenderWidget()
             DecalComponent->StopFade();
         }
 
-        float fadeProgress = DecalComponent->GetFadeProgress();
-        ImGui::ProgressBar(1.0f - fadeProgress, ImVec2(-1.0f, 0.0f));
+        float FadeProgress = DecalComponent->GetFadeProgress();
+        ImGui::ProgressBar(1.0f - FadeProgress, ImVec2(-1.0f, 0.0f));
+
+        ImGui::Separator();
+
+        // Fade Texture Selection
+        const float PreviewSize = 72.0f;
+        ID3D11ShaderResourceView* FadeSRV = nullptr;
+        UTexture* CurrentFadeTexture = DecalComponent->GetFadeTexture();
+        if (CurrentFadeTexture)
+        {
+            FadeSRV = UAssetManager::GetInstance().GetTexture(CurrentFadeTexture->GetFilePath()).Get();
+        }
+
+        if (FadeSRV)
+        {
+            ImGui::Image((ImTextureID)FadeSRV, ImVec2(PreviewSize, PreviewSize), ImVec2(0, 0), ImVec2(1, 1));
+        }
+        else
+        {
+            ImGui::Dummy(ImVec2(PreviewSize, PreviewSize));
+        }
+        ImGui::SameLine();
+
+        FString CurrentFadeTexturePath;
+        if (CurrentFadeTexture)
+        {
+            CurrentFadeTexturePath = CurrentFadeTexture->GetFilePath().ToString();
+        }
+
+        FString FadePreview = "<None>";
+        if (!CurrentFadeTexturePath.empty())
+        {
+            FadePreview = std::filesystem::path(CurrentFadeTexturePath).stem().string();
+        }
+
+        if (ImGui::BeginCombo("Fade Texture##FadeCombo", FadePreview.c_str()))
+        {
+            const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+            for (auto const& [Path, TextureView] : TextureCache)
+            {
+                const FString PathStr = Path.ToString();
+                const FString DisplayName = std::filesystem::path(PathStr).stem().string();
+                bool bSelected = (PathStr == CurrentFadeTexturePath);
+                if (ImGui::Selectable(DisplayName.c_str(), bSelected))
+                {
+                    if (!bSelected)
+                    {
+                        UTexture* NewFadeTexture = UAssetManager::GetInstance().CreateTexture(Path);
+                        DecalComponent->SetFadeTexture(NewFadeTexture);
+                    }
+                }
+                if (bSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
 
         ImGui::PushItemWidth(120.0f);
 
-        float fadeInStartDelay = DecalComponent->GetFadeInStartDelay();
-        if (ImGui::InputFloat("Fade In Start Delay", &fadeInStartDelay))
+        float FadeInStartDelay = DecalComponent->GetFadeInStartDelay();
+        if (ImGui::InputFloat("Fade In Start Delay", &FadeInStartDelay))
         {
-            DecalComponent->SetFadeInStartDelay(fadeInStartDelay);
+            DecalComponent->SetFadeInStartDelay(FadeInStartDelay);
         }
 
-        float fadeInDuration = DecalComponent->GetFadeInDuration();
-        if (ImGui::InputFloat("Fade In Duration", &fadeInDuration))
+        float FadeInDuration = DecalComponent->GetFadeInDuration();
+        if (ImGui::InputFloat("Fade In Duration", &FadeInDuration))
         {
-            DecalComponent->SetFadeInDuration(fadeInDuration);
+            DecalComponent->SetFadeInDuration(FadeInDuration);
         }
 
-        float fadeStartDelay = DecalComponent->GetFadeStartDelay();
-        if (ImGui::InputFloat("Fade Out Start Delay", &fadeStartDelay))
+        float FadeStartDelay = DecalComponent->GetFadeStartDelay();
+        if (ImGui::InputFloat("Fade Out Start Delay", &FadeStartDelay))
         {
-            DecalComponent->SetFadeStartDelay(fadeStartDelay);
+            DecalComponent->SetFadeStartDelay(FadeStartDelay);
         }
 
-        float fadeDuration = DecalComponent->GetFadeDuration();
-        if (ImGui::InputFloat("Fade Out Duration", &fadeDuration))
+        float FadeDuration = DecalComponent->GetFadeDuration();
+        if (ImGui::InputFloat("Fade Out Duration", &FadeDuration))
         {
-            DecalComponent->SetFadeDuration(fadeDuration);
+            DecalComponent->SetFadeDuration(FadeDuration);
         }
         ImGui::PopItemWidth();
 
