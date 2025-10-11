@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Component/Public/TextComponent.h"
-
 #include "Editor/Public/Editor.h"
-#include "Actor/Public/Actor.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/UI/Widget/Public/SetTextComponentWidget.h"
 
@@ -15,8 +13,6 @@ IMPLEMENT_CLASS(UTextComponent, UPrimitiveComponent)
 UTextComponent::UTextComponent()
 {
 	Type = EPrimitiveType::Text;
-
-	UAssetManager& ResourceManager = UAssetManager::GetInstance();
 
 	Vertices = &PickingAreaVertex;
 	NumVertices = PickingAreaVertex.size();

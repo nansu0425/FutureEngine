@@ -1,11 +1,13 @@
 #include "pch.h"
-#include "Render/RenderPass/Public/DecalPass.h"
-#include "Render/Renderer/Public/Pipeline.h"
-#include "Render/Renderer/Public/RenderResourceFactory.h"
-#include "Render/RenderPass/Public/RenderingContext.h"
 #include "Component/Public/DecalComponent.h"
+#include "Global/Octree.h"
+#include "Level/Public/Level.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/OBB.h"
+#include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/RenderingContext.h"
+#include "Render/Renderer/Public/Pipeline.h"
+#include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include <limits>
@@ -13,6 +15,7 @@
 #include <emmintrin.h> // SSE2
 #include <smmintrin.h> // SSE4.1
 
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
 
 namespace
@@ -153,13 +156,18 @@ void FDecalPass::Execute(FRenderingContext& Context)
 	TIME_PROFILE(DecalPass)
 
     if (Context.Decals.empty()) { return; }
-
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
+    
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
+    // --- Decals Stats ---
+    uint32 RenderedDecal = 0;
+    uint32 CollidedComps = 0;
+    
     // --- Render Decals ---
     for (UDecalComponent* Decal : Context.Decals)
     {
@@ -167,7 +175,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         const IBoundingVolume* DecalBV = Decal->GetBoundingBox();
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
-
+        RenderedDecal++;
+        
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
         Decal->UpdateProjectionMatrix();
@@ -195,12 +204,24 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
 
-        //UE_LOG("%d", Context.DefaultPrimitives.size());
-        for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
+        TArray<UPrimitiveComponent*> Primitives;
+
+        // --- Enable Octree Optimization --- 
+        ULevel* CurrentLevel = GWorld->GetLevel();
+
+        Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
+
+        UE_LOG("Primitive Count: %d", Context.DefaultPrimitives.size());
+        UE_LOG("Detected Primitive Count: %d", Primitives.size());
+
+        // --- Disable Octree Optimization --- 
+        // Primitives = Context.DefaultPrimitives;
+
+        for (UPrimitiveComponent* Prim : Primitives)
         {
-        	if (!Prim || !Prim->IsVisible()) { continue; }
-        
-        	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
+            if (!Prim || !Prim->IsVisible()) { continue; }
+
+                    	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
         
         	FVector WorldMin, WorldMax;
@@ -211,12 +232,13 @@ void FDecalPass::Execute(FRenderingContext& Context)
         	{
         		continue;
         	}
-        	
-        	//const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
-        	
-        	FModelConstants ModelConstants{Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose()};
-        	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);            Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
-            
+
+            //const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
+
+            FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
+            FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
+            Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
+
             Pipeline->SetVertexBuffer(Prim->GetVertexBuffer(), sizeof(FNormalVertex));
             if (Prim->GetIndexBuffer() && Prim->GetIndicesData())
             {
@@ -229,10 +251,34 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
     }
+
+    UStatOverlay::GetInstance().RecordDecalStats(RenderedDecal, CollidedComps);
 }
 
 void FDecalPass::Release()
 {
     SafeRelease(ConstantBufferPrim);
     SafeRelease(ConstantBufferDecal);
+}
+
+void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives)
+{
+    /** @todo Use polymorphism to gracefully handle collsion between decal and octree. For now, use explicit casting. */
+    auto BoundingBox = static_cast<const FOBB*>(InDecal->GetBoundingBox());
+
+    if (!BoundingBox->Intersects(InOctree->GetBoundingBox()))
+    {
+        return;
+    }
+
+    if (InOctree->IsLeafNode())
+    {
+        InOctree->GetAllPrimitives(OutPrimitives);
+        return;
+    }
+
+    for (auto Child : InOctree->GetChildren())
+    {
+        Query(Child, InDecal, OutPrimitives);
+    }
 }

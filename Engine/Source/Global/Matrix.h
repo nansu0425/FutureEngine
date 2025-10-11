@@ -1,6 +1,7 @@
 #pragma once
 struct FVector;
 struct FVector4;
+struct FQuaternion;
 
 struct FMatrix
 {
@@ -98,10 +99,12 @@ struct FMatrix
 	*/
 	static FMatrix RotationZ(float Radian);
 
-	static FMatrix GetModelMatrix(const FVector& Location, const FVector& Rotation, const FVector& Scale);
-
-	static FMatrix GetModelMatrixInverse(const FVector& Location, const FVector& Rotation, const FVector& Scale);
-
+	    static FMatrix GetModelMatrix(const FVector& Location, const FVector& Rotation, const FVector& Scale);
+	
+	    static FMatrix GetModelMatrix(const FVector& Location, const FQuaternion& Rotation, const FVector& Scale);
+	    static FMatrix GetModelMatrixInverse(const FVector& Location, const FVector& Rotation, const FVector& Scale);
+	
+		static FMatrix GetModelMatrixInverse(const FVector& Location, const FQuaternion& Rotation, const FVector& Scale);
 	static FVector4 VectorMultiply(const FVector4&, const FMatrix&);
 
 	static FVector VectorMultiply(const FVector& v, const FMatrix& m);

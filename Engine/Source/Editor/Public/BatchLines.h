@@ -6,6 +6,7 @@
 #include "Editor/Public/BoundingBoxLines.h"
 
 struct FVertex;
+class FOctree;
 
 class UBatchLines : UObject
 {
@@ -16,6 +17,7 @@ public:
 	// 종류별 Vertices 업데이트
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
+	void UpdateOctreeVertices(const FOctree* InOctree);
 
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
@@ -35,6 +37,12 @@ public:
 		UpdateBoundingBoxVertices(BoundingBoxLines.GetDisabledBoundingBox());
 	}
 
+	void ClearOctreeLines()
+	{
+		OctreeLines.clear();
+		bChangedVertices = true;
+	}
+
 	//void UpdateConstant(FBoundingBox boundingBoxInfo);
 
 	//void Update();
@@ -43,6 +51,8 @@ public:
 
 private:
 	void SetIndices();
+
+	void TraverseOctree(const FOctree* InNode);
 
 	/*void AddWorldGridVerticesAndConstData();
 	void AddBoundingBoxVertices();*/
@@ -56,6 +66,7 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
 };

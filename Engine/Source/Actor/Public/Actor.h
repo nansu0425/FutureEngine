@@ -23,7 +23,7 @@ public:
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 	void SetActorLocation(const FVector& InLocation) const;
-	void SetActorRotation(const FVector& InRotation) const;
+	void SetActorRotation(const FQuaternion& InRotation) const;
 	void SetActorScale3D(const FVector& InScale) const;
 	void SetUniformScale(bool IsUniform);
 	virtual UClass* GetDefaultRootComponent();
@@ -42,7 +42,7 @@ public:
 	void SetRootComponent(USceneComponent* InOwnedComponents) { RootComponent = InOwnedComponents; }
 
 	const FVector& GetActorLocation() const;
-	const FVector& GetActorRotation() const;
+	const FQuaternion& GetActorRotation() const;
 	const FVector& GetActorScale3D() const;
 
 	template<class T>

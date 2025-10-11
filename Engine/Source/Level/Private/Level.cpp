@@ -35,7 +35,6 @@ ULevel::~ULevel()
 
 	// 모든 액터 객체가 삭제되었으므로, 포인터를 담고 있던 컨테이너들을 비웁니다.
 	SafeDelete(StaticOctree);
-	DynamicPrimitives.clear();
 }
 
 void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
@@ -139,15 +138,16 @@ void ULevel::RegisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 		return;
 	}
 
-	// StaticOctree에 먼저 삽입 시도
-	if (StaticOctree->Insert(InComponent) == false)
+	if (!StaticOctree)
 	{
-		// 실패하면 DynamicPrimitives 목록에 추가
-		// 중복 추가를 방지하기 위해 이미 있는지 확인
-		if (std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), InComponent) == DynamicPrimitives.end())
-		{
-			DynamicPrimitives.push_back(InComponent);
-		}
+		return;
+	}
+
+	// StaticOctree에 먼저 삽입 시도
+	if (!(StaticOctree->Insert(InComponent)))
+	{
+		// 실패하면 DynamicPrimitiveQueue 목록에 추가
+		OnPrimitiveUpdated(InComponent);
 	}
 
 	UE_LOG("Level: '%s' 컴포넌트를 씬에 등록했습니다.", InComponent->GetName().ToString().data());
@@ -159,56 +159,48 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	{
 		return;
 	}
-	// StaticOctree에서 제거 시도
-	if (StaticOctree->Remove(InComponent) == false)
+
+	if (!StaticOctree)
 	{
-		// 실패하면 DynamicPrimitives 목록에서 찾아서 제거
-		if (auto It = std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), InComponent); It != DynamicPrimitives.end())
-		{
-			*It = std::move(DynamicPrimitives.back());
-			DynamicPrimitives.pop_back();
-		}
+		return;
+	}
+	
+	// StaticOctree에서 제거 시도
+	if (!(StaticOctree->Remove(InComponent)))
+	{
+		// 실패하면 DynamicPrimitiveMap 목록에서 찾아서 제거
+		OnPrimitiveUpdated(InComponent);
 	}
 }
 
 void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
 {
-	if (!Actor) return;
+	if (!Actor)
+	{
+		return;
+	}
 
 	for (auto& Component : Actor->GetOwnedComponents())
 	{
 		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		if (!PrimitiveComponent) { continue; }
-
-		if (StaticOctree->Insert(PrimitiveComponent) == false)
-		{
-			DynamicPrimitives.push_back(PrimitiveComponent);
-		}
+		OnPrimitiveUpdated(PrimitiveComponent);
 	}
 }
 
 // Level에서 Actor 제거하는 함수
 bool ULevel::DestroyActor(AActor* InActor)
 {
-	if (!InActor) return false;
+	if (!InActor)
+	{
+		return false;
+	}
 
 	// 컴포넌트들을 옥트리에서 제거
 	for (auto& Component : InActor->GetOwnedComponents())
 	{
 		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		if (!PrimitiveComponent) { continue; }
-
-		if (StaticOctree)
-		{
-			if (!StaticOctree->Remove(PrimitiveComponent))
-			{
-				if (auto It = std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), PrimitiveComponent); It != DynamicPrimitives.end())
-				{
-					*It = std::move(DynamicPrimitives.back());
-					DynamicPrimitives.pop_back();
-				}
-			}
-		}
+		
+		UnregisterPrimitiveComponent(PrimitiveComponent);
 	}
 
 	// LevelActors 리스트에서 제거
@@ -223,6 +215,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 	if (Editor->GetSelectedActor() == InActor)
 	{
 		Editor->SelectActor(nullptr);
+		Editor->SelectComponent(nullptr);
 	}
 
 	// Remove
@@ -232,24 +225,10 @@ bool ULevel::DestroyActor(AActor* InActor)
 	return true;
 }
 
-void ULevel::UpdatePrimitiveInOctree(UPrimitiveComponent* Primitive)
+void ULevel::UpdatePrimitiveInOctree(UPrimitiveComponent* InComponent)
 {
-	if (!Primitive) { return; }
-
-	// 1. StaticOctree에서 제거 먼저 시도
-	if (StaticOctree->Remove(Primitive))
-	{
-		// 2. DynamicPrimitives로 등록
-		DynamicPrimitives.push_back(Primitive);
-	}
-	else
-	{
-		// 3. Static에 없으면 그냥 Dynamic에 넣어줌 (중복 방지 체크 필요)
-		if (std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), Primitive) == DynamicPrimitives.end())
-		{
-			DynamicPrimitives.push_back(Primitive);
-		}
-	}
+	StaticOctree->Remove(InComponent);
+	OnPrimitiveUpdated(InComponent);
 }
 
 UObject* ULevel::Duplicate()
@@ -269,5 +248,80 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 		AActor* DuplicatedActor = Cast<AActor>(Actor->Duplicate());
 		DuplicatedLevel->LevelActors.push_back(DuplicatedActor);
 		DuplicatedLevel->AddLevelPrimitiveComponent(DuplicatedActor);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+	Octree Management
+-----------------------------------------------------------------------------*/
+
+void ULevel::UpdateOctree()
+{
+	if (!StaticOctree)
+	{
+		return;
+	}
+	
+	uint32 Count = 0;
+
+	while (!DynamicPrimitiveQueue.empty() && Count < MAX_OBJECTS_TO_INSERT_PER_FRAME)
+	{
+		auto [Component, TimePoint] = DynamicPrimitiveQueue.top();
+		DynamicPrimitiveQueue.pop();
+
+		if (auto It = DynamicPrimitiveMap.find(Component); It != DynamicPrimitiveMap.end())
+		{
+			if (It->second <= TimePoint)
+			{
+				// 큐에 기록된 오브젝트의 마지막 변경 시간 이후로 변경이 없었다면 Octree에 재삽입한다.
+				// TODO: 오브젝트의 유일성을 보장하기 위해 StaticOctree->Remove(Component)가 필요한가?
+				StaticOctree->Insert(Component);
+				DynamicPrimitiveMap.erase(It);
+				++Count;
+			}
+			else
+			{
+				// 큐에 기록된 오브젝트의 마지막 변경 이후 새로운 변경이 존재했다면 다시 큐에 삽입한다.
+				DynamicPrimitiveQueue.push({Component, It->second});
+			}
+		}
+	}
+
+	if (Count != 0)
+	{
+		UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
+	}
+}
+
+void ULevel::OnPrimitiveUpdated(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent)
+	{
+		return;
+	}
+
+	float GameTime = UTimeManager::GetInstance().GetGameTime();
+	if (auto It = DynamicPrimitiveMap.find(InComponent); It != DynamicPrimitiveMap.end())
+	{
+		It->second = GameTime;
+	}
+	else
+	{
+		DynamicPrimitiveMap[InComponent] = UTimeManager::GetInstance().GetGameTime();
+
+		DynamicPrimitiveQueue.push({InComponent, GameTime});
+	}
+}
+
+void ULevel::OnPrimitiveUnregistered(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent)
+	{
+		return;
+	}
+
+	if (auto It = DynamicPrimitiveMap.find(InComponent); It != DynamicPrimitiveMap.end())
+	{
+		DynamicPrimitiveMap.erase(It);
 	}
 }

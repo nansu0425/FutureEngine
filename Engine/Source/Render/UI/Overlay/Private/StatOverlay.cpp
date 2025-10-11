@@ -82,6 +82,7 @@ void UStatOverlay::Render()
     if (IsStatEnabled(EStatType::Memory))  RenderMemory(D2DCtx);
     if (IsStatEnabled(EStatType::Picking)) RenderPicking(D2DCtx);
     if (IsStatEnabled(EStatType::Time))    RenderTimeInfo(D2DCtx);
+    if (IsStatEnabled(EStatType::Decal))   RenderDecalInfo(D2DCtx);
 
     D2DCtx->EndDraw();
     D2DCtx->SetTarget(nullptr);
@@ -119,7 +120,8 @@ void UStatOverlay::RenderMemory(ID2D1DeviceContext* d2dCtx)
     sprintf_s(Buf, sizeof(Buf), "Memory: %.1f MB (%u objects)", MemoryMB, TotalAllocationCount);
     FString text = Buf;
 
-    float OffsetY = IsStatEnabled(EStatType::FPS) ? 20.0f : 0.0f;
+    float OffsetY = 0.0f;
+    if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
     RenderText(d2dCtx, text, OverlayX, OverlayY + OffsetY, 1.0f, 1.0f, 0.0f);
 }
 
@@ -143,6 +145,21 @@ void UStatOverlay::RenderPicking(ID2D1DeviceContext* D2DCtx)
     RenderText(D2DCtx, Text, OverlayX, OverlayY + OffsetY, r, g, b);
 }
 
+void UStatOverlay::RenderDecalInfo(ID2D1DeviceContext* D2DCtx)
+{
+    char Buf[128];
+    sprintf_s(Buf, sizeof(Buf), "Rendered Decal: %d (Collided Components: %d)",
+        RenderedDecal, CollidedCompCount);
+    FString Text = Buf;
+    
+    float OffsetY = 0.0f;
+    if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
+
+    RenderText(D2DCtx, Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
+}
+
 void UStatOverlay::RenderTimeInfo(ID2D1DeviceContext* D2DCtx)
 {
     const TArray<FString> ProfileKeys = FScopeCycleCounter::GetTimeProfileKeys();
@@ -151,6 +168,8 @@ void UStatOverlay::RenderTimeInfo(ID2D1DeviceContext* D2DCtx)
     if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Decal))  OffsetY += 20.0f;
+
 
     float CurrentY = OverlayY + OffsetY;
     const float LineHeight = 20.0f;
@@ -213,4 +232,10 @@ void UStatOverlay::RecordPickingStats(float elapsedMs)
     ++PickAttempts;
     LastPickingTimeMs = elapsedMs;
     AccumulatedPickingTimeMs += elapsedMs;
+}
+
+void UStatOverlay::RecordDecalStats(uint32 InRenderedDecal, uint32 InCollidedCompCount)
+{
+    RenderedDecal = InRenderedDecal;
+    CollidedCompCount = InCollidedCompCount;
 }

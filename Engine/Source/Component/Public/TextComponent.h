@@ -23,6 +23,7 @@ public:
 	void SetText(const FString& InText);
 
 	UClass* GetSpecificWidgetClass() const override;
+	
 private:
 	void RegulatePickingAreaByTextLength();
 
@@ -40,8 +41,8 @@ protected:
 	const static inline TArray<uint32> PickingAreaIndex =
 	{
 		// First Triangle
-		0, 1, 2,
+		0, 2, 1,
 		// Second Triangle
-		1, 3, 2
+		1, 2, 3
 	};
 };

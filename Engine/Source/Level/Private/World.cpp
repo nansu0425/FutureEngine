@@ -71,6 +71,9 @@ void UWorld::Tick(float DeltaTimes)
 	// 스폰 / 삭제 처리
 	FlushPendingDestroy();
 
+	// TODO: 현재 임시로 OCtree 업데이트 처리
+	Level->UpdateOctree();
+
 	if (WorldType == EWorldType::Editor )
 	{
 		for (AActor* Actor : Level->GetLevelActors())

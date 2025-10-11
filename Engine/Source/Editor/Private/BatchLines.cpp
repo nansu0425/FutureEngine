@@ -4,6 +4,7 @@
 #include "Editor/Public/EditorPrimitive.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
+#include "Global/Octree.h"
 
 UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 {
@@ -54,22 +55,79 @@ void UBatchLines::UpdateUGridVertices(const float newCellSize)
 		return;
 	}
 	Grid.UpdateVerticesBy(newCellSize);
-	Grid.MergeVerticesAt(Vertices, 0);
 	bChangedVertices = true;
 }
 
 void UBatchLines::UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume)
 {
 	BoundingBoxLines.UpdateVertices(NewBoundingVolume);
-	BoundingBoxLines.MergeVerticesAt(Vertices, Grid.GetNumVertices());
 	bChangedVertices = true;
+}
+
+void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
+{
+	OctreeLines.clear();
+	if (InOctree)
+	{
+		TraverseOctree(InOctree);
+	}
+	bChangedVertices = true;
+}
+
+void UBatchLines::TraverseOctree(const FOctree* InNode)
+{
+	if (!InNode)
+	{
+		return;
+	}
+
+	UBoundingBoxLines BoxLines;
+	BoxLines.UpdateVertices(&InNode->GetBoundingBox());
+	OctreeLines.push_back(BoxLines);
+
+	if (!InNode->IsLeafNode())
+	{
+		for (const auto& Child : InNode->GetChildren())
+		{
+			TraverseOctree(Child);
+		}
+	}
 }
 
 void UBatchLines::UpdateVertexBuffer()
 {
 	if (bChangedVertices)
 	{
-		FRenderResourceFactory::UpdateVertexBufferData(Primitive.Vertexbuffer, Vertices);
+		uint32 NumGridVertices = Grid.GetNumVertices();
+		uint32 NumBBoxVertices = BoundingBoxLines.GetNumVertices();
+		uint32 NumOctreeVertices = 0;
+		for (const auto& Line : OctreeLines)
+		{
+			NumOctreeVertices += Line.GetNumVertices();
+		}
+
+		Vertices.resize(NumGridVertices + NumBBoxVertices + NumOctreeVertices);
+
+		Grid.MergeVerticesAt(Vertices, 0);
+		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
+
+		uint32 currentOffset = NumGridVertices + NumBBoxVertices;
+		for (auto& line : OctreeLines)
+		{
+			line.MergeVerticesAt(Vertices, currentOffset);
+			currentOffset += line.GetNumVertices();
+		}
+
+		SetIndices();
+
+		Primitive.NumVertices = static_cast<uint32>(Vertices.size());
+		Primitive.NumIndices = static_cast<uint32>(Indices.size());
+
+		SafeRelease(Primitive.Vertexbuffer);
+		SafeRelease(Primitive.IndexBuffer);
+
+		Primitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
+		Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
 	}
 	bChangedVertices = false;
 }
@@ -84,15 +142,16 @@ void UBatchLines::Render()
 
 void UBatchLines::SetIndices()
 {
+	Indices.clear();
+
 	const uint32 numGridVertices = Grid.GetNumVertices();
 
-	// 기존 그리드 라인 인덱스
+	// Grid indices
 	for (uint32 index = 0; index < numGridVertices; ++index)
 	{
 		Indices.push_back(index);
 	}
 
-	// Bounding Box 라인 인덱스 (LineList)
 	uint32 boundingBoxLineIdx[] = {
 		// 앞면
 		0, 1,
@@ -113,9 +172,21 @@ void UBatchLines::SetIndices()
 		3, 7
 	};
 
-	// numGridVertices 이후에 추가된 8개의 꼭짓점에 맞춰 오프셋 적용
+	// BoundingBox indices
+	uint32 baseVertexOffset = numGridVertices;
 	for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
 	{
-		Indices.push_back(numGridVertices + boundingBoxLineIdx[i]);
+		Indices.push_back(baseVertexOffset + boundingBoxLineIdx[i]);
+	}
+
+	// OctreeLines indices
+	baseVertexOffset += BoundingBoxLines.GetNumVertices();
+	for (const auto& octreeLine : OctreeLines)
+	{
+		for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
+		{
+			Indices.push_back(baseVertexOffset + boundingBoxLineIdx[i]);
+		}
+		baseVertexOffset += octreeLine.GetNumVertices();
 	}
 }

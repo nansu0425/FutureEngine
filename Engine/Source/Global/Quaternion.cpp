@@ -34,6 +34,48 @@ FQuaternion FQuaternion::FromEuler(const FVector& EulerDeg)
 	);
 }
 
+FQuaternion FQuaternion::FromRotationMatrix(const FMatrix& M)
+{
+    FQuaternion Q;
+    float trace = M.Data[0][0] + M.Data[1][1] + M.Data[2][2];
+    if (trace > 0)
+    {
+        float s = 0.5f / sqrtf(trace + 1.0f);
+        Q.W = 0.25f / s;
+        Q.X = (M.Data[2][1] - M.Data[1][2]) * s;
+        Q.Y = (M.Data[0][2] - M.Data[2][0]) * s;
+        Q.Z = (M.Data[1][0] - M.Data[0][1]) * s;
+    }
+    else
+    {
+        if (M.Data[0][0] > M.Data[1][1] && M.Data[0][0] > M.Data[2][2])
+        {
+            float s = 2.0f * sqrtf(1.0f + M.Data[0][0] - M.Data[1][1] - M.Data[2][2]);
+            Q.W = (M.Data[2][1] - M.Data[1][2]) / s;
+            Q.X = 0.25f * s;
+            Q.Y = (M.Data[0][1] + M.Data[1][0]) / s;
+            Q.Z = (M.Data[0][2] + M.Data[2][0]) / s;
+        }
+        else if (M.Data[1][1] > M.Data[2][2])
+        {
+            float s = 2.0f * sqrtf(1.0f + M.Data[1][1] - M.Data[0][0] - M.Data[2][2]);
+            Q.W = (M.Data[0][2] - M.Data[2][0]) / s;
+            Q.X = (M.Data[0][1] + M.Data[1][0]) / s;
+            Q.Y = 0.25f * s;
+            Q.Z = (M.Data[1][2] + M.Data[2][1]) / s;
+        }
+        else
+        {
+            float s = 2.0f * sqrtf(1.0f + M.Data[2][2] - M.Data[0][0] - M.Data[1][1]);
+            Q.W = (M.Data[1][0] - M.Data[0][1]) / s;
+            Q.X = (M.Data[0][2] + M.Data[2][0]) / s;
+            Q.Y = (M.Data[1][2] + M.Data[2][1]) / s;
+            Q.Z = 0.25f * s;
+        }
+    }
+    return Q;
+}
+
 FVector FQuaternion::ToEuler() const
 {
 	FVector Euler;
@@ -56,6 +98,43 @@ FVector FQuaternion::ToEuler() const
 	Euler.Z = atan2f(siny_cosp, cosy_cosp);
 
 	return FVector::GetRadianToDegree(Euler);
+}
+
+FMatrix FQuaternion::ToRotationMatrix() const
+{
+    FMatrix M;
+
+    const float X2 = X * X;
+    const float Y2 = Y * Y;
+    const float Z2 = Z * Z;
+    const float XY = X * Y;
+    const float XZ = X * Z;
+    const float YZ = Y * Z;
+    const float WX = W * X;
+    const float WY = W * Y;
+    const float WZ = W * Z;
+
+    M.Data[0][0] = 1.0f - 2.0f * (Y2 + Z2);
+    M.Data[0][1] = 2.0f * (XY - WZ);
+    M.Data[0][2] = 2.0f * (XZ + WY);
+    M.Data[0][3] = 0.0f;
+
+    M.Data[1][0] = 2.0f * (XY + WZ);
+    M.Data[1][1] = 1.0f - 2.0f * (X2 + Z2);
+    M.Data[1][2] = 2.0f * (YZ - WX);
+    M.Data[1][3] = 0.0f;
+
+    M.Data[2][0] = 2.0f * (XZ - WY);
+    M.Data[2][1] = 2.0f * (YZ + WX);
+    M.Data[2][2] = 1.0f - 2.0f * (X2 + Y2);
+    M.Data[2][3] = 0.0f;
+
+    M.Data[3][0] = 0.0f;
+    M.Data[3][1] = 0.0f;
+    M.Data[3][2] = 0.0f;
+    M.Data[3][3] = 1.0f;
+
+    return M;
 }
 
 FQuaternion FQuaternion::operator*(const FQuaternion& Q) const

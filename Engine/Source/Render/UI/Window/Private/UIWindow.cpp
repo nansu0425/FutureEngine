@@ -293,7 +293,7 @@ void UUIWindow::RenderWidget()
 
 	for (auto* Widget : WidgetsToRender)
 	{
-		if (Widget)
+		if (Widget && find(WidgetsToDelete.begin(), WidgetsToDelete.end(), Widget) == WidgetsToDelete.end())
 		{
 			Widget->RenderWidget();
 			Widget->PostProcess();

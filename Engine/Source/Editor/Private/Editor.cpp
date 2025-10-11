@@ -46,6 +46,8 @@ UEditor::UEditor()
 	}
 
 	InitializeLayout();
+
+	Gizmo.SetEditor(this);
 }
 
 UEditor::~UEditor()
@@ -181,12 +183,22 @@ void UEditor::InitializeLayout()
 
 void UEditor::UpdateBatchLines()
 {
+	uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
+
+	if (ShowFlags & EEngineShowFlags::SF_Octree)
+	{
+		BatchLines.UpdateOctreeVertices(GWorld->GetLevel()->GetStaticOctree());
+	}
+	else
+	{
+		// If we are not showing the octree, clear the lines, so they don't persist
+		BatchLines.ClearOctreeLines();
+	}
+
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
-			uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
-
 			if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 			{
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
@@ -344,7 +356,6 @@ void UEditor::ProcessMouseInput()
 	CurrentCamera = &CurrentViewport->Camera;
 
 	AActor* ActorPicked = GetSelectedActor();
-	Gizmo.SetSelectedComponent(Cast<USceneComponent>(GetSelectedComponent()));
 	if (ActorPicked)
 	{
 		// 피킹 전 현재 카메라에 맞는 기즈모 스케일 업데이트
@@ -589,6 +600,6 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnSelected();
-		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 	}
+	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 }

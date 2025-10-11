@@ -13,9 +13,9 @@ FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewPr
 {
     // Create shaders
     TArray<D3D11_INPUT_ELEMENT_DESC> layoutDesc = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(UFontRenderer::FFontVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(UFontRenderer::FFontVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 1, DXGI_FORMAT_R32_UINT, 0, offsetof(UFontRenderer::FFontVertex, CharIndex), D3D11_INPUT_PER_VERTEX_DATA, 0}
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FFontVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FFontVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 1, DXGI_FORMAT_R32_UINT, 0, offsetof(FFontVertex, CharIndex), D3D11_INPUT_PER_VERTEX_DATA, 0}
     };
 
     FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ShaderFont.hlsl", layoutDesc, &FontVertexShader, &FontInputLayout);
@@ -27,13 +27,13 @@ FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewPr
     // Create dynamic vertex buffer
     D3D11_BUFFER_DESC BufferDesc = {};
     BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-    BufferDesc.ByteWidth = sizeof(UFontRenderer::FFontVertex) * MAX_FONT_VERTICES;
+    BufferDesc.ByteWidth = sizeof(FFontVertex) * MAX_FONT_VERTICES;
     BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     URenderer::GetInstance().GetDevice()->CreateBuffer(&BufferDesc, nullptr, &DynamicVertexBuffer);
 
     // Create constant buffer
-    FontDataConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<UFontRenderer::FFontConstantBuffer>();
+    FontDataConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FFontConstantBuffer>();
 
     // Load font texture
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
@@ -74,7 +74,7 @@ void FTextPass::Execute(FRenderingContext& Context)
     for (UUUIDTextComponent* PickedBillboard : Context.UUIDs)
     {
         if (PickedBillboard->GetOwner() != GEditor->GetEditorModule()->GetSelectedActor()) { continue; }
-        PickedBillboard->UpdateRotationMatrix(Context.CurrentCamera->GetLocation());
+        PickedBillboard->UpdateRotationMatrix(Context.CurrentCamera->GetForward());
         FString UUIDString = "UID: " + std::to_string(PickedBillboard->GetUUID());
         RenderTextInternal(UUIDString, PickedBillboard->GetRTMatrix());
     }
@@ -89,40 +89,40 @@ void FTextPass::RenderTextInternal(const FString& Text, const FMatrix& WorldMatr
     size_t TextLength = Text.length();
     uint32 VertexCount = static_cast<uint32>(TextLength * 6);
 
-    if (VertexCount > MAX_FONT_VERTICES)
-    {
-        // Log warning
-        return;
-    }
+    if (VertexCount > MAX_FONT_VERTICES) { return; }
 
     // Update vertex buffer
-    D3D11_MAPPED_SUBRESOURCE mappedResource;
-    if (SUCCEEDED(DeviceContext->Map(DynamicVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
+    D3D11_MAPPED_SUBRESOURCE MappedResource;
+    if (SUCCEEDED(DeviceContext->Map(DynamicVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)))
     {
-        UFontRenderer::FFontVertex* Vertices = static_cast<UFontRenderer::FFontVertex*>(mappedResource.pData);
-        float currentY = 0.0f - (TextLength * 1.0f) / 2.0f; // Assuming char width of 1.0f
+        FFontVertex* Vertices = static_cast<FFontVertex*>(MappedResource.pData);
+        float CurrentY = 0.0f - (TextLength * 1.0f) / 2.0f; // Assuming char width of 1.0f
 
-        for (size_t i = 0; i < TextLength; ++i)
+        for (size_t Idx = 0; Idx < TextLength; ++Idx)
         {
-            char ch = Text[i];
-            uint32 asciiCode = static_cast<uint32>(ch);
+            const char Ch = Text[Idx];
+            const uint32 AsciiCode = static_cast<uint32>(Ch);
 
             // Simplified vertex generation, assuming fixed size
-            float y = currentY + i * 1.0f;
-            float z = -2.5f;
-            float charHeight = 2.0f;
+            const float Y = CurrentY + Idx * 1.0f;
 
-            FVector p0(0.0f, y, z + charHeight);
-            FVector p1(0.0f, y + 1.0f, z + charHeight);
-            FVector p2(0.0f, y, z);
-            FVector p3(0.0f, y + 1.0f, z);
+            const float CharHeight = 2.0f;
+            const float HalfHeight = CharHeight / 2.0f;
 
-            Vertices[i * 6 + 0] = { p0, FVector2(0.0f, 0.0f), asciiCode };
-            Vertices[i * 6 + 1] = { p1, FVector2(1.0f, 0.0f), asciiCode };
-            Vertices[i * 6 + 2] = { p2, FVector2(0.0f, 1.0f), asciiCode };
-            Vertices[i * 6 + 3] = { p1, FVector2(1.0f, 0.0f), asciiCode };
-            Vertices[i * 6 + 4] = { p3, FVector2(1.0f, 1.0f), asciiCode };
-            Vertices[i * 6 + 5] = { p2, FVector2(0.0f, 1.0f), asciiCode };
+            const float BottomZ = -HalfHeight;
+            const float TopZ = HalfHeight;     // +1.0f
+
+            const FVector P0(0.0f, Y,        TopZ);
+            const FVector P1(0.0f, Y + 1.0f, TopZ);
+            const FVector P2(0.0f, Y,        BottomZ);
+            const FVector P3(0.0f, Y + 1.0f, BottomZ);
+
+            Vertices[Idx * 6 + 0] = { P0, FVector2(0.0f, 0.0f), AsciiCode };
+            Vertices[Idx * 6 + 1] = { P1, FVector2(1.0f, 0.0f), AsciiCode };
+            Vertices[Idx * 6 + 2] = { P2, FVector2(0.0f, 1.0f), AsciiCode };
+            Vertices[Idx * 6 + 3] = { P1, FVector2(1.0f, 0.0f), AsciiCode };
+            Vertices[Idx * 6 + 4] = { P3, FVector2(1.0f, 1.0f), AsciiCode };
+            Vertices[Idx * 6 + 5] = { P2, FVector2(0.0f, 1.0f), AsciiCode };
         }
         DeviceContext->Unmap(DynamicVertexBuffer, 0);
     }
@@ -132,7 +132,7 @@ void FTextPass::RenderTextInternal(const FString& Text, const FMatrix& WorldMatr
     Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 
     // Set vertex buffer
-    Pipeline->SetVertexBuffer(DynamicVertexBuffer, sizeof(UFontRenderer::FFontVertex));
+    Pipeline->SetVertexBuffer(DynamicVertexBuffer, sizeof(FFontVertex));
 
     // Draw
     Pipeline->Draw(VertexCount, 0);
