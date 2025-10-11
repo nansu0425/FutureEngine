@@ -19,6 +19,8 @@ UDecalComponent::UDecalComponent()
 
     // Start with perspective projection by default
     SetPerspective(true);
+    UpdateOBB();
+    UpdateProjectionMatrix();
 }
 
 UDecalComponent::~UDecalComponent()
@@ -77,10 +79,10 @@ UObject* UDecalComponent::Duplicate()
 
 void UDecalComponent::SetPerspective(bool bEnable)
 {
-	bIsPerspective = bEnable;
-	UpdateOBB();
-	UpdateProjectionMatrix();
-
+    if (bIsPerspective != bEnable)
+    {
+        bIsPerspective = bEnable;
+    }
 }
 
 void UDecalComponent::UpdateProjectionMatrix()
