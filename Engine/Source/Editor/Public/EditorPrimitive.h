@@ -7,7 +7,7 @@ struct FEditorPrimitive
 	ID3D11VertexShader* VertexShader =  nullptr;
 	ID3D11PixelShader* PixelShader = nullptr;
 	ID3D11InputLayout* InputLayout = nullptr;
-	ID3D11Buffer* Vertexbuffer = nullptr;
+	ID3D11Buffer* VertexBuffer = nullptr;
 	ID3D11Buffer* IndexBuffer = nullptr;
 	uint32 NumVertices;
 	uint32 NumIndices;

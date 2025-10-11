@@ -314,7 +314,7 @@ void URenderer::RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const
 	Pipeline->SetConstantBuffer(2, false, ConstantBufferColor);
 	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
 	
-    Pipeline->SetVertexBuffer(InPrimitive.Vertexbuffer, FinalStride);
+    Pipeline->SetVertexBuffer(InPrimitive.VertexBuffer, FinalStride);
 
     // The core logic: check for an index buffer
     if (InPrimitive.IndexBuffer && InPrimitive.NumIndices > 0)

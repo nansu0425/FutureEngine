@@ -1,29 +1,47 @@
 #include "pch.h"
 #include "Texture/Public/Texture.h"
 
+#include "Texture/Public/TextureRenderProxy.h"
+
 IMPLEMENT_CLASS(UTexture, UObject)
 
 /**
  * @brief Default Constructor
- * 따로 사용할 의도는 없지만 매크로 규격에 맞게 추가
- * 생성에 필요한 내용을 갖추도록 구현
  */
-UTexture::UTexture()
-	: TextureFilePath(FName::GetNone())
-{
-	SetName(FName::GetNone());
-}
-
-UTexture::UTexture(const FName& InFilePath, FName InName)
-	: TextureFilePath(InFilePath)
-{
-	SetName(InName);
-}
+UTexture::UTexture() = default;
 
 UTexture::~UTexture()
 {
-	if (RenderProxy)
-	{
-		delete RenderProxy;
-	}
+    if (RenderProxy)
+    {
+        SafeDelete(RenderProxy);
+    }
+}
+
+void UTexture::CreateRenderProxy(const ComPtr<ID3D11ShaderResourceView>& SRV, const ComPtr<ID3D11SamplerState>& Sampler)
+{
+    if (RenderProxy)
+    {
+        SafeDelete(RenderProxy);
+    }
+
+    RenderProxy = new FTextureRenderProxy(SRV, Sampler);
+}
+
+ID3D11ShaderResourceView* UTexture::GetTextureSRV() const
+{
+    if (RenderProxy)
+    {
+        return RenderProxy->GetSRV();
+    }
+    return nullptr;
+}
+
+ID3D11SamplerState* UTexture::GetTextureSampler() const
+{
+    if (RenderProxy)
+    {
+        return RenderProxy->GetSampler();
+    }
+    return nullptr;
 }

@@ -9,7 +9,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 3
-map_Kd ../Asset/Texture/Apple.jpeg
+map_Kd ./Texture/Apple.jpeg
 
 newmtl Material.002
 Ns 250.000000
@@ -19,7 +19,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../Asset/Texture/Orange.jpeg
+map_Kd ./Texture/Orange.jpeg
 
 newmtl Material.003
 Ns 576.183289
@@ -29,7 +29,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 3
-map_Kd ../Asset/Texture/Bowl.jpeg
+map_Kd ./Texture/Bowl.jpeg
 
 newmtl Material.004
 Ns 82.693489
@@ -39,4 +39,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 3
-map_Kd ../Asset/Texture/Pear.jpeg
+map_Kd ./Texture/Pear.jpeg

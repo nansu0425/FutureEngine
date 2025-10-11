@@ -43,6 +43,9 @@ protected:
     
     UTexture* FadeTexture = nullptr;
 
+public:
+	virtual UObject* Duplicate() override;
+
 private:
     // --- Projection Properties ---
     FMatrix ProjectionMatrix;

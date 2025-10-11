@@ -47,7 +47,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
     UTexture* CurrentTexture = DecalComponent->GetTexture();
     if (CurrentTexture)
     {
-        SRV = UAssetManager::GetInstance().GetTexture(CurrentTexture->GetFilePath()).Get();
+        SRV = CurrentTexture->GetTextureSRV();
     }
 
     if (SRV)
@@ -75,8 +75,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
 
     if (ImGui::BeginCombo("Texture (png)##Combo", Preview.c_str()))
     {
-        const TMap<FName, ID3D11ShaderResourceView*>& textureCache = UAssetManager::GetInstance().GetTextureCache();
-        for (auto const& [Path, textureView] : textureCache)
+        const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+        for (auto const& [Path, Texture] : TextureCache)
         {
             const FString PathStr = Path.ToString();
             const FString DisplayName = std::filesystem::path(PathStr).stem().string();
@@ -85,8 +85,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
             {
                 if (!bSelected)
                 {
-                    UTexture* NewTexture = UAssetManager::GetInstance().CreateTexture(Path);
-                    DecalComponent->SetTexture(NewTexture);
+                    DecalComponent->SetTexture(Texture);
                 }
             }
             if (bSelected)
@@ -135,7 +134,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
         UTexture* CurrentFadeTexture = DecalComponent->GetFadeTexture();
         if (CurrentFadeTexture)
         {
-            FadeSRV = UAssetManager::GetInstance().GetTexture(CurrentFadeTexture->GetFilePath()).Get();
+            FadeSRV = UAssetManager::GetInstance().LoadTexture(CurrentFadeTexture->GetFilePath())->GetTextureSRV();
         }
 
         if (FadeSRV)
@@ -162,8 +161,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
 
         if (ImGui::BeginCombo("Fade Texture##FadeCombo", FadePreview.c_str()))
         {
-            const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
-            for (auto const& [Path, TextureView] : TextureCache)
+            const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+            for (auto const& [Path, Texture] : TextureCache)
             {
                 const FString PathStr = Path.ToString();
                 const FString DisplayName = std::filesystem::path(PathStr).stem().string();
@@ -172,7 +171,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
                 {
                     if (!bSelected)
                     {
-                        UTexture* NewFadeTexture = UAssetManager::GetInstance().CreateTexture(Path);
+                        UTexture* NewFadeTexture = UAssetManager::GetInstance().LoadTexture(Path);
                         DecalComponent->SetFadeTexture(NewFadeTexture);
                     }
                 }
@@ -219,6 +218,16 @@ void UDecalTextureSelectionWidget::RenderWidget()
     }
 
     ImGui::Separator();
+    // 1. Get the current state from the component
+    bool bPerspective = DecalComponent->IsPerspective();
+
+    // 2. Draw the checkbox. The 'if' statement is true only when the user clicks it.
+    if (ImGui::Checkbox("Perspective", &bPerspective))
+    {
+        // 3. If changed, update the component's state
+        DecalComponent->SetPerspective(bPerspective);
+    }
+
 }
 
 UDecalTextureSelectionWidget::UDecalTextureSelectionWidget() : UWidget("Decal Texture Selection Widget")

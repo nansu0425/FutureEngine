@@ -64,6 +64,7 @@ protected:
 	bool bVisible = true;
 
 	IBoundingVolume* BoundingBox = nullptr;
+	bool bOwnsBoundingBox = false;
 	
 	mutable FVector CachedWorldMin;
 	mutable FVector CachedWorldMax;

@@ -7,10 +7,4 @@ IMPLEMENT_CLASS(UMaterial, UObject)
 
 UMaterial::~UMaterial()
 {
-	SafeDelete(DiffuseTexture);
-	SafeDelete(AmbientTexture);
-	SafeDelete(SpecularTexture);
-	SafeDelete(NormalTexture);
-	SafeDelete(AlphaTexture);
-	SafeDelete(BumpTexture);
 }

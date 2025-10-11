@@ -162,7 +162,11 @@ UObject* UPrimitiveComponent::Duplicate()
 	PrimitiveComponent->IndexBuffer = IndexBuffer;
 	PrimitiveComponent->NumVertices = NumVertices;
 	PrimitiveComponent->NumIndices = NumIndices;
-	PrimitiveComponent->BoundingBox = BoundingBox;
+
+	if (!bOwnsBoundingBox)
+	{
+		PrimitiveComponent->BoundingBox = BoundingBox;
+	}
 	
 	return PrimitiveComponent;
 }
@@ -170,4 +174,5 @@ UObject* UPrimitiveComponent::Duplicate()
 void UPrimitiveComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
+
 }

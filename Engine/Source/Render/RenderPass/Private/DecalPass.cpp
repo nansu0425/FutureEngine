@@ -9,12 +9,6 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
-#include "Texture/Public/TextureRenderProxy.h"
-#include <limits>
-#include <xmmintrin.h> // SSE
-#include <emmintrin.h> // SSE2
-#include <smmintrin.h> // SSE4.1
-
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 
 
@@ -142,13 +136,6 @@ FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferView
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
     ConstantBufferDecal = FRenderResourceFactory::CreateConstantBuffer<FDecalConstants>();
-
-    // 임시로 넣어둠
-    // Load texture
-    UAssetManager& ResourceManager = UAssetManager::GetInstance();
-    ResourceManager.LoadTexture("Asset/Texture/spotlight.png");
-    ResourceManager.LoadTexture("Asset/Texture/SpotLight_64x.png");
-
 }
 
 void FDecalPass::Execute(FRenderingContext& Context)
@@ -198,20 +185,14 @@ void FDecalPass::Execute(FRenderingContext& Context)
         // --- Bind Decal Texture ---
         if (UTexture* DecalTexture = Decal->GetTexture())
         {
-            if (auto* Proxy = DecalTexture->GetRenderProxy())
-            {
-                Pipeline->SetTexture(0, false, Proxy->GetSRV());
-                Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
-            }
+            Pipeline->SetTexture(0, false, DecalTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(0, false, DecalTexture->GetTextureSampler());
         }
 
         if (UTexture* FadeTexture = Decal->GetFadeTexture())
         {
-            if (auto* Proxy = FadeTexture->GetRenderProxy())
-            {
-                Pipeline->SetTexture(1, false, Proxy->GetSRV());
-                Pipeline->SetSamplerState(1, false, Proxy->GetSampler());
-            }
+            Pipeline->SetTexture(1, false, FadeTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(1, false, FadeTexture->GetTextureSampler());
         }
 
         TArray<UPrimitiveComponent*> Primitives;

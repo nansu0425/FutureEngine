@@ -227,7 +227,8 @@ bool ULevel::DestroyActor(AActor* InActor)
 
 void ULevel::UpdatePrimitiveInOctree(UPrimitiveComponent* InComponent)
 {
-	StaticOctree->Remove(InComponent);
+	if (!StaticOctree->Remove(InComponent))
+		return;
 	OnPrimitiveUpdated(InComponent);
 }
 

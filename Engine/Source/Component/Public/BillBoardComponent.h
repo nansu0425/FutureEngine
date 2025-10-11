@@ -14,16 +14,13 @@ public:
 
 	void FaceCamera(const FVector& CameraForward);
 
-	const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
-	void SetSprite(const TPair<FName, ID3D11ShaderResourceView*>& Sprite);
-
-	ID3D11SamplerState* GetSampler() const;
+	UTexture* GetSprite() const;
+	void SetSprite(UTexture* Sprite);
 
 	UClass* GetSpecificWidgetClass() const override;
 
 	static const FRenderState& GetClassDefaultRenderState(); 
 
 private:
-	TPair<FName, ID3D11ShaderResourceView*> Sprite = {"None", nullptr};
-	ID3D11SamplerState* Sampler = nullptr;
+	UTexture* Sprite;
 };
