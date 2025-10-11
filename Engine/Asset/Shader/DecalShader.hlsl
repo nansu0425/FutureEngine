@@ -76,7 +76,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
 
 	float FadeValue = FadeTexture.Sample(FadeSampler, DecalUV).r;
-	DecalColor.a *= 1.0f - saturate(FadeProgress / FadeValue);
+	DecalColor.a *= 1.0f - saturate(FadeProgress / (FadeValue + 1e-6));
 	
 	if (DecalColor.a < 0.001f) { discard; }
 	
