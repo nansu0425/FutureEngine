@@ -3,23 +3,14 @@
 #include "Level/Public/Level.h"
 #include "Actor/Public/Actor.h"
 #include "Component/Public/ActorComponent.h"
-#include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/TextComponent.h"
-#include "Component/Public/BillBoardComponent.h"
-#include "Component/Mesh/Public/SphereComponent.h"
-#include "Component/Mesh/Public/SquareComponent.h"
-#include "Component/Mesh/Public/StaticMeshComponent.h"
-#include "Component/Mesh/Public/TriangleComponent.h"
-#include "Component/Mesh/Public/CubeComponent.h"
-#include "Component/Mesh/Public/MeshComponent.h"
-#include "Component/Public/DecalComponent.h"
-#include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
 UActorDetailWidget::UActorDetailWidget()
 	: UWidget("Actor Detail Widget")
 {
+	LoadComponentClasses();
 }
 
 UActorDetailWidget::~UActorDetailWidget() = default;
@@ -149,7 +140,7 @@ void UActorDetailWidget::RenderComponentTree(AActor* InSelectedActor)
 
 		USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 		// SceneComponent가 아니거나, 부모가 없는 SceneComponent가 최상위입니다.
-		if (!SceneComp || !SceneComp->GetParentAttachment())
+		if (!SceneComp || !SceneComp->GetAttachParent())
 		{
 			RenderComponentNodeRecursive(Component);
 		}
@@ -211,7 +202,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				return;
 			}
 			
-			if (DraggedScene->GetParentComponent() == TargetScene)
+			if (DraggedScene->GetAttachParent() == TargetScene)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
 
@@ -234,7 +225,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 
 						return;
 					}
-					Iter = Iter->GetParentAttachment();
+					Iter = Iter->GetAttachParent();
 				}
 			}
 
@@ -252,7 +243,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				}
 
 				// 자기 부모에게 드롭하는 경우, 아무 작업도 하지 않음
-				if (TargetScene == DraggedScene->GetParentAttachment())
+				if (TargetScene == DraggedScene->GetAttachParent())
 				{
 					ImGui::EndDragDropTarget();		ImGui::TreePop();
 
@@ -260,14 +251,14 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 				}
 
 				// 1. 이전 부모로부터 분리
-				if (USceneComponent* OldParent = DraggedScene->GetParentAttachment())
+				if (USceneComponent* OldParent = DraggedScene->GetAttachParent())
 				{
-					OldParent->RemoveChild(DraggedScene);
+					DraggedScene->DetachFromComponent();
 				}
 
 				// 2. 새로운 부모에 연결하고 월드 트랜스폼 유지
 				const FMatrix OldWorldMatrix = DraggedScene->GetWorldTransformMatrix();
-				DraggedScene->SetParentAttachment(TargetScene);
+				DraggedScene->AttachToComponent(TargetScene);
 				const FMatrix NewParentWorldMatrixInverse = TargetScene->GetWorldTransformMatrixInverse();
 				const FMatrix NewLocalMatrix = OldWorldMatrix * NewParentWorldMatrixInverse;
 
@@ -334,23 +325,18 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 	{
 		ImGui::OpenPopup("AddComponentPopup");
 	}
-
+    ImGui::SetNextWindowContentSize(ImVec2(200.0f, 0.0f)); 
 	if (ImGui::BeginPopup("AddComponentPopup"))
 	{
 		ImGui::Text("Add Component");
 		ImGui::Separator();
-
-		const char* componentNames[] = {
-			"Triangle", "Sphere", "Square", "Cube",
-			"Mesh", "Static Mesh", "BillBoard", "Text", "Decal"
-		};
-
-		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
-		for (const char* name : componentNames)
+		
+		for (auto& Pair : ComponentClasses)
 		{
-			if (CenteredSelectable(name))
+			const char* CName = Pair.first.c_str();
+			if (CenteredSelectable(CName))
 			{
-				AddComponentByName(InSelectedActor, FString(name));
+				AddComponentByName(InSelectedActor, Pair.first);
 				ImGui::CloseCurrentPopup();
 			}
 		}
@@ -391,46 +377,8 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		return;
 	}
 
-	FName NewComponentName(InComponentName);
-	UActorComponent* NewComponent = nullptr; 
-
-	if (InComponentName == "Triangle")
-	{
-		NewComponent = InSelectedActor->AddComponent<UTriangleComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Sphere")
-	{
-		NewComponent = InSelectedActor->AddComponent<USphereComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Square")
-	{
-		NewComponent = InSelectedActor->AddComponent<USquareComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Cube")
-	{
-		NewComponent = InSelectedActor->AddComponent<UCubeComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Mesh")
-	{
-		NewComponent = InSelectedActor->AddComponent<UMeshComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Static Mesh")
-	{
-		NewComponent = InSelectedActor->AddComponent<UStaticMeshComponent>(NewComponentName);
-	}
-	else if (InComponentName == "BillBoard")
-	{
-		NewComponent = InSelectedActor->AddComponent<UBillBoardComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Text")
-	{
-		NewComponent = InSelectedActor->AddComponent<UTextComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Decal")
-	{
-		NewComponent = InSelectedActor->AddComponent<UDecalComponent>(NewComponentName);
-	}
-	else
+	UActorComponent* NewComponent = InSelectedActor->AddComponent(ComponentClasses[InComponentName]); 
+	if (!NewComponent)
 	{
 		UE_LOG_ERROR("ActorDetailWidget: 알 수 없는 컴포넌트 타입 '%s'을(를) 추가할 수 없습니다.", InComponentName.data());
 		return;
@@ -452,19 +400,19 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		{
 			// 3. 선택된 컴포넌트(부모)에 새로 만든 컴포넌트(자식)를 붙임
 			//    (SetupAttachment는 UCLASS 내에서 호출하는 것을 가정)
-			NewSceneComponent->SetParentAttachment(ParentSceneComponent);
-			UE_LOG_SUCCESS("'%s'를 '%s'의 자식으로 추가했습니다.", NewComponentName.ToString().data(), ParentSceneComponent->GetName().ToString().data());
+			NewSceneComponent->AttachToComponent(ParentSceneComponent);
+			UE_LOG_SUCCESS("'%s'를 '%s'의 자식으로 추가했습니다.", NewComponent->GetName().ToString().data(), ParentSceneComponent->GetName().ToString().data());
 		}
 		else
 		{
 			// 4. 선택된 컴포넌트가 없으면 액터의 루트 컴포넌트에 붙임
-			NewSceneComponent->SetParentAttachment(InSelectedActor->GetRootComponent());
-			UE_LOG_SUCCESS("'%s'를 액터의 루트에 추가했습니다.", NewComponentName.ToString().data());
+			NewSceneComponent->AttachToComponent(InSelectedActor->GetRootComponent());
+			UE_LOG_SUCCESS("'%s'를 액터의 루트에 추가했습니다.", NewComponent->GetName().ToString().data());
 		}
 	}
 	else
 	{
-		UE_LOG_SUCCESS("Non-Scene Component '%s'를 액터에 추가했습니다.", NewComponentName.ToString().data());
+		UE_LOG_SUCCESS("Non-Scene Component '%s'를 액터에 추가했습니다.", NewComponent->GetName().ToString().data());
 	}
 }
 
@@ -574,11 +522,11 @@ void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
 		if (USceneComponent* SceneA = Cast<USceneComponent>(A))
 			if (USceneComponent* SceneB = Cast<USceneComponent>(B))
 			{
-				USceneComponent* ParentA = SceneA->GetParentAttachment();
-				USceneComponent* ParentB = SceneB->GetParentAttachment();
+				USceneComponent* ParentA = SceneA->GetAttachParent();
+				USceneComponent* ParentB = SceneB->GetAttachParent();
 
-				SceneA->SetParentAttachment(ParentB);
-				SceneB->SetParentAttachment(ParentA);
+				SceneA->AttachToComponent(ParentB);
+				SceneB->AttachToComponent(ParentA);
 			}
 	}
 }
@@ -615,4 +563,12 @@ void UActorDetailWidget::DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLo
 void UActorDetailWidget::SetSelectedComponent(UActorComponent* InComponent)
 { 
 	SelectedComponent = InComponent;
+}
+
+void UActorDetailWidget::LoadComponentClasses()
+{
+	for (UClass* Class : UClass::FindClasses(UActorComponent::StaticClass()))
+	{ 
+		ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
+	}
 }

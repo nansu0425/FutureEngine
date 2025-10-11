@@ -30,6 +30,21 @@ UClass* UClass::FindClass(const FName& InClassName)
 	return nullptr;
 }
 
+TArray<UClass*> UClass::FindClasses(UClass* SuperClass)
+{
+	TArray<UClass*> Classes;
+
+	for (UClass* Class: GetAllClasses())
+	{
+		if (Class->IsChildOf(SuperClass))
+		{
+			Classes.push_back(Class);
+		}
+	}
+
+	return Classes;
+}
+
 TArray<UClass*>& UClass::GetAllClasses()
 {
 	static TArray<UClass*> AllClasses;

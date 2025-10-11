@@ -90,7 +90,7 @@ void UEditor::RenderEditor(UCamera* InCamera)
 
 	if (InCamera)
 	{
-		Gizmo.RenderGizmo(Cast<USceneComponent>(GetSelectedComponent()), InCamera);
+		Gizmo.RenderGizmo(InCamera);
 	}
 }
 
@@ -344,17 +344,11 @@ void UEditor::ProcessMouseInput()
 	CurrentCamera = &CurrentViewport->Camera;
 
 	AActor* ActorPicked = GetSelectedActor();
-
+	Gizmo.SetSelectedComponent(Cast<USceneComponent>(GetSelectedComponent()));
 	if (ActorPicked)
 	{
 		// 피킹 전 현재 카메라에 맞는 기즈모 스케일 업데이트
 		Gizmo.UpdateScale(CurrentCamera);
-		// 빌보드 갱신
-		PickedBillboard = ActorPicked->GetUUIDTextComponent();
-	}
-	else
-	{
-		PickedBillboard = nullptr;
 	}
 
 	const UInputManager& InputManager = UInputManager::GetInstance();
@@ -597,9 +591,4 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 		SelectedComponent->OnSelected();
 		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 	}
-}
-
-UUUIDTextComponent* UEditor::GetPickedBillboard() const
-{
-	return PickedBillboard;
 }

@@ -8,7 +8,6 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/Viewport.h"
 #include "Utility/Public/JsonSerializer.h"
-#include "Utility/Public/ActorTypeMapper.h"
 #include "Global/Octree.h"
 #include <json.hpp>
 
@@ -67,9 +66,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 				FString TypeString;
 				FJsonSerializer::ReadString(ActorDataJson, "Type", TypeString);
-
-				UClass* NewClass = FActorTypeMapper::TypeToActor(TypeString);
-				AActor* NewActor = SpawnActorToLevel(NewClass, IdString, &ActorDataJson); 
+				
+				UClass* ActorClass = UClass::FindClass(TypeString);
+				AActor* NewActor = SpawnActorToLevel(ActorClass, IdString, &ActorDataJson); 
 			}
 		}
 	}
@@ -88,7 +87,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		for (AActor* Actor : LevelActors)
 		{
 			JSON ActorJson;
-			ActorJson["Type"] = FActorTypeMapper::ActorToType(Actor->GetClass());
+			ActorJson["Type"] = Actor->GetClass()->GetName().ToString();
 			Actor->Serialize(bInIsLoading, ActorJson); 
 
 			ActorsJson[std::to_string(Actor->GetUUID())] = ActorJson;

@@ -46,41 +46,32 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	}
 }
 
-void USceneComponent::SetParentAttachment(USceneComponent* NewParent)
+void USceneComponent::AttachToComponent(USceneComponent* Parent)
 {
-	if (NewParent == this || NewParent == ParentAttachment)
+	if (!Parent || Parent == this || GetOwner() != Parent->GetOwner()) { return; }
+	if (AttachParent)
 	{
-		return;
-	}
-	for (USceneComponent* Ancester = NewParent; Ancester != nullptr; Ancester = Ancester->ParentAttachment)
-	{
-		// 만약 거슬러 올라가다 나 자신을 만나면 순환 구조이므로 함수를 종료합니다.
-		if (Ancester == this)
-		{
-			return; 
-		}
+		AttachParent->DetachChild(this);
 	}
 
-	// 기존 부모가 있었다면, 그 부모의 자식 목록에서 나를 제거합니다.
-	if (ParentAttachment)
-	{
-		ParentAttachment->RemoveChild(this);
-	}
-
-	// 새로운 부모를 설정합니다.
-	ParentAttachment = NewParent;
-
-	// 새로운 부모가 있다면, 그 부모의 자식 목록에 나를 추가합니다.
-	if (ParentAttachment)
-	{
-		ParentAttachment->Children.push_back(this);
-	}
+	AttachParent = Parent;
+	Parent->AttachChildren.push_back(this);
 
 	MarkAsDirty();
 }
-void USceneComponent::RemoveChild(USceneComponent* ChildDeleted)
+
+void USceneComponent::DetachFromComponent()
 {
-	Children.erase(std::remove(Children.begin(), Children.end(), ChildDeleted), Children.end());
+	if (AttachParent)
+	{
+		AttachParent->DetachChild(this);
+		AttachParent = nullptr;
+	}
+}
+
+void USceneComponent::DetachChild(USceneComponent* ChildToDetach)
+{
+	AttachChildren.erase(std::remove(AttachChildren.begin(), AttachChildren.end(), ChildToDetach), AttachChildren.end());
 }
 
 UObject* USceneComponent::Duplicate()
@@ -97,10 +88,10 @@ void USceneComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
 	USceneComponent* SceneComponent = Cast<USceneComponent>(DuplicatedObject);
-	for (USceneComponent* Child : Children)
+	for (USceneComponent* Child : AttachChildren)
 	{
 		USceneComponent* ReplicatedChild = Cast<USceneComponent>(Child->Duplicate());
-		ReplicatedChild->SetParentAttachment(SceneComponent);
+		ReplicatedChild->AttachToComponent(SceneComponent);
 	}
 }
 
@@ -109,7 +100,7 @@ void USceneComponent::MarkAsDirty()
 	bIsTransformDirty = true;
 	bIsTransformDirtyInverse = true;
 
-	for (USceneComponent* Child : Children)
+	for (USceneComponent* Child : AttachChildren)
 	{
 		Child->MarkAsDirty();
 	}
@@ -154,9 +145,9 @@ const FMatrix& USceneComponent::GetWorldTransformMatrix() const
 	{
 		WorldTransformMatrix = FMatrix::GetModelMatrix(RelativeLocation, FVector::GetDegreeToRadian(RelativeRotation), RelativeScale3D);
 
-		if (ParentAttachment)
+		if (AttachParent)
 		{
-			WorldTransformMatrix *= ParentAttachment->GetWorldTransformMatrix();
+			WorldTransformMatrix *= AttachParent->GetWorldTransformMatrix();
 		}
 
 		bIsTransformDirty = false;
@@ -171,9 +162,9 @@ const FMatrix& USceneComponent::GetWorldTransformMatrixInverse() const
 	{
 		WorldTransformMatrixInverse = FMatrix::Identity();
 
-		if (ParentAttachment)
+		if (AttachParent)
 		{
-			WorldTransformMatrixInverse *= ParentAttachment->GetWorldTransformMatrixInverse();
+			WorldTransformMatrixInverse *= AttachParent->GetWorldTransformMatrixInverse();
 		}
 
 		WorldTransformMatrixInverse *= FMatrix::GetModelMatrixInverse(RelativeLocation, FVector::GetDegreeToRadian(RelativeRotation), RelativeScale3D);
@@ -201,9 +192,9 @@ FVector USceneComponent::GetWorldScale3D() const
 
 void USceneComponent::SetWorldLocation(const FVector& NewLocation)
 {
-    if (ParentAttachment)
+    if (AttachParent)
     {
-        const FMatrix ParentWorldMatrixInverse = ParentAttachment->GetWorldTransformMatrixInverse();
+        const FMatrix ParentWorldMatrixInverse = AttachParent->GetWorldTransformMatrixInverse();
         SetRelativeLocation(ParentWorldMatrixInverse.TransformPosition(NewLocation));
     }
     else
@@ -214,9 +205,9 @@ void USceneComponent::SetWorldLocation(const FVector& NewLocation)
 
 void USceneComponent::SetWorldRotation(const FVector& NewRotation)
 {
-    if (ParentAttachment)
+    if (AttachParent)
     {
-        const FVector ParentWorldRotation = ParentAttachment->GetWorldRotation();
+        const FVector ParentWorldRotation = AttachParent->GetWorldRotation();
         SetRelativeRotation(NewRotation - ParentWorldRotation);
     }
     else
@@ -227,9 +218,9 @@ void USceneComponent::SetWorldRotation(const FVector& NewRotation)
 
 void USceneComponent::SetWorldScale3D(const FVector& NewScale)
 {
-    if (ParentAttachment)
+    if (AttachParent)
     {
-        const FVector ParentWorldScale = ParentAttachment->GetWorldScale3D();
+        const FVector ParentWorldScale = AttachParent->GetWorldScale3D();
         SetRelativeScale3D(FVector(NewScale.X / ParentWorldScale.X, NewScale.Y / ParentWorldScale.Y, NewScale.Z / ParentWorldScale.Z));
     }
     else

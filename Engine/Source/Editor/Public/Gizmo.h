@@ -48,7 +48,7 @@ public:
 	UGizmo();
 	~UGizmo() override;
 	void UpdateScale(UCamera* InCamera);
-	void RenderGizmo(USceneComponent* SceneComponent, UCamera* InCamera);
+	void RenderGizmo(UCamera* InCamera);
 	void ChangeGizmoMode();
 
 	/* *
@@ -86,6 +86,7 @@ public:
 	float GetRotateOuterRadius() const { return RotateCollisionConfig.OuterRadius * RotateCollisionConfig.Scale; }
 	float GetRotateInnerRadius() const { return RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale; }
 	float GetRotateThickness()   const { return std::max(0.001f, RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale); }
+	void SetSelectedComponent(USceneComponent* InComponent) { TargetComponent = InComponent; }
 	USceneComponent* GetSelectedComponent() const { return TargetComponent; }
 	bool IsInRadius(float Radius);
 	bool HasComponent() const { return TargetComponent; }

@@ -3,7 +3,7 @@
 
 #include "Render/UI/Widget/Public/CameraControlWidget.h"
 #include "Render/UI/Widget/Public/FPSWidget.h"
-#include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
+#include "Render/UI/Widget/Public/ActorSpawnWidget.h"
 
 /**
  * @brief Control Panel Constructor
@@ -26,7 +26,7 @@ UControlPanelWindow::UControlPanelWindow()
 	SetConfig(Config);
 
 	AddWidget(new UFPSWidget);
-	AddWidget(new UPrimitiveSpawnWidget);
+	AddWidget(new UActorSpawnWidget);
 	// 현재 ViewportMenuBarWidget.cpp 에서 사용 중
 	//AddWidget(new UCameraControlWidget);
 }

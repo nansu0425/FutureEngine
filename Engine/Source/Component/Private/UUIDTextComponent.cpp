@@ -55,7 +55,6 @@ void UUUIDTextComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	UTextComponent::Serialize(bInIsLoading, InOutHandle);
 	if (bInIsLoading)
 	{
-		GetOwner()->SetUUIDTextComponent(this);
 		SetOffset(5);
 	}
 }

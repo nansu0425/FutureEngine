@@ -48,4 +48,9 @@ private:
 	void StartRenamingActor(AActor* InActor);
 	void FinishRenamingActor(AActor* InActor);
 	void CancelRenamingActor();
+
+	// Actor Class
+	void LoadComponentClasses();
+	
+	TMap<FString, UClass*> ComponentClasses;
 };

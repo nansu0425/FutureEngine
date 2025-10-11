@@ -29,9 +29,12 @@ UDetailWindow::UDetailWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new UActorDetailWidget);
-	AddWidget(new UTargetActorTransformWidget);
-	AddWidget(new UActorTerminationWidget);
+	UActorDetailWidget* ActorDetailWidget = NewObject<UActorDetailWidget>();
+	AddWidget(ActorDetailWidget);
+	AddWidget(NewObject<UTargetActorTransformWidget>());
+	UActorTerminationWidget* ActorTerminationWidget = NewObject<UActorTerminationWidget>();
+	ActorTerminationWidget->SetActorDetailWidget(ActorDetailWidget);
+	AddWidget(ActorTerminationWidget);
 }
 
 /**

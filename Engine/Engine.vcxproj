@@ -429,7 +429,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\ActorSpawnWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneIOWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SetTextComponentWidget.h" />
@@ -451,9 +451,6 @@
     <ClInclude Include="Source\Texture\Public\Material.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Texture\Public\TextureRenderProxy.h" />
-    <ClInclude Include="Source\Utility\Public\ActorTypeMapper.h">
-      <DeploymentContent>false</DeploymentContent>
-    </ClInclude>
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
     <ClInclude Include="Source\Utility\Public\ScopeCycleCounter.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
@@ -574,7 +571,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\ActorSpawnWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneIOWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SetTextComponentWidget.cpp" />
@@ -597,9 +594,6 @@
       <DeploymentContent>false</DeploymentContent>
     </ClCompile>
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
-    <ClCompile Include="Source\Utility\Private\ActorTypeMapper.cpp">
-      <DeploymentContent>false</DeploymentContent>
-    </ClCompile>
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
   </ItemGroup>
