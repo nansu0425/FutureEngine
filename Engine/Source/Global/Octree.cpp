@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Global/Octree.h"
+#include "Component/Public/UUIDTextComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
 
 #include "Level/Public/Level.h"

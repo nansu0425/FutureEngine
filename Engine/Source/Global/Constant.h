@@ -22,3 +22,5 @@ constexpr float ToDeg = 180.0f / PI;
 
 constexpr float CameraSpeed = 6.0f;
 constexpr float KeySensitivityDegPerPixel = 0.05f;
+
+constexpr int32 MAX_DYNAMIC_PRIMITIVES_SIZE = 256;
