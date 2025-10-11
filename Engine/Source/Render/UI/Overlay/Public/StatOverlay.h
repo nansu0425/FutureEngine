@@ -5,12 +5,13 @@
 
 enum class EStatType : uint8
 {
-	None = 0,
-	FPS = 1 << 0,      // 1
-	Memory = 1 << 1,   // 2
-	Picking = 1 << 2,  // 4
-	Time = 1 << 3,  // 8
-	All = FPS | Memory | Picking | Time
+	None =		0,		 // 0
+	FPS =		1 << 0,  // 1
+	Memory =	1 << 1,  // 2
+	Picking =	1 << 2,  // 4
+	Decal =		1 << 3,  // 8
+	Time =		1 << 4,	 // 16
+	All = FPS | Memory | Picking | Time | Decal
 };
 
 UCLASS()
@@ -29,15 +30,18 @@ public:
 	void ShowMemory(bool bShow) { bShow ? EnableStat(EStatType::Memory) : DisableStat(EStatType::Memory); }
 	void ShowPicking(bool bShow) { bShow ? EnableStat(EStatType::Picking) : DisableStat(EStatType::Picking); }
 	void ShowTime(bool bShow) { bShow ? EnableStat(EStatType::Time) : DisableStat(EStatType::Time); }
+	void ShowDecal(bool bShow) { bShow ? EnableStat(EStatType::Decal) : DisableStat(EStatType::Decal); }
 	void ShowAll(bool bShow) { SetStatType(bShow ? EStatType::All : EStatType::None); }
 
 	// API to update stats
 	void RecordPickingStats(float ElapsedMS);
-
+	void RecordDecalStats(uint32 InRenderedDecal, uint32 InCollidedCompCount);
+	
 private:
 	void RenderFPS(ID2D1DeviceContext* d2dCtx);
 	void RenderMemory(ID2D1DeviceContext* d2dCtx);
 	void RenderPicking(ID2D1DeviceContext* d2dCtx);
+	void RenderDecalInfo(ID2D1DeviceContext* D2DCtx);
 	void RenderTimeInfo(ID2D1DeviceContext* d2dCtx);
 	void RenderText(ID2D1DeviceContext* d2dCtx, const FString& Text, float X, float Y, float R, float G, float B);
 	template <typename T>
@@ -58,6 +62,10 @@ private:
 	uint32 PickAttempts = 0;
 	float LastPickingTimeMs = 0.0f;
 	float AccumulatedPickingTimeMs = 0.0f;
+
+	// Decal Stats
+	uint32 RenderedDecal = 0;
+	uint32 CollidedCompCount = 0;
 
 	// Rendering position
 	float OverlayX = 18.0f;

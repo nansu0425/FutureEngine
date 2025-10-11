@@ -492,7 +492,7 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 	}
 	else if (StatCommand == "pick" || StatCommand == "picking")
 	{
-		StatOverlay.ShowPicking(true);
+		StatOverlay .ShowPicking(true);
 		AddLog(ELogType::Success, "Picking overlay enabled");
 	}
 	else if (StatCommand == "time")
@@ -500,25 +500,15 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 		StatOverlay.ShowTime(true);
 		AddLog(ELogType::Success, "Time overlay enabled");
 	}
+	else if (StatCommand == "decal")
+	{
+		StatOverlay.ShowDecal(true);
+		AddLog(ELogType::Success, "Decal overlay enabled");
+	}
 	else if (StatCommand == "all")
 	{
 		StatOverlay.ShowAll(true);
 		AddLog(ELogType::Success, "All overlays enabled");
-
-		AddLog(ELogType::System, "--- Time Profile Stats ---");
-		const TArray<FString> ProfileKeys = FScopeCycleCounter::GetTimeProfileKeys();
-		if (ProfileKeys.empty())
-		{
-			AddLog(ELogType::Info, "No time profile data available.");
-		}
-		else
-		{
-			for (const FString& Key : ProfileKeys)
-			{
-				const FTimeProfile& Profile = FScopeCycleCounter::GetTimeProfile(Key);
-				AddLog(ELogType::Info, "  %s: %.4f ms", Key.c_str(), Profile.Milliseconds);
-			}
-		}
 	}
 	else if (StatCommand == "none")
 	{
