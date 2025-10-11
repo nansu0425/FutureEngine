@@ -4,17 +4,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Render/Renderer/Public/Pipeline.h"
-#include "Component/Public/BillBoardComponent.h"
-#include "Component/Public/TextComponent.h"
 
-class UDeviceResources;
-class UPrimitiveComponent;
-class UStaticMeshComponent;
-class UUUIDTextComponent;
-class AActor;
-class AGizmo;
-class UEditor;
-class UFontRenderer;
 class FViewport;
 class UCamera;
 class UPipeline;
@@ -76,7 +66,6 @@ public:
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
-	UFontRenderer* FontRenderer = nullptr;
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 
 	// States
