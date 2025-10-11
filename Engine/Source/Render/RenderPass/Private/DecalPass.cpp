@@ -163,10 +163,17 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
+
+        // --- Get Decal Transform ---
+        FMatrix View = Decal->GetWorldTransformMatrixInverse();
+
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
         DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse();
+        DecalConstants.DecalViewProjection = View * Decal->GetProjection();
+        DecalConstants.IsPerspective = Decal->IsPerspective();
+
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);

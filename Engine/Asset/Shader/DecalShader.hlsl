@@ -14,6 +14,10 @@ cbuffer DecalConstants : register(b2)
 {
 	row_major float4x4 DecalWorld;
 	row_major float4x4 DecalWorldInverse;
+	
+    row_major float4x4 DecalViewProjection;
+    int IsPerspective;
+    float3 Padding;
 };
 
 Texture2D DecalTexture : register(t0);
@@ -50,18 +54,44 @@ PS_INPUT mainVS(VS_INPUT Input)
 
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
+    float2 DecalUV;
+	
+	
 	// Normal Test
 	float4 DecalForward = mul(float4(1.0f, 0.0f, 0.0f, 0.0f), DecalWorld);
 	if (dot(DecalForward, Input.Normal) > 0.0f) {
 		//discard;
 	}
 	
-	// Decal Local Transition
-	float3 DecalLocalPos = mul(Input.WorldPos, DecalWorldInverse).xyz;
-	if (abs(DecalLocalPos.x) > 0.5f || abs(DecalLocalPos.y) > 0.5f || abs(DecalLocalPos.z) > 0.5f) { discard; }
-
-	// UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
-	float2 DecalUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
+	// Frustum
+    if (IsPerspective == 1)
+    {
+		// 1. Calculate Clip Space
+        float4 DecalClipPos = mul(Input.WorldPos, DecalViewProjection);
+		
+		// 2. Convert to NDC
+        float3 DecalNDC = DecalClipPos.xyz / DecalClipPos.w;
+		
+		// 3. discard Pixel OutofRange (-1 ~ 1)
+        if (abs(DecalNDC.x) > 1.0f || abs(DecalNDC.y) > 1.0f || abs(DecalNDC.z) > 1.0f)
+        {
+            discard;
+        }
+        DecalUV = DecalNDC.xy * float2(0.5f, -0.5f) + 0.5f;
+    }
+    else
+    {
+		// Decal Local Transition
+        float3 DecalLocalPos = mul(Input.WorldPos, DecalWorldInverse).xyz;
+        if (abs(DecalLocalPos.x) > 0.5f || abs(DecalLocalPos.y) > 0.5f || abs(DecalLocalPos.z) > 0.5f)
+        {
+            discard;
+        }
+		
+		// UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
+        DecalUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
+    }
+	
 	float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
 	if (DecalColor.a < 0.001f) { discard; }
 	

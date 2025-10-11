@@ -22,4 +22,9 @@ struct FOBB : public IBoundingVolume
     bool RaycastHit() const override { return false;}
     void Update(const FMatrix& WorldMatrix) override;
     EBoundingVolumeType GetType() const override { return EBoundingVolumeType::OBB; }
+
+    FVector GetExtents()const
+    {
+        return Extents;
+    }
 };

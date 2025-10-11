@@ -12,6 +12,10 @@ struct FDecalConstants
 {
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
+
+    FMatrix DecalViewProjection;
+    int IsPerspective;
+    float Padding[3];
 };
 
 class FDecalPass : public FRenderPass
