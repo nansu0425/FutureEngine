@@ -176,6 +176,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         FDecalConstants DecalConstants;
         DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse();
+        DecalConstants.FadeProgress = Decal->GetFadeProgress();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
@@ -196,9 +197,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
         ULevel* CurrentLevel = GWorld->GetLevel();
 
         Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
-
-        UE_LOG("Primitive Count: %d", Context.DefaultPrimitives.size());
-        UE_LOG("Detected Primitive Count: %d", Primitives.size());
 
         // --- Disable Octree Optimization --- 
         // Primitives = Context.DefaultPrimitives;

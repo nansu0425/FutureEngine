@@ -96,6 +96,72 @@ void UDecalTextureSelectionWidget::RenderWidget()
     }
 
     ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Fade Controls"))
+    {
+        if (ImGui::Button("Fade In"))
+        {
+            DecalComponent->BeginFadeIn();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fade Out"))
+        {
+            DecalComponent->BeginFade();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Pause"))
+        {
+            DecalComponent->PauseFade();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Resume"))
+        {
+            DecalComponent->ResumeFade();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Stop"))
+        {
+            DecalComponent->StopFade();
+        }
+
+        float fadeProgress = DecalComponent->GetFadeProgress();
+        ImGui::ProgressBar(1.0f - fadeProgress, ImVec2(-1.0f, 0.0f));
+
+        ImGui::PushItemWidth(120.0f);
+
+        float fadeInStartDelay = DecalComponent->GetFadeInStartDelay();
+        if (ImGui::InputFloat("Fade In Start Delay", &fadeInStartDelay))
+        {
+            DecalComponent->SetFadeInStartDelay(fadeInStartDelay);
+        }
+
+        float fadeInDuration = DecalComponent->GetFadeInDuration();
+        if (ImGui::InputFloat("Fade In Duration", &fadeInDuration))
+        {
+            DecalComponent->SetFadeInDuration(fadeInDuration);
+        }
+
+        float fadeStartDelay = DecalComponent->GetFadeStartDelay();
+        if (ImGui::InputFloat("Fade Out Start Delay", &fadeStartDelay))
+        {
+            DecalComponent->SetFadeStartDelay(fadeStartDelay);
+        }
+
+        float fadeDuration = DecalComponent->GetFadeDuration();
+        if (ImGui::InputFloat("Fade Out Duration", &fadeDuration))
+        {
+            DecalComponent->SetFadeDuration(fadeDuration);
+        }
+        ImGui::PopItemWidth();
+
+        bool bDestroyOwner = DecalComponent->GetDestroyOwnerAfterFade();
+        if (ImGui::Checkbox("Destroy Owner After Fade", &bDestroyOwner))
+        {
+            DecalComponent->SetDestroyOwnerAfterFade(bDestroyOwner);
+        }
+    }
+
+    ImGui::Separator();
 }
 
 UDecalTextureSelectionWidget::UDecalTextureSelectionWidget() : UWidget("Decal Texture Selection Widget")

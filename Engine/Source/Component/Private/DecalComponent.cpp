@@ -14,12 +14,20 @@ UDecalComponent::UDecalComponent()
 {
     BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
     SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("Texture")));
+    SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("FadeTexture")));
 }
 
 UDecalComponent::~UDecalComponent()
 {
     SafeDelete(BoundingBox);
     SafeDelete(DecalTexture);
+}
+
+void UDecalComponent::TickComponent(float DeltaTime)
+{
+	Super::TickComponent(DeltaTime);
+
+	UpdateFade(DeltaTime);
 }
 
 void UDecalComponent::SetTexture(UTexture* InTexture)
@@ -33,6 +41,17 @@ void UDecalComponent::SetTexture(UTexture* InTexture)
 	DecalTexture = InTexture;
 }
 
+void UDecalComponent::SetFadeTexture(UTexture* InFadeTexture)
+{
+	if (FadeTexture == InFadeTexture)
+	{
+		return;
+	}
+
+	SafeDelete(FadeTexture);
+	FadeTexture = InFadeTexture;
+}
+
 UClass* UDecalComponent::GetSpecificWidgetClass() const
 {
     return UDecalTextureSelectionWidget::StaticClass();
@@ -44,20 +63,42 @@ UClass* UDecalComponent::GetSpecificWidgetClass() const
 
 void UDecalComponent::BeginFade()
 {
+	UE_LOG("--- 페이드 아웃 시작 ---");
+
+	if (bIsFading || bIsFadingIn)
+	{
+		FadeElapsedTime = (FadeProgress * FadeDuration) + FadeStartDelay;	
+	}
+	else
+	{
+		FadeElapsedTime = 0.0f;;
+	}
+	
 	bIsFading = true;
 	
 	bIsFadingIn = false;
-	
-	FadeElapsedTime = (FadeProgress * FadeDuration) + FadeStartDelay;
+
+	bIsFadePaused = false;
 }
 
 void UDecalComponent::BeginFadeIn()
 {
+	UE_LOG("--- 페이드 인 시작 ---");
+	
+	if (bIsFading || bIsFadingIn)
+	{
+		FadeElapsedTime = ((1.0f - FadeProgress) * FadeInDuration) + FadeInStartDelay;
+	}
+	else
+	{
+		FadeElapsedTime = 1.0f;;
+	}
+	
 	bIsFadingIn = true;
 	
 	bIsFading = false;
 	
-	FadeElapsedTime = ((1.0f - FadeProgress) * FadeInDuration) + FadeInStartDelay;
+	bIsFadePaused = false;
 }
 
 void UDecalComponent::StopFade()
@@ -73,7 +114,10 @@ void UDecalComponent::StopFade()
 
 void UDecalComponent::PauseFade()
 {
-	bIsFadePaused = true;
+	if (bIsFading || bIsFadingIn)
+	{
+		bIsFadePaused = true;
+	}
 }
 
 void UDecalComponent::ResumeFade()
@@ -98,6 +142,7 @@ void UDecalComponent::UpdateFade(float DeltaTime)
 
 			if (FadeProgress >= 1.0f)
 			{
+				UE_LOG("--- 페이드 종료 ---");
 				bIsFading = false;
 				// if(bDestroyOwnerAfterFade)
 				// {
@@ -116,6 +161,7 @@ void UDecalComponent::UpdateFade(float DeltaTime)
 
 			if (FadeProgress <= 0.0f)
 			{
+				UE_LOG("--- 페이드 종료 ---");
 				bIsFadingIn = false;
 			}
 		}

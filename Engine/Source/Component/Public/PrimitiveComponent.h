@@ -11,8 +11,7 @@ class UPrimitiveComponent : public USceneComponent
 public:
 	UPrimitiveComponent();
 
-	void TickComponent() override;
-
+	    void TickComponent(float DeltaTime) override;
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
 

@@ -12,6 +12,8 @@ struct FDecalConstants
 {
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
+    float FadeProgress;
+    float Padding[3];
 };
 
 class FDecalPass : public FRenderPass

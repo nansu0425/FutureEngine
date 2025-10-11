@@ -20,11 +20,10 @@ void USceneComponent::BeginPlay()
 
 }
 
-void USceneComponent::TickComponent()
+void USceneComponent::TickComponent(float DeltaTime)
 {
-	Super::TickComponent();
+    Super::TickComponent(DeltaTime);
 }
-
 void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);

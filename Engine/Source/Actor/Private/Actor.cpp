@@ -359,7 +359,7 @@ void AActor::Tick(float DeltaTimes)
 	{
 		if (Component && Component->CanTick())
 		{
-			Component->TickComponent();
+			Component->TickComponent(DeltaTimes);
 		}
 	}
 }

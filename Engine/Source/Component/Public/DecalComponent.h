@@ -11,14 +11,23 @@ public:
     UDecalComponent();
     ~UDecalComponent();
 
-    void SetTexture(class UTexture* InTexture);
-    class UTexture* GetTexture() const { return DecalTexture; }
+    virtual void TickComponent(float DeltaTime) override;
+
+    void SetTexture(UTexture* InTexture);
+    
+    void SetFadeTexture(UTexture* InFadeTexture);
+    
+    UTexture* GetTexture() const { return DecalTexture; }
+
+    UTexture* GetFadeTexture() const { return FadeTexture; }
 
     const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
     UClass* GetSpecificWidgetClass() const override;
 
 protected:
-    class UTexture* DecalTexture = nullptr;
+    UTexture* DecalTexture = nullptr;
+    
+    UTexture* FadeTexture = nullptr;
     
     /*-----------------------------------------------------------------------------
         Decal Fade in/out
@@ -54,6 +63,8 @@ public:
     float GetFadeInDuration() const { return FadeInDuration; }
     
     float GetFadeInStartDelay() const { return FadeInStartDelay; }
+    
+    float GetFadeProgress() const { return FadeProgress; }
     
     bool GetDestroyOwnerAfterFade() const { return bDestroyOwnerAfterFade; }
 
