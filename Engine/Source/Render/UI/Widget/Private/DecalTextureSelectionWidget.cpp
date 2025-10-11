@@ -134,7 +134,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
         UTexture* CurrentFadeTexture = DecalComponent->GetFadeTexture();
         if (CurrentFadeTexture)
         {
-            FadeSRV = UAssetManager::GetInstance().GetTexture(CurrentFadeTexture->GetFilePath()).Get();
+            FadeSRV = UAssetManager::GetInstance().LoadTexture(CurrentFadeTexture->GetFilePath())->GetTextureSRV();
         }
 
         if (FadeSRV)
@@ -161,8 +161,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
 
         if (ImGui::BeginCombo("Fade Texture##FadeCombo", FadePreview.c_str()))
         {
-            const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
-            for (auto const& [Path, TextureView] : TextureCache)
+            const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+            for (auto const& [Path, Texture] : TextureCache)
             {
                 const FString PathStr = Path.ToString();
                 const FString DisplayName = std::filesystem::path(PathStr).stem().string();
@@ -171,7 +171,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
                 {
                     if (!bSelected)
                     {
-                        UTexture* NewFadeTexture = UAssetManager::GetInstance().CreateTexture(Path);
+                        UTexture* NewFadeTexture = UAssetManager::GetInstance().LoadTexture(Path);
                         DecalComponent->SetFadeTexture(NewFadeTexture);
                     }
                 }

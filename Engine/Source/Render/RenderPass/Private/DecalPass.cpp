@@ -198,11 +198,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         if (UTexture* FadeTexture = Decal->GetFadeTexture())
         {
-            if (auto* Proxy = FadeTexture->GetRenderProxy())
-            {
-                Pipeline->SetTexture(1, false, Proxy->GetSRV());
-                Pipeline->SetSamplerState(1, false, Proxy->GetSampler());
-            }
+            Pipeline->SetTexture(1, false, FadeTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(1, false, FadeTexture->GetTextureSampler());
         }
 
         TArray<UPrimitiveComponent*> Primitives;
