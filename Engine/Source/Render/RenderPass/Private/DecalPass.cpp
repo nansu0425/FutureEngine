@@ -9,101 +9,128 @@
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include <limits>
+#include <xmmintrin.h> // SSE
+#include <emmintrin.h> // SSE2
+#include <smmintrin.h> // SSE4.1
+
+
 
 namespace
 {
-	bool Intersects(const FOBB& obb, const FAABB& aabb)
-	{
-		// AABB의 중심과 절반 크기
-		FVector aabbCenter = (aabb.Min + aabb.Max) * 0.5f;
-		FVector aabbHalfSize = (aabb.Max - aabb.Min) * 0.5f;
+    // 컴포넌트 인덱싱용 헬퍼
+    static inline float Comp(const FVector& v, int i) { return (i == 0) ? v.X : (i == 1) ? v.Y : v.Z; }
+    static inline float Abs(float v) { return v >= 0.f ? v : -v; }
 
-		// OBB의 축
-		FVector obbAxes[3];
-		obbAxes[0] = FVector(obb.ScaleRotation.Data[0][0], obb.ScaleRotation.Data[0][1], obb.ScaleRotation.Data[0][2]);
-		obbAxes[1] = FVector(obb.ScaleRotation.Data[1][0], obb.ScaleRotation.Data[1][1], obb.ScaleRotation.Data[1][2]);
-		obbAxes[2] = FVector(obb.ScaleRotation.Data[2][0], obb.ScaleRotation.Data[2][1], obb.ScaleRotation.Data[2][2]);
-		obbAxes[0].Normalize();
-		obbAxes[1].Normalize();
-		obbAxes[2].Normalize();
+    // row-major, row-vector 가정
+    bool Intersects(const FOBB& OBB, const FAABB& AABB)
+    {
+        constexpr float EPS = 1e-6f;
 
+        // 1) AABB 중심/반지름
+        const FVector AABBCenter = (AABB.Min + AABB.Max) * 0.5f;
+        const FVector AABBHalf = (AABB.Max - AABB.Min) * 0.5f;
 
-		FVector testAxes[15];
-		// 1. AABB의 축 (3개)
-		testAxes[0] = FVector(1.f, 0.f, 0.f);
-		testAxes[1] = FVector(0.f, 1.f, 0.f);
-		testAxes[2] = FVector(0.f, 0.f, 1.f);
+        // 2) OBB 축(Ux,Uy,Uz)과 축 스케일 길이 추출
+        //    - ScaleRotation의 각 "행"에 스케일이 섞여 있음
+        //    - 행 길이 si를 구해 b_i = Extents_i * si 로 월드 반지름 만들고,
+        //      축은 행을 si로 나눠 정규화해서 U[i]로 사용
+        FVector OBBAxisRowX(OBB.ScaleRotation.Data[0][0], OBB.ScaleRotation.Data[0][1], OBB.ScaleRotation.Data[0][2]);
+        FVector OBBAxisRowY(OBB.ScaleRotation.Data[1][0], OBB.ScaleRotation.Data[1][1], OBB.ScaleRotation.Data[1][2]);
+        FVector OBBAxisRowZ(OBB.ScaleRotation.Data[2][0], OBB.ScaleRotation.Data[2][1], OBB.ScaleRotation.Data[2][2]);
 
-		// 2. OBB의 축 (3개)
-		testAxes[3] = obbAxes[0];
-		testAxes[4] = obbAxes[1];
-		testAxes[5] = obbAxes[2];
-
-		// 3. 외적 축 (9개)
-		testAxes[6] = testAxes[0].Cross(testAxes[3]);
-		testAxes[7] = testAxes[0].Cross(testAxes[4]);
-		testAxes[8] = testAxes[0].Cross(testAxes[5]);
-		testAxes[9] = testAxes[1].Cross(testAxes[3]);
-		testAxes[10] = testAxes[1].Cross(testAxes[4]);
-		testAxes[11] = testAxes[1].Cross(testAxes[5]);
-		testAxes[12] = testAxes[2].Cross(testAxes[3]);
-		testAxes[13] = testAxes[2].Cross(testAxes[4]);
-		testAxes[14] = testAxes[2].Cross(testAxes[5]);
+        const float OBBAxisScaleX = std::sqrt(OBBAxisRowX.LengthSquared());  // 축0의 스케일 길이
+        const float OBBAxisScaleY = std::sqrt(OBBAxisRowY.LengthSquared());  // 축1의 스케일 길이
+        const float OBBAxisScaleZ = std::sqrt(OBBAxisRowZ.LengthSquared());  // 축2의 스케일 길이
 
 
-		for (int i = 0; i < 15; ++i)
-		{
-			FVector axis = testAxes[i];
-			if (axis.LengthSquared() < 0.001f) continue;
+        // 여기서 연산이 많이 들어감. 현재 구조 상 남겨둠
+        FVector U[3] = {
+            (OBBAxisScaleX > 0.f) ? FVector(OBBAxisRowX.X / OBBAxisScaleX, OBBAxisRowX.Y / OBBAxisScaleX, OBBAxisRowX.Z / OBBAxisScaleX) : OBBAxisRowX, // Ux
+            (OBBAxisScaleY > 0.f) ? FVector(OBBAxisRowY.X / OBBAxisScaleY, OBBAxisRowY.Y / OBBAxisScaleY, OBBAxisRowY.Z / OBBAxisScaleY) : OBBAxisRowY, // Uy
+            (OBBAxisScaleZ > 0.f) ? FVector(OBBAxisRowZ.X / OBBAxisScaleZ, OBBAxisRowZ.Y / OBBAxisScaleZ, OBBAxisRowZ.Z / OBBAxisScaleZ) : OBBAxisRowZ  // Uz
+        };
 
-			float obbMin = std::numeric_limits<float>::max();
-			float obbMax = -std::numeric_limits<float>::max();
+        // OBB 월드 반지름(half-extent) b = Extents * 축길이
+        const float OBBExtents[3] = {
+            OBB.Extents.X * OBBAxisScaleX,
+            OBB.Extents.Y * OBBAxisScaleY,
+            OBB.Extents.Z * OBBAxisScaleZ
+        };
 
-			FVector obbCorners[8];
-			obbCorners[0] = obb.Center + obbAxes[0] * obb.Extents.X + obbAxes[1] * obb.Extents.Y + obbAxes[2] * obb.Extents.Z;
-			obbCorners[1] = obb.Center - obbAxes[0] * obb.Extents.X + obbAxes[1] * obb.Extents.Y + obbAxes[2] * obb.Extents.Z;
-			obbCorners[2] = obb.Center + obbAxes[0] * obb.Extents.X - obbAxes[1] * obb.Extents.Y + obbAxes[2] * obb.Extents.Z;
-			obbCorners[3] = obb.Center + obbAxes[0] * obb.Extents.X + obbAxes[1] * obb.Extents.Y - obbAxes[2] * obb.Extents.Z;
-			obbCorners[4] = obb.Center - obbAxes[0] * obb.Extents.X - obbAxes[1] * obb.Extents.Y - obbAxes[2] * obb.Extents.Z;
-			obbCorners[5] = obb.Center + obbAxes[0] * obb.Extents.X - obbAxes[1] * obb.Extents.Y - obbAxes[2] * obb.Extents.Z;
-			obbCorners[6] = obb.Center - obbAxes[0] * obb.Extents.X + obbAxes[1] * obb.Extents.Y - obbAxes[2] * obb.Extents.Z;
-			obbCorners[7] = obb.Center - obbAxes[0] * obb.Extents.X - obbAxes[1] * obb.Extents.Y + obbAxes[2] * obb.Extents.Z;
+        // 3) R[i][j] = dot(World_i, U_j)  (World_i는 표준기저 → U_j의 해당 성분과 동일)
+        float R[3][3], AbsR[3][3];
+        for (int j = 0; j < 3; ++j) {
+            R[0][j] = U[j].X;  AbsR[0][j] = Abs(R[0][j]) + EPS;
+            R[1][j] = U[j].Y;  AbsR[1][j] = Abs(R[1][j]) + EPS;
+            R[2][j] = U[j].Z;  AbsR[2][j] = Abs(R[2][j]) + EPS;
+        }
 
-			for (int j = 0; j < 8; ++j)
-			{
-				float projection = obbCorners[j].Dot(axis);
-				obbMin = min(obbMin, projection);
-				obbMax = max(obbMax, projection);
-			}
+        // 4) t = Cb - Ca
+        const FVector Distance = OBB.Center - AABBCenter;
 
-			float aabbMin = std::numeric_limits<float>::max();
-			float aabbMax = -std::numeric_limits<float>::max();
+        // 5) 월드축(AABB 3축) 테스트 — R의 '행' 사용
+        {
+            float RightAABBValue, RightOBBValue;
 
-			FVector aabbCorners[8];
-			aabbCorners[0] = aabbCenter + FVector(aabbHalfSize.X, aabbHalfSize.Y, aabbHalfSize.Z);
-			aabbCorners[1] = aabbCenter + FVector(-aabbHalfSize.X, aabbHalfSize.Y, aabbHalfSize.Z);
-			aabbCorners[2] = aabbCenter + FVector(aabbHalfSize.X, -aabbHalfSize.Y, aabbHalfSize.Z);
-			aabbCorners[3] = aabbCenter + FVector(aabbHalfSize.X, aabbHalfSize.Y, -aabbHalfSize.Z);
-			aabbCorners[4] = aabbCenter + FVector(-aabbHalfSize.X, -aabbHalfSize.Y, -aabbHalfSize.Z);
-			aabbCorners[5] = aabbCenter + FVector(aabbHalfSize.X, -aabbHalfSize.Y, -aabbHalfSize.Z);
-			aabbCorners[6] = aabbCenter + FVector(-aabbHalfSize.X, aabbHalfSize.Y, -aabbHalfSize.Z);
-			aabbCorners[7] = aabbCenter + FVector(-aabbHalfSize.X, -aabbHalfSize.Y, aabbHalfSize.Z);
+            // ex
+            RightAABBValue = AABBHalf.X;
+            RightOBBValue = OBBExtents[0] * AbsR[0][0] + OBBExtents[1] * AbsR[0][1] + OBBExtents[2] * AbsR[0][2];
+            if (Abs(Distance.X) > RightAABBValue + RightOBBValue) return false;
 
-			for (int j = 0; j < 8; ++j)
-			{
-				float projection = aabbCorners[j].Dot(axis);
-				aabbMin = min(aabbMin, projection);
-				aabbMax = max(aabbMax, projection);
-			}
+            // ey
+            RightAABBValue = AABBHalf.Y;
+            RightOBBValue = OBBExtents[0] * AbsR[1][0] + OBBExtents[1] * AbsR[1][1] + OBBExtents[2] * AbsR[1][2];
+            if (Abs(Distance.Y) > RightAABBValue + RightOBBValue) return false;
 
-			if (obbMax < aabbMin || aabbMax < obbMin)
-			{
-				return false; // 분리 축 발견
-			}
-		}
+            // ez
+            RightAABBValue = AABBHalf.Z;
+            RightOBBValue = OBBExtents[0] * AbsR[2][0] + OBBExtents[1] * AbsR[2][1] + OBBExtents[2] * AbsR[2][2];
+            if (Abs(Distance.Z) > RightAABBValue + RightOBBValue) return false;
+        }
 
-		return true; // 모든 축에서 겹침
-	}
+        // 6) OBB축(3축) 테스트 — R의 '열' + dot_t
+        {
+            float RightAABBValue, Dot_t;
+
+            // Ux (j=0)
+            Dot_t = Distance.X * R[0][0] + Distance.Y * R[1][0] + Distance.Z * R[2][0];
+            RightAABBValue = AABBHalf.X * AbsR[0][0] + AABBHalf.Y * AbsR[1][0] + AABBHalf.Z * AbsR[2][0];
+            if (Abs(Dot_t) > OBBExtents[0] + RightAABBValue) return false;
+
+            // Uy (j=1)
+            Dot_t = Distance.X * R[0][1] + Distance.Y * R[1][1] + Distance.Z * R[2][1];
+            RightAABBValue = AABBHalf.X * AbsR[0][1] + AABBHalf.Y * AbsR[1][1] + AABBHalf.Z * AbsR[2][1];
+            if (Abs(Dot_t) > OBBExtents[1] + RightAABBValue) return false;
+
+            // Uz (j=2)
+            Dot_t = Distance.X * R[0][2] + Distance.Y * R[1][2] + Distance.Z * R[2][2];
+            RightAABBValue = AABBHalf.X * AbsR[0][2] + AABBHalf.Y * AbsR[1][2] + AABBHalf.Z * AbsR[2][2];
+            if (Abs(Dot_t) > OBBExtents[2] + RightAABBValue) return false;
+        }
+
+        // 7) 교차축 9개: Ai × Uj  (i=월드축, j=OBB축)
+        const float AABBExtents[3] = { AABBHalf.X, AABBHalf.Y, AABBHalf.Z };
+        for (int i = 0; i < 3; ++i) {
+            const int i1 = (i + 1) % 3, i2 = (i + 2) % 3;
+            for (int j = 0; j < 3; ++j) {
+                const int j1 = (j + 1) % 3, j2 = (j + 2) % 3;
+
+                // LHS = | t[i2]*R[i1][j] - t[i1]*R[i2][j] |
+                const float LHS = Abs(Comp(Distance, i2) * R[i1][j] - Comp(Distance, i1) * R[i2][j]);
+
+                // rA = a[i1]*absR[i2][j] + a[i2]*absR[i1][j]
+                const float RightAABBValue = AABBExtents[i1] * AbsR[i2][j] + AABBExtents[i2] * AbsR[i1][j];
+
+                // rB = b[j1]*absR[i][j2] + b[j2]*absR[i][j1]
+                const float RightOBBValue = OBBExtents[j1] * AbsR[i][j2] + OBBExtents[j2] * AbsR[i][j1];
+
+                if (LHS > RightAABBValue + RightOBBValue) return false; // 분리 축 발견 → 불충돌
+            }
+        }
+
+        // 8) 모든 축에서 분리 실패 → 충돌
+        return true;
+    }
 }
 
 FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
@@ -162,9 +189,12 @@ void FDecalPass::Execute(FRenderingContext& Context)
         
         	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
-        	const FAABB* PrimAABB = static_cast<const FAABB*>(PrimBV);
         
-        	if (!Intersects(*DecalOBB, *PrimAABB))
+        	FVector WorldMin, WorldMax;
+        	Prim->GetWorldAABB(WorldMin, WorldMax);
+        	const FAABB WorldAABB(WorldMin, WorldMax);
+        
+        	if (!Intersects(*DecalOBB, WorldAABB))
         	{
         		continue;
         	}
