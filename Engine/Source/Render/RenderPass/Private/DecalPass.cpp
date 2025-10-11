@@ -142,6 +142,13 @@ FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferView
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
     ConstantBufferDecal = FRenderResourceFactory::CreateConstantBuffer<FDecalConstants>();
+
+    // 임시로 넣어둠
+    // Load texture
+    UAssetManager& ResourceManager = UAssetManager::GetInstance();
+    ResourceManager.LoadTexture("Asset/Texture/spotlight.png");
+    ResourceManager.LoadTexture("Asset/Texture/SpotLight_64x.png");
+
 }
 
 void FDecalPass::Execute(FRenderingContext& Context)
@@ -172,10 +179,17 @@ void FDecalPass::Execute(FRenderingContext& Context)
         
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
+        Decal->UpdateProjectionMatrix();
+
+        // --- Get Decal Transform ---
+        FMatrix MoveCamera = FMatrix::Identity();
+        MoveCamera.Data[3][0] = 0.5f;
+        FMatrix View = Decal->GetWorldTransformMatrixInverse() * MoveCamera;
+
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
         DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
-        DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse();
+        DecalConstants.DecalViewProjection = View * Decal->GetProjectionMatrix();
         DecalConstants.FadeProgress = Decal->GetFadeProgress();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
