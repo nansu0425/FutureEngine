@@ -3,6 +3,10 @@
 
 struct FOBB : public IBoundingVolume
 {
+    FOBB() : Center(0.0f, 0.0f, 0.0f), Extents(0.0f, 0.0f, 0.0f), ScaleRotation(FMatrix::Identity())
+    {
+        
+    }
     FOBB(const FVector& InCenter, const FVector& InExtents, const FMatrix& InRotation)
 		: Center(InCenter), Extents(InExtents), ScaleRotation(InRotation)
 	{}
@@ -14,9 +18,6 @@ struct FOBB : public IBoundingVolume
     FVector Center;
     FVector Extents;
     FMatrix ScaleRotation;
-
-    // 정규직교 회전행렬
-    FMatrix Rotation;
 
     
     bool RaycastHit() const override { return false;}

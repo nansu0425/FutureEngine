@@ -170,10 +170,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
         DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
-        DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse();
-        DecalConstants.DecalViewProjection = View * Decal->GetProjection();
-        DecalConstants.IsPerspective = Decal->IsPerspective();
-
+        DecalConstants.DecalViewProjection = View * Decal->GetProjectionMatrix();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
@@ -187,7 +184,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
             }
         }
-
 
         //UE_LOG("%d", Context.DefaultPrimitives.size());
         for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
