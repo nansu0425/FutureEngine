@@ -11,7 +11,7 @@ struct FModelConstants
 struct FDecalConstants
 {
     FMatrix DecalWorld;
-    FMatrix DecalWorldInverse;
+    FMatrix DecalViewProjection;
 };
 
 class FDecalPass : public FRenderPass
