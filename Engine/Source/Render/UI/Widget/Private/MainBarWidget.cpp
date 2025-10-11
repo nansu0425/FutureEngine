@@ -345,6 +345,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
 
+		// Octree 표시 옵션
+		bool bShowOctree = (ShowFlags & EEngineShowFlags::SF_Octree) != 0;
+		if (ImGui::MenuItem("Octree 표시", nullptr, bShowOctree))
+		{
+			if (bShowOctree)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_Octree);
+				UE_LOG("MainBarWidget: Octree 비표시");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Octree);
+				UE_LOG("MainBarWidget: Octree 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+
 		ImGui::EndMenu();
 	}
 }

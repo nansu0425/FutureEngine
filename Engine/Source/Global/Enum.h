@@ -184,6 +184,7 @@ enum class EEngineShowFlags : uint64
 	SF_Bounds = 0x20,
 	SF_StaticMesh = 0x30,
 	SF_Text = 0x40,
+	SF_Octree = 0x50,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

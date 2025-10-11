@@ -68,7 +68,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         UE_LOG("Detected Primitive Count: %d", Primitives.size());
 
         // --- Disable Octree Optimization --- 
-        //Primitives = Context.DefaultPrimitives;
+        Primitives = Context.DefaultPrimitives;
 
         for (UPrimitiveComponent* Prim : Primitives)
         {
