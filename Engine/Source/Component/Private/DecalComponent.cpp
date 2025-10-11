@@ -1,9 +1,12 @@
 ﻿#include "pch.h"
+
+#include <algorithm>
+
 #include "Component/Public/DecalComponent.h"
-#include "Physics/Public/OBB.h"
 #include "Manager/Asset/Public/AssetManager.h"
-#include "Texture/Public/Texture.h"
+#include "Physics/Public/OBB.h"
 #include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
+#include "Texture/Public/Texture.h"
 
 IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
@@ -33,4 +36,88 @@ void UDecalComponent::SetTexture(UTexture* InTexture)
 UClass* UDecalComponent::GetSpecificWidgetClass() const
 {
     return UDecalTextureSelectionWidget::StaticClass();
+}
+
+/*-----------------------------------------------------------------------------
+	Decal Fade in/out
+ -----------------------------------------------------------------------------*/
+
+void UDecalComponent::BeginFade()
+{
+	bIsFading = true;
+	
+	bIsFadingIn = false;
+	
+	FadeElapsedTime = (FadeProgress * FadeDuration) + FadeStartDelay;
+}
+
+void UDecalComponent::BeginFadeIn()
+{
+	bIsFadingIn = true;
+	
+	bIsFading = false;
+	
+	FadeElapsedTime = ((1.0f - FadeProgress) * FadeInDuration) + FadeInStartDelay;
+}
+
+void UDecalComponent::StopFade()
+{
+	bIsFading = false;
+	
+	bIsFadingIn = false;
+	
+	FadeProgress = 0.f;
+	
+	FadeElapsedTime = 0.f;
+}
+
+void UDecalComponent::PauseFade()
+{
+	bIsFadePaused = true;
+}
+
+void UDecalComponent::ResumeFade()
+{
+	bIsFadePaused = false;
+}
+
+void UDecalComponent::UpdateFade(float DeltaTime)
+{
+	if (bIsFadePaused)
+	{
+		return;
+	}
+
+	if (bIsFading)
+	{
+		FadeElapsedTime += DeltaTime;
+		if (FadeElapsedTime >= FadeStartDelay)
+		{
+			const float FadeAlpha = (FadeElapsedTime - FadeStartDelay) / FadeDuration;
+			FadeProgress = std::clamp(FadeAlpha, 0.0f, 1.0f);
+
+			if (FadeProgress >= 1.0f)
+			{
+				bIsFading = false;
+				// if(bDestroyOwnerAfterFade)
+				// {
+				// 	GetOwner()->Destroy();
+				// }
+			}
+		}
+	}
+	else if (bIsFadingIn)
+	{
+		FadeElapsedTime += DeltaTime;
+		if (FadeElapsedTime >= FadeInStartDelay)
+		{
+			const float FadeAlpha = (FadeElapsedTime - FadeInStartDelay) / FadeInDuration;
+			FadeProgress = 1.f - std::clamp(FadeAlpha, 0.f, 1.f);
+
+			if (FadeProgress <= 0.0f)
+			{
+				bIsFadingIn = false;
+			}
+		}
+	}
 }
