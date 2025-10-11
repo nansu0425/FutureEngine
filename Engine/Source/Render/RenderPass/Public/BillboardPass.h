@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Render/RenderPass/Public/RenderPass.h"
+#include "Component/Public/BillBoardComponent.h"
 
 class FBillboardPass : public FRenderPass
 {

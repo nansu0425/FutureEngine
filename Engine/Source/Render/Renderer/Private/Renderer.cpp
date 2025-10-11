@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
@@ -42,14 +41,6 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDecalShader();
 	CreateConstantBuffers();
 
-	// FontRenderer 초기화
-	FontRenderer = new UFontRenderer();
-	if (!FontRenderer->Initialize())
-	{
-		UE_LOG("FontRenderer 초기화 실패");
-		SafeDelete(FontRenderer);
-	}
-
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
@@ -86,7 +77,6 @@ void URenderer::Release()
 	}
 
 	SafeDelete(ViewportClient);
-	SafeDelete(FontRenderer);
 	SafeDelete(Pipeline);
 	SafeDelete(DeviceResources);
 }
