@@ -41,6 +41,7 @@ void UPathManager::GetEssentialPath()
 {
 	// Add Essential
 
+	DataPath = RootPath / L"Data";
 	AssetPath = RootPath / L"Asset";
 	ShaderPath = AssetPath / L"Shader";
 	TexturePath = AssetPath / "Texture";

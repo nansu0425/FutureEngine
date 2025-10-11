@@ -17,7 +17,7 @@ UCubeComponent::UCubeComponent()
 	NumVertices = ResourceManager.GetNumVertices(Type);
 
 	Indices = ResourceManager.GetIndexData(Type);
-	IndexBuffer = ResourceManager.GetIndexbuffer(Type);
+	IndexBuffer = ResourceManager.GetIndexBuffer(Type);
 	NumIndices = ResourceManager.GetNumIndices(Type);
 
 	RenderState.CullMode = ECullMode::Back;

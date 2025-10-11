@@ -7,6 +7,8 @@
 
 #include <climits>
 
+#include "Texture/Public/Texture.h"
+
 IMPLEMENT_CLASS(USpriteSelectionWidget, UWidget)
 
 USpriteSelectionWidget::USpriteSelectionWidget()
@@ -23,7 +25,6 @@ void USpriteSelectionWidget::Initialize()
 
 void USpriteSelectionWidget::Update()
 {
-	// �� ������ Level�� ���õ� Actor�� Ȯ���ؼ� ���� �ݿ�
 	ULevel* CurrentLevel = GWorld->GetLevel();
 
 	if (CurrentLevel)
@@ -46,44 +47,41 @@ void USpriteSelectionWidget::Update()
 
 void USpriteSelectionWidget::RenderWidget()
 {
-	if (!SelectedActor)
-		return;
+	if (!SelectedActor) { return; }
 	
 	ImGui::Separator();
 	ImGui::Text("Select Sprite");
 
 	ImGui::Spacing();
 		
-	static int current_item = 0; // ���� ���õ� �ε���
+	static int CurrentItem = 0;
 
 	// ���� ���ڿ� ���
-	TArray<FString> items;
-	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
-		UAssetManager::GetInstance().GetTextureCache();
+	TArray<FString> Items;
+	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 
-	int i = 0;
-	for (auto Itr = TextureCache.begin(); Itr != TextureCache.end(); Itr++, i++)
+	int32 Idx = 0;
+	for (auto Itr = TextureCache.begin(); Itr != TextureCache.end(); ++Itr, Idx++)
 	{
-		if (Itr->first == SelectedBillBoard->GetSprite().first)
-			current_item = i;
+		if (Itr->first == SelectedBillBoard->GetSprite()->GetFilePath()) { CurrentItem = Idx; }
 
-		items.push_back(Itr->first.ToString());
+		Items.push_back(Itr->first.ToString());
 	}
 
-	sort(items.begin(), items.end());
+	sort(Items.begin(), Items.end());
 	
-	if (ImGui::BeginCombo("Sprite", items[current_item].c_str())) // Label�� ���� �� ǥ��
+	if (ImGui::BeginCombo("Sprite", Items[CurrentItem].c_str()))
 	{
-		for (int n = 0; n < items.size(); n++)
+		for (int32 N = 0; N < Items.size(); N++)
 		{
-			bool is_selected = (current_item == n);
-			if (ImGui::Selectable(items[n].c_str(), is_selected))
+			bool bIsSelected = (CurrentItem == N);
+			if (ImGui::Selectable(Items[N].c_str(), bIsSelected))
 			{
-				current_item = n;
-				SetSpriteOfActor(items[current_item]);
+				CurrentItem = N;
+				SetSpriteOfActor(Items[CurrentItem]);
 			}
 
-			if (is_selected)
+			if (bIsSelected)
 				ImGui::SetItemDefaultFocus(); // �⺻ ��Ŀ��
 		}
 		ImGui::EndCombo();
@@ -101,8 +99,7 @@ void USpriteSelectionWidget::SetSpriteOfActor(FString NewSprite)
 	if (!SelectedBillBoard)
 		return;
 
-	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
-		UAssetManager::GetInstance().GetTextureCache();
+	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 
-	SelectedBillBoard->SetSprite(*TextureCache.find(NewSprite));
+	SelectedBillBoard->SetSprite(TextureCache.find(NewSprite)->second);
 }

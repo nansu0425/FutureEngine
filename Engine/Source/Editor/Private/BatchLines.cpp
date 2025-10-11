@@ -15,45 +15,36 @@ UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 	BoundingBoxLines.MergeVerticesAt(Vertices, Grid.GetNumVertices());
 
 	SetIndices();
-
-	URenderer& Renderer = URenderer::GetInstance();
-
-	//BatchLineConstData.CellSize = 1.0f;
-	//BatchLineConstData.BoundingBoxModel = FMatrix::Identity();
-
-	/*AddWorldGridVerticesAndConstData();
-	AddBoundingBoxVertices();*/
-
+	
+	ID3D11VertexShader* VertexShader;
+	ID3D11InputLayout* InputLayout;
+	TArray<D3D11_INPUT_ELEMENT_DESC> Layout = { {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0} };
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/BatchLineShader.hlsl", Layout, &VertexShader, &InputLayout);
+	ID3D11PixelShader* PixelShader;
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/BatchLineShader.hlsl", &PixelShader);
+	
+	Primitive.VertexShader = VertexShader;
+	Primitive.InputLayout = InputLayout;
+	Primitive.PixelShader = PixelShader;
+	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
+	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
 	Primitive.NumVertices = static_cast<uint32>(Vertices.size());
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
-	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
-	//Primitive.Color = FVector4(1, 1, 1, 0.2f);
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-	Primitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(
-		Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
-	/*Primitive.Location = FVector(0, 0, 0);
-	Primitive.Rotation = FVector(0, 0, 0);
-	Primitive.Scale = FVector(1, 1, 1);*/
-	Primitive.VertexShader = UAssetManager::GetInstance().GetVertexShader(EShaderType::BatchLine);
-	Primitive.InputLayout = UAssetManager::GetInstance().GetIputLayout(EShaderType::BatchLine);
-	Primitive.PixelShader = UAssetManager::GetInstance().GetPixelShader(EShaderType::BatchLine);
 }
 
 UBatchLines::~UBatchLines()
 {
-	SafeRelease(Primitive.Vertexbuffer);
-	Primitive.InputLayout->Release();
-	Primitive.VertexShader->Release();
-	Primitive.IndexBuffer->Release();
-	Primitive.PixelShader->Release();
+	SafeRelease(Primitive.InputLayout);
+	SafeRelease(Primitive.VertexShader);
+	SafeRelease(Primitive.PixelShader);
+	SafeRelease(Primitive.VertexBuffer);
+	SafeRelease(Primitive.IndexBuffer);
 }
 
 void UBatchLines::UpdateUGridVertices(const float newCellSize)
 {
-	if (newCellSize == Grid.GetCellSize())
-	{
-		return;
-	}
+	if (newCellSize == Grid.GetCellSize()) { return; }
 	Grid.UpdateVerticesBy(newCellSize);
 	bChangedVertices = true;
 }
@@ -76,10 +67,7 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 
 void UBatchLines::TraverseOctree(const FOctree* InNode)
 {
-	if (!InNode)
-	{
-		return;
-	}
+	if (!InNode) { return; }
 
 	UBoundingBoxLines BoxLines;
 	BoxLines.UpdateVertices(&InNode->GetBoundingBox());
@@ -99,23 +87,23 @@ void UBatchLines::UpdateVertexBuffer()
 	if (bChangedVertices)
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
-		uint32 NumBBoxVertices = BoundingBoxLines.GetNumVertices();
+		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
 		{
 			NumOctreeVertices += Line.GetNumVertices();
 		}
 
-		Vertices.resize(NumGridVertices + NumBBoxVertices + NumOctreeVertices);
+		Vertices.resize(NumGridVertices + NumBoxVertices + NumOctreeVertices);
 
 		Grid.MergeVerticesAt(Vertices, 0);
 		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
 
-		uint32 currentOffset = NumGridVertices + NumBBoxVertices;
-		for (auto& line : OctreeLines)
+		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
+		for (auto& Line : OctreeLines)
 		{
-			line.MergeVerticesAt(Vertices, currentOffset);
-			currentOffset += line.GetNumVertices();
+			Line.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += Line.GetNumVertices();
 		}
 
 		SetIndices();
@@ -123,10 +111,10 @@ void UBatchLines::UpdateVertexBuffer()
 		Primitive.NumVertices = static_cast<uint32>(Vertices.size());
 		Primitive.NumIndices = static_cast<uint32>(Indices.size());
 
-		SafeRelease(Primitive.Vertexbuffer);
+		SafeRelease(Primitive.VertexBuffer);
 		SafeRelease(Primitive.IndexBuffer);
 
-		Primitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
+		Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
 		Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
 	}
 	bChangedVertices = false;
@@ -144,15 +132,15 @@ void UBatchLines::SetIndices()
 {
 	Indices.clear();
 
-	const uint32 numGridVertices = Grid.GetNumVertices();
+	const uint32 NumGridVertices = Grid.GetNumVertices();
 
 	// Grid indices
-	for (uint32 index = 0; index < numGridVertices; ++index)
+	for (uint32 Index = 0; Index < NumGridVertices; ++Index)
 	{
-		Indices.push_back(index);
+		Indices.push_back(Index);
 	}
 
-	uint32 boundingBoxLineIdx[] = {
+	uint32 BoundingBoxLineIdx[] = {
 		// 앞면
 		0, 1,
 		1, 2,
@@ -173,20 +161,20 @@ void UBatchLines::SetIndices()
 	};
 
 	// BoundingBox indices
-	uint32 baseVertexOffset = numGridVertices;
-	for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
+	uint32 BaseVertexOffset = NumGridVertices;
+	for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
 	{
-		Indices.push_back(baseVertexOffset + boundingBoxLineIdx[i]);
+		Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
 	}
 
 	// OctreeLines indices
-	baseVertexOffset += BoundingBoxLines.GetNumVertices();
-	for (const auto& octreeLine : OctreeLines)
+	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
+	for (const auto& OctreeLine : OctreeLines)
 	{
-		for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
+		for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
 		{
-			Indices.push_back(baseVertexOffset + boundingBoxLineIdx[i]);
+			Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
 		}
-		baseVertexOffset += octreeLine.GetNumVertices();
+		BaseVertexOffset += OctreeLine.GetNumVertices();
 	}
 }

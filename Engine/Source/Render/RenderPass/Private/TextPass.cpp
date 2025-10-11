@@ -7,6 +7,7 @@
 #include "Editor/Public/Camera.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Editor/Public/Editor.h"
+#include "Texture/Public/Texture.h"
 
 FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel)
     : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel)
@@ -21,9 +22,6 @@ FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewPr
     FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ShaderFont.hlsl", layoutDesc, &FontVertexShader, &FontInputLayout);
     FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ShaderFont.hlsl", &FontPixelShader);
 
-    // Create sampler state
-    FontSampler = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
-
     // Create dynamic vertex buffer
     D3D11_BUFFER_DESC BufferDesc = {};
     BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -37,8 +35,7 @@ FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewPr
 
     // Load font texture
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
-    auto TextureComPtr = ResourceManager.LoadTexture("Asset/Texture/DejaVu Sans Mono.png");
-    FontAtlasTexture = TextureComPtr.Get();
+    FontTexture = ResourceManager.LoadTexture("Data/Texture/DejaVu Sans Mono.png");
 }
 
 void FTextPass::Execute(FRenderingContext& Context)
@@ -60,8 +57,8 @@ void FTextPass::Execute(FRenderingContext& Context)
     Pipeline->SetConstantBuffer(2, true, FontDataConstantBuffer);
 
     // Bind resources
-    Pipeline->SetTexture(0, false, FontAtlasTexture);
-    Pipeline->SetSamplerState(0, false, FontSampler);
+    Pipeline->SetTexture(0, false, FontTexture->GetTextureSRV());
+    Pipeline->SetSamplerState(0, false, FontTexture->GetTextureSampler());
 
     for (UTextComponent* Text : Context.Texts)
     {
@@ -143,7 +140,6 @@ void FTextPass::Release()
     SafeRelease(FontVertexShader);
     SafeRelease(FontPixelShader);
     SafeRelease(FontInputLayout);
-    SafeRelease(FontSampler);
     SafeRelease(DynamicVertexBuffer);
     SafeRelease(FontDataConstantBuffer);
 }

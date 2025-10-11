@@ -19,30 +19,18 @@ UBillBoardComponent::UBillBoardComponent()
 	NumVertices = ResourceManager.GetNumVertices(Type);
 
 	Indices = ResourceManager.GetIndexData(Type);
-	IndexBuffer = ResourceManager.GetIndexbuffer(Type);
+	IndexBuffer = ResourceManager.GetIndexBuffer(Type);
 	NumIndices = ResourceManager.GetNumIndices(Type);
 
 	RenderState.CullMode = ECullMode::Back;
 	RenderState.FillMode = EFillMode::Solid;
 	BoundingBox = &ResourceManager.GetAABB(Type);
 
-    Sampler = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
-    if (!Sampler)
-    {
-        assert(false);
-    }
-
-    const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
-        UAssetManager::GetInstance().GetTextureCache();
-    if (!TextureCache.empty())
-        Sprite = *TextureCache.begin();
+    const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+    if (!TextureCache.empty()) { Sprite = TextureCache.begin()->second; }
 }
 
-UBillBoardComponent::~UBillBoardComponent()
-{
-    if (Sampler)
-        Sampler->Release();
-}
+UBillBoardComponent::~UBillBoardComponent() = default;
 
 void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {
@@ -57,20 +45,15 @@ void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
     SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }
 
-const TPair<FName, ID3D11ShaderResourceView*>& UBillBoardComponent::GetSprite() const
+UTexture* UBillBoardComponent::GetSprite() const
 {
     return Sprite;
 }
 
-void UBillBoardComponent::SetSprite(const TPair<FName, ID3D11ShaderResourceView*>& InSprite)
+void UBillBoardComponent::SetSprite(UTexture* InSprite)
 {
     Sprite = InSprite;
 }
-
-ID3D11SamplerState* UBillBoardComponent::GetSampler() const
-{ 
-    return Sampler;
-};
 
 UClass* UBillBoardComponent::GetSpecificWidgetClass() const
 {

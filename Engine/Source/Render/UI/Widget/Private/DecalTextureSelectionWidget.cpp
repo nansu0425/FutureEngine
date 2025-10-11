@@ -47,7 +47,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
     UTexture* CurrentTexture = DecalComponent->GetTexture();
     if (CurrentTexture)
     {
-        SRV = UAssetManager::GetInstance().GetTexture(CurrentTexture->GetFilePath()).Get();
+        SRV = CurrentTexture->GetTextureSRV();
     }
 
     if (SRV)
@@ -75,8 +75,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
 
     if (ImGui::BeginCombo("Texture (png)##Combo", Preview.c_str()))
     {
-        const TMap<FName, ID3D11ShaderResourceView*>& textureCache = UAssetManager::GetInstance().GetTextureCache();
-        for (auto const& [Path, textureView] : textureCache)
+        const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
+        for (auto const& [Path, Texture] : TextureCache)
         {
             const FString PathStr = Path.ToString();
             const FString DisplayName = std::filesystem::path(PathStr).stem().string();
@@ -85,8 +85,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
             {
                 if (!bSelected)
                 {
-                    UTexture* NewTexture = UAssetManager::GetInstance().CreateTexture(Path);
-                    DecalComponent->SetTexture(NewTexture);
+                    DecalComponent->SetTexture(Texture);
                 }
             }
             if (bSelected)

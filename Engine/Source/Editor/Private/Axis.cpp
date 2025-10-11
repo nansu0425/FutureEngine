@@ -20,7 +20,7 @@ UAxis::UAxis()
 	AxisVertices.push_back({ { 0.0f,0.0f,0.0f }, {}, { 0,0,1,1 }, {} });
 
 	Primitive.NumVertices = static_cast<int>(AxisVertices.size());
-	Primitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(AxisVertices.data(), Primitive.NumVertices * sizeof(FNormalVertex));
+	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(AxisVertices.data(), Primitive.NumVertices * sizeof(FNormalVertex));
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	Primitive.Color = FVector4(1, 1, 1, 0);
 	Primitive.Location = FVector(0, 0, 0);
@@ -30,7 +30,7 @@ UAxis::UAxis()
 
 UAxis::~UAxis()
 {
-	SafeRelease(Primitive.Vertexbuffer);
+	SafeRelease(Primitive.VertexBuffer);
 }
 
 void UAxis::Render()

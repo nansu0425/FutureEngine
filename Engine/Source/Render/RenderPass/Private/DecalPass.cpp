@@ -9,12 +9,6 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
-#include "Texture/Public/TextureRenderProxy.h"
-#include <limits>
-#include <xmmintrin.h> // SSE
-#include <emmintrin.h> // SSE2
-#include <smmintrin.h> // SSE4.1
-
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 
 
@@ -198,11 +192,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
         // --- Bind Decal Texture ---
         if (UTexture* DecalTexture = Decal->GetTexture())
         {
-            if (auto* Proxy = DecalTexture->GetRenderProxy())
-            {
-                Pipeline->SetTexture(0, false, Proxy->GetSRV());
-                Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
-            }
+            Pipeline->SetTexture(0, false, DecalTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(0, false, DecalTexture->GetTextureSampler());
         }
 
         if (UTexture* FadeTexture = Decal->GetFadeTexture())

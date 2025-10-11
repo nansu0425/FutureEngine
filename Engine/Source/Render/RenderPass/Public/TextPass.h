@@ -30,10 +30,9 @@ private:
     ID3D11VertexShader* FontVertexShader = nullptr;
     ID3D11PixelShader* FontPixelShader = nullptr;
     ID3D11InputLayout* FontInputLayout = nullptr;
-    ID3D11SamplerState* FontSampler = nullptr;
-    ID3D11ShaderResourceView* FontAtlasTexture = nullptr;
     ID3D11Buffer* DynamicVertexBuffer = nullptr;
     ID3D11Buffer* FontDataConstantBuffer = nullptr;
+    UTexture* FontTexture = nullptr;
     FFontConstantBuffer ConstantBufferData;
 
     static constexpr uint32 MAX_FONT_VERTICES = 4096;

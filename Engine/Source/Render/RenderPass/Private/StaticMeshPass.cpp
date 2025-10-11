@@ -4,7 +4,6 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
-#include "Texture/Public/TextureRenderProxy.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
@@ -81,32 +80,20 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 				if (UTexture* DiffuseTexture = Material->GetDiffuseTexture())
 				{
-					if(auto* Proxy = DiffuseTexture->GetRenderProxy())
-					{
-						Pipeline->SetTexture(0, false, Proxy->GetSRV());
-						Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
-					}
+					Pipeline->SetTexture(0, false, DiffuseTexture->GetTextureSRV());
+					Pipeline->SetSamplerState(0, false, DiffuseTexture->GetTextureSampler());
 				}
 				if (UTexture* AmbientTexture = Material->GetAmbientTexture())
 				{
-					if(auto* Proxy = AmbientTexture->GetRenderProxy())
-					{
-						Pipeline->SetTexture(1, false, Proxy->GetSRV());
-					}
+					Pipeline->SetTexture(1, false, AmbientTexture->GetTextureSRV());
 				}
 				if (UTexture* SpecularTexture = Material->GetSpecularTexture())
 				{
-					if(auto* Proxy = SpecularTexture->GetRenderProxy())
-					{
-						Pipeline->SetTexture(2, false, Proxy->GetSRV());
-					}
+					Pipeline->SetTexture(2, false, SpecularTexture->GetTextureSRV());
 				}
 				if (UTexture* AlphaTexture = Material->GetAlphaTexture())
 				{
-					if(auto* Proxy = AlphaTexture->GetRenderProxy())
-					{
-						Pipeline->SetTexture(4, false, Proxy->GetSRV());
-					}
+					Pipeline->SetTexture(4, false, AlphaTexture->GetTextureSRV());
 				}
 				
 				CurrentMaterial = Material;

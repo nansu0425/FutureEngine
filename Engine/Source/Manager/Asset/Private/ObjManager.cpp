@@ -208,7 +208,7 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 
 			if (std::filesystem::exists(TexturePathStr))
 			{
-				UTexture* DiffuseTexture = AssetManager.CreateTexture(TexturePathStr);
+				UTexture* DiffuseTexture = AssetManager.LoadTexture(TexturePathStr);
 				if (DiffuseTexture)
 				{
 					Material->SetDiffuseTexture(DiffuseTexture);
@@ -223,7 +223,7 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 
 			if (std::filesystem::exists(TexturePathStr))
 			{
-				UTexture* AmbientTexture = AssetManager.CreateTexture(TexturePathStr);
+				UTexture* AmbientTexture = AssetManager.LoadTexture(TexturePathStr);
 				if (AmbientTexture)
 				{
 					Material->SetAmbientTexture(AmbientTexture);
@@ -238,7 +238,7 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 
 			if (std::filesystem::exists(TexturePathStr))
 			{
-				UTexture* SpecularTexture = AssetManager.CreateTexture(TexturePathStr);
+				UTexture* SpecularTexture = AssetManager.LoadTexture(TexturePathStr);
 				if (SpecularTexture)
 				{
 					Material->SetSpecularTexture(SpecularTexture);
@@ -253,7 +253,7 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 
 			if (std::filesystem::exists(TexturePathStr))
 			{
-				UTexture* AlphaTexture = AssetManager.CreateTexture(TexturePathStr);
+				UTexture* AlphaTexture = AssetManager.LoadTexture(TexturePathStr);
 				if (AlphaTexture)
 				{
 					Material->SetAlphaTexture(AlphaTexture);
