@@ -166,7 +166,7 @@ void UDecalComponent::BeginFadeIn()
 	}
 	else
 	{
-		FadeProgress = 1.0f;;
+		FadeElapsedTime = 0.0f;
 	}
 	
 	bIsFadingIn = true;
