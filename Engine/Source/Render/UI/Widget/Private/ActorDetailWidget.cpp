@@ -52,9 +52,25 @@ void UActorDetailWidget::RenderWidget()
 		SelectedComponent = SelectedActor->GetRootComponent();
 	}
 
-	// Actor 헤더 렌더링 (이름 + rename 기능)
-	RenderActorHeader(SelectedActor);
-
+	    // Actor 헤더 렌더링 (이름 + rename 기능)
+	    RenderActorHeader(SelectedActor);
+	
+	    ImGui::Separator();
+	
+	    if (ImGui::CollapsingHeader("Tick Settings"))
+	    {
+	        bool bCanEverTick = SelectedActor->CanTick();
+	        if (ImGui::Checkbox("Enable Tick", &bCanEverTick))
+	        {
+	            SelectedActor->SetCanTick(bCanEverTick);
+	        }
+	
+	        bool bTickInEditor = SelectedActor->CanTickInEditor();
+	        if (ImGui::Checkbox("Tick in Editor", &bTickInEditor))
+	        {
+	            SelectedActor->SetTickInEditor(bTickInEditor);
+	        }
+	    }
 	ImGui::Separator();
 
 	// 컴포넌트 트리 렌더링
