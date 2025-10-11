@@ -9,7 +9,7 @@ IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
 UDecalComponent::UDecalComponent()
 {
-    BoundingBox = new FOBB();
+    BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
     SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("Texture")));
 
     // Start with perspective projection by default

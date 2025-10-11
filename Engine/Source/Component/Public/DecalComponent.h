@@ -26,8 +26,9 @@ public:
     FMatrix GetProjectionMatrix() const { return ProjectionMatrix; }
     bool IsPerspective() const { return bIsPerspective; }
 
-protected:
     void UpdateProjectionMatrix();
+protected:
+
     void UpdateOBB();
 
 protected:

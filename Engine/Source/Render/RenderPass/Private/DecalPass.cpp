@@ -170,6 +170,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
+        Decal->UpdateProjectionMatrix();
 
         // --- Get Decal Transform ---
         FMatrix MoveCamera = FMatrix::Identity();
