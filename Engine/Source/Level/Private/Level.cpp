@@ -275,6 +275,7 @@ void ULevel::UpdateOctree()
 				// 큐에 기록된 오브젝트의 마지막 변경 시간 이후로 변경이 없었다면 Octree에 재삽입한다.
 				// TODO: 오브젝트의 유일성을 보장하기 위해 StaticOctree->Remove(Component)가 필요한가?
 				StaticOctree->Insert(Component);
+				DynamicPrimitiveMap.erase(It);
 				++Count;
 			}
 			else
