@@ -14,6 +14,8 @@ UDecalComponent::UDecalComponent()
 
     // Start with perspective projection by default
     SetPerspective(true);
+    UpdateOBB();
+    UpdateProjectionMatrix();
 }
 
 UDecalComponent::~UDecalComponent()
@@ -39,10 +41,10 @@ UClass* UDecalComponent::GetSpecificWidgetClass() const
 
 void UDecalComponent::SetPerspective(bool bEnable)
 {
-    bIsPerspective = bEnable;
-    UpdateOBB();
-    UpdateProjectionMatrix();
-
+    if (bIsPerspective != bEnable)
+    {
+        bIsPerspective = bEnable;
+    }
 }
 
 void UDecalComponent::UpdateProjectionMatrix()

@@ -96,6 +96,17 @@ void UDecalTextureSelectionWidget::RenderWidget()
     }
 
     ImGui::Separator();
+
+    // 1. Get the current state from the component
+    bool bPerspective = DecalComponent->IsPerspective();
+
+    // 2. Draw the checkbox. The 'if' statement is true only when the user clicks it.
+    if (ImGui::Checkbox("Perspective", &bPerspective))
+    {
+        // 3. If changed, update the component's state
+        DecalComponent->SetPerspective(bPerspective);
+    }
+
 }
 
 UDecalTextureSelectionWidget::UDecalTextureSelectionWidget() : UWidget("Decal Texture Selection Widget")
