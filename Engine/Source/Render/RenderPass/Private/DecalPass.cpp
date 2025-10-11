@@ -136,13 +136,6 @@ FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferView
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
     ConstantBufferDecal = FRenderResourceFactory::CreateConstantBuffer<FDecalConstants>();
-
-    // 임시로 넣어둠
-    // Load texture
-    UAssetManager& ResourceManager = UAssetManager::GetInstance();
-    ResourceManager.LoadTexture("Asset/Texture/spotlight.png");
-    ResourceManager.LoadTexture("Asset/Texture/SpotLight_64x.png");
-
 }
 
 void FDecalPass::Execute(FRenderingContext& Context)

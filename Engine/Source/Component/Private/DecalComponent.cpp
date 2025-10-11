@@ -17,7 +17,7 @@ UDecalComponent::UDecalComponent()
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
-	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Asset/Texture/PerlinNoiseFadeTexture.png")));
+	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/PerlinNoiseFadeTexture.png")));
 	
     // Start with perspective projection by default
     SetPerspective(true);
