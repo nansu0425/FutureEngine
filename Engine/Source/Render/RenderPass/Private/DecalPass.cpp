@@ -13,6 +13,7 @@
 #include <emmintrin.h> // SSE2
 #include <smmintrin.h> // SSE4.1
 
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
 
 namespace
@@ -147,13 +148,17 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
     if (Context.Decals.empty()) { return; }
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
-
+    
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
+    // --- Decals Stats ---
+    uint32 RenderedDecal = 0;
+    uint32 CollidedComps = 0;
+    
     // --- Render Decals ---
     for (UDecalComponent* Decal : Context.Decals)
     {
@@ -161,7 +166,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         const IBoundingVolume* DecalBV = Decal->GetBoundingBox();
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
-
+        RenderedDecal++;
+        
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
         // --- Update Decal Constant Buffer ---
@@ -199,7 +205,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
         	{
         		continue;
         	}
-        	
+            CollidedComps++;
+            
         	//const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
         	
         	FModelConstants ModelConstants{Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose()};
@@ -217,6 +224,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
     }
+
+    UStatOverlay::GetInstance().RecordDecalStats(RenderedDecal, CollidedComps);
 }
 
 void FDecalPass::Release()
