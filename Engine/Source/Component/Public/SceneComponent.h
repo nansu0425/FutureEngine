@@ -57,7 +57,7 @@ private:
 	// SceneComponent Hierarchy Section
 public:
 	USceneComponent* GetAttachParent() const { return AttachParent; }
-	void AttachToComponent(USceneComponent* Parent);
+	void AttachToComponent(USceneComponent* Parent, bool bRemainTransform = false);
 	void DetachFromComponent();
 	bool IsAttachedTo(const USceneComponent* Parent) const { return AttachParent == Parent; }
 	const TArray<USceneComponent*>& GetChildren() const { return AttachChildren; }
