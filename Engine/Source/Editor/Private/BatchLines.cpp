@@ -89,6 +89,7 @@ void UBatchLines::UpdateVertexBuffer()
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
 		uint32 NumOctreeVertices = 0;
+		uint32 NumSpotLightVertices
 		for (const auto& Line : OctreeLines)
 		{
 			NumOctreeVertices += Line.GetNumVertices();
@@ -140,41 +141,33 @@ void UBatchLines::SetIndices()
 		Indices.push_back(Index);
 	}
 
-	uint32 BoundingBoxLineIdx[] = {
-		// 앞면
-		0, 1,
-		1, 2,
-		2, 3,
-		3, 0,
-
-		// 뒷면
-		4, 5,
-		5, 6,
-		6, 7,
-		7, 4,
-
-		// 옆면 연결
-		0, 4,
-		1, 5,
-		2, 6,
-		3, 7
-	};
 
 	// BoundingBox indices
 	uint32 BaseVertexOffset = NumGridVertices;
-	for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
+	int32* LineIdx = BoundingBoxLines.GetIndices(EBoundingVolumeType::AABB);
+	for (uint32 Idx = 0; Idx < 24; ++Idx)
 	{
-		Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
+		Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
 	}
 
 	// OctreeLines indices
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
 	for (const auto& OctreeLine : OctreeLines)
 	{
-		for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
+		for (uint32 Idx = 0; Idx < 24; ++Idx)
 		{
-			Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
+			Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
 		}
 		BaseVertexOffset += OctreeLine.GetNumVertices();
 	}
+
+
+	// SpotLightLines indices
+	// 여기서 spotlight전용 BoundingBoxLineIdx배열이 필요함
+	LineIdx = BoundingBoxLines.GetIndices(EBoundingVolumeType::SpotLight);
+	for (uint32 Idx = 0; Idx < 240; ++Idx)
+	{
+		Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
+	}
+
 }

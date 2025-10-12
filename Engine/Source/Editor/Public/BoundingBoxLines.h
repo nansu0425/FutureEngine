@@ -10,7 +10,7 @@ public:
 
 	void MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex);
 	void UpdateVertices(const IBoundingVolume* NewBoundingVolume);
-
+	int32* GetIndices(EBoundingVolumeType BoundingVolumeType);
 	uint32 GetNumVertices() const
 	{
 		return NumVertices;
@@ -21,6 +21,10 @@ public:
 private:
 	TArray<FVector> Vertices;
 	uint32 NumVertices = 8;
+	uint32 SpotLightVeitices = 61;
 	FAABB DisabledBoundingBox = FAABB(FVector(0, 0, 0), FVector(0, 0, 0));
+
+	int32 BoundingBoxLineIdx[24];
+	int32 SpotLightLineIdx[240];
 };
 

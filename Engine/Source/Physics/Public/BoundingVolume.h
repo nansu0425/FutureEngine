@@ -5,6 +5,7 @@ enum class EBoundingVolumeType
 	None,
 	AABB,   // Axis-Aligned Bounding Box
 	OBB,
+	SpotLight,
 	Sphere  // Bounding Sphere
 };
 
