@@ -1,0 +1,48 @@
+{
+  "Actors" : {
+    "74" : {
+      "Components" : [{
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [15.973635, 5.000000, 5.000000],
+          "Name" : "UStaticMeshComponent_0",
+          "ObjStaticMeshAsset" : "Data/Shapes/Cube.obj",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [3.000000, 3.000000, 3.000000],
+          "Type" : "UStaticMeshComponent"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [-9.236817, -3.750000, -3.250000],
+          "Name" : "UUUIDTextComponent_0",
+          "ParentName" : "UStaticMeshComponent_0",
+          "Rotation" : [31.924158, -11.416265, -72.375053],
+          "Scale" : [0.250000, 0.250000, 0.250000],
+          "Type" : "UUUIDTextComponent"
+        }, {
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [-5.000000, -5.000000, -5.000000],
+          "Name" : "UStaticMeshComponent_1",
+          "ObjStaticMeshAsset" : "Data/Shapes/Cube.obj",
+          "ParentName" : "UStaticMeshComponent_0",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [5.000000, 5.000000, 5.000000],
+          "Type" : "UStaticMeshComponent"
+        }],
+      "Location" : [15.973635, 5.000000, 5.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [3.000000, 3.000000, 3.000000],
+      "Type" : "ACubeActor"
+    }
+  },
+  "NextUUID" : 0,
+  "PerspectiveCamera" : {
+    "FOV" : [90.000000],
+    "FarClip" : [1000.000000],
+    "Location" : [-15.000000, 0.000000, 10.000000],
+    "NearClip" : [0.100000],
+    "Rotation" : [0.000000, 0.000000, 0.000000]
+  }
+}

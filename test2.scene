@@ -1,0 +1,76 @@
+{
+  "Actors" : {
+    "73" : {
+      "Components" : [{
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UStaticMeshComponent_0",
+          "ObjStaticMeshAsset" : "Data/Shapes/Cube.obj",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [3.000000, 3.000000, 3.000000],
+          "Type" : "UStaticMeshComponent"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 2.000000],
+          "Name" : "UUUIDTextComponent_0",
+          "ParentName" : "UStaticMeshComponent_0",
+          "Rotation" : [18.021338, -17.106174, -47.882195],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent"
+        }],
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [3.000000, 3.000000, 3.000000],
+      "Type" : "ACubeActor"
+    },
+    "76" : {
+      "Components" : [{
+          "DecalIsPerspective" : "true",
+          "DecalTexture" : "Data\\Texture\\Bitten_Apple_tgyociqpa_Mid_2K_BaseColor.jpg",
+          "FadeTexture" : "Data\\Texture\\PerlinNoiseFadeTexture.png",
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [-1.928506, 0.000000, 0.000000],
+          "Name" : "UDecalComponent_0",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [3.000000, 3.000000, 3.000000],
+          "Type" : "UDecalComponent"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 2.000000],
+          "Name" : "UUUIDTextComponent_1",
+          "ParentName" : "UDecalComponent_0",
+          "Rotation" : [23.751337, -13.552665, -61.962826],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent"
+        }, {
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_0",
+          "ParentName" : "UDecalComponent_0",
+          "Rotation" : [23.751337, -13.552665, -61.962826],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Sprite" : "Data\\Icons\\DecalActor_64x.png",
+          "Type" : "UBillBoardComponent"
+        }],
+      "Location" : [-1.928506, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [3.000000, 3.000000, 3.000000],
+      "Type" : "ADecalActor"
+    }
+  },
+  "NextUUID" : 0,
+  "PerspectiveCamera" : {
+    "FOV" : [90.000000],
+    "FarClip" : [1000.000000],
+    "Location" : [-1.087794, 0.000000, 0.000000],
+    "NearClip" : [0.100000],
+    "Rotation" : [0.000000, 0.000000, 0.000000]
+  }
+}

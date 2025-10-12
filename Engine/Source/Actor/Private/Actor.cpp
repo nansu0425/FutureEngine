@@ -96,7 +96,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                         // 6. 부착 함수 호출
                         if (ParentComp)
                         {
-                            ChildComp->AttachToComponent(ParentComp);
+                            ChildComp->AttachToComponent(ParentComp, true);
                         }
                     }
                     else
