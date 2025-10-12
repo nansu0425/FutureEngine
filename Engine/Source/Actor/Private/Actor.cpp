@@ -201,7 +201,7 @@ void AActor::InitializeComponents()
 
 	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
 	UUID->AttachToComponent(GetRootComponent());
-	UUID->SetOffset(5.0f);
+	UUID->SetRelativeLocation({0, 0, 2});
 }
 
 bool AActor::IsUniformScale() const
