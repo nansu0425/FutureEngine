@@ -5,9 +5,12 @@
 #include "Texture/Public/Texture.h"
 
 FBillboardPass::FBillboardPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel,
-                               ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
-        : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
+                               ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS, ID3D11BlendState* InBS)
+        : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS), BS(InBS)
 {
+    ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
+    BillboardMaterialConstants.MaterialFlags |= HAS_DIFFUSE_MAP;
+    BillboardMaterialConstants.Kd = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void FBillboardPass::Execute(FRenderingContext& Context)
@@ -18,18 +21,34 @@ void FBillboardPass::Execute(FRenderingContext& Context)
         RenderState.CullMode = ECullMode::None;
         RenderState.FillMode = EFillMode::WireFrame;
     }
-    static FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState(RenderState), DS, PS, nullptr };
+    FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState(RenderState), DS, PS, BS };
     Pipeline->UpdatePipeline(PipelineInfo);
 
-    if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) return;
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) { return; }
+
+    FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
+    Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+    
     for (UBillBoardComponent* BillBoardComp : Context.BillBoards)
     {
         BillBoardComp->FaceCamera(Context.CurrentCamera->GetForward());
+        
+        FMatrix WorldMatrix;
+        if (BillBoardComp->IsScreenSizeScaled())
+        {
+            FVector FixedWorldScale = BillBoardComp->GetRelativeScale3D(); 
+
+            FVector BillboardLocation = BillBoardComp->GetWorldLocation();
+            FQuaternion BillboardRotation = BillBoardComp->GetWorldRotationAsQuaternion();
+
+            WorldMatrix = FMatrix::GetModelMatrix(BillboardLocation, BillboardRotation, FixedWorldScale);
+        }
+        else { WorldMatrix = BillBoardComp->GetWorldTransformMatrix(); }
 
         Pipeline->SetVertexBuffer(BillBoardComp->GetVertexBuffer(), sizeof(FNormalVertex));
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
 		
-        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, BillBoardComp->GetWorldTransformMatrix());
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
         Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 
         Pipeline->SetTexture(0, false, BillBoardComp->GetSprite()->GetTextureSRV());

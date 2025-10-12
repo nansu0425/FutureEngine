@@ -16,9 +16,7 @@ IMPLEMENT_CLASS(UStaticMeshComponent, UMeshComponent)
 UStaticMeshComponent::UStaticMeshComponent()
 	: bIsScrollEnabled(false)
 {
-	Type = EPrimitiveType::StaticMesh;
-
-	FName DefaultObjPath = "Data/Cube.obj";
+	FName DefaultObjPath = "Data/Shapes/Cube.obj";
 	SetStaticMesh(DefaultObjPath);
 }
 

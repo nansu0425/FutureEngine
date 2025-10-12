@@ -127,11 +127,7 @@ UENUM()
 enum class EPrimitiveType : uint8
 {
 	None = 0,
-	Sphere,
-	Cube,
 	MovingCube,
-	Triangle,
-	Square,
 	StaticMesh,
 	Sprite,
 	Text,

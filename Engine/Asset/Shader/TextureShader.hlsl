@@ -70,36 +70,33 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-	//float4 finalColor = float4(0.f, 0.f, 0.f, 1.f);
+	float4 finalColor = float4(0.f, 0.f, 0.f, 1.f);
+	float2 UV = input.tex;
 
-	//// Base diffuse color
-	//float4 diffuseColor = Kd;
-	//if (MaterialFlags & HAS_DIFFUSE_MAP)
-	//{
-	//	diffuseColor *= DiffuseTexture.Sample(SamplerWrap, input.tex);
-	//}
+	// Base diffuse color
+	float4 diffuseColor = Kd;
+	if (MaterialFlags & HAS_DIFFUSE_MAP)
+	{
+		diffuseColor *= DiffuseTexture.Sample(SamplerWrap, UV);
+		finalColor.a = diffuseColor.a;
+	}
 
-	//// Ambient contribution
-	//float4 ambientColor = Ka;
-	//if (MaterialFlags & HAS_AMBIENT_MAP)
-	//{
-	//	ambientColor *= AmbientTexture.Sample(SamplerWrap, input.tex);
-	//}
+	// Ambient contribution
+	float4 ambientColor = Ka;
+	if (MaterialFlags & HAS_AMBIENT_MAP)
+	{
+		ambientColor *= AmbientTexture.Sample(SamplerWrap, UV);
+	}
 
-	//finalColor.rgb = diffuseColor.rgb + ambientColor.rgb;
+	finalColor.rgb = diffuseColor.rgb + ambientColor.rgb;
 
-	//// Alpha handling
-	//finalColor.a = D;
-	//if (MaterialFlags & HAS_ALPHA_MAP)
-	//{
-	//	float alpha = AlphaTexture.Sample(SamplerWrap, input.tex).r;
-	//	finalColor.a *= alpha;
-	//}
+	// Alpha handling
+	if (MaterialFlags & HAS_ALPHA_MAP)
+	{
+		float alpha = AlphaTexture.Sample(SamplerWrap, UV).r;
+		finalColor.a = D;
+		finalColor.a *= alpha;
+	}
 	
-	//return finalColor;
-
-	float2 ScrollSpeed = float2(0.0f, 0.1f);
-	float2 UV = frac(input.tex + ScrollSpeed * Time);
-	float4 texColor = DiffuseTexture.Sample(SamplerWrap, UV);
-	return texColor;
+	return finalColor;
 }

@@ -108,12 +108,6 @@ UObject* USceneComponent::Duplicate()
 void USceneComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
-	USceneComponent* SceneComponent = Cast<USceneComponent>(DuplicatedObject);
-	for (USceneComponent* Child : AttachChildren)
-	{
-		USceneComponent* ReplicatedChild = Cast<USceneComponent>(Child->Duplicate());
-		ReplicatedChild->AttachToComponent(SceneComponent);
-	}
 }
 
 void USceneComponent::MarkAsDirty()
@@ -245,6 +239,19 @@ void USceneComponent::SetWorldRotation(const FVector& NewRotation)
     {
         SetRelativeRotation(NewWorldRotationQuat);
     }
+}
+
+void USceneComponent::SetWorldRotation(const FQuaternion& NewRotation)
+{
+	if (AttachParent)
+	{
+		FQuaternion ParentWorldRotationQuat = AttachParent->GetWorldRotationAsQuaternion();
+		SetRelativeRotation(NewRotation * ParentWorldRotationQuat.Inverse());
+	}
+	else
+	{
+		SetRelativeRotation(NewRotation);
+	}
 }
 
 void USceneComponent::SetWorldScale3D(const FVector& NewScale)

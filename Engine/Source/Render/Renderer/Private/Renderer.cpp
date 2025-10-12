@@ -16,7 +16,6 @@
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
-#include "Render/RenderPass/Public/PrimitivePass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
@@ -47,16 +46,12 @@ void URenderer::Init(HWND InWindowHandle)
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
 
-	FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
-	RenderPasses.push_back(PrimitivePass);
-
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(DecalPass);
 
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
+		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(BillboardPass);
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
@@ -110,16 +105,16 @@ void URenderer::CreateDepthStencilState()
 void URenderer::CreateBlendState()
 {
     // Alpha Blending
-    D3D11_BLEND_DESC blendDesc = {};
-    blendDesc.RenderTarget[0].BlendEnable = TRUE;
-    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    GetDevice()->CreateBlendState(&blendDesc, &AlphaBlendState);
+    D3D11_BLEND_DESC BlendDesc = {};
+    BlendDesc.RenderTarget[0].BlendEnable = TRUE;
+    BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    GetDevice()->CreateBlendState(&BlendDesc, &AlphaBlendState);
 }
 
 void URenderer::CreateDefaultShader()
@@ -206,13 +201,15 @@ void URenderer::Update()
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
 		{
+			TIME_PROFILE(RenderEditor)
+			GEditor->GetEditorModule()->RenderEditor();
+		}
+		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(CurrentCamera);
 		}
-		{
-			TIME_PROFILE(RenderEditor)
-			GEditor->GetEditorModule()->RenderEditor(CurrentCamera);
-		}
+		// Gizmo는 최종적으로 렌더
+		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
 	}
 
 	{
@@ -246,13 +243,14 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 
 	// 오클루전 컬링 수행
 	TIME_PROFILE(Occlusion)
-	static COcclusionCuller Culler;
+	// static COcclusionCuller Culler;
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = Culler.PerformCulling(
-		InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-		InCurrentCamera->GetLocation()
-	);
+	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+	// Culler.PerformCulling(
+	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
+	// 	InCurrentCamera->GetLocation()
+	// );
 	TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
@@ -275,10 +273,6 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
 			RenderingContext.Decals.push_back(Decal);
-		}
-		else if (!Prim->IsA(UUUIDTextComponent::StaticClass()))
-		{
-			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
 

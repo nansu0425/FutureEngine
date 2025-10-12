@@ -153,7 +153,6 @@ UObject* UPrimitiveComponent::Duplicate()
 	PrimitiveComponent->Color = Color;
 	PrimitiveComponent->Topology = Topology;
 	PrimitiveComponent->RenderState = RenderState;
-	PrimitiveComponent->Type = Type;
 	PrimitiveComponent->bVisible = bVisible;
 
 	PrimitiveComponent->Vertices = Vertices;

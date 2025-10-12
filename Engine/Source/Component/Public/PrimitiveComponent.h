@@ -37,8 +37,6 @@ public:
 	const IBoundingVolume* GetBoundingBox();
 	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
 
-	EPrimitiveType GetPrimitiveType() const { return Type; }
-
 	virtual void MarkAsDirty() override;
 
 	// 다른 곳에서 사용할 인덱스
@@ -59,7 +57,6 @@ protected:
 
 	D3D11_PRIMITIVE_TOPOLOGY Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	FRenderState RenderState = {};
-	EPrimitiveType Type = EPrimitiveType::Cube;
 
 	bool bVisible = true;
 

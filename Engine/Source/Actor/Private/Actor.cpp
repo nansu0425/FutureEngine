@@ -231,13 +231,6 @@ const FVector& AActor::GetActorScale3D() const
 	return RootComponent->GetRelativeScale3D();
 }
 
-UObject* AActor::Duplicate()
-{
-	AActor* Actor = Cast<AActor>(Super::Duplicate());
-	Actor->bCanEverTick = bCanEverTick;
-	return Actor;
-}
-
 UActorComponent* AActor::AddComponent(UClass* InClass)
 {
 	if (!InClass->IsChildOf(UActorComponent::StaticClass())) { return nullptr; }
@@ -318,38 +311,59 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
     return true;
 }
 
+UObject* AActor::Duplicate()
+{
+	AActor* Actor = Cast<AActor>(Super::Duplicate());
+	Actor->bCanEverTick = bCanEverTick;
+	return Actor;
+}
+
 void AActor::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
 	AActor* DuplicatedActor = Cast<AActor>(DuplicatedObject);
-	USceneComponent* DuplicatedRoot = Cast<USceneComponent>(GetRootComponent()->Duplicate());
 
-	TQueue<USceneComponent*> DuplicatedChildren;
-	DuplicatedChildren.push(DuplicatedRoot);
+	// { 복제 전 Component, 복제 후 Component }
+	TMap<UActorComponent*, UActorComponent*> OldToNewComponentMap;
 
-	while (DuplicatedChildren.size() > 0)
+	// EditorOnly가 아닌 모든 컴포넌트를 복제해 맵에 저장
+	for (UActorComponent* OldComponent : OwnedComponents)
 	{
-		USceneComponent* Child = DuplicatedChildren.front();
-		DuplicatedChildren.pop();
-		
-		Child->SetOwner(DuplicatedActor);
-		DuplicatedActor->OwnedComponents.push_back(Child);
-		for (auto NewChild: Child->GetChildren())
+		if (OldComponent && !OldComponent->IsEditorOnly())
 		{
-			DuplicatedChildren.push(NewChild);
+			UActorComponent* NewComponent = Cast<UActorComponent>(OldComponent->Duplicate());
+			NewComponent->SetOwner(DuplicatedActor);
+			DuplicatedActor->OwnedComponents.push_back(NewComponent);
+			OldToNewComponentMap[OldComponent] = NewComponent;
 		}
 	}
-	
-	DuplicatedActor->SetRootComponent(DuplicatedRoot);
-	
-	for (UActorComponent* Component : OwnedComponents)
+
+	// 복제된 컴포넌트들 계층 구조 재조립
+	for (auto const& [OldComp, NewComp] : OldToNewComponentMap)
 	{
-		if (!Cast<USceneComponent>(Component))
+		USceneComponent* OldSceneComp = Cast<USceneComponent>(OldComp);
+		if (!OldSceneComp) { continue; } // SceneComponent Check
+		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp);
+		USceneComponent* OldParent = OldSceneComp->GetAttachParent();
+        
+		// 원본 부모가 있었다면, 그에 맞는 새 부모를 찾아 연결
+		while(OldParent)
 		{
-			UActorComponent* DuplicatedActorComponent = Cast<UActorComponent>(Component->Duplicate());
-			DuplicatedActor->OwnedComponents.push_back(DuplicatedActorComponent);
-			DuplicatedActorComponent->SetOwner(DuplicatedActor);
+			auto FoundNewParentPtr = OldToNewComponentMap.find(OldParent);
+			if (FoundNewParentPtr != OldToNewComponentMap.end())
+			{
+				NewSceneComp->AttachToComponent(Cast<USceneComponent>(FoundNewParentPtr->second));
+				break;
+			}
+			// 부모가 EditorOnly라 맵에 없다면, 조부모를 찾아 다시 시도
+			OldParent = OldParent->GetAttachParent();
 		}
+	}
+    
+	// Set Root Component
+	if (GetRootComponent() && OldToNewComponentMap.find(GetRootComponent()) != OldToNewComponentMap.end())
+	{
+		DuplicatedActor->SetRootComponent(Cast<USceneComponent>(OldToNewComponentMap[GetRootComponent()]));
 	}
 }
 
@@ -357,7 +371,7 @@ void AActor::Tick(float DeltaTimes)
 {
 	for (auto& Component : OwnedComponents)
 	{
-		if (Component && Component->CanTick())
+		if (Component && Component->CanEverTick())
 		{
 			Component->TickComponent(DeltaTimes);
 		}
