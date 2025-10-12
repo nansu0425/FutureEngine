@@ -42,7 +42,7 @@ void UDecalComponent::TickComponent(float DeltaTime)
 
 void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
-	UPrimitiveComponent::Serialize(bInIsLoading, InOutHandle);
+	Super::Serialize(bInIsLoading, InOutHandle);
 
 	if (bInIsLoading)
 	{

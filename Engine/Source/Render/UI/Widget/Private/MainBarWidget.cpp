@@ -260,23 +260,6 @@ void UMainBarWidget::RenderShowFlagsMenu()
 		// ShowFlags 가져오기
 		uint64 ShowFlags = CurrentLevel->GetShowFlags();
 
-		// Primitives 표시 옵션
-		bool bShowPrimitives = (ShowFlags & EEngineShowFlags::SF_Primitives) != 0;
-		if (ImGui::MenuItem("프리미티브 표시", nullptr, bShowPrimitives))
-		{
-			if (bShowPrimitives)
-			{
-				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_Primitives);
-				UE_LOG("MainBarWidget: Primitives 비표시");
-			}
-			else
-			{
-				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Primitives);
-				UE_LOG("MainBarWidget: Primitives 표시");
-			}
-			CurrentLevel->SetShowFlags(ShowFlags);
-		}
-
 		// BillBoard Text 표시 옵션
 		bool bShowBillboard = (ShowFlags & EEngineShowFlags::SF_Billboard) != 0;
 		if (ImGui::MenuItem("빌보드 표시", nullptr, bShowBillboard))

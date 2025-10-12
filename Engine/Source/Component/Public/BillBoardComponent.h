@@ -10,7 +10,9 @@ class UBillBoardComponent : public UPrimitiveComponent
 
 public:
 	UBillBoardComponent();
-	~UBillBoardComponent();
+	virtual ~UBillBoardComponent() override;
+
+	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 	void FaceCamera(const FVector& CameraForward);
 

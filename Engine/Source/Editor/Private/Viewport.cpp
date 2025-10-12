@@ -115,7 +115,7 @@ void FViewport::ApplyAllCameraDataToViewportClients()
 		UCamera& TargetCamera = TargetViewport.Camera;
 
 		// ConfigManager로부터 저장된 뷰포트 데이터를 가져옵니다.
-		const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData();
+		const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData(Index);
 
 		// 뷰포트의 카메라 타입을 먼저 설정합니다.
 		TargetViewport.SetCameraType(CamData.ViewportCameraType);

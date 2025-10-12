@@ -1,6 +1,6 @@
 {
   "Actors" : {
-    "73" : {
+    "72" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -17,7 +17,7 @@
           "Location" : [0.000000, 0.000000, 2.000000],
           "Name" : "UUUIDTextComponent_0",
           "ParentName" : "UStaticMeshComponent_0",
-          "Rotation" : [13.240904, -16.964869, -38.883369],
+          "Rotation" : [13.240903, -16.964869, -38.883369],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent"
         }],
@@ -26,7 +26,7 @@
       "Scale" : [3.000000, 3.000000, 3.000000],
       "Type" : "ACubeActor"
     },
-    "76" : {
+    "75" : {
       "Components" : [{
           "DecalIsPerspective" : "false",
           "DecalTexture" : "Data\\Texture\\Bitten_Apple_tgyociqpa_Mid_2K_BaseColor.jpg",
@@ -45,7 +45,7 @@
           "Location" : [0.000000, 0.000000, 2.000000],
           "Name" : "UUUIDTextComponent_1",
           "ParentName" : "UDecalComponent_0",
-          "Rotation" : [33.751080, -24.146902, -58.524918],
+          "Rotation" : [33.751083, -24.146904, -58.524925],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent"
         }, {
@@ -57,7 +57,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_0",
           "ParentName" : "UDecalComponent_0",
-          "Rotation" : [33.751080, -24.146902, -58.524918],
+          "Rotation" : [5.416042, -12.929321, -22.964102],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UBillBoardComponent"
         }],
@@ -68,11 +68,33 @@
     }
   },
   "NextUUID" : 0,
-  "PerspectiveCamera" : {
-    "FOV" : [90.000000],
-    "FarClip" : [1000.000000],
-    "Location" : [-15.000000, 0.000000, 10.000000],
-    "NearClip" : [0.100000],
-    "Rotation" : [0.000000, 0.000000, 0.000000]
-  }
+  "PerspectiveCamera" : [{
+      "FOV" : [90.000000],
+      "FarClip" : [1000.000000],
+      "Location" : [-15.000000, 0.000000, 10.000000],
+      "NearClip" : [0.100000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "ViewportCameraType" : 0
+    }, {
+      "FOV" : [90.000000],
+      "FarClip" : [1000.000000],
+      "Location" : [-15.000000, 0.000000, 10.000000],
+      "NearClip" : [0.100000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "ViewportCameraType" : 0
+    }, {
+      "FOV" : [90.000000],
+      "FarClip" : [1000.000000],
+      "Location" : [-15.000000, 0.000000, 10.000000],
+      "NearClip" : [0.100000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "ViewportCameraType" : 0
+    }, {
+      "FOV" : [90.000000],
+      "FarClip" : [1000.000000],
+      "Location" : [-8.314555, -8.059880, 12.380466],
+      "NearClip" : [0.100000],
+      "Rotation" : [0.000000, 14.000032, 22.349953],
+      "ViewportCameraType" : 0
+    }]
 }

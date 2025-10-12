@@ -96,7 +96,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                         // 6. 부착 함수 호출
                         if (ParentComp)
                         {
-                            ChildComp->AttachToComponent(ParentComp);
+                            ChildComp->AttachToComponent(ParentComp, true);
                         }
                     }
                     else
@@ -201,7 +201,7 @@ void AActor::InitializeComponents()
 
 	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
 	UUID->AttachToComponent(GetRootComponent());
-	UUID->SetRelativeLocation({0, 0, 2});
+	UUID->SetOffset(5.0f);
 }
 
 bool AActor::IsUniformScale() const

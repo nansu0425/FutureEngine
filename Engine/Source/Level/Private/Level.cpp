@@ -49,7 +49,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FJsonSerializer::ReadUint32(InOutHandle, "NextUUID", NextUUID);
 
 		JSON PerspectiveCameraData;
-		if (FJsonSerializer::ReadObject(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
+		if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
 		{
 			UConfigManager::GetInstance().SetCameraSettingsFromJson(PerspectiveCameraData);
 			URenderer::GetInstance().GetViewportClient()->ApplyAllCameraDataToViewportClients();
