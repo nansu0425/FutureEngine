@@ -1,8 +1,32 @@
 {
   "Actors" : {
-    "54" : {
+    "66" : {
       "Components" : [{
-          "Location" : [0.000000, 2.836785, 0.000000],
+          "DecalIsPerspective" : "false",
+          "DecalTexture" : "Data/./Texture/Freshly_Bitten_Apple_tgzpdhlpa_Mid_2K_BaseColor.jpg",
+          "FadeTexture" : "Data/Texture/PerlinNoiseFadeTexture.png",
+          "Location" : [-1.523998, 0.000000, 0.000000],
+          "Name" : "UDecalComponent_0",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [3.000000, 3.000000, 3.000000],
+          "Type" : "UDecalComponent"
+        }, {
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UUUIDTextComponent_0",
+          "ParentName" : "UDecalComponent_0",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent"
+        }],
+      "Location" : [-1.523998, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [3.000000, 3.000000, 3.000000],
+      "Type" : "ADecalActor"
+    },
+    "70" : {
+      "Components" : [{
+          "Location" : [-0.072390, 0.000000, 0.000000],
           "Name" : "UCubeComponent_0",
           "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -10,37 +34,16 @@
           "Type" : "UCubeComponent"
         }, {
           "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UUUIDTextComponent_0",
+          "Name" : "UUUIDTextComponent_1",
           "ParentName" : "UCubeComponent_0",
           "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [0.300000, 0.300000, 0.300000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent"
         }],
-      "Location" : [0.000000, 2.836785, 0.000000],
+      "Location" : [-0.072390, 0.000000, 0.000000],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [3.000000, 3.000000, 3.000000],
       "Type" : "ACubeActor"
-    },
-    "57" : {
-      "Components" : [{
-          "Location" : [0.000000, 2.836785, 0.000000],
-          "Name" : "UDecalComponent_0",
-          "ParentName" : "",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [4.800000, 1.700000, 2.200000],
-          "Type" : "UDecalComponent"
-        }, {
-          "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UUUIDTextComponent_1",
-          "ParentName" : "UDecalComponent_0",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [0.300000, 0.300000, 0.300000],
-          "Type" : "UUUIDTextComponent"
-        }],
-      "Location" : [0.000000, 2.836785, 0.000000],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [4.800000, 1.700000, 2.200000],
-      "Type" : "ADecalActor"
     }
   },
   "NextUUID" : 0,

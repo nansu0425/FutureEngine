@@ -7,6 +7,7 @@
 #include "Physics/Public/OBB.h"
 #include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 #include "Texture/Public/Texture.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
@@ -36,6 +37,40 @@ void UDecalComponent::TickComponent(float DeltaTime)
 	Super::TickComponent(DeltaTime);
 
 	UpdateFade(DeltaTime);
+}
+
+void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	UPrimitiveComponent::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		FString DecalTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "DecalTexture", DecalTexturePath, "");
+		if (!DecalTexturePath.empty())
+		{
+			SetTexture(UAssetManager::GetInstance().LoadTexture(FName(DecalTexturePath)));
+		}
+		else
+		{
+			SetTexture(UAssetManager::GetInstance().GetTextureCache().begin()->second);
+		}
+		
+		FString FadeTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "FadeTexture", FadeTexturePath, "Data/Texture/PerlinNoiseFadeTexture.png");
+		SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName(FadeTexturePath)));
+
+		FString IsPerspectiveString;
+		FJsonSerializer::ReadString(InOutHandle, "DecalIsPerspective", IsPerspectiveString, "true");
+		bIsPerspective = IsPerspectiveString == "true" ? true : false;
+	}
+	// 저장
+	else
+	{
+		InOutHandle["DecalTexture"] = DecalTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["FadeTexture"] =  FadeTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["DecalIsPerspective"] = bIsPerspective ? "true" : "false";
+	}
 }
 
 void UDecalComponent::SetTexture(UTexture* InTexture)
@@ -97,6 +132,10 @@ void UDecalComponent::UpdateProjectionMatrix()
 
 	float F =   2 * W / H ;
 
+
+	FMatrix MoveCamera = FMatrix::Identity();
+	MoveCamera.Data[3][0] = 0.5f;
+
 	if (bIsPerspective)
 	{
 		// Manually calculate the perspective projection matrix
@@ -114,10 +153,21 @@ void UDecalComponent::UpdateProjectionMatrix()
 		ProjectionMatrix.Data[0][3] = 1.0f;
 		ProjectionMatrix.Data[3][0] = (-NearClip * FarClip) / (FarClip - NearClip);
 		ProjectionMatrix.Data[3][3] = 0.0f;
+
+		ProjectionMatrix = MoveCamera * ProjectionMatrix;
 	}
 	else
 	{
+		/// 이미 데칼의 로컬 좌표계로 들어온 상태
+		/// 기본 OBB는 0.5의 범위(반지름)를 가지기 때문에 x축을 제외한 yz평면을 2배 키워서 NDC에 맞춘다(SRT). 이 후 셰이더에서 uv매핑한다.
+		FMatrix Scale = FMatrix::Identity();
+		Scale.Data[0][0] = 1.0f;
+		Scale.Data[1][1] = 2.0f;
+		Scale.Data[2][2] = 2.0f;
+
 		ProjectionMatrix = FMatrix::Identity(); // Orthographic decals don't need a projection matrix in this implementation
+		ProjectionMatrix = Scale * MoveCamera * ProjectionMatrix;
+
 	}
 }
 

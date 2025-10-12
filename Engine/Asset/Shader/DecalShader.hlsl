@@ -73,11 +73,8 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         discard;
     }
 	
-	
-	
 	//UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
-        DecalUV = ((DecalLocalPos.yz) * float2(0.5f, -0.5f) + 0.5f);
-	
+    DecalUV = ((DecalLocalPos.yz) * float2(0.5f, -0.5f) + 0.5f);
     
 	float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
 
