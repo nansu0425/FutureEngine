@@ -87,7 +87,7 @@ struct FObjectMaterialInfo
 	FVector Ka;
 
 	/** Diffuse color (Kd). */
-	FVector Kd;
+	FVector Kd{1, 1, 1};
 
 	/** Specular color (Ks). */
 	FVector Ks;

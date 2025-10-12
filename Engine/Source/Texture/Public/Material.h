@@ -15,7 +15,7 @@ struct FMaterial
 	FVector Ka;
 
 	/** Diffuse color (Kd). */
-	FVector Kd;
+	FVector Kd{1,1,1};
 
 	/** Specular color (Ks). */
 	FVector Ks;
@@ -61,7 +61,7 @@ class UMaterial : public UObject
 	DECLARE_CLASS(UMaterial, UObject)
 
 public:
-	UMaterial() {};
+	UMaterial() {}
 	~UMaterial() override;
 
 	FVector GetAmbientColor() const { return MaterialData.Ka; }
