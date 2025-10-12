@@ -3,6 +3,11 @@
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Gizmo.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Manager/Input/Public/InputManager.h"
+#include "Core/Public/AppWindow.h"
+#include "ImGui/imgui.h"
+#include "Level/Public/Level.h"
+#include "Global/Quaternion.h"
 #include "Global/Octree.h"
 #include "Physics/Public/AABB.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
@@ -26,7 +31,6 @@ UPrimitiveComponent* UObjectPicker::PickPrimitive(UCamera* InActiveCamera, const
 
 	for (UPrimitiveComponent* Primitive : Candidate)
 	{
-		if (!Primitive->CanPick()) { continue; }
 		FMatrix ModelMat = Primitive->GetWorldTransformMatrix();
 		if (IsRayPrimitiveCollided(InActiveCamera, WorldRay, Primitive, ModelMat, &PrimitiveDistance))
 			//Ray와 Primitive가 충돌했다면 거리 테스트 후 가까운 Actor Picking

@@ -154,7 +154,6 @@ UObject* UPrimitiveComponent::Duplicate()
 	PrimitiveComponent->Topology = Topology;
 	PrimitiveComponent->RenderState = RenderState;
 	PrimitiveComponent->bVisible = bVisible;
-	PrimitiveComponent->bCanPick = bCanPick;
 
 	PrimitiveComponent->Vertices = Vertices;
 	PrimitiveComponent->Indices = Indices;

@@ -10,10 +10,9 @@ IMPLEMENT_CLASS(UUUIDTextComponent, UTextComponent)
  * Actor has a UBillBoardComponent
  */
 
-UUUIDTextComponent::UUUIDTextComponent()
+UUUIDTextComponent::UUUIDTextComponent() : ZOffset(5.0f)
 {
 	SetIsEditorOnly(true);
-	SetCanPick(false);
 };
 
 UUUIDTextComponent::~UUUIDTextComponent()
@@ -30,22 +29,27 @@ void UUUIDTextComponent::OnDeselected()
 	SetVisibility(false);
 }
 
-void UUUIDTextComponent::FaceCamera(const FVector& InCameraForward)
+void UUUIDTextComponent::UpdateRotationMatrix(const FVector& InCameraForward)
 {	
 	FVector Forward = InCameraForward;
 	FVector Right = Forward.Cross(FVector::UpVector()); Right.Normalize();
 	FVector Up = Right.Cross(Forward); Up.Normalize();
     
 	// Construct the rotation matrix from the basis vectors
-	FMatrix RotationMatrix = FMatrix(Forward, Right, Up);
-    
-	// Convert the rotation matrix to a quaternion and set the relative rotation
-	SetWorldRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
+	RTMatrix = FMatrix(Forward, Right, Up);
+	
+	const FVector& OwnerActorLocation = GetOwner()->GetActorLocation();
+	const FVector Translation = OwnerActorLocation + FVector(0.0f, 0.0f, ZOffset);
+	RTMatrix *= FMatrix::TranslationMatrix(Translation);
 }
 
 void UUUIDTextComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	UTextComponent::Serialize(bInIsLoading, InOutHandle);
+	if (bInIsLoading)
+	{
+		SetOffset(5);
+	}
 }
 
 UClass* UUUIDTextComponent::GetSpecificWidgetClass() const
