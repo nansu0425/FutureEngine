@@ -21,10 +21,7 @@ UDecalComponent::UDecalComponent()
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
 	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/PerlinNoiseFadeTexture.png")));
 	
-    // Start with perspective projection by default
-    SetPerspective(true);
-    UpdateProjectionMatrix();
-
+    SetPerspective(false);
 	bReceivesDecals = false;
 }
 
