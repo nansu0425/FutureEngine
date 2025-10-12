@@ -71,9 +71,9 @@ void FTextPass::Execute(FRenderingContext& Context)
     for (UUUIDTextComponent* PickedBillboard : Context.UUIDs)
     {
         if (PickedBillboard->GetOwner() != GEditor->GetEditorModule()->GetSelectedActor()) { continue; }
-        PickedBillboard->FaceCamera(Context.CurrentCamera->GetForward());
+        PickedBillboard->UpdateRotationMatrix(Context.CurrentCamera->GetForward());
         FString UUIDString = "UID: " + std::to_string(PickedBillboard->GetUUID());
-        RenderTextInternal(UUIDString, PickedBillboard->GetWorldTransformMatrix());
+        RenderTextInternal(UUIDString, PickedBillboard->GetRTMatrix());
     }
 }
 
