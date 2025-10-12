@@ -14,7 +14,7 @@ UDecalSpotLightComponent::UDecalSpotLightComponent()
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
-	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/spotlight.png")));
+	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/spotlight2.png")));
 
 	SetPerspective(true);
 

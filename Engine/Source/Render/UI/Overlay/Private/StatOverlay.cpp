@@ -165,7 +165,7 @@ void UStatOverlay::RenderDecalInfo(ID2D1DeviceContext* D2DCtx)
 
     {
         char Buf[128];
-        sprintf_s(Buf, sizeof(Buf), "Decal Pass Time: %.2f ms", FScopeCycleCounter::GetTimeProfile("DecalPass"));
+        sprintf_s(Buf, sizeof(Buf), "Decal Pass Time: %.4f ms", FScopeCycleCounter::GetTimeProfile("DecalPass").Milliseconds);
         FString Text = Buf;
     
         float OffsetY = 20.0f;
