@@ -95,7 +95,7 @@ void UDecalComponent::UpdateProjectionMatrix()
 	float NearClip = 0.1f;
 	float FarClip = Fobb->Extents.X * 2;
 
-	float F =  W / H ;
+	float F =   2 * W / H ;
 
 	if (bIsPerspective)
 	{
@@ -111,7 +111,7 @@ void UDecalComponent::UpdateProjectionMatrix()
 		ProjectionMatrix.Data[1][1] = F / AspectRatio;
 		ProjectionMatrix.Data[2][2] = F;
 		ProjectionMatrix.Data[0][0] = FarClip / (FarClip - NearClip);
-		ProjectionMatrix.Data[0][3] = -1.0f;
+		ProjectionMatrix.Data[0][3] = 1.0f;
 		ProjectionMatrix.Data[3][0] = (-NearClip * FarClip) / (FarClip - NearClip);
 		ProjectionMatrix.Data[3][3] = 0.0f;
 	}

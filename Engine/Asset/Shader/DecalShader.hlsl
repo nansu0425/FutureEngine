@@ -65,13 +65,19 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 
 	// Decal Local Transition
     float4 DecalLocalPos = mul(Input.WorldPos, DecalViewProjection);
-    if (abs(DecalLocalPos.x / DecalLocalPos.w) > 1.0f || abs(DecalLocalPos.y / DecalLocalPos.w) > 0.5f || abs(DecalLocalPos.z / DecalLocalPos.w) > 0.5f)
+    DecalLocalPos /= DecalLocalPos.w;
+	
+
+    if (DecalLocalPos.x < 0.0f || DecalLocalPos.x > 1.0f || abs(DecalLocalPos.y) > 1.0f || abs(DecalLocalPos.z) > 1.0f)
     {
         discard;
     }
 	
+	
+	
 	//UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
-    DecalUV = ((DecalLocalPos.yz / DecalLocalPos.w) * float2(1, -1) + 0.5f);
+        DecalUV = ((DecalLocalPos.yz) * float2(0.5f, -0.5f) + 0.5f);
+	
     
 	float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
 
