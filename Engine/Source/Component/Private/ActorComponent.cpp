@@ -61,7 +61,7 @@ void UActorComponent::SetIsEditorOnly(bool bInIsEditorOnly)
 {
 	if (bInIsEditorOnly)
 	{
-		if (GetOwner()->GetRootComponent() == this)
+		if (GetOwner() && GetOwner()->GetRootComponent() == this)
 		{
 			// RootComponent는 IsEditorOnly 불가능
 			return;
