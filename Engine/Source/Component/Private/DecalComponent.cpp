@@ -23,7 +23,6 @@ UDecalComponent::UDecalComponent()
 	
     // Start with perspective projection by default
     SetPerspective(true);
-    UpdateOBB();
     UpdateProjectionMatrix();
 
 	bReceivesDecals = false;

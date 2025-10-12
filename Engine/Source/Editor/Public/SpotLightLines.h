@@ -1,6 +1,5 @@
 #pragma once
 #include "Global/Types.h"
-#include "Global/Vector.h"
 #include "Component/Public/DecalSpotLightComponent.h"
 
 class USpotLightLines
