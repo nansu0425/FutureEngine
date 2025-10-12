@@ -113,11 +113,11 @@ void UGizmo::RenderGizmo(UCamera* InCamera)
 	}
 	else if (GizmoMode == EGizmoMode::Scale)
 	{
-		LocalRot = FQuaternion::FromEuler(TargetComponent->GetWorldRotation());
+		LocalRot = TargetComponent->GetWorldRotationAsQuaternion();
 	}
 	else
 	{
-		LocalRot = bIsWorld ? FQuaternion::Identity() : FQuaternion::FromEuler(TargetComponent->GetWorldRotation());
+		LocalRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
 	}
 
 	// X축 (Forward) - 빨간색

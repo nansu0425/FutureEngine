@@ -536,11 +536,11 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(Gizmo.GetGizmoAxis(), Angle);
 		if (Gizmo.IsWorldMode())
 		{
-			return (DeltaRotQuat * StartRotQuat).ToEuler();
+			return (StartRotQuat * DeltaRotQuat).ToEuler();
 		}
 		else
 		{
-			return (StartRotQuat * DeltaRotQuat).ToEuler();
+			return (DeltaRotQuat * StartRotQuat).ToEuler();
 		}
 	}
 	return Gizmo.GetComponentRotation();
