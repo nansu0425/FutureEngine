@@ -39,16 +39,24 @@ void UBillBoardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     if (bInIsLoading)
     {
         FString SpritePath;
-        FJsonSerializer::ReadString(InOutHandle, "Sprite", SpritePath, "");
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardSprite", SpritePath, "");
         if (!SpritePath.empty())
-        {
             SetSprite(UAssetManager::GetInstance().LoadTexture(FName(SpritePath)));
-        }
+
+        FString ScreenSizeScaledString;
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardScreenSizeScaled", ScreenSizeScaledString, "false");
+        bScreenSizeScaled = ScreenSizeScaledString == "true";
+
+        FString ScreenSizeString;
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardScreenSize", ScreenSizeString, "0.1");
+        ScreenSize = stof(ScreenSizeString);
     }
     // 저장
     else
     {
-        InOutHandle["Sprite"] = Sprite->GetFilePath().ToBaseNameString();
+        InOutHandle["BillBoardSprite"] = Sprite->GetFilePath().ToBaseNameString();
+        InOutHandle["BillBoardScreenSizeScaled"] = bScreenSizeScaled ? "true" : "false"; 
+        InOutHandle["BillBoardScreenSize"] = to_string(ScreenSize); 
     }}
 
 void UBillBoardComponent::FaceCamera(const FVector& CameraForward)

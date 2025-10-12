@@ -21,7 +21,7 @@ void ADecalActor::InitializeComponents()
     
     UBillBoardComponent* Billboard = CreateDefaultSubobject<UBillBoardComponent>();
     Billboard->AttachToComponent(GetRootComponent());
-    Billboard->SetIsVisualizationComponent(false);
+    Billboard->SetIsVisualizationComponent(true);
     Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/DecalActor_64x.png"));
     Billboard->SetScreenSizeScaled(true);
 }
