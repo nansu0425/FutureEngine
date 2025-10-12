@@ -401,7 +401,7 @@ void UEditor::ProcessMouseInput()
 		InteractionViewport = nullptr;
 	}
 
-	if (Gizmo.IsDragging() && Gizmo.GetSelectedComponent())
+	if (Gizmo.IsDragging() && IsValid<USceneComponent>(Gizmo.GetSelectedComponent()))
 	{
 		switch (Gizmo.GetGizmoMode())
 		{
