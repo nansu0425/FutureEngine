@@ -75,10 +75,10 @@ public:
 	}
 
 	// 주석 처리된 SetViewportCameraData는 Week04 기준으로 작성된 코드입니다.
-	// const FViewportCameraData& GetViewportCameraData(int InIndex) const { return ViewportCameraSettings[InIndex]; }
+	const FViewportCameraData& GetViewportCameraData(int InIndex) const { return ViewportCameraSettings[InIndex]; }
 
 	// 현재 이 코드는 Week05 전용으로 사용되는 코드입니다.
-	const FViewportCameraData& GetViewportCameraData() const { return ViewportCameraSettings[0]; }
+	// const FViewportCameraData& GetViewportCameraData() const { return ViewportCameraSettings[0]; }
 
 	void SetCellSize(const float cellSize)
 	{
