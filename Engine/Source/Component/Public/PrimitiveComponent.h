@@ -11,7 +11,7 @@ class UPrimitiveComponent : public USceneComponent
 public:
 	UPrimitiveComponent();
 
-	    void TickComponent(float DeltaTime) override;
+	void TickComponent(float DeltaTime) override;
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
 
@@ -30,6 +30,9 @@ public:
 
 	bool IsVisible() const { return bVisible; }
 	void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+	
+	bool CanPick() const { return bCanPick; }
+	void SetCanPick(bool bInCanPick) { bCanPick = bInCanPick; }
 
 	FVector4 GetColor() const { return Color; }
 	void SetColor(const FVector4& InColor) { Color = InColor; }
@@ -59,6 +62,7 @@ protected:
 	FRenderState RenderState = {};
 
 	bool bVisible = true;
+	bool bCanPick = true;
 
 	IBoundingVolume* BoundingBox = nullptr;
 	bool bOwnsBoundingBox = false;
