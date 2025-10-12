@@ -25,6 +25,8 @@ UDecalComponent::UDecalComponent()
     SetPerspective(true);
     UpdateOBB();
     UpdateProjectionMatrix();
+
+	bReceivesDecals = false;
 }
 
 UDecalComponent::~UDecalComponent()

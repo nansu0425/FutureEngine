@@ -142,7 +142,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
 {
 	TIME_PROFILE(DecalPass)
 
-    if (Context.Decals.empty()) { return; }
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
     
     // --- Set Pipeline State ---
@@ -154,6 +153,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
     // --- Decals Stats ---
     uint32 RenderedDecal = 0;
     uint32 CollidedComps = 0;
+    
+    TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
     
     // --- Render Decals ---
     for (UDecalComponent* Decal : Context.Decals)
@@ -199,7 +200,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
         ULevel* CurrentLevel = GWorld->GetLevel();
 
         Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
-        TArray<UPrimitiveComponent*>& DynamicPrimitives = CurrentLevel->GetDynamicPrimitives();
         Primitives.insert(Primitives.end(), DynamicPrimitives.begin(), DynamicPrimitives.end());
 
         // --- Disable Octree Optimization --- 
@@ -207,7 +207,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         for (UPrimitiveComponent* Prim : Primitives)
         {
-            if (!Prim || !Prim->IsVisible() || Prim->IsVisualizationComponent()) { continue; }
+            if (!Prim || !Prim->IsVisible() || Prim->IsVisualizationComponent() || !Prim->bReceivesDecals) { continue; }
 
             const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
@@ -220,8 +220,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         	{
         		continue;
         	}
-
-            //const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
+            CollidedComps++;
 
             FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
@@ -259,13 +258,13 @@ void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrim
         return;
     }
 
+    auto Primitives = InOctree->GetPrimitives();
+    OutPrimitives.insert(OutPrimitives.end(), Primitives.begin(), Primitives.end());
     if (InOctree->IsLeafNode())
     {
-        InOctree->GetAllPrimitives(OutPrimitives);
         return;
     }
 
-    InOctree->GetAllPrimitives(OutPrimitives);
     
     for (auto Child : InOctree->GetChildren())
     {

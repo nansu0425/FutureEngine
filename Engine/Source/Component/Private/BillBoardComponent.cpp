@@ -28,6 +28,8 @@ UBillBoardComponent::UBillBoardComponent()
 
     const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
     if (!TextureCache.empty()) { Sprite = TextureCache.begin()->second; }
+
+    bReceivesDecals = false;
 }
 
 UBillBoardComponent::~UBillBoardComponent() = default;

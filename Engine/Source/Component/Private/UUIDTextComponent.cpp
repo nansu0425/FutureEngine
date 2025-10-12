@@ -14,6 +14,8 @@ UUUIDTextComponent::UUUIDTextComponent() : ZOffset(5.0f)
 {
 	SetIsEditorOnly(true);
 	SetCanPick(false);
+
+	bReceivesDecals = false;
 };
 
 UUUIDTextComponent::~UUUIDTextComponent()

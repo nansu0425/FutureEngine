@@ -147,17 +147,31 @@ void UStatOverlay::RenderPicking(ID2D1DeviceContext* D2DCtx)
 
 void UStatOverlay::RenderDecalInfo(ID2D1DeviceContext* D2DCtx)
 {
-    char Buf[128];
-    sprintf_s(Buf, sizeof(Buf), "Rendered Decal: %d (Collided Components: %d)",
-        RenderedDecal, CollidedCompCount);
-    FString Text = Buf;
+    {
+        char Buf[128];
+        sprintf_s(Buf, sizeof(Buf), "Rendered Decal: %d (Collided Components: %d)",
+            RenderedDecal, CollidedCompCount);
+        FString Text = Buf;
     
-    float OffsetY = 0.0f;
-    if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
-    if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
-    if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
+        float OffsetY = 0.0f;
+        if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
+        if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
+        if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
 
-    RenderText(D2DCtx, Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
+        RenderText(D2DCtx, Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
+    }
+
+    {
+        char Buf[128];
+        sprintf_s(Buf, sizeof(Buf), "Decal Pass Time: %.2f ms", FScopeCycleCounter::GetTimeProfile("DecalPass"));
+        FString Text = Buf;
+    
+        float OffsetY = 20.0f;
+        if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
+        if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
+        if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
+        RenderText(D2DCtx, Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
+    }
 }
 
 void UStatOverlay::RenderTimeInfo(ID2D1DeviceContext* D2DCtx)
@@ -168,7 +182,7 @@ void UStatOverlay::RenderTimeInfo(ID2D1DeviceContext* D2DCtx)
     if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
-    if (IsStatEnabled(EStatType::Decal))  OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Decal))  OffsetY += 40.0f;
 
 
     float CurrentY = OverlayY + OffsetY;
