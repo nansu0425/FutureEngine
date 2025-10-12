@@ -14,7 +14,18 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
 {
-	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) {	return; }
+	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
+	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
+	{
+		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::Solid;
+	}
+	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
+	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
+	Pipeline->UpdatePipeline(PipelineInfo);
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	
+	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
 	sort(MeshComponents.begin(), MeshComponents.end(),
 		[](UStaticMeshComponent* A, UStaticMeshComponent* B) {
@@ -25,14 +36,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 	FStaticMesh* CurrentMeshAsset = nullptr;
 	UMaterial* CurrentMaterial = nullptr;
-	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
-	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
-	{
-		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::Solid;
-	}
-	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
-	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
-	Pipeline->UpdatePipeline(PipelineInfo);
 
 	for (UStaticMeshComponent* MeshComp : MeshComponents) 
 	{

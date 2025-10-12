@@ -78,6 +78,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 	if (MaterialFlags & HAS_DIFFUSE_MAP)
 	{
 		diffuseColor *= DiffuseTexture.Sample(SamplerWrap, UV);
+		finalColor.a = diffuseColor.a;
 	}
 
 	// Ambient contribution
@@ -90,10 +91,10 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 	finalColor.rgb = diffuseColor.rgb + ambientColor.rgb;
 
 	// Alpha handling
-	finalColor.a = D;
 	if (MaterialFlags & HAS_ALPHA_MAP)
 	{
 		float alpha = AlphaTexture.Sample(SamplerWrap, UV).r;
+		finalColor.a = D;
 		finalColor.a *= alpha;
 	}
 	

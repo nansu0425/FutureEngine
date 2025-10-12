@@ -425,6 +425,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 			NewSceneComponent->AttachToComponent(InSelectedActor->GetRootComponent());
 			UE_LOG_SUCCESS("'%s'를 액터의 루트에 추가했습니다.", NewComponent->GetName().ToString().data());
 		}
+		
+		NewSceneComponent->SetRelativeLocation(FVector::Zero());
+		NewSceneComponent->SetRelativeRotation(FQuaternion::Identity());
+		NewSceneComponent->SetRelativeScale3D({1, 1, 1});
 	}
 	else
 	{

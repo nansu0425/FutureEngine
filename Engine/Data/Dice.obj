@@ -1,6 +1,6 @@
 # Blender 4.5.2 LTS
 # www.blender.org
-mtllib Cube.mtl
+mtllib Dice.mtl
 o Cube
 v 1.000000 -1.000000 1.000000
 v 1.000000 -1.000000 -1.000000

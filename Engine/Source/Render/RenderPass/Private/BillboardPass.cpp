@@ -8,6 +8,9 @@ FBillboardPass::FBillboardPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBu
                                ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS, ID3D11BlendState* InBS)
         : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS), BS(InBS)
 {
+    ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
+    BillboardMaterialConstants.MaterialFlags |= HAS_DIFFUSE_MAP;
+    BillboardMaterialConstants.Kd = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void FBillboardPass::Execute(FRenderingContext& Context)
@@ -22,6 +25,10 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     Pipeline->UpdatePipeline(PipelineInfo);
 
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) { return; }
+
+    FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
+    Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+    
     for (UBillBoardComponent* BillBoardComp : Context.BillBoards)
     {
         BillBoardComp->FaceCamera(Context.CurrentCamera->GetForward());

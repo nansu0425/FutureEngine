@@ -16,7 +16,6 @@
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
-#include "Render/RenderPass/Public/PrimitivePass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
@@ -46,10 +45,6 @@ void URenderer::Init(HWND InWindowHandle)
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
-
-	FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
-	RenderPasses.push_back(PrimitivePass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
@@ -248,13 +243,14 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 
 	// 오클루전 컬링 수행
 	TIME_PROFILE(Occlusion)
-	static COcclusionCuller Culler;
+	// static COcclusionCuller Culler;
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = Culler.PerformCulling(
-		InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-		InCurrentCamera->GetLocation()
-	);
+	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+	// Culler.PerformCulling(
+	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
+	// 	InCurrentCamera->GetLocation()
+	// );
 	TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
@@ -277,10 +273,6 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
 			RenderingContext.Decals.push_back(Decal);
-		}
-		else if (!Prim->IsA(UUUIDTextComponent::StaticClass()))
-		{
-			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
 

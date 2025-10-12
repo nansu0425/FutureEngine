@@ -10,21 +10,19 @@ IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
 UBillBoardComponent::UBillBoardComponent()
 {
-	Type = EPrimitiveType::Sprite;
-	
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
 
-	Vertices = ResourceManager.GetVertexData(Type);
-	VertexBuffer = ResourceManager.GetVertexbuffer(Type);
-	NumVertices = ResourceManager.GetNumVertices(Type);
+	Vertices = ResourceManager.GetVertexData(EPrimitiveType::Sprite);
+	VertexBuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::Sprite);
+	NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Sprite);
 
-	Indices = ResourceManager.GetIndexData(Type);
-	IndexBuffer = ResourceManager.GetIndexBuffer(Type);
-	NumIndices = ResourceManager.GetNumIndices(Type);
+	Indices = ResourceManager.GetIndexData(EPrimitiveType::Sprite);
+	IndexBuffer = ResourceManager.GetIndexBuffer(EPrimitiveType::Sprite);
+	NumIndices = ResourceManager.GetNumIndices(EPrimitiveType::Sprite);
 
 	RenderState.CullMode = ECullMode::Back;
 	RenderState.FillMode = EFillMode::Solid;
-	BoundingBox = &ResourceManager.GetAABB(Type);
+	BoundingBox = &ResourceManager.GetAABB(EPrimitiveType::Sprite);
 
     const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
     if (!TextureCache.empty()) { Sprite = TextureCache.begin()->second; }

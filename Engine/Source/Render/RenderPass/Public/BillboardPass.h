@@ -16,4 +16,6 @@ private:
     ID3D11InputLayout* InputLayout = nullptr;
     ID3D11DepthStencilState* DS = nullptr;
     ID3D11BlendState* BS = nullptr;
+    ID3D11Buffer* ConstantBufferMaterial = nullptr;
+    FMaterialConstants BillboardMaterialConstants;
 };

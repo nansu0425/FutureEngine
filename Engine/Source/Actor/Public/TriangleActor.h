@@ -12,9 +12,9 @@ class ATriangleActor : public AActor
 public:
 	ATriangleActor();
 	virtual ~ATriangleActor() override {}
-
 	
 	virtual UClass* GetDefaultRootComponent() override;
+	virtual void InitializeComponents() override;
 
 private:
 	UTriangleComponent* TriangleComponent = nullptr;
