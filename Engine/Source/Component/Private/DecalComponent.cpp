@@ -7,6 +7,7 @@
 #include "Physics/Public/OBB.h"
 #include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 #include "Texture/Public/Texture.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
@@ -36,6 +37,40 @@ void UDecalComponent::TickComponent(float DeltaTime)
 	Super::TickComponent(DeltaTime);
 
 	UpdateFade(DeltaTime);
+}
+
+void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	UPrimitiveComponent::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		FString DecalTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "DecalTexture", DecalTexturePath, "");
+		if (!DecalTexturePath.empty())
+		{
+			SetTexture(UAssetManager::GetInstance().LoadTexture(FName(DecalTexturePath)));
+		}
+		else
+		{
+			SetTexture(UAssetManager::GetInstance().GetTextureCache().begin()->second);
+		}
+		
+		FString FadeTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "FadeTexture", FadeTexturePath, "Data/Texture/PerlinNoiseFadeTexture.png");
+		SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName(FadeTexturePath)));
+
+		FString IsPerspectiveString;
+		FJsonSerializer::ReadString(InOutHandle, "DecalIsPerspective", IsPerspectiveString, "true");
+		bIsPerspective = IsPerspectiveString == "true" ? true : false;
+	}
+	// 저장
+	else
+	{
+		InOutHandle["DecalTexture"] = DecalTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["FadeTexture"] =  FadeTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["DecalIsPerspective"] = bIsPerspective ? "true" : "false";
+	}
 }
 
 void UDecalComponent::SetTexture(UTexture* InTexture)
