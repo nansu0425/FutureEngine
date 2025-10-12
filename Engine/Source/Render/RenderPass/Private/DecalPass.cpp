@@ -207,7 +207,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         {
             if (!Prim || !Prim->IsVisible()) { continue; }
 
-                    	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
+            const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
         
         	FVector WorldMin, WorldMax;
@@ -263,6 +263,8 @@ void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrim
         return;
     }
 
+    InOctree->GetAllPrimitives(OutPrimitives);
+    
     for (auto Child : InOctree->GetChildren())
     {
         Query(Child, InDecal, OutPrimitives);
