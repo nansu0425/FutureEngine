@@ -5,6 +5,8 @@
 #include "Physics/Public/AABB.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/UI/Widget/Public/SpriteSelectionWidget.h"
+#include "Texture/Public/Texture.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
@@ -29,6 +31,25 @@ UBillBoardComponent::UBillBoardComponent()
 }
 
 UBillBoardComponent::~UBillBoardComponent() = default;
+
+void UBillBoardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        FString SpritePath;
+        FJsonSerializer::ReadString(InOutHandle, "Sprite", SpritePath, "");
+        if (!SpritePath.empty())
+        {
+            SetSprite(UAssetManager::GetInstance().LoadTexture(FName(SpritePath)));
+        }
+    }
+    // 저장
+    else
+    {
+        InOutHandle["Sprite"] = Sprite->GetFilePath().ToBaseNameString();
+    }}
 
 void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {

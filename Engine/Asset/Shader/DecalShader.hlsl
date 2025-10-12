@@ -65,11 +65,12 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	// Decal Local Transition
     float4 DecalLocalPos = mul(Input.WorldPos, DecalViewProjection);
     DecalLocalPos /= DecalLocalPos.w;
-	
-    if (DecalLocalPos.x < 0.001f ||
-    	DecalLocalPos.x > 1.001f ||
-    	abs(DecalLocalPos.y) > 1.001f ||
-    	abs(DecalLocalPos.z) > 1.001f)
+
+	float EPS = 1e-5f;
+    if (DecalLocalPos.x < 0.f - EPS ||
+    	DecalLocalPos.x > 1.f + EPS ||
+    	abs(DecalLocalPos.y) > 1.f + EPS ||
+    	abs(DecalLocalPos.z) > 1.f + EPS)
     {
         discard;
     }
