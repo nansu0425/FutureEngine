@@ -39,3 +39,10 @@ struct FOBB : public IBoundingVolume
         return Extents;
     }
 };
+
+struct FSpotLightOBB : public FOBB
+{
+	using FOBB::FOBB;
+
+	EBoundingVolumeType GetType() const override { return EBoundingVolumeType::SpotLight; }
+};

@@ -7,6 +7,7 @@
 
 struct FVertex;
 class FOctree;
+class UDecalSpotLightComponent;
 
 class UBatchLines : UObject
 {
@@ -18,7 +19,8 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateOctreeVertices(const FOctree* InOctree);
-
+	// Decal SpotLight용 불법 증축
+	void UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
 
@@ -35,6 +37,7 @@ public:
 	void DisableRenderBoundingBox()
 	{
 		UpdateBoundingBoxVertices(BoundingBoxLines.GetDisabledBoundingBox());
+		bRenderSpotLight = false;
 	}
 
 	void ClearOctreeLines()
@@ -66,7 +69,10 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+	UBoundingBoxLines SpotLightOBBLines;
 	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
+	bool bRenderSpotLight = false;
 };
+

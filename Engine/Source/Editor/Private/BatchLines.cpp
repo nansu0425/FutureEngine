@@ -5,6 +5,8 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Global/Octree.h"
+#include "Component/Public/DecalSpotLightComponent.h"
+#include "Physics/Public/OBB.h"
 
 UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 {
@@ -51,9 +53,15 @@ void UBatchLines::UpdateUGridVertices(const float newCellSize)
 
 void UBatchLines::UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume)
 {
+	if (NewBoundingVolume && NewBoundingVolume->GetType() != EBoundingVolumeType::SpotLight)
+	{
+		bRenderSpotLight = false;
+	}
+
 	BoundingBoxLines.UpdateVertices(NewBoundingVolume);
 	bChangedVertices = true;
 }
+
 
 void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 {
@@ -62,6 +70,27 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	{
 		TraverseOctree(InOctree);
 	}
+	bChangedVertices = true;
+}
+
+void UBatchLines::UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
+{
+	if (!SpotLightComponent)
+	{
+		bRenderSpotLight = false;
+		return;
+	}
+
+	// GetBoundingBox updates the underlying volume, so we need non-const access.
+	const FSpotLightOBB* SpotLightBounding = SpotLightComponent ? SpotLightComponent->GetSpotLightBoundingBox() : nullptr;
+	if (!SpotLightBounding)
+	{
+		bRenderSpotLight = false;
+		return;
+	}
+	
+	SpotLightOBBLines.UpdateVertices(SpotLightBounding);
+	bRenderSpotLight = true;
 	bChangedVertices = true;
 }
 
@@ -88,18 +117,25 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
+		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightOBBLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
 		{
 			NumOctreeVertices += Line.GetNumVertices();
 		}
 
-		Vertices.resize(NumGridVertices + NumBoxVertices + NumOctreeVertices);
+		Vertices.resize(NumGridVertices + NumBoxVertices + NumSpotLightVertices + NumOctreeVertices);
 
 		Grid.MergeVerticesAt(Vertices, 0);
 		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
 
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
+		if (bRenderSpotLight)
+		{
+			SpotLightOBBLines.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += SpotLightOBBLines.GetNumVertices();
+		}
+
 		for (auto& Line : OctreeLines)
 		{
 			Line.MergeVerticesAt(Vertices, CurrentOffset);
@@ -134,47 +170,61 @@ void UBatchLines::SetIndices()
 
 	const uint32 NumGridVertices = Grid.GetNumVertices();
 
-	// Grid indices
 	for (uint32 Index = 0; Index < NumGridVertices; ++Index)
 	{
 		Indices.push_back(Index);
 	}
 
-	uint32 BoundingBoxLineIdx[] = {
-		// 앞면
-		0, 1,
-		1, 2,
-		2, 3,
-		3, 0,
-
-		// 뒷면
-		4, 5,
-		5, 6,
-		6, 7,
-		7, 4,
-
-		// 옆면 연결
-		0, 4,
-		1, 5,
-		2, 6,
-		3, 7
-	};
-
-	// BoundingBox indices
 	uint32 BaseVertexOffset = NumGridVertices;
-	for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
+
+	const EBoundingVolumeType BoundingType = BoundingBoxLines.GetCurrentType();
+	int32* BoundingLineIdx = BoundingBoxLines.GetIndices(BoundingType);
+	const uint32 NumBoundingIndices = BoundingBoxLines.GetNumIndices(BoundingType);
+
+	if (BoundingLineIdx)
 	{
-		Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
+		for (uint32 Idx = 0; Idx < NumBoundingIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + BoundingLineIdx[Idx]);
+		}
 	}
 
-	// OctreeLines indices
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
-	for (const auto& OctreeLine : OctreeLines)
+
+	if (bRenderSpotLight)
 	{
-		for (uint32 Idx = 0; Idx < std::size(BoundingBoxLineIdx); ++Idx)
+		const EBoundingVolumeType SpotLightType = SpotLightOBBLines.GetCurrentType();
+		int32* SpotLineIdx = SpotLightOBBLines.GetIndices(SpotLightType);
+		const uint32 NumSpotLightIndices = SpotLightOBBLines.GetNumIndices(SpotLightType);
+
+		if (SpotLineIdx)
 		{
-			Indices.push_back(BaseVertexOffset + BoundingBoxLineIdx[Idx]);
+			for (uint32 Idx = 0; Idx < NumSpotLightIndices; ++Idx)
+			{
+				Indices.push_back(BaseVertexOffset + SpotLineIdx[Idx]);
+			}
 		}
+
+		BaseVertexOffset += SpotLightOBBLines.GetNumVertices();
+	}
+
+	for (auto& OctreeLine : OctreeLines)
+	{
+		const EBoundingVolumeType OctreeType = OctreeLine.GetCurrentType();
+		int32* OctreeLineIdx = OctreeLine.GetIndices(OctreeType);
+		const uint32 NumOctreeIndices = OctreeLine.GetNumIndices(OctreeType);
+
+		if (!OctreeLineIdx)
+		{
+			continue;
+		}
+
+		for (uint32 Idx = 0; Idx < NumOctreeIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + OctreeLineIdx[Idx]);
+		}
+
 		BaseVertexOffset += OctreeLine.GetNumVertices();
 	}
 }
+

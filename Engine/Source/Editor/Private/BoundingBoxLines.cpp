@@ -4,10 +4,30 @@
 #include "Physics/Public/OBB.h"
 
 UBoundingBoxLines::UBoundingBoxLines()
-	: Vertices(TArray<FVector>())
+	: Vertices(TArray<FVector>()),
+	BoundingBoxLineIdx{
+		// 앞면
+		0, 1,
+		1, 2,
+		2, 3,
+		3, 0,
+
+		// 뒷면
+		4, 5,
+		5, 6,
+		6, 7,
+		7, 4,
+
+		// 옆면 연결
+		0, 4,
+		1, 5,
+		2, 6,
+		3, 7
+	}
 {
 	Vertices.reserve(NumVertices);
 	UpdateVertices(GetDisabledBoundingBox());
+
 }
 
 void UBoundingBoxLines::MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex)
@@ -43,7 +63,9 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 			float MinX = AABB->Min.X, MinY = AABB->Min.Y, MinZ = AABB->Min.Z;
 			float MaxX = AABB->Max.X, MaxY = AABB->Max.Y, MaxZ = AABB->Max.Z;
 
-			if (Vertices.size() < NumVertices) { Vertices.resize(NumVertices); }
+			CurrentType = EBoundingVolumeType::AABB;
+			CurrentNumVertices = NumVertices;
+			Vertices.resize(NumVertices);
 
 			uint32 Idx = 0;
 			Vertices[Idx++] = {MinX, MinY, MinZ}; // Front-Bottom-Left
@@ -77,7 +99,9 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 				FVector(-Extents.X, +Extents.Y, +Extents.Z)  // 7: BTL
 			};
 
-			if (Vertices.size() < NumVertices) { Vertices.resize(NumVertices); }
+			CurrentType = EBoundingVolumeType::OBB;
+			CurrentNumVertices = NumVertices;
+			Vertices.resize(NumVertices);
 
 			for (uint32 Idx = 0; Idx < 8; ++Idx)
 			{
@@ -87,9 +111,99 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 			}
 			break;
 		}
+	case EBoundingVolumeType::SpotLight:
+	{
+		const FOBB* OBB = static_cast<const FOBB*>(NewBoundingVolume);
+		const FVector& Extents = OBB->Extents;
+
+		FMatrix OBBToWorld = OBB->ScaleRotation;
+		OBBToWorld *= FMatrix::TranslationMatrix(OBB->Center);
+
+		// 61개의 점들을 로컬에서 찍는다.
+		FVector LocalSpotLight[61];
+		LocalSpotLight[0] = FVector(-Extents.X, 0.0f, 0.0f); // 0: Center
+
+		for (int32 i = 0; i < 60;++i)
+		{
+			LocalSpotLight[i + 1] = FVector(Extents.X, cosf((6.0f * i) * (PI / 180.0f)) * 0.5f, sinf((6.0f * i) * (PI / 180.0f)) * 0.5f); 
+		}
+
+		CurrentType = EBoundingVolumeType::SpotLight;
+		CurrentNumVertices = SpotLightVeitices;
+		Vertices.resize(SpotLightVeitices);
+
+		// 61개의 점을 월드로 변환하고 Vertices에 넣는다.
+		// 인덱스에도 넣는다.
+
+		// 0번인덱스는 미리 처리
+		FVector WorldCorner = OBBToWorld.TransformPosition(LocalSpotLight[0]);
+		Vertices[0] = { WorldCorner.X, WorldCorner.Y, WorldCorner.Z };
+
+		int32 LineIdx = 0;
+
+
+		// 꼭지점에서 원으로 뻗는 60개의 선을 월드로 바꾸고 인덱스 번호를 지정한다
+		for (uint32 Idx = 1; Idx < 61; ++Idx)
+		{
+			FVector WorldCorner = OBBToWorld.TransformPosition(LocalSpotLight[Idx]);
+
+			Vertices[Idx] = { WorldCorner.X, WorldCorner.Y, WorldCorner.Z };
+			SpotLightLineIdx[LineIdx++] = 0;
+			SpotLightLineIdx[LineIdx++] = Idx;
+		}
+
+		// 원에서 각 점을 잇는 선의 인덱스 번호를 지정한다
+		SpotLightLineIdx[LineIdx++] = 60;
+		SpotLightLineIdx[LineIdx++] = 1;
+		for (uint32 Idx = 1; Idx < 60; ++Idx)
+		{
+			SpotLightLineIdx[LineIdx++] = Idx;
+			SpotLightLineIdx[LineIdx++] = Idx + 1;
+		}
+		break;
+
+	}
 	default:
 		break;
-	
 	}
 }
 
+int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
+{
+	switch (BoundingVolumeType)
+	{
+	case EBoundingVolumeType::AABB:
+	{
+		return BoundingBoxLineIdx;
+	}
+	case EBoundingVolumeType::OBB:
+	{
+		return BoundingBoxLineIdx;
+	}
+	case EBoundingVolumeType::SpotLight:
+	{
+		return SpotLightLineIdx;
+	}
+	default:
+		break;
+	}
+
+	return nullptr;
+}
+
+
+uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) const
+{
+	switch (BoundingVolumeType)
+	{
+	case EBoundingVolumeType::AABB:
+	case EBoundingVolumeType::OBB:
+		return 24;
+	case EBoundingVolumeType::SpotLight:
+		return 240;
+	default:
+		break;
+	}
+
+	return 0;
+}

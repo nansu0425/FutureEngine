@@ -19,6 +19,7 @@
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/UUIDTextComponent.h"
+#include "Component/Public/DecalSpotLightComponent.h"
 
 UEditor::UEditor()
 {
@@ -208,7 +209,16 @@ void UEditor::UpdateBatchLines()
 					FAABB AABB(WorldMin, WorldMax);
 					BatchLines.UpdateBoundingBoxVertices(&AABB);
 				}
-				else { BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox()); }
+				else 
+				{ 
+					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox()); 
+
+					// 만약 선택된 타입이 decalspotlightcomponent라면
+					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
+					{
+						BatchLines.UpdateSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
+					}
+				}
 				return; 
 			}
 		}
@@ -517,7 +527,7 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 		PlaneOriginToMouseStart.Normalize();
 		float DotResult = (PlaneOriginToMouseStart).Dot(PlaneOriginToMouse);
 		float Angle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxis) < 0)
+		if ((PlaneOriginToMouseStart.Cross(PlaneOriginToMouse)).Dot(GizmoAxis) < 0)
 		{
 			Angle = -Angle;
 		}

@@ -44,6 +44,12 @@ struct FMaterialConstants
 	float Time; // Time in seconds
 };
 
+struct FVertex
+{
+	FVector Position;
+	FVector4 Color;
+};
+
 struct FNormalVertex
 {
 	FVector Position;

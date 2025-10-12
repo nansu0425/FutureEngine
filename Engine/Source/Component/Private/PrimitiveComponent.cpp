@@ -122,7 +122,8 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 			CachedWorldMin = WorldMin;
 			CachedWorldMax = WorldMax;
 		}
-		else if (BoundingBox->GetType() == EBoundingVolumeType::OBB)
+		else if (BoundingBox->GetType() == EBoundingVolumeType::OBB ||
+			BoundingBox->GetType() == EBoundingVolumeType::SpotLight)
 		{
 			const FOBB* OBB = static_cast<const FOBB*>(GetBoundingBox());
 			FAABB AABB = OBB->ToWorldAABB();

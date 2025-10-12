@@ -38,7 +38,7 @@ public:
 	FVector4 GetColor() const { return Color; }
 	void SetColor(const FVector4& InColor) { Color = InColor; }
 
-	const IBoundingVolume* GetBoundingBox();
+	virtual const IBoundingVolume* GetBoundingBox();
 	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
 
 	virtual void MarkAsDirty() override;

@@ -241,7 +241,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
 
-	// 오클루전 컬링 수행
+	// 오클루전 컬링
 	TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
