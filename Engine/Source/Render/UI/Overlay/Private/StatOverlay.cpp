@@ -28,6 +28,8 @@ void UStatOverlay::Initialize()
             &TextFormat
         );
     }
+    // Decal 발제용 켜놓기
+    EnableStat(EStatType::Decal);
 }
 
 void UStatOverlay::Release()
