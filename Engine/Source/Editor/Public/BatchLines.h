@@ -19,7 +19,8 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateOctreeVertices(const FOctree* InOctree);
-	void UpdateSpotLightVertices(const UDecalSpotLightComponent* Component);
+	// Decal SpotLight용 불법 증축
+	void UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
 

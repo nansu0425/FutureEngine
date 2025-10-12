@@ -196,9 +196,6 @@ void UEditor::UpdateBatchLines()
 		BatchLines.ClearOctreeLines();
 	}
 
-
-
-
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
@@ -218,7 +215,7 @@ void UEditor::UpdateBatchLines()
 					// 만약 선택된 타입이 decalspotlightcomponent라면
 					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
 					{
-						BatchLines.UpdateSpotLightVertices(static_cast<UDecalSpotLightComponent*>(Component));
+						BatchLines.UpdateSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
 					}
 				}
 				return; 

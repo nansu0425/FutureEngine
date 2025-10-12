@@ -34,9 +34,6 @@ public:
     bool IsPerspective() const { return bIsPerspective; }
 
     virtual void UpdateProjectionMatrix();
-protected:
-
-    void UpdateOBB();
 
 protected:
     UTexture* DecalTexture = nullptr;

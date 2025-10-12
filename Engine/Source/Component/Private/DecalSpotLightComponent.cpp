@@ -16,9 +16,9 @@ UDecalSpotLightComponent::UDecalSpotLightComponent()
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
 	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/spotlight.png")));
 
+	SetPerspective(true);
 
-	UpdateOBB();
-	UpdateProjectionMatrix();
+	SpotLightBoundingBox = new FSpotLightOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
 }
 
 UDecalSpotLightComponent::~UDecalSpotLightComponent()
@@ -33,16 +33,16 @@ void UDecalSpotLightComponent::TickComponent(float DeltaTime)
 void UDecalSpotLightComponent::UpdateProjectionMatrix()
 {
 	//FSpotLightOBB* Fobb = static_cast<FSpotLightOBB*>(BoundingBox);
-	FOBB* Fobb = static_cast<FOBB*>(BoundingBox);
-	if (!Fobb) { return; }
+	FOBB* OBB = static_cast<FOBB*>(BoundingBox);
+	if (!OBB) { return; }
 
-	float W = Fobb->Extents.X;
-	float H = Fobb->Extents.Z;
+	float W = OBB->Extents.X;
+	float H = OBB->Extents.Z;
 
 	float FoV = 2 * atan(H / W);
-	float AspectRatio = Fobb->Extents.Z / Fobb->Extents.Y;
+	float AspectRatio = OBB->Extents.Y / OBB->Extents.Z;
 	float NearClip = 0.1f;
-	float FarClip = Fobb->Extents.X * 2;
+	float FarClip = OBB->Extents.X * 2;
 
 	float F = 2 * W / H;
 
@@ -82,4 +82,10 @@ UObject* UDecalSpotLightComponent::Duplicate()
 		DuplicatedOBB->ScaleRotation = OriginalOBB->ScaleRotation;
 	}
 	return DuplicatedComponent;
+}
+
+const IBoundingVolume* UDecalSpotLightComponent::GetBoundingBox()
+{
+	SpotLightBoundingBox->Update(GetWorldTransformMatrix());
+	return Super::GetBoundingBox();
 }

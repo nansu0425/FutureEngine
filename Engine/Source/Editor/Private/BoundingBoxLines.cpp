@@ -132,9 +132,6 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 		CurrentNumVertices = SpotLightVeitices;
 		Vertices.resize(SpotLightVeitices);
 
-
-
-
 		// 61개의 점을 월드로 변환하고 Vertices에 넣는다.
 		// 인덱스에도 넣는다.
 
@@ -168,7 +165,6 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 	}
 	default:
 		break;
-	
 	}
 }
 

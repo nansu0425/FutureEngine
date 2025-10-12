@@ -73,28 +73,23 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	bChangedVertices = true;
 }
 
-void UBatchLines::UpdateSpotLightVertices(const UDecalSpotLightComponent* Component)
+void UBatchLines::UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
 {
-	if (!Component)
+	if (!SpotLightComponent)
 	{
 		bRenderSpotLight = false;
 		return;
 	}
 
 	// GetBoundingBox updates the underlying volume, so we need non-const access.
-	UDecalSpotLightComponent* SpotLightComponent = const_cast<UDecalSpotLightComponent*>(Component);
-	const IBoundingVolume* SpotLightBounding = SpotLightComponent ? SpotLightComponent->GetBoundingBox() : nullptr;
-	if (!SpotLightBounding || SpotLightBounding->GetType() != EBoundingVolumeType::SpotLight)
+	const FSpotLightOBB* SpotLightBounding = SpotLightComponent ? SpotLightComponent->GetSpotLightBoundingBox() : nullptr;
+	if (!SpotLightBounding)
 	{
 		bRenderSpotLight = false;
 		return;
 	}
-
-	const FSpotLightOBB* SpotLightOBB = static_cast<const FSpotLightOBB*>(SpotLightBounding);
-
-	// Keep the spotlight wireframe from BoundingBoxLines and draw an additional OBB outline.
-	FOBB OBB = *static_cast<const FOBB*>(SpotLightOBB);
-	SpotLightOBBLines.UpdateVertices(&OBB);
+	
+	SpotLightOBBLines.UpdateVertices(SpotLightBounding);
 	bRenderSpotLight = true;
 	bChangedVertices = true;
 }

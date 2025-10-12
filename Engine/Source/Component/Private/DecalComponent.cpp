@@ -19,10 +19,7 @@ UDecalComponent::UDecalComponent()
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
 	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/PerlinNoiseFadeTexture.png")));
 	
-    // Start with perspective projection by default
-    SetPerspective(true);
-    UpdateOBB();
-    UpdateProjectionMatrix();
+    SetPerspective(false);
 }
 
 UDecalComponent::~UDecalComponent()
@@ -97,17 +94,6 @@ void UDecalComponent::UpdateProjectionMatrix()
 
 	ProjectionMatrix = FMatrix::Identity(); // Orthographic decals don't need a projection matrix in this implementation
 	ProjectionMatrix = Scale * MoveCamera * ProjectionMatrix;
-}
-
-void UDecalComponent::UpdateOBB()
-{
-	FOBB* OBB = static_cast<FOBB*>(BoundingBox);
-   
-	// Default OBB for orthographic projection
-	OBB->Center = FVector(0.f, 0.f, 0.f);
-	OBB->Extents = FVector(0.5f, 0.5f, 0.5f);
-    
-	// OBB->ScaleRotation is handled by the component's world transform
 }
 
 /*-----------------------------------------------------------------------------
