@@ -265,7 +265,7 @@ void ULevel::UpdateOctree()
 
 	while (!DynamicPrimitiveQueue.empty() && Count < MAX_OBJECTS_TO_INSERT_PER_FRAME)
 	{
-		auto [Component, TimePoint] = DynamicPrimitiveQueue.top();
+		auto [Component, TimePoint] = DynamicPrimitiveQueue.front();
 		DynamicPrimitiveQueue.pop();
 
 		if (auto It = DynamicPrimitiveMap.find(Component); It != DynamicPrimitiveMap.end())

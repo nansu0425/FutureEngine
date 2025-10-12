@@ -87,9 +87,7 @@ private:
 		}
 	};
 	
-	using FDynamicPrimitiveQueue = std::priority_queue<
-		FDynamicPrimitiveData, std::vector<FDynamicPrimitiveData>, std::greater<FDynamicPrimitiveData>
-	>;
+	using FDynamicPrimitiveQueue = TQueue<FDynamicPrimitiveData>;
 	
 	FOctree* StaticOctree = nullptr;
 
