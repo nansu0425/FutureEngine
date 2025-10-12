@@ -166,11 +166,9 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	}
 	
 	// StaticOctree에서 제거 시도
-	if (!(StaticOctree->Remove(InComponent)))
-	{
-		// 실패하면 DynamicPrimitiveMap 목록에서 찾아서 제거
-		OnPrimitiveUpdated(InComponent);
-	}
+	StaticOctree->Remove(InComponent);
+	
+	OnPrimitiveUnregistered(InComponent);
 }
 
 void ULevel::AddLevelPrimitiveComponent(AActor* Actor)

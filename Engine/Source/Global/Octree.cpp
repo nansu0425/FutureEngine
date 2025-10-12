@@ -108,6 +108,14 @@ bool FOctree::Remove(UPrimitiveComponent* InPrimitive)
 	// 1-B. 자식 노드가 있는 경우, 순차적으로 자식 노드 내부를 탐색
 	else
 	{
+		if (auto It = std::find(Primitives.begin(), Primitives.end(), InPrimitive); It != Primitives.end())
+		{
+			*It = std::move(Primitives.back());
+			Primitives.pop_back();
+
+			return true;
+		}
+		
 		bool bIsRemoved = false;
 
 		for (int Index = 0; Index < 8; ++Index)

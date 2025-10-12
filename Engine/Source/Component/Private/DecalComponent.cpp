@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Component/Public/DecalComponent.h"
+#include "Level/Public/Level.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/OBB.h"
 #include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
@@ -269,10 +270,10 @@ void UDecalComponent::UpdateFade(float DeltaTime)
 			{
 				UE_LOG("--- 페이드 종료 ---");
 				bIsFading = false;
-				// if(bDestroyOwnerAfterFade)
-				// {
-				// 	GetOwner()->Destroy();
-				// }
+				if (bDestroyOwnerAfterFade)
+				{
+					GetOwner()->SetIsPendingDestroy(true);			
+				}
 			}
 		}
 	}
