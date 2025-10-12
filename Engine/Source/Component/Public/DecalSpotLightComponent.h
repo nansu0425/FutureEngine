@@ -1,5 +1,9 @@
 #pragma once
 #include "Component/Public/DecalComponent.h"
+struct FSpotLightOBB;
+
+
+
 
 
 
@@ -23,8 +27,16 @@ public:
 	virtual UObject* Duplicate() override;
 
 
+	FSpotLightOBB* GetSpotLightBounding();
+
+
+
 private:
 	
+
+
+	FSpotLightOBB* SpotLightBoundingBox = nullptr;
+
 
 
 };

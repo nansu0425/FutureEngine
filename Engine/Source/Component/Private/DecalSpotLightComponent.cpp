@@ -9,7 +9,8 @@ IMPLEMENT_CLASS(UDecalSpotLightComponent, UDecalComponent)
 UDecalSpotLightComponent::UDecalSpotLightComponent()
 {
 	bOwnsBoundingBox = true;
-	//BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
+	SafeDelete(BoundingBox);
+	BoundingBox = new FSpotLightOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
@@ -31,7 +32,9 @@ void UDecalSpotLightComponent::TickComponent(float DeltaTime)
 
 void UDecalSpotLightComponent::UpdateProjectionMatrix()
 {
+	//FSpotLightOBB* Fobb = static_cast<FSpotLightOBB*>(BoundingBox);
 	FOBB* Fobb = static_cast<FOBB*>(BoundingBox);
+	if (!Fobb) { return; }
 
 	float W = Fobb->Extents.X;
 	float H = Fobb->Extents.Z;

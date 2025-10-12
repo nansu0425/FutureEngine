@@ -89,7 +89,6 @@ void UBatchLines::UpdateVertexBuffer()
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
 		uint32 NumOctreeVertices = 0;
-		uint32 NumSpotLightVertices
 		for (const auto& Line : OctreeLines)
 		{
 			NumOctreeVertices += Line.GetNumVertices();
@@ -135,39 +134,43 @@ void UBatchLines::SetIndices()
 
 	const uint32 NumGridVertices = Grid.GetNumVertices();
 
-	// Grid indices
 	for (uint32 Index = 0; Index < NumGridVertices; ++Index)
 	{
 		Indices.push_back(Index);
 	}
 
-
-	// BoundingBox indices
 	uint32 BaseVertexOffset = NumGridVertices;
-	int32* LineIdx = BoundingBoxLines.GetIndices(EBoundingVolumeType::AABB);
-	for (uint32 Idx = 0; Idx < 24; ++Idx)
+
+	const EBoundingVolumeType BoundingType = BoundingBoxLines.GetCurrentType();
+	int32* BoundingLineIdx = BoundingBoxLines.GetIndices(BoundingType);
+	const uint32 NumBoundingIndices = BoundingBoxLines.GetNumIndices(BoundingType);
+
+	if (BoundingLineIdx)
 	{
-		Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
+		for (uint32 Idx = 0; Idx < NumBoundingIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + BoundingLineIdx[Idx]);
+		}
 	}
 
-	// OctreeLines indices
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
-	for (const auto& OctreeLine : OctreeLines)
+
+	for (auto& OctreeLine : OctreeLines)
 	{
-		for (uint32 Idx = 0; Idx < 24; ++Idx)
+		const EBoundingVolumeType OctreeType = OctreeLine.GetCurrentType();
+		int32* OctreeLineIdx = OctreeLine.GetIndices(OctreeType);
+		const uint32 NumOctreeIndices = OctreeLine.GetNumIndices(OctreeType);
+
+		if (!OctreeLineIdx)
 		{
-			Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
+			continue;
 		}
+
+		for (uint32 Idx = 0; Idx < NumOctreeIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + OctreeLineIdx[Idx]);
+		}
+
 		BaseVertexOffset += OctreeLine.GetNumVertices();
 	}
-
-
-	// SpotLightLines indices
-	// 여기서 spotlight전용 BoundingBoxLineIdx배열이 필요함
-	LineIdx = BoundingBoxLines.GetIndices(EBoundingVolumeType::SpotLight);
-	for (uint32 Idx = 0; Idx < 240; ++Idx)
-	{
-		Indices.push_back(BaseVertexOffset + LineIdx[Idx]);
-	}
-
 }

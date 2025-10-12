@@ -63,7 +63,9 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 			float MinX = AABB->Min.X, MinY = AABB->Min.Y, MinZ = AABB->Min.Z;
 			float MaxX = AABB->Max.X, MaxY = AABB->Max.Y, MaxZ = AABB->Max.Z;
 
-			if (Vertices.size() < NumVertices) { Vertices.resize(NumVertices); }
+			CurrentType = EBoundingVolumeType::AABB;
+			CurrentNumVertices = NumVertices;
+			Vertices.resize(NumVertices);
 
 			uint32 Idx = 0;
 			Vertices[Idx++] = {MinX, MinY, MinZ}; // Front-Bottom-Left
@@ -97,7 +99,9 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 				FVector(-Extents.X, +Extents.Y, +Extents.Z)  // 7: BTL
 			};
 
-			if (Vertices.size() < NumVertices) { Vertices.resize(NumVertices); }
+			CurrentType = EBoundingVolumeType::OBB;
+			CurrentNumVertices = NumVertices;
+			Vertices.resize(NumVertices);
 
 			for (uint32 Idx = 0; Idx < 8; ++Idx)
 			{
@@ -121,10 +125,12 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 
 		for (int32 i = 0; i < 60;++i)
 		{
-			LocalSpotLight[i + 1] = FVector(-Extents.X, cosf((6.0f * i) * (PI / 180.0f)) * 0.5f, sinf((6.0f * i) * (PI / 180.0f)) * 0.5f); 
+			LocalSpotLight[i + 1] = FVector(Extents.X, cosf((6.0f * i) * (PI / 180.0f)) * 0.5f, sinf((6.0f * i) * (PI / 180.0f)) * 0.5f); 
 		}
 
-		if (Vertices.size() < SpotLightVeitices) { Vertices.resize(SpotLightVeitices); }
+		CurrentType = EBoundingVolumeType::SpotLight;
+		CurrentNumVertices = SpotLightVeitices;
+		Vertices.resize(SpotLightVeitices);
 
 
 
@@ -185,6 +191,23 @@ int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 	default:
 		break;
 	}
-	
+
+	return nullptr;
 }
 
+
+uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) const
+{
+	switch (BoundingVolumeType)
+	{
+	case EBoundingVolumeType::AABB:
+	case EBoundingVolumeType::OBB:
+		return 24;
+	case EBoundingVolumeType::SpotLight:
+		return 240;
+	default:
+		break;
+	}
+
+	return 0;
+}
