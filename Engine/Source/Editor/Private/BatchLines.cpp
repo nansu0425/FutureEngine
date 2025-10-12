@@ -5,6 +5,8 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Global/Octree.h"
+#include "Component/Public/DecalSpotLightComponent.h"
+#include "Physics/Public/OBB.h"
 
 UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 {
@@ -51,9 +53,15 @@ void UBatchLines::UpdateUGridVertices(const float newCellSize)
 
 void UBatchLines::UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume)
 {
+	if (NewBoundingVolume && NewBoundingVolume->GetType() != EBoundingVolumeType::SpotLight)
+	{
+		bRenderSpotLight = false;
+	}
+
 	BoundingBoxLines.UpdateVertices(NewBoundingVolume);
 	bChangedVertices = true;
 }
+
 
 void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 {
@@ -62,6 +70,32 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	{
 		TraverseOctree(InOctree);
 	}
+	bChangedVertices = true;
+}
+
+void UBatchLines::UpdateSpotLightVertices(const UDecalSpotLightComponent* Component)
+{
+	if (!Component)
+	{
+		bRenderSpotLight = false;
+		return;
+	}
+
+	// GetBoundingBox updates the underlying volume, so we need non-const access.
+	UDecalSpotLightComponent* SpotLightComponent = const_cast<UDecalSpotLightComponent*>(Component);
+	const IBoundingVolume* SpotLightBounding = SpotLightComponent ? SpotLightComponent->GetBoundingBox() : nullptr;
+	if (!SpotLightBounding || SpotLightBounding->GetType() != EBoundingVolumeType::SpotLight)
+	{
+		bRenderSpotLight = false;
+		return;
+	}
+
+	const FSpotLightOBB* SpotLightOBB = static_cast<const FSpotLightOBB*>(SpotLightBounding);
+
+	// Keep the spotlight wireframe from BoundingBoxLines and draw an additional OBB outline.
+	FOBB OBB = *static_cast<const FOBB*>(SpotLightOBB);
+	SpotLightOBBLines.UpdateVertices(&OBB);
+	bRenderSpotLight = true;
 	bChangedVertices = true;
 }
 
@@ -88,18 +122,25 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
+		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightOBBLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
 		{
 			NumOctreeVertices += Line.GetNumVertices();
 		}
 
-		Vertices.resize(NumGridVertices + NumBoxVertices + NumOctreeVertices);
+		Vertices.resize(NumGridVertices + NumBoxVertices + NumSpotLightVertices + NumOctreeVertices);
 
 		Grid.MergeVerticesAt(Vertices, 0);
 		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
 
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
+		if (bRenderSpotLight)
+		{
+			SpotLightOBBLines.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += SpotLightOBBLines.GetNumVertices();
+		}
+
 		for (auto& Line : OctreeLines)
 		{
 			Line.MergeVerticesAt(Vertices, CurrentOffset);
@@ -155,6 +196,23 @@ void UBatchLines::SetIndices()
 
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
 
+	if (bRenderSpotLight)
+	{
+		const EBoundingVolumeType SpotLightType = SpotLightOBBLines.GetCurrentType();
+		int32* SpotLineIdx = SpotLightOBBLines.GetIndices(SpotLightType);
+		const uint32 NumSpotLightIndices = SpotLightOBBLines.GetNumIndices(SpotLightType);
+
+		if (SpotLineIdx)
+		{
+			for (uint32 Idx = 0; Idx < NumSpotLightIndices; ++Idx)
+			{
+				Indices.push_back(BaseVertexOffset + SpotLineIdx[Idx]);
+			}
+		}
+
+		BaseVertexOffset += SpotLightOBBLines.GetNumVertices();
+	}
+
 	for (auto& OctreeLine : OctreeLines)
 	{
 		const EBoundingVolumeType OctreeType = OctreeLine.GetCurrentType();
@@ -174,3 +232,4 @@ void UBatchLines::SetIndices()
 		BaseVertexOffset += OctreeLine.GetNumVertices();
 	}
 }
+

@@ -10,7 +10,7 @@ UDecalSpotLightComponent::UDecalSpotLightComponent()
 {
 	bOwnsBoundingBox = true;
 	SafeDelete(BoundingBox);
-	BoundingBox = new FSpotLightOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
+	BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
