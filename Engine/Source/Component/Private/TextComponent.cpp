@@ -21,7 +21,7 @@ UTextComponent::~UTextComponent()
 {
 }
 
-void UTextComponent::UpdateRotationMatrix(const FVector& InCameraLocation) {}
+void UTextComponent::FaceCamera(const FVector& InCameraLocation) {}
 FMatrix UTextComponent::GetRTMatrix() const { return FMatrix(); }
 
 const FString& UTextComponent::GetText() { return Text; }

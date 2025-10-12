@@ -93,7 +93,7 @@ namespace
             Dot_t = Distance.X * R[0][0] + Distance.Y * R[1][0] + Distance.Z * R[2][0];
             RightAABBValue = AABBHalf.X * AbsR[0][0] + AABBHalf.Y * AbsR[1][0] + AABBHalf.Z * AbsR[2][0];
             if (Abs(Dot_t) > OBBExtents[0] + RightAABBValue) return false;
-
+ 
             // Uy (j=1)
             Dot_t = Distance.X * R[0][1] + Distance.Y * R[1][1] + Distance.Z * R[2][1];
             RightAABBValue = AABBHalf.X * AbsR[0][1] + AABBHalf.Y * AbsR[1][1] + AABBHalf.Z * AbsR[2][1];
@@ -199,6 +199,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
         ULevel* CurrentLevel = GWorld->GetLevel();
 
         Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
+        TArray<UPrimitiveComponent*>& DynamicPrimitives = CurrentLevel->GetDynamicPrimitives();
+        Primitives.insert(Primitives.end(), DynamicPrimitives.begin(), DynamicPrimitives.end());
 
         // --- Disable Octree Optimization --- 
         // Primitives = Context.DefaultPrimitives;

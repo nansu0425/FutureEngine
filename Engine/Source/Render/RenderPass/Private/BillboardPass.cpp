@@ -28,16 +28,38 @@ void FBillboardPass::Execute(FRenderingContext& Context)
 
     FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
     Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
-    
+
+    // Billboard Sort
+    struct FDistanceSortedBillboard
+    {
+        UBillBoardComponent* BillBoard;
+        float DistanceSq;
+    };
+
+    std::vector<FDistanceSortedBillboard> SortedBillboards;
+    FVector CameraLocation = Context.CurrentCamera->GetLocation();
+
     for (UBillBoardComponent* BillBoardComp : Context.BillBoards)
     {
         BillBoardComp->FaceCamera(Context.CurrentCamera->GetForward());
+        FVector BillboardLocation = BillBoardComp->GetWorldLocation();
+        float DistanceSq = FVector::DistSquared(CameraLocation, BillboardLocation);
+        SortedBillboards.push_back({ BillBoardComp, DistanceSq });
+    }
+
+    // DistanceSq가 클수록 앞에 오도록 정렬
+    std::sort(SortedBillboards.begin(), SortedBillboards.end(), [](const FDistanceSortedBillboard& a, const FDistanceSortedBillboard& b) {
+        return a.DistanceSq > b.DistanceSq;
+    });
+
+    for (const auto& SortedItem : SortedBillboards)
+    {
+        UBillBoardComponent* BillBoardComp = SortedItem.BillBoard;
         
         FMatrix WorldMatrix;
         if (BillBoardComp->IsScreenSizeScaled())
         {
             FVector FixedWorldScale = BillBoardComp->GetRelativeScale3D(); 
-
             FVector BillboardLocation = BillBoardComp->GetWorldLocation();
             FQuaternion BillboardRotation = BillBoardComp->GetWorldRotationAsQuaternion();
 
@@ -47,14 +69,16 @@ void FBillboardPass::Execute(FRenderingContext& Context)
 
         Pipeline->SetVertexBuffer(BillBoardComp->GetVertexBuffer(), sizeof(FNormalVertex));
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
-		
+       
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
         Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 
         Pipeline->SetTexture(0, false, BillBoardComp->GetSprite()->GetTextureSRV());
         Pipeline->SetSamplerState(0, false, BillBoardComp->GetSprite()->GetTextureSampler());
+        
         Pipeline->DrawIndexed(BillBoardComp->GetNumIndices(), 0, 0);
     }
+
 }
 
 void FBillboardPass::Release()
