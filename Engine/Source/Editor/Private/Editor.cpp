@@ -200,7 +200,7 @@ void UEditor::UpdateBatchLines()
 	{
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
-			if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
+			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
 				{
@@ -427,7 +427,7 @@ void UEditor::ProcessMouseInput()
 
 		if (!ImGui::GetIO().WantCaptureMouse && InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 		{
-			if (GWorld->GetLevel()->GetShowFlags() & EEngineShowFlags::SF_Primitives)
+			if (GWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
 
