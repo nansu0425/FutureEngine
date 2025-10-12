@@ -527,7 +527,7 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 		PlaneOriginToMouseStart.Normalize();
 		float DotResult = (PlaneOriginToMouseStart).Dot(PlaneOriginToMouse);
 		float Angle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxis) < 0)
+		if ((PlaneOriginToMouseStart.Cross(PlaneOriginToMouse)).Dot(GizmoAxis) < 0)
 		{
 			Angle = -Angle;
 		}
