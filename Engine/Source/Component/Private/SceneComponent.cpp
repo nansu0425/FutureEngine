@@ -248,7 +248,7 @@ void USceneComponent::SetWorldRotation(const FQuaternion& NewRotation)
 	if (AttachParent)
 	{
 		FQuaternion ParentWorldRotationQuat = AttachParent->GetWorldRotationAsQuaternion();
-		SetRelativeRotation(NewRotation * ParentWorldRotationQuat.Inverse());
+       SetRelativeRotation(ParentWorldRotationQuat.Inverse() * NewRotation); 
 	}
 	else
 	{
