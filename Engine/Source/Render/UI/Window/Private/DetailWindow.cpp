@@ -1,11 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/DetailWindow.h"
-
 #include "Render/UI/Widget/Public/ActorDetailWidget.h"
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
-#include "Render/UI/Widget/Public/TargetActorTransformWidget.h"
-#include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
-
 #include "Manager/UI/Public/UIManager.h"
 #include "Level/Public/Level.h"
 
@@ -31,7 +27,6 @@ UDetailWindow::UDetailWindow()
 
 	UActorDetailWidget* ActorDetailWidget = NewObject<UActorDetailWidget>();
 	AddWidget(ActorDetailWidget);
-	AddWidget(NewObject<UTargetActorTransformWidget>());
 	UActorTerminationWidget* ActorTerminationWidget = NewObject<UActorTerminationWidget>();
 	ActorTerminationWidget->SetActorDetailWidget(ActorDetailWidget);
 	AddWidget(ActorTerminationWidget);

@@ -521,11 +521,26 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	// Relative Scale
 	FVector ComponentScale = SceneComponent->GetRelativeScale3D();
-	if (ImGui::DragFloat3("Relative Scale", &ComponentScale.X, 0.1f))
+	bool bUniformScale = SceneComponent->IsUniformScale();
+	if (bUniformScale)
 	{
-		SceneComponent->SetRelativeScale3D(ComponentScale);
-	}
+		float UniformScale = ComponentScale.X;
 
+		if (ImGui::DragFloat("Relative Scale", &UniformScale, 0.1f))
+		{
+			SceneComponent->SetRelativeScale3D({UniformScale, UniformScale, UniformScale});
+		}
+	}
+	else
+	{
+		if (ImGui::DragFloat3("Relative Scale", &ComponentScale.X, 0.1f))
+		{
+			SceneComponent->SetRelativeScale3D(ComponentScale);
+		}
+	}
+	ImGui::Checkbox("Uniform Scale", &bUniformScale);
+	SceneComponent->SetUniformScale(bUniformScale);
+	
 	ImGui::PopID();
 }
 

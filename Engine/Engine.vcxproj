@@ -436,7 +436,6 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\SplitterDebugWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SpriteSelectionWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\StaticMeshComponentWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\TargetActorTransformWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportMenuBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\Widget.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ConsoleWindow.h" />
@@ -578,7 +577,6 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\SplitterDebugWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SpriteSelectionWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\StaticMeshComponentWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\TargetActorTransformWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportMenuBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\Widget.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ConsoleWindow.cpp" />
