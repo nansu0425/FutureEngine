@@ -9,7 +9,7 @@ class UDecalComponent : public UPrimitiveComponent
 
 public:
     UDecalComponent();
-    ~UDecalComponent();
+    virtual ~UDecalComponent();
 
     virtual void TickComponent(float DeltaTime) override;
 
@@ -17,23 +17,23 @@ public:
     
     void SetFadeTexture(UTexture* InFadeTexture);
     
-    UTexture* GetTexture() const { return DecalTexture; }
+    virtual UTexture* GetTexture() const { return DecalTexture; }
 
-    UTexture* GetFadeTexture() const { return FadeTexture; }
+    virtual UTexture* GetFadeTexture() const { return FadeTexture; }
 
     const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
     UClass* GetSpecificWidgetClass() const override;
 
     // --- Perspective Projection ---
     void SetPerspective(bool bEnable);
-    void SetFOV(float InFOV) { FOV = InFOV; UpdateProjectionMatrix(); UpdateOBB(); }
-    void SetAspectRatio(float InAspectRatio) { AspectRatio = InAspectRatio; UpdateProjectionMatrix(); UpdateOBB(); }
-    void SetClipDistances(float InNear, float InFar) { NearClip = InNear; FarClip = InFar; UpdateProjectionMatrix(); UpdateOBB(); }
+    //void SetFOV(float InFOV) { FOV = InFOV; UpdateProjectionMatrix(); UpdateOBB(); }
+    //void SetAspectRatio(float InAspectRatio) { AspectRatio = InAspectRatio; UpdateProjectionMatrix(); UpdateOBB(); }
+    //void SetClipDistances(float InNear, float InFar) { NearClip = InNear; FarClip = InFar; UpdateProjectionMatrix(); UpdateOBB(); }
 
     FMatrix GetProjectionMatrix() const { return ProjectionMatrix; }
     bool IsPerspective() const { return bIsPerspective; }
 
-    void UpdateProjectionMatrix();
+    virtual void UpdateProjectionMatrix();
 protected:
 
     void UpdateOBB();
@@ -43,18 +43,14 @@ protected:
     
     UTexture* FadeTexture = nullptr;
 
+    FMatrix ProjectionMatrix;
 public:
 	virtual UObject* Duplicate() override;
 
 private:
     // --- Projection Properties ---
-    FMatrix ProjectionMatrix;
     bool bIsPerspective = false;
 
-    float FOV; // in Degrees
-    float AspectRatio;
-    float NearClip;
-    float FarClip;
 
     /*-----------------------------------------------------------------------------
         Decal Fade in/out

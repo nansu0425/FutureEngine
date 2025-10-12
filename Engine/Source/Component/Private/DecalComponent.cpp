@@ -51,7 +51,7 @@ void UDecalComponent::SetFadeTexture(UTexture* InFadeTexture)
 		return;
 	}
 
-	SafeDelete(FadeTexture);
+	//SafeDelete(FadeTexture);
 	FadeTexture = InFadeTexture;
 }
 
@@ -85,55 +85,18 @@ void UDecalComponent::SetPerspective(bool bEnable)
 
 void UDecalComponent::UpdateProjectionMatrix()
 {
-	FOBB* Fobb = static_cast<FOBB*>(BoundingBox);
-
-	float W = Fobb->Extents.X;
-	float H = Fobb->Extents.Z;
-
-	float FoV = 2 * atan(H / W);
-	float AspectRatio = Fobb->Extents.Z / Fobb->Extents.Y;
-	float NearClip = 0.1f;
-	float FarClip = Fobb->Extents.X * 2;
-
-	float F =   2 * W / H ;
-
-
 	FMatrix MoveCamera = FMatrix::Identity();
 	MoveCamera.Data[3][0] = 0.5f;
 
-	if (bIsPerspective)
-	{
-		// Manually calculate the perspective projection matrix
+	/// 이미 데칼의 로컬 좌표계로 들어온 상태
+	/// 기본 OBB는 0.5의 범위(반지름)를 가지기 때문에 x축을 제외한 yz평면을 2배 키워서 NDC에 맞춘다(SRT). 이 후 셰이더에서 uv매핑한다.
+	FMatrix Scale = FMatrix::Identity();
+	Scale.Data[0][0] = 1.0f;
+	Scale.Data[1][1] = 2.0f;
+	Scale.Data[2][2] = 2.0f;
 
-		// Initialize with a clear state
-		ProjectionMatrix = FMatrix::Identity();
-
-		// | f/aspect   0        0         0 |
-		// |    0       f        0         0 |
-		// |    0       0   zf/(zf-zn)     1 |
-		// |    0       0  -zn*zf/(zf-zn)  0 |
-		ProjectionMatrix.Data[1][1] = F / AspectRatio;
-		ProjectionMatrix.Data[2][2] = F;
-		ProjectionMatrix.Data[0][0] = FarClip / (FarClip - NearClip);
-		ProjectionMatrix.Data[0][3] = 1.0f;
-		ProjectionMatrix.Data[3][0] = (-NearClip * FarClip) / (FarClip - NearClip);
-		ProjectionMatrix.Data[3][3] = 0.0f;
-
-		ProjectionMatrix = MoveCamera * ProjectionMatrix;
-	}
-	else
-	{
-		/// 이미 데칼의 로컬 좌표계로 들어온 상태
-		/// 기본 OBB는 0.5의 범위(반지름)를 가지기 때문에 x축을 제외한 yz평면을 2배 키워서 NDC에 맞춘다(SRT). 이 후 셰이더에서 uv매핑한다.
-		FMatrix Scale = FMatrix::Identity();
-		Scale.Data[0][0] = 1.0f;
-		Scale.Data[1][1] = 2.0f;
-		Scale.Data[2][2] = 2.0f;
-
-		ProjectionMatrix = FMatrix::Identity(); // Orthographic decals don't need a projection matrix in this implementation
-		ProjectionMatrix = Scale * MoveCamera * ProjectionMatrix;
-
-	}
+	ProjectionMatrix = FMatrix::Identity(); // Orthographic decals don't need a projection matrix in this implementation
+	ProjectionMatrix = Scale * MoveCamera * ProjectionMatrix;
 }
 
 void UDecalComponent::UpdateOBB()

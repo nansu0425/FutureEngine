@@ -248,11 +248,12 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	TIME_PROFILE(Occlusion)
 	static COcclusionCuller Culler;
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = Culler.PerformCulling(
-		InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-		InCurrentCamera->GetLocation()
-	);
+	//Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+	//	Culler.PerformCulling(
+	//	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
+	//	InCurrentCamera->GetLocation()
+	//);
 	TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
