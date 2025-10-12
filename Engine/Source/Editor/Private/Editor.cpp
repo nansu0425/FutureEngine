@@ -84,16 +84,17 @@ void UEditor::Update()
 	UpdateLayout();
 }
 
-void UEditor::RenderEditor(UCamera* InCamera)
+void UEditor::RenderEditor()
 {
 	if (GEditor->IsPIESessionActive()) { return; }
 	BatchLines.Render();
 	Axis.Render();
+}
 
-	if (InCamera)
-	{
-		Gizmo.RenderGizmo(InCamera);
-	}
+void UEditor::RenderGizmo(UCamera* InCamera)
+{
+	if (GEditor->IsPIESessionActive()) { return; }
+	Gizmo.RenderGizmo(InCamera);
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)

@@ -5,6 +5,8 @@
 #include <DirectXTK/DDSTextureLoader.h>
 #include <DirectXTK/WICTextureLoader.h>
 
+#include "Manager/Path/Public/PathManager.h"
+
 FTextureManager::FTextureManager() = default;
 
 FTextureManager::~FTextureManager()
@@ -17,15 +19,35 @@ FTextureManager::~FTextureManager()
 
 UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
 {
+    // Path 정규화
+    path InputPath(InFilePath.ToString());  // 사용자의 원본 입력
+    path AbsolutePath;                            // 실제 파일을 찾을 때 사용할 절대 경로
+    path RelativeKeyPath;                         // 캐시맵의 키로 사용할 상대 경로
+
+    // 절대 경로 생성
+    path RootPath = UPathManager::GetInstance().GetRootPath();
+    InputPath.is_relative() ? AbsolutePath = RootPath / InputPath : AbsolutePath = InputPath;
+
+    try
+    {
+        path CanonicalPath = canonical(AbsolutePath);
+        RelativeKeyPath = relative(CanonicalPath, RootPath);
+    }
+    catch (const filesystem::filesystem_error& Error)
+    {
+        RelativeKeyPath = InputPath;
+    }
+    FName CacheKey(RelativeKeyPath.string());
+
     // Check Cached
-    const auto& It = TextureCaches.find(InFilePath);
+    const auto& It = TextureCaches.find(CacheKey);
     if (It != TextureCaches.end())
     {
         return It->second;
     }
 
     // Not Cached
-    ComPtr<ID3D11ShaderResourceView> SRV = CreateTextureFromFile(InFilePath.ToString());
+    ComPtr<ID3D11ShaderResourceView> SRV = CreateTextureFromFile(AbsolutePath.string());
     if (!SRV) { return nullptr; }
 
     if (!DefaultSampler)
@@ -35,10 +57,10 @@ UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
     }
     
     UTexture* Texture = NewObject<UTexture>();
-    Texture->SetFilePath(InFilePath);
+    Texture->SetFilePath(CacheKey);
     Texture->CreateRenderProxy(SRV, DefaultSampler);
 
-    TextureCaches[InFilePath] = Texture;
+    TextureCaches[CacheKey] = Texture;
     return Texture;
 }
 
@@ -88,7 +110,7 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
 
     if (!Device || !DeviceContext)
     {
-        UE_LOG_ERROR("ResourceManager: Texture 생성 실패 - Device 또는 DeviceContext가 null입니다");
+        UE_LOG_ERROR("TextureManager: Texture 생성 실패 - Device 또는 DeviceContext가 null입니다");
         return nullptr;
     }
 
@@ -108,11 +130,11 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
 
             if (SUCCEEDED(ResultHandle))
             {
-                UE_LOG_SUCCESS("ResourceManager: DDS 텍스처 로드 성공 - %ls", InFilePath.c_str());
+                UE_LOG_SUCCESS("TextureManager: DDS 텍스처 로드 성공 - %ls", InFilePath.c_str());
             }
             else
             {
-                UE_LOG_ERROR("ResourceManager: DDS 텍스처 로드 실패 - %ls (HRESULT: 0x%08lX)", InFilePath.c_str(), ResultHandle);
+                UE_LOG_ERROR("TextureManager: DDS 텍스처 로드 실패 - %ls (HRESULT: 0x%08lX)", InFilePath.c_str(), ResultHandle);
             }
         }
         else
@@ -123,17 +145,17 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
 
             if (SUCCEEDED(ResultHandle))
             {
-                UE_LOG_SUCCESS("ResourceManager: WIC 텍스처 로드 성공 - %ls", InFilePath.c_str());
+                UE_LOG_SUCCESS("TextureManager: WIC 텍스처 로드 성공 - %ls", InFilePath.c_str());
             }
             else
             {
-                UE_LOG_ERROR("ResourceManager: WIC 텍스처 로드 실패 - %ls (HRESULT: 0x%08lX)" , InFilePath.c_str(), ResultHandle);
+                UE_LOG_ERROR("TextureManager: WIC 텍스처 로드 실패 - %ls (HRESULT: 0x%08lX)" , InFilePath.c_str(), ResultHandle);
             }
         }
     }
     catch (const exception& Exception)
     {
-        UE_LOG_ERROR("ResourceManager: 텍스처 로드 중 예외 발생 - %ls: %s", InFilePath.c_str(), Exception.what());
+        UE_LOG_ERROR("TextureManager: 텍스처 로드 중 예외 발생 - %ls: %s", InFilePath.c_str(), Exception.what());
         return nullptr;
     }
 

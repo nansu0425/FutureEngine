@@ -165,7 +165,7 @@ void UActorDetailWidget::RenderComponentTree(AActor* InSelectedActor)
 
 void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InComponent)
 {
-	if (!InComponent) return;
+	if (!InComponent || InComponent->IsVisualizationComponent()) { return; }
 
 	USceneComponent* SceneComp = Cast<USceneComponent>(InComponent);
 	FString ComponentName = InComponent->GetName().ToString();
@@ -476,29 +476,52 @@ void UActorDetailWidget::CancelRenamingActor()
 void UActorDetailWidget::RenderTransformEdit()
 {
 	if (!SelectedComponent) { return; }
+	
+	// --- Component General Properties ---
+	ImGui::Text("Component Properties");
+	ImGui::PushID(SelectedComponent);
 
+	// bCanEverTick 체크박스
+	bool bTickEnabled = SelectedComponent->CanEverTick();
+	if (ImGui::Checkbox("Enable Tick (bCanEverTick)", &bTickEnabled))
+	{
+		SelectedComponent->SetCanEverTick(bTickEnabled);
+	}
+
+	// bIsEditorOnly 체크박스
+	bool bIsEditorOnly = SelectedComponent->IsEditorOnly();
+	if (ImGui::Checkbox("Is Editor Only", &bIsEditorOnly))
+	{
+		SelectedComponent->SetIsEditorOnly(bIsEditorOnly);
+	}
+
+	ImGui::PopID();
+	ImGui::Separator();
+
+	// --- SceneComponent Transform Properties ---
 	USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedComponent);
 	if (!SceneComponent) { return; }
 
-	ImGui::Text("Transform");
-
-	// 컴포넌트 포인터를 PushID로 사용해서 내부 ID 고유화
+	ImGui::Text("Component Transform");
 	ImGui::PushID(SceneComponent);
 
+	// Relative Position
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
-	if (ImGui::DragFloat3("Position", &ComponentPosition.X, 0.1f))
+	if (ImGui::DragFloat3("Relative Position", &ComponentPosition.X, 0.1f))
 	{
 		SceneComponent->SetRelativeLocation(ComponentPosition);
 	}
 
+	// Relative Rotation
 	FVector ComponentRotation = SceneComponent->GetRelativeRotation().ToEuler();
-	if (ImGui::DragFloat3("Rotation", &ComponentRotation.X, 1.0f))
+	if (ImGui::DragFloat3("Relative Rotation", &ComponentRotation.X, 1.0f))
 	{
 		SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(ComponentRotation));
 	}
 
+	// Relative Scale
 	FVector ComponentScale = SceneComponent->GetRelativeScale3D();
-	if (ImGui::DragFloat3("Scale", &ComponentScale.X, 0.1f))
+	if (ImGui::DragFloat3("Relative Scale", &ComponentScale.X, 0.1f))
 	{
 		SceneComponent->SetRelativeScale3D(ComponentScale);
 	}

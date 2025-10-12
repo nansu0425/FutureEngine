@@ -98,8 +98,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 	
 	//return finalColor;
 
-	float2 ScrollSpeed = float2(0.0f, 0.1f);
-	float2 UV = frac(input.tex + ScrollSpeed * Time);
+	float2 UV = input.tex;
 	float4 texColor = DiffuseTexture.Sample(SamplerWrap, UV);
 	return texColor;
 }

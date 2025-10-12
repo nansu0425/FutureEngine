@@ -207,7 +207,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         for (UPrimitiveComponent* Prim : Primitives)
         {
-            if (!Prim || !Prim->IsVisible()) { continue; }
+            if (!Prim || !Prim->IsVisible() || Prim->IsVisualizationComponent()) { continue; }
 
                     	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }

@@ -42,7 +42,7 @@ void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
     FMatrix RotationMatrix = FMatrix(Forward, Right, Up);
     
     // Convert the rotation matrix to a quaternion and set the relative rotation
-    SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
+    SetWorldRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }
 
 UTexture* UBillBoardComponent::GetSprite() const

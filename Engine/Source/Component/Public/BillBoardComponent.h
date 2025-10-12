@@ -23,4 +23,18 @@ public:
 
 private:
 	UTexture* Sprite;
+
+// Screen Size Section
+public:	
+	bool IsScreenSizeScaled() const { return bScreenSizeScaled; }
+	float GetScreenSize() const { return ScreenSize; }
+	void SetScreenSizeScaled(bool bEnable, float InScreenSize = 0.1f)
+	{
+		bScreenSizeScaled = bEnable;
+		ScreenSize = InScreenSize;
+	}
+
+private:
+	bool bScreenSizeScaled = false;
+	float ScreenSize = 0.1f;
 };

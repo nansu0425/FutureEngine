@@ -42,7 +42,7 @@ void UTargetActorTransformWidget::RenderWidget()
 	if (CurrentSelectedActor)
 	{
 		ImGui::Separator();
-		ImGui::Text("Transform");
+		ImGui::Text("Actor Transform");
 
 		ImGui::Spacing();
 

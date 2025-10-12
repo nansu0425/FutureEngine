@@ -37,8 +37,8 @@ public:
 
 	EComponentType GetComponentType() const { return ComponentType; }
 
-	bool CanTick() const { return bCanEverTick; }
-	void SetCanTick(bool InbCanEverTick) { bCanEverTick = InbCanEverTick; }
+	bool CanEverTick() const { return bCanEverTick; }
+	void SetCanEverTick(bool InbCanEverTick) { bCanEverTick = InbCanEverTick; }
 
 protected:
 	EComponentType ComponentType;
@@ -53,4 +53,24 @@ public:
 protected:
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 
+// Editor Debug Flag
+public:
+	bool IsEditorOnly() const { return bIsEditorOnly; }
+	bool IsVisualizationComponent() const { return bIsVisualizationComponent; }
+	void SetIsEditorOnly(bool bInIsEditorOnly);
+	void SetIsVisualizationComponent(bool bIsInVisualizationComponent);
+	
+private:
+	/**
+	 * @brief 이 컴포넌트가 에디터 전용인지 여부를 나타냄
+	 * true일 경우, 게임을 빌드할 때 이 컴포넌트는 완전히 제거
+	 * PIE 월드 복제 시에도 컴포넌트 복제 X
+	 */
+	bool bIsEditorOnly = false;
+	/**
+	 * @brief 이 컴포넌트가 시각화용 도우미인지 여부를 나타냄
+	 * true일 경우, 에디터의 컴포넌트 계층 구조에 표시 X
+	 * true일 경우, 추가로 bIsEditorOnly도 true, PIE 월드에 복제 X
+	 */
+	bool bIsVisualizationComponent = false;
 };
