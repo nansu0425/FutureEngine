@@ -87,7 +87,6 @@ void UDecalComponent::SetFadeTexture(UTexture* InFadeTexture)
 		return;
 	}
 
-	SafeDelete(FadeTexture);
 	FadeTexture = InFadeTexture;
 }
 
@@ -100,6 +99,9 @@ UObject* UDecalComponent::Duplicate()
 {
 	UDecalComponent* DuplicatedComponent = Cast<UDecalComponent>(Super::Duplicate());
 
+	DuplicatedComponent->DecalTexture = DecalTexture;
+	DuplicatedComponent->FadeTexture = FadeTexture;
+
 	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingBox);
 	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingBox);
 	if (OriginalOBB && DuplicatedOBB)
@@ -108,6 +110,20 @@ UObject* UDecalComponent::Duplicate()
 		DuplicatedOBB->Extents = OriginalOBB->Extents;
 		DuplicatedOBB->ScaleRotation = OriginalOBB->ScaleRotation;
 	}
+
+	// --- Decal Fade in/out ---
+
+	DuplicatedComponent->FadeStartDelay = FadeStartDelay;
+	DuplicatedComponent->FadeDuration = FadeDuration;
+	DuplicatedComponent->FadeInStartDelay = FadeInStartDelay;
+	DuplicatedComponent->FadeInDuration = FadeInDuration;
+	DuplicatedComponent->FadeElapsedTime = FadeElapsedTime;
+	DuplicatedComponent->FadeProgress = FadeProgress;
+	DuplicatedComponent->bDestroyOwnerAfterFade = bDestroyOwnerAfterFade;
+	DuplicatedComponent->bIsFading = bIsFading;
+	DuplicatedComponent->bIsFadingIn = bIsFadingIn;
+	DuplicatedComponent->bIsFadePaused = bIsFadePaused;
+	
 	return DuplicatedComponent;
 }
 

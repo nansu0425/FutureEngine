@@ -134,7 +134,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
         UTexture* CurrentFadeTexture = DecalComponent->GetFadeTexture();
         if (CurrentFadeTexture)
         {
-            FadeSRV = UAssetManager::GetInstance().LoadTexture(CurrentFadeTexture->GetFilePath())->GetTextureSRV();
+            FadeSRV = CurrentFadeTexture->GetTextureSRV();
         }
 
         if (FadeSRV)
@@ -171,8 +171,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
                 {
                     if (!bSelected)
                     {
-                        UTexture* NewFadeTexture = UAssetManager::GetInstance().LoadTexture(Path);
-                        DecalComponent->SetFadeTexture(NewFadeTexture);
+                        DecalComponent->SetFadeTexture(Texture);
                     }
                 }
                 if (bSelected)
