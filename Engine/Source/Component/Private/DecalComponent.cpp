@@ -66,6 +66,29 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FString IsPerspectiveString;
 		FJsonSerializer::ReadString(InOutHandle, "DecalIsPerspective", IsPerspectiveString, "true");
 		bIsPerspective = IsPerspectiveString == "true" ? true : false;
+
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeStartDelay", FadeStartDelay, 0.0f);
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeDuration", FadeDuration, 3.0f);
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeInStartDelay", FadeInStartDelay, 0.0f);
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeInDuration", FadeInDuration, 3.0f);
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeElapsedTime", FadeElapsedTime, 0.0f);
+		FJsonSerializer::ReadFloat(InOutHandle, "FadeProgress", FadeProgress, 0.0f);
+
+		FString bDestroyOwnerAfterFadeString;
+		FJsonSerializer::ReadString(InOutHandle, "bDestroyOwnerAfterFade", bDestroyOwnerAfterFadeString, "false");
+		bDestroyOwnerAfterFade = bDestroyOwnerAfterFadeString == "true" ? true : false;
+
+		FString bIsFadingString;
+		FJsonSerializer::ReadString(InOutHandle, "bIsFading", bIsFadingString, "false");
+		bIsFading = bIsFadingString == "true" ? true : false;
+
+		FString bIsFadingInString;
+		FJsonSerializer::ReadString(InOutHandle, "bIsFadingIn", bIsFadingInString, "false");
+		bIsFadingIn = bIsFadingInString == "true" ? true : false;
+
+		FString bIsFadePausedString;
+		FJsonSerializer::ReadString(InOutHandle, "bIsFadePaused", bIsFadePausedString, "false");
+		bIsFadePaused = bIsFadePausedString == "true" ? true : false;
 	}
 	// 저장
 	else
@@ -73,6 +96,17 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle["DecalTexture"] = DecalTexture->GetFilePath().ToBaseNameString();
 		InOutHandle["FadeTexture"] =  FadeTexture->GetFilePath().ToBaseNameString();
 		InOutHandle["DecalIsPerspective"] = bIsPerspective ? "true" : "false";
+
+		InOutHandle["FadeStartDelay"] = FadeStartDelay;
+		InOutHandle["FadeDuration"] = FadeDuration;
+		InOutHandle["FadeInStartDelay"] = FadeInStartDelay;
+		InOutHandle["FadeInDuration"] = FadeInDuration;
+		InOutHandle["FadeElapsedTime"] = FadeElapsedTime;
+		InOutHandle["FadeProgress"] = FadeProgress;
+		InOutHandle["bDestroyOwnerAfterFade"] = bDestroyOwnerAfterFade ? "true" : "false";
+		InOutHandle["bIsFading"] = bIsFading ? "true" : "false";
+		InOutHandle["bIsFadingIn"] = bIsFadingIn ? "true" : "false";
+		InOutHandle["bIsFadePaused"] = bIsFadePaused ? "true" : "false";
 	}
 }
 

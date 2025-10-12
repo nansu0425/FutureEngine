@@ -122,6 +122,14 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     			    			SetActorLocation(Location);
     			    			SetActorRotation(FQuaternion::FromEuler(RotationEuler));	    		SetActorScale3D(Scale); 
         	}
+
+			FString bCanEverTickString;
+			FJsonSerializer::ReadString(InOutHandle, "bCanEverTick", bCanEverTickString, "false");
+			bCanEverTick = bCanEverTickString == "true" ? true : false;
+
+			FString bTickInEditorString;
+			FJsonSerializer::ReadString(InOutHandle, "bTickInEditor", bTickInEditorString, "false");
+			bTickInEditor = bTickInEditorString == "true" ? true : false;
         }
     }
     // 저장 (Save)
@@ -130,6 +138,9 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle["Location"] = FJsonSerializer::VectorToJson(GetActorLocation());
         InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(GetActorRotation().ToEuler());
         InOutHandle["Scale"] = FJsonSerializer::VectorToJson(GetActorScale3D());
+
+		InOutHandle["bCanEverTick"] = bCanEverTick ? "true" : "false";
+		InOutHandle["bTickInEditor"] = bTickInEditor ? "true" : "false";
 
         JSON ComponentsJson = json::Array(); 
 
