@@ -14,6 +14,8 @@ public:
 	ASphereActor();
 
 	virtual UClass* GetDefaultRootComponent() override;
+	virtual void InitializeComponents() override;
+	
 private:
 	USphereComponent* SphereComponent = nullptr;
 };

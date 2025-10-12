@@ -93,7 +93,7 @@ namespace
             Dot_t = Distance.X * R[0][0] + Distance.Y * R[1][0] + Distance.Z * R[2][0];
             RightAABBValue = AABBHalf.X * AbsR[0][0] + AABBHalf.Y * AbsR[1][0] + AABBHalf.Z * AbsR[2][0];
             if (Abs(Dot_t) > OBBExtents[0] + RightAABBValue) return false;
-
+ 
             // Uy (j=1)
             Dot_t = Distance.X * R[0][1] + Distance.Y * R[1][1] + Distance.Z * R[2][1];
             RightAABBValue = AABBHalf.X * AbsR[0][1] + AABBHalf.Y * AbsR[1][1] + AABBHalf.Z * AbsR[2][1];
@@ -142,7 +142,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
 {
 	TIME_PROFILE(DecalPass)
 
-    if (Context.Decals.empty()) { return; }
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
     
     // --- Set Pipeline State ---
@@ -154,6 +153,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
     // --- Decals Stats ---
     uint32 RenderedDecal = 0;
     uint32 CollidedComps = 0;
+    
+    TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
     
     // --- Render Decals ---
     for (UDecalComponent* Decal : Context.Decals)
@@ -199,15 +200,16 @@ void FDecalPass::Execute(FRenderingContext& Context)
         ULevel* CurrentLevel = GWorld->GetLevel();
 
         Query(CurrentLevel->GetStaticOctree(), Decal, Primitives);
+        Primitives.insert(Primitives.end(), DynamicPrimitives.begin(), DynamicPrimitives.end());
 
         // --- Disable Octree Optimization --- 
         // Primitives = Context.DefaultPrimitives;
 
         for (UPrimitiveComponent* Prim : Primitives)
         {
-            if (!Prim || !Prim->IsVisible()) { continue; }
+            if (!Prim || !Prim->IsVisible() || Prim->IsVisualizationComponent() || !Prim->bReceivesDecals) { continue; }
 
-                    	const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
+            const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
         
         	FVector WorldMin, WorldMax;
@@ -218,8 +220,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         	{
         		continue;
         	}
-
-            //const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
+            CollidedComps++;
 
             FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
@@ -257,12 +258,14 @@ void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrim
         return;
     }
 
+    auto Primitives = InOctree->GetPrimitives();
+    OutPrimitives.insert(OutPrimitives.end(), Primitives.begin(), Primitives.end());
     if (InOctree->IsLeafNode())
     {
-        InOctree->GetAllPrimitives(OutPrimitives);
         return;
     }
 
+    
     for (auto Child : InOctree->GetChildren())
     {
         Query(Child, InDecal, OutPrimitives);

@@ -82,6 +82,11 @@ void UWorld::Tick(float DeltaTimes)
 			{
 				Actor->Tick(DeltaTimes);
 			}
+			
+			if (Actor->IsPendingDestroy())
+			{
+				DestroyActor(Actor);
+			}
 		}
 	}
 
@@ -92,6 +97,11 @@ void UWorld::Tick(float DeltaTimes)
 			if(Actor->CanTick())
 			{
 				Actor->Tick(DeltaTimes);
+			}
+			
+			if (Actor->IsPendingDestroy())
+			{
+				DestroyActor(Actor);
 			}
 		}
 	}
@@ -130,12 +140,14 @@ bool UWorld::LoadLevel(path InLevelFilePath)
 		NewLevel->Serialize(true, LevelJson);
 
 		UConfigManager::GetInstance().SetLastUsedLevelPath(InLevelFilePath.string());
+		BeginPlay();
 	}
 	catch (const exception& Exception)
 	{
 		UE_LOG_ERROR("World: Level 로드 중 예외 발생: %s", Exception.what());
 		SafeDelete(NewLevel);
 		CreateNewLevel();
+		BeginPlay();
 		return false;
 	}
 
@@ -296,4 +308,5 @@ void UWorld::CreateNewLevel(const FName& InLevelName)
 	NewLevel->SetName(InLevelName);
 	NewLevel->SetOuter(this);
 	SwitchToLevel(NewLevel);
+	BeginPlay();
 }

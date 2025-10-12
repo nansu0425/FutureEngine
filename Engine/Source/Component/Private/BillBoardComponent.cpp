@@ -5,32 +5,61 @@
 #include "Physics/Public/AABB.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/UI/Widget/Public/SpriteSelectionWidget.h"
+#include "Texture/Public/Texture.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
 UBillBoardComponent::UBillBoardComponent()
 {
-	Type = EPrimitiveType::Sprite;
-	
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
 
-	Vertices = ResourceManager.GetVertexData(Type);
-	VertexBuffer = ResourceManager.GetVertexbuffer(Type);
-	NumVertices = ResourceManager.GetNumVertices(Type);
+	Vertices = ResourceManager.GetVertexData(EPrimitiveType::Sprite);
+	VertexBuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::Sprite);
+	NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Sprite);
 
-	Indices = ResourceManager.GetIndexData(Type);
-	IndexBuffer = ResourceManager.GetIndexBuffer(Type);
-	NumIndices = ResourceManager.GetNumIndices(Type);
+	Indices = ResourceManager.GetIndexData(EPrimitiveType::Sprite);
+	IndexBuffer = ResourceManager.GetIndexBuffer(EPrimitiveType::Sprite);
+	NumIndices = ResourceManager.GetNumIndices(EPrimitiveType::Sprite);
 
 	RenderState.CullMode = ECullMode::Back;
 	RenderState.FillMode = EFillMode::Solid;
-	BoundingBox = &ResourceManager.GetAABB(Type);
+	BoundingBox = &ResourceManager.GetAABB(EPrimitiveType::Sprite);
 
     const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
     if (!TextureCache.empty()) { Sprite = TextureCache.begin()->second; }
+
+    bReceivesDecals = false;
 }
 
 UBillBoardComponent::~UBillBoardComponent() = default;
+
+void UBillBoardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        FString SpritePath;
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardSprite", SpritePath, "");
+        if (!SpritePath.empty())
+            SetSprite(UAssetManager::GetInstance().LoadTexture(FName(SpritePath)));
+
+        FString ScreenSizeScaledString;
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardScreenSizeScaled", ScreenSizeScaledString, "false");
+        bScreenSizeScaled = ScreenSizeScaledString == "true";
+
+        FString ScreenSizeString;
+        FJsonSerializer::ReadString(InOutHandle, "BillBoardScreenSize", ScreenSizeString, "0.1");
+        ScreenSize = stof(ScreenSizeString);
+    }
+    // 저장
+    else
+    {
+        InOutHandle["BillBoardSprite"] = Sprite->GetFilePath().ToBaseNameString();
+        InOutHandle["BillBoardScreenSizeScaled"] = bScreenSizeScaled ? "true" : "false"; 
+        InOutHandle["BillBoardScreenSize"] = to_string(ScreenSize); 
+    }}
 
 void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {
@@ -42,7 +71,7 @@ void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
     FMatrix RotationMatrix = FMatrix(Forward, Right, Up);
     
     // Convert the rotation matrix to a quaternion and set the relative rotation
-    SetRelativeRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
+    SetWorldRotation(FQuaternion::FromRotationMatrix(RotationMatrix));
 }
 
 UTexture* UBillBoardComponent::GetSprite() const

@@ -3,10 +3,12 @@
 #include <algorithm>
 
 #include "Component/Public/DecalComponent.h"
+#include "Level/Public/Level.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/OBB.h"
 #include "Render/UI/Widget/Public/DecalTextureSelectionWidget.h"
 #include "Texture/Public/Texture.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
@@ -19,7 +21,12 @@ UDecalComponent::UDecalComponent()
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
 	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/PerlinNoiseFadeTexture.png")));
 	
-    SetPerspective(false);
+    // Start with perspective projection by default
+    SetPerspective(true);
+    UpdateOBB();
+    UpdateProjectionMatrix();
+
+	bReceivesDecals = false;
 }
 
 UDecalComponent::~UDecalComponent()
@@ -35,6 +42,40 @@ void UDecalComponent::TickComponent(float DeltaTime)
 	UpdateFade(DeltaTime);
 }
 
+void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		FString DecalTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "DecalTexture", DecalTexturePath, "");
+		if (!DecalTexturePath.empty())
+		{
+			SetTexture(UAssetManager::GetInstance().LoadTexture(FName(DecalTexturePath)));
+		}
+		else
+		{
+			SetTexture(UAssetManager::GetInstance().GetTextureCache().begin()->second);
+		}
+		
+		FString FadeTexturePath;
+		FJsonSerializer::ReadString(InOutHandle, "FadeTexture", FadeTexturePath, "Data/Texture/PerlinNoiseFadeTexture.png");
+		SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName(FadeTexturePath)));
+
+		FString IsPerspectiveString;
+		FJsonSerializer::ReadString(InOutHandle, "DecalIsPerspective", IsPerspectiveString, "true");
+		bIsPerspective = IsPerspectiveString == "true" ? true : false;
+	}
+	// 저장
+	else
+	{
+		InOutHandle["DecalTexture"] = DecalTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["FadeTexture"] =  FadeTexture->GetFilePath().ToBaseNameString();
+		InOutHandle["DecalIsPerspective"] = bIsPerspective ? "true" : "false";
+	}
+}
+
 void UDecalComponent::SetTexture(UTexture* InTexture)
 {
 	if (DecalTexture == InTexture) { return; }
@@ -48,7 +89,6 @@ void UDecalComponent::SetFadeTexture(UTexture* InFadeTexture)
 		return;
 	}
 
-	//SafeDelete(FadeTexture);
 	FadeTexture = InFadeTexture;
 }
 
@@ -61,6 +101,9 @@ UObject* UDecalComponent::Duplicate()
 {
 	UDecalComponent* DuplicatedComponent = Cast<UDecalComponent>(Super::Duplicate());
 
+	DuplicatedComponent->DecalTexture = DecalTexture;
+	DuplicatedComponent->FadeTexture = FadeTexture;
+
 	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingBox);
 	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingBox);
 	if (OriginalOBB && DuplicatedOBB)
@@ -69,6 +112,20 @@ UObject* UDecalComponent::Duplicate()
 		DuplicatedOBB->Extents = OriginalOBB->Extents;
 		DuplicatedOBB->ScaleRotation = OriginalOBB->ScaleRotation;
 	}
+
+	// --- Decal Fade in/out ---
+
+	DuplicatedComponent->FadeStartDelay = FadeStartDelay;
+	DuplicatedComponent->FadeDuration = FadeDuration;
+	DuplicatedComponent->FadeInStartDelay = FadeInStartDelay;
+	DuplicatedComponent->FadeInDuration = FadeInDuration;
+	DuplicatedComponent->FadeElapsedTime = FadeElapsedTime;
+	DuplicatedComponent->FadeProgress = FadeProgress;
+	DuplicatedComponent->bDestroyOwnerAfterFade = bDestroyOwnerAfterFade;
+	DuplicatedComponent->bIsFading = bIsFading;
+	DuplicatedComponent->bIsFadingIn = bIsFadingIn;
+	DuplicatedComponent->bIsFadePaused = bIsFadePaused;
+	
 	return DuplicatedComponent;
 }
 
@@ -183,10 +240,10 @@ void UDecalComponent::UpdateFade(float DeltaTime)
 			{
 				UE_LOG("--- 페이드 종료 ---");
 				bIsFading = false;
-				// if(bDestroyOwnerAfterFade)
-				// {
-				// 	GetOwner()->Destroy();
-				// }
+				if (bDestroyOwnerAfterFade)
+				{
+					GetOwner()->SetIsPendingDestroy(true);			
+				}
 			}
 		}
 	}

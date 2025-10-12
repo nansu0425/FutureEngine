@@ -125,14 +125,14 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 			if (MaterialName == ObjInfo.ObjectMaterialInfoList[j].Name)
 			{
 				StaticMesh->MaterialInfo[CurrentMaterialSlot].Name = std::move(ObjInfo.ObjectMaterialInfoList[j].Name);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ka = std::move(ObjInfo.ObjectMaterialInfoList[j].Ka);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Kd = std::move(ObjInfo.ObjectMaterialInfoList[j].Kd);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ks = std::move(ObjInfo.ObjectMaterialInfoList[j].Ks);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ke = std::move(ObjInfo.ObjectMaterialInfoList[j].Ke);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ns = std::move(ObjInfo.ObjectMaterialInfoList[j].Ns);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ni = std::move(ObjInfo.ObjectMaterialInfoList[j].Ni);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].D = std::move(ObjInfo.ObjectMaterialInfoList[j].D);
-				StaticMesh->MaterialInfo[CurrentMaterialSlot].Illumination = std::move(ObjInfo.ObjectMaterialInfoList[j].Illumination);
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ka = ObjInfo.ObjectMaterialInfoList[j].Ka;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Kd = ObjInfo.ObjectMaterialInfoList[j].Kd;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ks = ObjInfo.ObjectMaterialInfoList[j].Ks;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ke = ObjInfo.ObjectMaterialInfoList[j].Ke;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ns = ObjInfo.ObjectMaterialInfoList[j].Ns;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Ni = ObjInfo.ObjectMaterialInfoList[j].Ni;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].D = ObjInfo.ObjectMaterialInfoList[j].D;
+				StaticMesh->MaterialInfo[CurrentMaterialSlot].Illumination = ObjInfo.ObjectMaterialInfoList[j].Illumination;
 				StaticMesh->MaterialInfo[CurrentMaterialSlot].KaMap = std::move(ObjInfo.ObjectMaterialInfoList[j].KaMap);
 				StaticMesh->MaterialInfo[CurrentMaterialSlot].KdMap = std::move(ObjInfo.ObjectMaterialInfoList[j].KdMap);
 				StaticMesh->MaterialInfo[CurrentMaterialSlot].KsMap = std::move(ObjInfo.ObjectMaterialInfoList[j].KsMap);
@@ -146,29 +146,46 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 			}
 		}
 	}
-	/** #4. 오브젝트의 서브메쉬 정보를 저장 */
-	StaticMesh->Sections.resize(ObjectInfo.MaterialIndexList.size());
-	for (size_t i = 0; i < ObjectInfo.MaterialIndexList.size(); ++i)
+	if (StaticMesh->MaterialInfo.empty())
 	{
-		StaticMesh->Sections[i].StartIndex = ObjectInfo.MaterialIndexList[i] * 3;
-		if (i < ObjectInfo.MaterialIndexList.size() - 1)
+		StaticMesh->MaterialInfo.resize(1);
+		StaticMesh->MaterialInfo[0].Name = "DefaultMaterial";
+		StaticMesh->MaterialInfo[0].Kd = FVector(0.9f, 0.9f, 0.9f);
+	}
+	
+	/** #4. 오브젝트의 서브메쉬 정보를 저장 */
+	if (ObjectInfo.MaterialNameList.empty())
+	{
+		StaticMesh->Sections.resize(1);
+		StaticMesh->Sections[0].StartIndex = 0;
+		StaticMesh->Sections[0].IndexCount = StaticMesh->Indices.size();
+		StaticMesh->Sections[0].MaterialSlot = 0;
+	}
+	else
+	{
+		StaticMesh->Sections.resize(ObjectInfo.MaterialIndexList.size());
+		for (size_t i = 0; i < ObjectInfo.MaterialIndexList.size(); ++i)
 		{
-			StaticMesh->Sections[i].IndexCount = (ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3;
-		}
-		else
-		{
-			StaticMesh->Sections[i].IndexCount = (StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3;
-		}
+			StaticMesh->Sections[i].StartIndex = ObjectInfo.MaterialIndexList[i] * 3;
+			if (i < ObjectInfo.MaterialIndexList.size() - 1)
+			{
+				StaticMesh->Sections[i].IndexCount = (ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3;
+			}
+			else
+			{
+				StaticMesh->Sections[i].IndexCount = (StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3;
+			}
 
-		const FName& MaterialName = ObjectInfo.MaterialNameList[i];
-		auto It = MaterialNameToSlot.find(MaterialName);
-		if (It != MaterialNameToSlot.end())
-		{
-			StaticMesh->Sections[i].MaterialSlot = It->second;
-		}
-		else
-		{
-			StaticMesh->Sections[i].MaterialSlot = INVALID_INDEX;
+			const FName& MaterialName = ObjectInfo.MaterialNameList[i];
+			auto It = MaterialNameToSlot.find(MaterialName);
+			if (It != MaterialNameToSlot.end())
+			{
+				StaticMesh->Sections[i].MaterialSlot = It->second;
+			}
+			else
+			{
+				StaticMesh->Sections[i].MaterialSlot = INVALID_INDEX;
+			}
 		}
 	}
 

@@ -13,6 +13,8 @@ public:
 	ACubeActor();
 	
 	virtual UClass* GetDefaultRootComponent() override;
+	virtual void InitializeComponents() override;
+	
 private:
 	UCubeComponent* CubeComponent = nullptr;
 };

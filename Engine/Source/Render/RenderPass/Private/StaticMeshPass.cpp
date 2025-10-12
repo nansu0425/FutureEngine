@@ -14,7 +14,18 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
 {
-	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) {	return; }
+	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
+	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
+	{
+		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::Solid;
+	}
+	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
+	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
+	Pipeline->UpdatePipeline(PipelineInfo);
+	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	
+	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
 	sort(MeshComponents.begin(), MeshComponents.end(),
 		[](UStaticMeshComponent* A, UStaticMeshComponent* B) {
@@ -25,14 +36,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 	FStaticMesh* CurrentMeshAsset = nullptr;
 	UMaterial* CurrentMaterial = nullptr;
-	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
-	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
-	{
-		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::Solid;
-	}
-	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
-	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
-	Pipeline->UpdatePipeline(PipelineInfo);
 
 	for (UStaticMeshComponent* MeshComp : MeshComponents) 
 	{
@@ -73,6 +76,12 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				MaterialConstants.Ni = Material->GetRefractionIndex();
 				MaterialConstants.D = Material->GetDissolveFactor();
 				MaterialConstants.MaterialFlags = 0;
+				if (Material->GetDiffuseTexture())  { MaterialConstants.MaterialFlags |= HAS_DIFFUSE_MAP; }
+				if (Material->GetAmbientTexture())  { MaterialConstants.MaterialFlags |= HAS_AMBIENT_MAP; }
+				if (Material->GetSpecularTexture()) { MaterialConstants.MaterialFlags |= HAS_SPECULAR_MAP; }
+				if (Material->GetNormalTexture())   { MaterialConstants.MaterialFlags |= HAS_NORMAL_MAP; }
+				if (Material->GetAlphaTexture())    { MaterialConstants.MaterialFlags |= HAS_ALPHA_MAP; }
+				if (Material->GetBumpTexture())     { MaterialConstants.MaterialFlags |= HAS_BUMP_MAP; }
 				MaterialConstants.Time = MeshComp->GetElapsedTime();
 
 				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, MaterialConstants);

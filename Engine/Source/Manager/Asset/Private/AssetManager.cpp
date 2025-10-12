@@ -1,11 +1,8 @@
 #include "pch.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "DirectXTK/WICTextureLoader.h"
-#include "DirectXTK/DDSTextureLoader.h"
 #include "Component/Mesh/Public/VertexDatas.h"
 #include "Physics/Public/AABB.h"
-#include "Texture/Public/TextureRenderProxy.h"
 #include "Texture/Public/Texture.h"
 #include "Manager/Asset/Public/ObjManager.h"
 #include "Manager/Path/Public/PathManager.h"
@@ -23,10 +20,6 @@ void UAssetManager::Initialize()
 	// Data 폴더 속 모든 .obj 파일 로드 및 캐싱
 	LoadAllObjStaticMesh();
 
-	VertexDatas.emplace(EPrimitiveType::Cube, &VerticesCube);
-	VertexDatas.emplace(EPrimitiveType::Sphere, &VerticesSphere);
-	VertexDatas.emplace(EPrimitiveType::Triangle, &VerticesTriangle);
-	VertexDatas.emplace(EPrimitiveType::Square, &VerticesSquare);
 	VertexDatas.emplace(EPrimitiveType::Torus, &VerticesTorus);
 	VertexDatas.emplace(EPrimitiveType::Arrow, &VerticesArrow);
 	VertexDatas.emplace(EPrimitiveType::CubeArrow, &VerticesCubeArrow);
@@ -34,26 +27,13 @@ void UAssetManager::Initialize()
 	VertexDatas.emplace(EPrimitiveType::Line, &VerticesLine);
 	VertexDatas.emplace(EPrimitiveType::Sprite, &VerticesVerticalSquare);
 
-	IndexDatas.emplace(EPrimitiveType::Cube, &IndicesCube);
 	IndexDatas.emplace(EPrimitiveType::Sprite, &IndicesVerticalSquare);
-
-	IndexBuffers.emplace(EPrimitiveType::Cube,
-		FRenderResourceFactory::CreateIndexBuffer(IndicesCube.data(), static_cast<int>(IndicesCube.size()) * sizeof(uint32)));
 	IndexBuffers.emplace(EPrimitiveType::Sprite,
 		FRenderResourceFactory::CreateIndexBuffer(IndicesVerticalSquare.data(), static_cast<int>(IndicesVerticalSquare.size()) * sizeof(uint32)));
 
-	NumIndices.emplace(EPrimitiveType::Cube, static_cast<uint32>(IndicesCube.size()));
 	NumIndices.emplace(EPrimitiveType::Sprite, static_cast<uint32>(IndicesVerticalSquare.size()));
 	
 	// TArray.GetData(), TArray.Num()*sizeof(FVertexSimple), TArray.GetTypeSize()
-	VertexBuffers.emplace(EPrimitiveType::Cube, FRenderResourceFactory::CreateVertexBuffer(
-		VerticesCube.data(), static_cast<int>(VerticesCube.size()) * sizeof(FNormalVertex)));
-	VertexBuffers.emplace(EPrimitiveType::Sphere, FRenderResourceFactory::CreateVertexBuffer(
-		VerticesSphere.data(), static_cast<int>(VerticesSphere.size() * sizeof(FNormalVertex))));
-	VertexBuffers.emplace(EPrimitiveType::Triangle, FRenderResourceFactory::CreateVertexBuffer(
-		VerticesTriangle.data(), static_cast<int>(VerticesTriangle.size() * sizeof(FNormalVertex))));
-	VertexBuffers.emplace(EPrimitiveType::Square, FRenderResourceFactory::CreateVertexBuffer(
-		VerticesSquare.data(), static_cast<int>(VerticesSquare.size() * sizeof(FNormalVertex))));
 	VertexBuffers.emplace(EPrimitiveType::Torus, FRenderResourceFactory::CreateVertexBuffer(
 		VerticesTorus.data(), static_cast<int>(VerticesTorus.size() * sizeof(FNormalVertex))));
 	VertexBuffers.emplace(EPrimitiveType::Arrow, FRenderResourceFactory::CreateVertexBuffer(
@@ -67,10 +47,6 @@ void UAssetManager::Initialize()
 	VertexBuffers.emplace(EPrimitiveType::Sprite, FRenderResourceFactory::CreateVertexBuffer(
 		VerticesVerticalSquare.data(), static_cast<int>(VerticesVerticalSquare.size() * sizeof(FNormalVertex))));
 
-	NumVertices.emplace(EPrimitiveType::Cube, static_cast<uint32>(VerticesCube.size()));
-	NumVertices.emplace(EPrimitiveType::Sphere, static_cast<uint32>(VerticesSphere.size()));
-	NumVertices.emplace(EPrimitiveType::Triangle, static_cast<uint32>(VerticesTriangle.size()));
-	NumVertices.emplace(EPrimitiveType::Square, static_cast<uint32>(VerticesSquare.size()));
 	NumVertices.emplace(EPrimitiveType::Torus, static_cast<uint32>(VerticesTorus.size()));
 	NumVertices.emplace(EPrimitiveType::Arrow, static_cast<uint32>(VerticesArrow.size()));
 	NumVertices.emplace(EPrimitiveType::CubeArrow, static_cast<uint32>(VerticesCubeArrow.size()));
@@ -140,8 +116,6 @@ void UAssetManager::Release()
  */
 void UAssetManager::LoadAllObjStaticMesh()
 {
-	URenderer& Renderer = URenderer::GetInstance();
-
 	TArray<FName> ObjList;
 	const FString DataDirectory = "Data/"; // 검색할 기본 디렉토리
 	// 디렉토리가 실제로 존재하는지 먼저 확인합니다.

@@ -11,7 +11,7 @@ class UPrimitiveComponent : public USceneComponent
 public:
 	UPrimitiveComponent();
 
-	    void TickComponent(float DeltaTime) override;
+	void TickComponent(float DeltaTime) override;
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
 
@@ -30,6 +30,10 @@ public:
 
 	bool IsVisible() const { return bVisible; }
 	void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+	
+	bool CanPick() const { return bCanPick; }
+	void SetCanPick(bool bInCanPick) { bCanPick = bInCanPick; }
+	
 
 	FVector4 GetColor() const { return Color; }
 	void SetColor(const FVector4& InColor) { Color = InColor; }
@@ -37,9 +41,10 @@ public:
 	virtual const IBoundingVolume* GetBoundingBox();
 	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
 
-	EPrimitiveType GetPrimitiveType() const { return Type; }
-
 	virtual void MarkAsDirty() override;
+
+	// 데칼에 덮일 수 있는가
+	bool bReceivesDecals = true;
 
 	// 다른 곳에서 사용할 인덱스
 	mutable int32 CachedAABBIndex = -1;
@@ -59,9 +64,9 @@ protected:
 
 	D3D11_PRIMITIVE_TOPOLOGY Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	FRenderState RenderState = {};
-	EPrimitiveType Type = EPrimitiveType::Cube;
 
 	bool bVisible = true;
+	bool bCanPick = true;
 
 	IBoundingVolume* BoundingBox = nullptr;
 	bool bOwnsBoundingBox = false;

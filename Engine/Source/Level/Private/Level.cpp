@@ -49,7 +49,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FJsonSerializer::ReadUint32(InOutHandle, "NextUUID", NextUUID);
 
 		JSON PerspectiveCameraData;
-		if (FJsonSerializer::ReadObject(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
+		if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
 		{
 			UConfigManager::GetInstance().SetCameraSettingsFromJson(PerspectiveCameraData);
 			URenderer::GetInstance().GetViewportClient()->ApplyAllCameraDataToViewportClients();
@@ -166,11 +166,9 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	}
 	
 	// StaticOctree에서 제거 시도
-	if (!(StaticOctree->Remove(InComponent)))
-	{
-		// 실패하면 DynamicPrimitiveMap 목록에서 찾아서 제거
-		OnPrimitiveUpdated(InComponent);
-	}
+	StaticOctree->Remove(InComponent);
+	
+	OnPrimitiveUnregistered(InComponent);
 }
 
 void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
@@ -290,7 +288,7 @@ void ULevel::UpdateOctree()
 
 	if (Count != 0)
 	{
-		UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
+		//UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
 	}
 }
 

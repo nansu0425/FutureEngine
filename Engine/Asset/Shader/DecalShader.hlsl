@@ -48,7 +48,6 @@ PS_INPUT mainVS(VS_INPUT Input)
 	Output.WorldPos = Pos;
 	Output.Normal = normalize(mul(float4(Input.Normal, 0.0f), WorldInverseTranspose));
 	Output.Tex = Input.Tex;
-
 	return Output;
 }
 
@@ -66,9 +65,12 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	// Decal Local Transition
     float4 DecalLocalPos = mul(Input.WorldPos, DecalViewProjection);
     DecalLocalPos /= DecalLocalPos.w;
-	
 
-    if (DecalLocalPos.x < 0.0f || DecalLocalPos.x > 1.0f || abs(DecalLocalPos.y) > 1.0f || abs(DecalLocalPos.z) > 1.0f)
+	float EPS = 1e-5f;
+    if (DecalLocalPos.x < 0.f - EPS ||
+    	DecalLocalPos.x > 1.f + EPS ||
+    	abs(DecalLocalPos.y) > 1.f + EPS ||
+    	abs(DecalLocalPos.z) > 1.f + EPS)
     {
         discard;
     }

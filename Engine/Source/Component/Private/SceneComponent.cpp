@@ -47,7 +47,7 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	}
 }
 
-void USceneComponent::AttachToComponent(USceneComponent* Parent)
+void USceneComponent::AttachToComponent(USceneComponent* Parent, bool bRemainTransform)
 {
 	if (!Parent || Parent == this || GetOwner() != Parent->GetOwner()) { return; }
 
@@ -63,21 +63,23 @@ void USceneComponent::AttachToComponent(USceneComponent* Parent)
 	AttachParent = Parent;
 	Parent->AttachChildren.push_back(this);
 
-	FVector NewRelativeScale = OldWorldScale3D / Parent->GetWorldScale3D();
+	if (!bRemainTransform)
+	{
+		FVector NewRelativeScale = OldWorldScale3D / Parent->GetWorldScale3D();
 
-	// 회전 계산
-	FQuaternion ParentInverseRot = Parent->GetWorldRotationAsQuaternion().Inverse();
-	FQuaternion NewRelativeRotation = ParentInverseRot * OldWorldRotation;
+		// 회전 계산
+		FQuaternion ParentInverseRot = Parent->GetWorldRotationAsQuaternion().Inverse();
+		FQuaternion NewRelativeRotation = ParentInverseRot * OldWorldRotation;
 
-	// 위치 계산
-	FVector WorldOffset = OldWorldLocation - Parent->GetWorldLocation();
-	FVector RotatedOffset = ParentInverseRot.RotateVector(WorldOffset);
-	FVector NewRelativeLocation = RotatedOffset / Parent->GetWorldScale3D();
+		// 위치 계산
+		FVector WorldOffset = OldWorldLocation - Parent->GetWorldLocation();
+		FVector RotatedOffset = ParentInverseRot.RotateVector(WorldOffset);
+		FVector NewRelativeLocation = RotatedOffset / Parent->GetWorldScale3D();
 
-	SetRelativeLocation(NewRelativeLocation);
-	SetRelativeRotation(NewRelativeRotation);
-	SetRelativeScale3D(NewRelativeScale);
-
+		SetRelativeLocation(NewRelativeLocation);
+		SetRelativeRotation(NewRelativeRotation);
+		SetRelativeScale3D(NewRelativeScale);
+	}
 	MarkAsDirty();
 }
 
@@ -108,12 +110,6 @@ UObject* USceneComponent::Duplicate()
 void USceneComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
-	USceneComponent* SceneComponent = Cast<USceneComponent>(DuplicatedObject);
-	for (USceneComponent* Child : AttachChildren)
-	{
-		USceneComponent* ReplicatedChild = Cast<USceneComponent>(Child->Duplicate());
-		ReplicatedChild->AttachToComponent(SceneComponent);
-	}
 }
 
 void USceneComponent::MarkAsDirty()
@@ -245,6 +241,19 @@ void USceneComponent::SetWorldRotation(const FVector& NewRotation)
     {
         SetRelativeRotation(NewWorldRotationQuat);
     }
+}
+
+void USceneComponent::SetWorldRotation(const FQuaternion& NewRotation)
+{
+	if (AttachParent)
+	{
+		FQuaternion ParentWorldRotationQuat = AttachParent->GetWorldRotationAsQuaternion();
+		SetRelativeRotation(NewRotation * ParentWorldRotationQuat.Inverse());
+	}
+	else
+	{
+		SetRelativeRotation(NewRotation);
+	}
 }
 
 void USceneComponent::SetWorldScale3D(const FVector& NewScale)

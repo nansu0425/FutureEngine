@@ -518,7 +518,7 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 	else
 	{
 		AddLog(ELogType::Error, "Unknown stat command: %s", StatCommand.c_str());
-		AddLog(ELogType::Info, "Available: fps, memory, pick, none");
+		AddLog(ELogType::Info, "Available: fps, memory, pick, decal, none");
 	}
 }
 

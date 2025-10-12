@@ -9,9 +9,10 @@ class UDecalComponent : public UPrimitiveComponent
 
 public:
     UDecalComponent();
-    virtual ~UDecalComponent();
+    virtual ~UDecalComponent() override;
 
     virtual void TickComponent(float DeltaTime) override;
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
     void SetTexture(UTexture* InTexture);
     

@@ -127,11 +127,7 @@ UENUM()
 enum class EPrimitiveType : uint8
 {
 	None = 0,
-	Sphere,
-	Cube,
 	MovingCube,
-	Triangle,
-	Square,
 	StaticMesh,
 	Sprite,
 	Text,
@@ -179,13 +175,12 @@ enum class EViewModeIndex : uint32
  */
 enum class EEngineShowFlags : uint64
 {
-	SF_Primitives = 1 << 0,
-	SF_Billboard = 1 << 1,
-	SF_Bounds = 1 << 2,
-	SF_StaticMesh = 1 << 3,
-	SF_Text = 1 << 4,
-	SF_Decal = 1 << 5,
-	SF_Octree = 1 << 6
+	SF_Billboard = 1 << 0,
+	SF_Bounds = 1 << 1,
+	SF_StaticMesh = 1 << 2,
+	SF_Text = 1 << 3,
+	SF_Decal = 1 << 4,
+	SF_Octree = 1 << 5
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

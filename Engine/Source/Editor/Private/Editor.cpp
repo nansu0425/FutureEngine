@@ -85,16 +85,17 @@ void UEditor::Update()
 	UpdateLayout();
 }
 
-void UEditor::RenderEditor(UCamera* InCamera)
+void UEditor::RenderEditor()
 {
 	if (GEditor->IsPIESessionActive()) { return; }
 	BatchLines.Render();
 	Axis.Render();
+}
 
-	if (InCamera)
-	{
-		Gizmo.RenderGizmo(InCamera);
-	}
+void UEditor::RenderGizmo(UCamera* InCamera)
+{
+	if (GEditor->IsPIESessionActive()) { return; }
+	Gizmo.RenderGizmo(InCamera);
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)
@@ -200,7 +201,7 @@ void UEditor::UpdateBatchLines()
 	{
 		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
-			if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
+			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
 				{
@@ -436,7 +437,7 @@ void UEditor::ProcessMouseInput()
 
 		if (!ImGui::GetIO().WantCaptureMouse && InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 		{
-			if (GWorld->GetLevel()->GetShowFlags() & EEngineShowFlags::SF_Primitives)
+			if (GWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
 

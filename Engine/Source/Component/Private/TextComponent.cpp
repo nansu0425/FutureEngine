@@ -6,14 +6,8 @@
 
 IMPLEMENT_CLASS(UTextComponent, UPrimitiveComponent)
 
-/**
- * @brief Level���� �� Actor���� ������ �ִ� UUID�� ������ֱ� ���� ������ Ŭ����
- * Actor has a UBillBoardComponent
- */
 UTextComponent::UTextComponent()
 {
-	Type = EPrimitiveType::Text;
-
 	Vertices = &PickingAreaVertex;
 	NumVertices = PickingAreaVertex.size();
 

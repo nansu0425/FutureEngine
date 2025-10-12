@@ -109,10 +109,15 @@ public:
 	bool CanTickInEditor() const { return bTickInEditor; }
 	void SetTickInEditor(bool InbTickInEditor) { bTickInEditor = InbTickInEditor; }
 
+	bool IsPendingDestroy() const { return bIsPendingDestroy; }
+	void SetIsPendingDestroy(bool bInIsPendingDestroy) { bIsPendingDestroy = bInIsPendingDestroy; }
+
 protected:
 	bool bCanEverTick = false;
 	bool bTickInEditor = false;
 	bool bBegunPlay = false;
+	/** @brief True if the actor is marked for destruction. */  
+	bool bIsPendingDestroy = false;
 
 private:
 	USceneComponent* RootComponent = nullptr;
