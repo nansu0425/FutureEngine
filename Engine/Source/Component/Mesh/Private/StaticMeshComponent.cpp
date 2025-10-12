@@ -114,6 +114,7 @@ void UStaticMeshComponent::SetStaticMesh(const FName& InObjPath)
 		RenderState.CullMode = ECullMode::Back;
 		RenderState.FillMode = EFillMode::Solid;
 		BoundingBox = &AssetManager.GetStaticMeshAABB(InObjPath);
+		MarkAsDirty();
 	}
 }
 
