@@ -88,39 +88,40 @@ bool FOctree::Remove(UPrimitiveComponent* InPrimitive)
 {
 	if (InPrimitive == nullptr) { return false; }
 
-	// 0. 현재 노드와 프리미티브가 겹치지 않으면, 탐색 종료
-	if (!BoundingBox.IsIntersected(GetPrimitiveBoundingBox(InPrimitive))) { return false; }
-
-	// 1-A. 리프 노드인 경우, 직접 프리미티브 목록에서 제거 시도
+	// 경계 검사를 수행하지 않고 바로 탐색 시작
+    
+	// 1-A. 리프 노드인 경우 (현재 노드만 검사하면 됨)
 	if (IsLeaf())
 	{
-		// 리프 노드 내에 대상을 발견한다면, 마지막 요소 위치로 옮긴 뒤 삭제
+		// O(N) 탐색을 통해 프리미티브 목록에서 제거를 시도합니다.
 		if (auto It = std::find(Primitives.begin(), Primitives.end(), InPrimitive); It != Primitives.end())
 		{
 			*It = std::move(Primitives.back());
 			Primitives.pop_back();
-
 			return true;
 		}
-
-		return false; // 없으므로 탐색 종료
+		return false; // 리프 노드에서 발견하지 못했으므로 탐색 종료
 	}
-	// 1-B. 자식 노드가 있는 경우, 순차적으로 자식 노드 내부를 탐색
+    
+	// 1-B. 자식 노드가 있는 경우 (내부 노드)
 	else
 	{
+		// 2. 현재 노드의 Primitives 목록에서 제거 시도 (선택 사항: 일부 트리는 내부 노드에도 프리미티브를 저장함)
 		if (auto It = std::find(Primitives.begin(), Primitives.end(), InPrimitive); It != Primitives.end())
 		{
 			*It = std::move(Primitives.back());
 			Primitives.pop_back();
-
-			return true;
+			return true; // 현재 노드에서 제거 완료
 		}
-		
+       
+		// 3. 자식 노드 순회 (원래 등록되었을 위치를 재귀적으로 탐색)
 		bool bIsRemoved = false;
 
 		for (int Index = 0; Index < 8; ++Index)
 		{
-			if (Children[Index]->Remove(InPrimitive))
+			// 💡 Children[Index]->Remove(InPrimitive) 호출 시, 
+			//    자식 노드 내부에서 다시 경계 검사가 수행되지 않도록 보장해야 합니다.
+			if (Children[Index] && Children[Index]->Remove(InPrimitive))
 			{
 				bIsRemoved = true;
 				break;
@@ -132,6 +133,7 @@ bool FOctree::Remove(UPrimitiveComponent* InPrimitive)
 
 		return bIsRemoved;
 	}
+
 }
 
 void FOctree::Clear()
