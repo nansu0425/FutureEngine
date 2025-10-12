@@ -169,9 +169,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         Decal->UpdateProjectionMatrix();
 
         // --- Get Decal Transform ---
-        FMatrix MoveCamera = FMatrix::Identity();
-        MoveCamera.Data[3][0] = 0.5f;
-        FMatrix View = Decal->GetWorldTransformMatrixInverse() * MoveCamera;
+        FMatrix View = Decal->GetWorldTransformMatrixInverse();
 
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
