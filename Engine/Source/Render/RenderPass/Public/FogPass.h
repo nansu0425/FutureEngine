@@ -5,7 +5,7 @@
 
 struct FFogConstants
 {
-    FVector4 FogColor;
+    FVector FogColor;
     float FogDensity;
     float FogHeightFalloff;
     float StartDistance;
@@ -17,6 +17,12 @@ struct FCameraInverseConstants
 {
     FMatrix ViewInverse;
     FMatrix ProjectionInverse;
+};
+
+struct FVIewportConstants
+{
+    FVector2 ViewportOffset;
+    FVector2 RenderTargetSize;
 };
 
 class FFogPass : public FRenderPass
@@ -44,4 +50,5 @@ private:
 
     ID3D11Buffer* ConstantBufferFog = nullptr;
     ID3D11Buffer* ConstantBufferCameraInverse = nullptr;
+    ID3D11Buffer* ConstantBufferViewportInfo = nullptr;
 };

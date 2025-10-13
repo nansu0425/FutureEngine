@@ -29,5 +29,5 @@ protected:
     float FogMaxOpacity = 0.5f;
 
     // 산란되어 들어오는 빛의 색상
-    FVector4 FogInscatteringColor = {0.5f, 0.5f, 0.5f, 1.f};
+    FVector FogInscatteringColor = {0.5f, 0.5f, 0.5f};
 };

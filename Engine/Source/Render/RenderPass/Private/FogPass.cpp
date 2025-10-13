@@ -12,6 +12,7 @@ FFogPass::FFogPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj
 {
     ConstantBufferFog = FRenderResourceFactory::CreateConstantBuffer<FFogConstants>();
     ConstantBufferCameraInverse = FRenderResourceFactory::CreateConstantBuffer<FCameraInverseConstants>();
+    ConstantBufferViewportInfo = FRenderResourceFactory::CreateConstantBuffer<FVIewportConstants>();
 }
 
 void FFogPass::Execute(FRenderingContext& Context)
