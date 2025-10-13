@@ -55,12 +55,15 @@ float4 mainPS(VSOutput input) : SV_Target
 
     float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * FXAAReduceMul * 0.25f, FXAAReduceMin);
     float rcpDirMin = 1.0f / (min(abs(dir.x), abs(dir.y)) + dirReduce);
-    dir = saturate(dir * rcpDirMin * FXAASpanMax) * InvResolution;
+    float2 dirScaled = dir * rcpDirMin;
+    dirScaled = clamp(dirScaled, float2(-FXAASpanMax, -FXAASpanMax), float2(FXAASpanMax, FXAASpanMax));
+    dir = dirScaled * InvResolution;
 
     float3 rgbA = SceneColor.Sample(SceneSampler, tex + dir * (1.0f / 3.0f - 0.5f)).rgb;
     float3 rgbB = SceneColor.Sample(SceneSampler, tex + dir * (2.0f / 3.0f - 0.5f)).rgb;
 
-    float3 result = 0.5f * (rgbA + rgbB);
+    float3 averaged = 0.5f * (rgbA + rgbB);
+    float3 result = lerp(rgbM, averaged, 0.99f);
     float lumaResult = dot(result, LumaCoeff);
 
     if (lumaResult < lumaMin || lumaResult > lumaMax)

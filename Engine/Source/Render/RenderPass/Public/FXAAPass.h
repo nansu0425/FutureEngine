@@ -7,9 +7,9 @@ class UDeviceResources;
 struct alignas(16) FFXAAConstants
 {
     FVector2 InvResolution = FVector2();
-    float FXAASpanMax = 8.0f;
-    float FXAAReduceMul = 1.0f / 8.0f;
-    float FXAAReduceMin = 1.0f / 128.0f;
+    float FXAASpanMax = 24.0f;
+    float FXAAReduceMul = 1.0f / 32.0f;
+    float FXAAReduceMin = 1.0f / 256.0f;
     float Padding = 0.0f;
 };
 
