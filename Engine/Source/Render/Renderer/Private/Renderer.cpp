@@ -41,6 +41,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
+	CreateFogShader();
 	CreateConstantBuffers();
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
@@ -183,6 +184,15 @@ void URenderer::CreateDecalShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
 }
 
+void URenderer::CreateFogShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FogLayout =
+	{
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/HeightFogShader.hlsl", FogLayout, &FogVertexShader, &FogInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -287,6 +297,7 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 		InViewportClient.ViewportInfo,
 		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
 		);
+	// 1. Sort visible primitive components
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
 	for (auto& Prim : FinalVisiblePrims)
 	{
@@ -307,9 +318,17 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 		{
 			RenderingContext.Decals.push_back(Decal);
 		}
-		else if (auto Fog = Cast<UHeightFogComponent>(Prim))
+	}
+
+	// 2. Collect HeightFogComponents from all actors in the level
+	for (const auto& Actor : CurrentLevel->GetLevelActors())
+	{
+		for (const auto& Component : Actor->GetOwnedComponents())
 		{
-			RenderingContext.Fogs.push_back(Fog);
+			if (auto Fog = Cast<UHeightFogComponent>(Component))
+			{
+				RenderingContext.Fogs.push_back(Fog);
+			}
 		}
 	}
 

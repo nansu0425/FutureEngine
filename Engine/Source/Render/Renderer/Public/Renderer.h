@@ -30,6 +30,7 @@ public:
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
+	void CreateFogShader();
 	void CreateConstantBuffers();
 
 	// Release

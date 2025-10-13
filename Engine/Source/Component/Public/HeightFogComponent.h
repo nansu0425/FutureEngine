@@ -1,5 +1,4 @@
 #pragma once
-#include "Component/Public/SceneComponent.h"
 
 UCLASS()
 class UHeightFogComponent : public USceneComponent
