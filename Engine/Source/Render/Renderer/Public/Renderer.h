@@ -4,10 +4,12 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Render/RenderPass/Public/FXAAPass.h"
 
 class FViewport;
 class UCamera;
 class UPipeline;
+class FFXAAPass;
 
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
@@ -53,6 +55,8 @@ public:
 	ID3D11DeviceContext* GetDeviceContext() const { return DeviceResources->GetDeviceContext(); }
 	IDXGISwapChain* GetSwapChain() const { return DeviceResources->GetSwapChain(); }
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
+	ID3D11RenderTargetView* GetSceneColorRenderTargetView()const {return DeviceResources->GetSceneColorRenderTargetView(); }
+	
 	UDeviceResources* GetDeviceResources() const { return DeviceResources; }
 	FViewport* GetViewportClient() const { return ViewportClient; }
 	UPipeline* GetPipeline() const { return Pipeline; }
@@ -112,4 +116,6 @@ private:
 	bool bIsResizing = false;
 
 	TArray<class FRenderPass*> RenderPasses;
+
+	FFXAAPass* FXAAPass = nullptr;
 };

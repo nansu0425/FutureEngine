@@ -25,7 +25,7 @@ FFXAAPass::FFXAAPass(UPipeline* InPipeline, UDeviceResources* InDeviceResources,
 
 void FFXAAPass::Execute(FRenderingContext& Context)
 {
-    ID3D11ShaderResourceView* SceneSRV = DeviceResources->GetSceneColorSRV(); // 오프스크린 컬러입력
+    ID3D11ShaderResourceView* SceneSRV = DeviceResources->GetSceneColorShaderResourceView(); // 오프스크린 컬러입력
         if (!SceneSRV) { return; }
 
     UpdateConstants();
@@ -72,10 +72,10 @@ void FFXAAPass::InitializeFullscreenQuad()
         {{-1.f, -1.f}, {0.f, 1.f}},
     };
 
-    static const uint16 Indices[] = { 0, 1, 2, 0, 2, 3 };
+    static const uint32 Indices[] = { 0, 1, 2, 0, 2, 3 };
 
     FullscreenStride = sizeof(FFullscreenVertex);
-    FullscreenIndexCount = static_cast<UINT>(std::size(Indices));
+    FullscreenIndexCount = static_cast<UINT>(sizeof(Indices) / sizeof(Indices[0]));
 
     D3D11_BUFFER_DESC VBDesc = {};
     VBDesc.ByteWidth = sizeof(Vertices);
@@ -103,6 +103,11 @@ void FFXAAPass::UpdateConstants()
     const D3D11_VIEWPORT& VP = DeviceResources->GetViewportInfo();
     FXAAParams.InvResolution = FVector2(1.0f / VP.Width, 1.0f / VP.Height);
 
+    // FXAA 품질 설정값을 명시적으로 업데이트                                           
+   FXAAParams.FXAASpanMax = 8.0f;                                        
+   FXAAParams.FXAAReduceMul = 1.0f / 8.0f;                               
+   FXAAParams.FXAAReduceMin = 1.0f / 128.0f;
+    
     FRenderResourceFactory::UpdateConstantBufferData(FXAAConstantBuffer, FXAAParams);
 }
 

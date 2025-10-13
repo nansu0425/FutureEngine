@@ -64,8 +64,8 @@ void URenderer::Init(HWND InWindowHandle)
 
 	// UPipeline* InPipeline, UDeviceResources* InDeviceResources, ID3D11VertexShader* InVS,
 	// ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11SamplerState* InSampler
-	FFXAAPass* FXAAPass = new FFXAAPass(Pipeline, DeviceResources, FXAAVertexShader, FXAAPixelShader, FXAAInputLayout, FXAASamplerState);
-	RenderPasses.push_back(FXAAPass);
+	FXAAPass = new FFXAAPass(Pipeline, DeviceResources, FXAAVertexShader, FXAAPixelShader, FXAAInputLayout, FXAASamplerState);
+	//RenderPasses.push_back(FXAAPass);
 	
 }
 
@@ -247,7 +247,11 @@ void URenderer::Update()
 
 	// 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
 	{
+		ID3D11RenderTargetView* nullRTV[] = { nullptr };                                    
+		GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 		
+		FRenderingContext RenderingContext;
+		FXAAPass->Execute(RenderingContext);
 		
 	}
 	
@@ -266,12 +270,20 @@ void URenderer::Update()
 
 void URenderer::RenderBegin() const
 {
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+	//auto* RenderTargetView = DeviceResources->GetRenderTargetView();
+	//GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+	//auto* DepthStencilView = DeviceResources->GetDepthStencilView();
+	//GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	//ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
+	//GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
+	//DeviceResources->UpdateViewport();
+
+	// SceneColorRenderTargetView로 변경
+	auto* SceneColorRenderTargetView = DeviceResources->GetSceneColorRenderTargetView();
+	GetDeviceContext()->ClearRenderTargetView(SceneColorRenderTargetView, ClearColor);
 	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
+	ID3D11RenderTargetView* rtvs[] = { SceneColorRenderTargetView };
 	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
 	DeviceResources->UpdateViewport();
 }
@@ -373,6 +385,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 {
 	if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
 
+	DeviceResources->ReleaseSceneColorTarget();
 	DeviceResources->ReleaseFrameBuffer();
 	DeviceResources->ReleaseDepthBuffer();
 	GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
@@ -386,10 +399,15 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	DeviceResources->UpdateViewport();
 	DeviceResources->CreateFrameBuffer();
 	DeviceResources->CreateDepthBuffer();
+	DeviceResources->CreateSceneColorTarget();
 
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };
-	GetDeviceContext()->OMSetRenderTargets(1, RenderTargetViews, DeviceResources->GetDepthStencilView());
+	//auto* RenderTargetView = DeviceResources->GetRenderTargetView();
+	//ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };
+	//GetDeviceContext()->OMSetRenderTargets(1, RenderTargetViews, DeviceResources->GetDepthStencilView());
+
+	auto* SceneColorRenderTargetView = DeviceResources->GetSceneColorRenderTargetView();
+	ID3D11RenderTargetView* SceneColorRenderTargetViews[] = { SceneColorRenderTargetView };
+	GetDeviceContext()->OMSetRenderTargets(1, SceneColorRenderTargetViews, DeviceResources->GetDepthStencilView());
 }
 
 void URenderer::CreateConstantBuffers()
