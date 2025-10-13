@@ -482,37 +482,37 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 
 	if (StatCommand == "fps")
 	{
-		StatOverlay.ShowFPS(true);
-		AddLog(ELogType::Success, "FPS overlay enabled");
+		StatOverlay.ShowFPS();
+		AddLog(ELogType::Success, "FPS overlay");
 	}
 	else if (StatCommand == "memory")
 	{
-		StatOverlay.ShowMemory(true);
-		AddLog(ELogType::Success, "Memory overlay enabled");
+		StatOverlay.ShowMemory();
+		AddLog(ELogType::Success, "Memory overlay");
 	}
 	else if (StatCommand == "pick" || StatCommand == "picking")
 	{
-		StatOverlay .ShowPicking(true);
-		AddLog(ELogType::Success, "Picking overlay enabled");
+		StatOverlay .ShowPicking();
+		AddLog(ELogType::Success, "Picking overlay");
 	}
 	else if (StatCommand == "time")
 	{
-		StatOverlay.ShowTime(true);
-		AddLog(ELogType::Success, "Time overlay enabled");
+		StatOverlay.ShowTime();
+		AddLog(ELogType::Success, "Time overlay");
 	}
 	else if (StatCommand == "decal")
 	{
-		StatOverlay.ShowDecal(true);
-		AddLog(ELogType::Success, "Decal overlay enabled");
+		StatOverlay.ShowDecal();
+		AddLog(ELogType::Success, "Decal overlay");
 	}
 	else if (StatCommand == "all")
 	{
-		StatOverlay.ShowAll(true);
-		AddLog(ELogType::Success, "All overlays enabled");
+		StatOverlay.ShowAll();
+		AddLog(ELogType::Success, "All overlays");
 	}
 	else if (StatCommand == "none")
 	{
-		StatOverlay.ShowAll(false);
+		StatOverlay.ShowAll();
 		AddLog(ELogType::Success, "All overlays disabled");
 	}
 	else
