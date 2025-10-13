@@ -26,10 +26,10 @@ UDecalComponent::UDecalComponent()
 }
 
 UDecalComponent::~UDecalComponent()
-{
+	{
     SafeDelete(BoundingBox);
     // DecalTexture is managed by AssetManager, no need to delete here
-}
+	}
 
 void UDecalComponent::TickComponent(float DeltaTime)
 {

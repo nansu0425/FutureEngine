@@ -29,13 +29,16 @@ public:
 	void CreateTextureShader();
 	void CreateDecalShader();
 	void CreateConstantBuffers();
+	void CreateFXAAShader();
 
+	
 	// Release
 	void ReleaseConstantBuffers();
 	void ReleaseDefaultShader();
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
-
+	void ReleaseSamplerState();
+	
 	// Render
 	void Update();
 	void RenderBegin() const;
@@ -86,6 +89,12 @@ private:
 	ID3D11VertexShader* DefaultVertexShader = nullptr;
 	ID3D11PixelShader* DefaultPixelShader = nullptr;
 	ID3D11InputLayout* DefaultInputLayout = nullptr;
+
+	// FXAA Shaders
+	ID3D11VertexShader* FXAAVertexShader = nullptr;
+	ID3D11PixelShader* FXAAPixelShader = nullptr;
+	ID3D11InputLayout* FXAAInputLayout = nullptr;
+	ID3D11SamplerState* FXAASamplerState = nullptr;
 	
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;

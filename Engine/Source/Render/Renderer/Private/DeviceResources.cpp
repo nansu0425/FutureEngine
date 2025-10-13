@@ -129,6 +129,9 @@ void UDeviceResources::CreateFrameBuffer()
 	Device->CreateRenderTargetView(FrameBuffer, &framebufferRTVdesc, &FrameBufferRTV);
 }
 
+
+
+
 /**
  * @brief 프레임 버퍼를 해제하는 함수
  */
@@ -146,6 +149,24 @@ void UDeviceResources::ReleaseFrameBuffer()
 		FrameBufferRTV = nullptr;
 	}
 }
+
+
+/**
+ * @brief Scene Color Texture 생성 함수
+ */
+void UDeviceResources::CreateSceneColorTarget()
+{
+	
+}
+
+/**
+ * @brief Scene Color Texture를 해제하는 함수
+ */
+void UDeviceResources::ReleaseSceneColorTarget()
+{
+	
+}
+
 
 void UDeviceResources::CreateDepthBuffer()
 {
@@ -180,6 +201,8 @@ void UDeviceResources::ReleaseDepthBuffer()
 		DepthBuffer = nullptr;
 	}
 }
+
+
 
 void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 {

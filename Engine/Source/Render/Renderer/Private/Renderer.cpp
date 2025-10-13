@@ -19,6 +19,7 @@
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/FXAAPass.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -26,12 +27,14 @@ URenderer::URenderer() = default;
 
 URenderer::~URenderer() = default;
 
+
 void URenderer::Init(HWND InWindowHandle)
 {
 	DeviceResources = new UDeviceResources(InWindowHandle);
 	Pipeline = new UPipeline(GetDeviceContext());
 	ViewportClient = new FViewport();
-
+	
+	
 	// 렌더링 상태 및 리소스 생성
 	CreateDepthStencilState();
 	CreateBlendState();
@@ -39,6 +42,8 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateTextureShader();
 	CreateDecalShader();
 	CreateConstantBuffers();
+	CreateFXAAShader();
+	
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -56,6 +61,12 @@ void URenderer::Init(HWND InWindowHandle)
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
+
+	// UPipeline* InPipeline, UDeviceResources* InDeviceResources, ID3D11VertexShader* InVS,
+	// ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11SamplerState* InSampler
+	FFXAAPass* FXAAPass = new FFXAAPass(Pipeline, DeviceResources, FXAAVertexShader, FXAAPixelShader, FXAAInputLayout, FXAASamplerState);
+	RenderPasses.push_back(FXAAPass);
+	
 }
 
 void URenderer::Release()
@@ -64,6 +75,7 @@ void URenderer::Release()
 	ReleaseDefaultShader();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
+	ReleaseSamplerState();
 	FRenderResourceFactory::ReleaseRasterizerState();
 	for (auto& RenderPass : RenderPasses)
 	{
@@ -157,6 +169,19 @@ void URenderer::CreateDecalShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
 }
 
+void URenderer::CreateFXAAShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FXAALayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    };
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FXAAShader.hlsl", FXAALayout, &FXAAVertexShader, &FXAAInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FXAAShader.hlsl", &FXAAPixelShader);
+	
+	FXAASamplerState = FRenderResourceFactory::CreateFXAASamplerState();
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -167,6 +192,9 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(TextureVertexShader);
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
+	SafeRelease(FXAAVertexShader);
+	SafeRelease(FXAAPixelShader);
+	SafeRelease(FXAAInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -183,6 +211,11 @@ void URenderer::ReleaseDepthStencilState()
 void URenderer::ReleaseBlendState()
 {
     SafeRelease(AlphaBlendState);
+}
+
+void URenderer::ReleaseSamplerState()
+{
+	SafeRelease(FXAASamplerState);
 }
 
 void URenderer::Update()
@@ -212,6 +245,13 @@ void URenderer::Update()
 		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
 	}
 
+	// 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
+	{
+		
+		
+	}
+	
+	
 	{
 		TIME_PROFILE(UUIManager)
 		UUIManager::GetInstance().Render();
@@ -358,6 +398,7 @@ void URenderer::CreateConstantBuffers()
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FViewProjConstants>();
 }
+
 
 void URenderer::ReleaseConstantBuffers()
 {
