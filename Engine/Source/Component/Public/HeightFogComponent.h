@@ -24,6 +24,13 @@ public:
     float GetFogCutoffDistance() const { return FogCutoffDistance; }
     float GetFogMaxOpacity() const { return FogMaxOpacity; }
     FVector GetFogInscatteringColor() const { return FogInscatteringColor; }
+
+    void SetFogDenisity(float InValue) { FogDensity = InValue; }
+    void SetFogHeightFalloff(float InValue) { FogHeightFalloff = InValue; }
+    void SetStartDistance(float InValue) { StartDistance = InValue; }
+    void SetFogCutoffDistance(float InValue) { FogCutoffDistance = InValue; }
+    void SetFogMaxOpacity(float InValue) { FogMaxOpacity = InValue; }
+    void SetFogInscatteringColor(const FVector& InValue) { FogInscatteringColor = InValue; }
     
 protected:
     // 안개의 밀도 

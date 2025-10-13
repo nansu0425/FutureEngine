@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Component/Public/HeightFogComponent.h"
+
+#include "Render/UI/Widget/Public/HeightFogComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UHeightFogComponent, USceneComponent)
@@ -43,7 +45,7 @@ void UHeightFogComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 UClass* UHeightFogComponent::GetSpecificWidgetClass() const
 {
-    return Super::GetSpecificWidgetClass();
+	return UHeightFogComponentWidget::StaticClass();
 }
 
 UObject* UHeightFogComponent::Duplicate()
