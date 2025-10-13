@@ -14,7 +14,7 @@ namespace
 	}
 }
 
-void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>& DynamicPrimitives, const FViewProjConstants& ViewProjConstants)
+void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>& DynamicPrimitives, const FCameraConstants& ViewProjConstants)
 {
 	// 이전의 Cull했던 정보를 지운다.
 	RenderableObjects.clear();

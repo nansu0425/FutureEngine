@@ -217,6 +217,7 @@ void UMainBarWidget::RenderViewMenu()
 		bool bIsLit = (CurrentMode == EViewModeIndex::VMI_Lit);
 		bool bIsUnlit = (CurrentMode == EViewModeIndex::VMI_Unlit);
 		bool bIsWireframe = (CurrentMode == EViewModeIndex::VMI_Wireframe);
+		bool bIsSceneDepth = (CurrentMode == EViewModeIndex::VMI_SceneDepth);
 
 		if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
 		{
@@ -234,6 +235,12 @@ void UMainBarWidget::RenderViewMenu()
 		{
 			EditorInstance->SetViewMode(EViewModeIndex::VMI_Wireframe);
 			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
+		}
+
+		if (ImGui::MenuItem("씬 뎁스(SceneDepth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
+		{
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_SceneDepth);
+			UE_LOG("MainBarWidget: ViewMode를 SceneDepth으로 변경");
 		}
 
 		ImGui::EndMenu();

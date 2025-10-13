@@ -5,11 +5,12 @@
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
 
-FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel,
+FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
-	: FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
+	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TextureDepthPS.hlsl", &DepthPS);
 }
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
@@ -20,10 +21,12 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::WireFrame;
 	}
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
-	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
+	ID3D11PixelShader* PixelShader = Context.ViewMode == EViewModeIndex::VMI_SceneDepth ? DepthPS : PS;
+	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PixelShader, nullptr };
 	Pipeline->UpdatePipeline(PipelineInfo);
 	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
-	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
+	Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);
 	
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
@@ -116,4 +119,5 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 void FStaticMeshPass::Release()
 {
 	SafeRelease(ConstantBufferMaterial);
+	SafeRelease(DepthPS);
 }

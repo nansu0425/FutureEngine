@@ -47,8 +47,8 @@ public:
 	/**
 	 * @brief Getter
 	 */
-	const FViewProjConstants& GetFViewProjConstants() const { return ViewProjConstants; }
-	const FViewProjConstants GetFViewProjConstantsInverse() const;
+	const FCameraConstants& GetFViewProjConstants() const { return CameraConstants; }
+	const FCameraConstants GetFViewProjConstantsInverse() const;
 
 	FRay ConvertToWorldRay(float NdcX, float NdcY) const;
 
@@ -92,7 +92,7 @@ public:
 	}
 
 private:
-	FViewProjConstants ViewProjConstants = {};
+	FCameraConstants CameraConstants = {};
 	FVector RelativeLocation = {};
 	FVector RelativeRotation = {};
 	FVector Forward = { 1,0,0 };

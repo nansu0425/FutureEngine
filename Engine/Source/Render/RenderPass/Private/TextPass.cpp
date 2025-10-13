@@ -9,17 +9,17 @@
 #include "Editor/Public/Editor.h"
 #include "Texture/Public/Texture.h"
 
-FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel)
-    : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel)
+FTextPass::FTextPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel)
+    : FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel)
 {
     // Create shaders
-    TArray<D3D11_INPUT_ELEMENT_DESC> layoutDesc = {
+    TArray<D3D11_INPUT_ELEMENT_DESC> LayoutDesc = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FFontVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FFontVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD", 1, DXGI_FORMAT_R32_UINT, 0, offsetof(FFontVertex, CharIndex), D3D11_INPUT_PER_VERTEX_DATA, 0}
     };
 
-    FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ShaderFont.hlsl", layoutDesc, &FontVertexShader, &FontInputLayout);
+    FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ShaderFont.hlsl", LayoutDesc, &FontVertexShader, &FontInputLayout);
     FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ShaderFont.hlsl", &FontPixelShader);
 
     // Create dynamic vertex buffer
@@ -52,7 +52,7 @@ void FTextPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Text)) { return; }
 
     // Set constant buffers
-    Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+    Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
     FRenderResourceFactory::UpdateConstantBufferData(FontDataConstantBuffer, ConstantBufferData);
     Pipeline->SetConstantBuffer(2, true, FontDataConstantBuffer);
 
