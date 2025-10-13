@@ -30,6 +30,10 @@ void FFogPass::Execute(FRenderingContext& Context)
     // --- Draw Fog --- //
     for (UHeightFogComponent* Fog : Context.Fogs)
     {
+        // Get Renderer Singleton
+        URenderer& Renderer = URenderer::GetInstance();
+
+        // Update Fog Constant Buffer (Slot 0)
         FFogConstants FogConstant;
         FogConstant.FogColor = Fog->GetFogInscatteringColor();
         FogConstant.FogDensity = Fog->GetFogDenisity();
@@ -37,27 +41,27 @@ void FFogPass::Execute(FRenderingContext& Context)
         FogConstant.StartDistance = Fog->GetStartDistance();
         FogConstant.FogCutoffDistance = Fog->GetFogCutoffDistance();
         FogConstant.FogMaxOpacity = Fog->GetFogMaxOpacity();
-
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
         Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
 
+        // Update CameraInverse Constant Buffer (Slot 1)
         FCameraInverseConstants CameraInverseConstants;
         FViewProjConstants ViewProjConstants = Context.CurrentCamera->GetFViewProjConstantsInverse();
         CameraInverseConstants.ProjectionInverse =  ViewProjConstants.Projection;
         CameraInverseConstants.ViewInverse =  ViewProjConstants.View;
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferCameraInverse, CameraInverseConstants);
+        Pipeline->SetConstantBuffer(1, false, ConstantBufferCameraInverse);
 
-        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
-        Pipeline->SetConstantBuffer(1, false, ConstantBufferFog);
+        // Update ViewportInfo Constant Buffer (Slot 2)
+        FVIewportConstants ViewportConstants;
+        ViewportConstants.ViewportOffset = { Context.Viewport.TopLeftX, Context.Viewport.TopLeftY };
+        ViewportConstants.RenderTargetSize = { Context.RenderTargetSize.X, Context.RenderTargetSize.Y };
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewportInfo, ViewportConstants);
+        Pipeline->SetConstantBuffer(2, false, ConstantBufferViewportInfo);
 
-        FVIewportConstants VIewportConstants;
-        VIewportConstants.ViewportOffset = {Context.Viewport.TopLeftX, Context.Viewport.TopLeftY};
-        VIewportConstants.RenderTargetSize = Context.RenderTargetSize;
-        
-        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
-        Pipeline->SetConstantBuffer(2, false, ConstantBufferFog);
-
-        Pipeline->SetTexture(0, false, nullptr);
-        Pipeline->SetSamplerState(0, false, nullptr);
+        // Set Resources
+        Pipeline->SetTexture(0, false, Renderer.GetDepthSRV());
+        Pipeline->SetSamplerState(0, false, Renderer.GetDefaultSampler());
 
         Pipeline->Draw(3,0);
     }

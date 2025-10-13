@@ -26,6 +26,7 @@ public:
 	// Initialize
 	void CreateDepthStencilState();
 	void CreateBlendState();
+	void CreateSamplerState();
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
@@ -33,6 +34,7 @@ public:
 
 	// Release
 	void ReleaseConstantBuffers();
+	void ReleaseSamplerState();
 	void ReleaseDefaultShader();
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
@@ -50,6 +52,10 @@ public:
 	ID3D11Device* GetDevice() const { return DeviceResources->GetDevice(); }
 	ID3D11DeviceContext* GetDeviceContext() const { return DeviceResources->GetDeviceContext(); }
 	IDXGISwapChain* GetSwapChain() const { return DeviceResources->GetSwapChain(); }
+	
+	ID3D11SamplerState* GetDefaultSampler() const { return DefaultSampler; }
+	ID3D11ShaderResourceView* GetDepthSRV() const { return DeviceResources->GetDepthStencilSRV(); }
+	
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
 	UDeviceResources* GetDeviceResources() const { return DeviceResources; }
 	FViewport* GetViewportClient() const { return ViewportClient; }
@@ -74,7 +80,8 @@ private:
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11BlendState* AlphaBlendState = nullptr;
-
+	ID3D11SamplerState* DefaultSampler = nullptr;
+	
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;

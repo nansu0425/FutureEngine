@@ -37,6 +37,7 @@ void URenderer::Init(HWND InWindowHandle)
 	// 렌더링 상태 및 리소스 생성
 	CreateDepthStencilState();
 	CreateBlendState();
+	CreateSamplerState();
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
@@ -70,6 +71,7 @@ void URenderer::Release()
 	ReleaseDefaultShader();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
+	ReleaseSamplerState();
 	FRenderResourceFactory::ReleaseRasterizerState();
 	for (auto& RenderPass : RenderPasses)
 	{
@@ -121,6 +123,24 @@ void URenderer::CreateBlendState()
     BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     GetDevice()->CreateBlendState(&BlendDesc, &AlphaBlendState);
+}
+
+void URenderer::CreateSamplerState()
+{
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	GetDevice()->CreateSamplerState(&samplerDesc, &DefaultSampler);
+}
+
+void URenderer::ReleaseSamplerState()
+{
+	SafeRelease(DefaultSampler);
 }
 
 void URenderer::CreateDefaultShader()

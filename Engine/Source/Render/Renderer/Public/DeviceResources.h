@@ -25,6 +25,8 @@ public:
 	IDXGISwapChain* GetSwapChain() const { return SwapChain; }
 	ID3D11RenderTargetView* GetRenderTargetView() const { return FrameBufferRTV; }
 	ID3D11DepthStencilView* GetDepthStencilView() const { return DepthStencilView; }
+	ID3D11ShaderResourceView* GetDepthStencilSRV() const { return DepthStencilSRV; }
+	
 	const D3D11_VIEWPORT& GetViewportInfo() const { return ViewportInfo; }
 	void UpdateViewport(float InMenuBarHeight = 0.f);
 
@@ -41,7 +43,7 @@ private:
 
 	ID3D11Texture2D* DepthBuffer = nullptr;
 	ID3D11DepthStencilView* DepthStencilView = nullptr;
-
+	ID3D11ShaderResourceView* DepthStencilSRV = nullptr;
 	D3D11_VIEWPORT ViewportInfo = {};
 
 	uint32 Width = 0;
