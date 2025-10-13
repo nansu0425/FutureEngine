@@ -212,7 +212,7 @@ void URenderer::Update()
 		}
 		{
 			TIME_PROFILE(RenderLevel)
-			RenderLevel(CurrentCamera);
+			RenderLevel(ViewportClient);
 		}
 		// Gizmo는 최종적으로 렌더
 		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
@@ -242,7 +242,7 @@ void URenderer::RenderBegin() const
 	DeviceResources->UpdateViewport();
 }
 
-void URenderer::RenderLevel(UCamera* InCurrentCamera)
+void URenderer::RenderLevel(FViewportClient& InViewportClient)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
@@ -250,16 +250,23 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	// 오클루전 컬링
 	TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
-	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
+	const FViewProjConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
 	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
 	// Culler.PerformCulling(
 	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
 	// 	InCurrentCamera->GetLocation()
 	// );
 	TIME_PROFILE_END(Occlusion)
 
-	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
+	FRenderingContext RenderingContext(
+		&ViewProj,
+		&InViewportClient.Camera,
+		GEditor->GetEditorModule()->GetViewMode(),
+		CurrentLevel->GetShowFlags(),
+		InViewportClient.ViewportInfo,
+		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
+		);
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
 	for (auto& Prim : FinalVisiblePrims)
 	{

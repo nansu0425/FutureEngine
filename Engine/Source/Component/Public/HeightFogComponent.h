@@ -1,7 +1,8 @@
 #pragma once
+#include "Component/Public/SceneComponent.h"
 
 UCLASS()
-class UHeightFogComponent : USceneComponent
+class UHeightFogComponent : public USceneComponent
 {
     GENERATED_BODY()
     DECLARE_CLASS(UHeightFogComponent, USceneComponent)
@@ -16,17 +17,26 @@ public:
 
     virtual UObject* Duplicate() override;
 
+    // --- getter/setter --- //
+
+    float GetFogDenisity() const { return FogDensity; }
+    float GetFogHeightFalloff() const { return FogHeightFalloff; }
+    float GetStartDistance() const { return StartDistance; }
+    float GetFogCutoffDistance() const { return FogCutoffDistance; }
+    float GetFogMaxOpacity() const { return FogMaxOpacity; }
+    FVector GetFogInscatteringColor() const { return FogInscatteringColor; }
+    
 protected:
     // 안개의 밀도 
     float FogDensity = 1.f;
     // 높이에 따라 안개가 얼마나 빠르게 옅어지는지
-    float FogHeightFalloff = 1.f;
+    float FogHeightFalloff = 100.f;
     // 카메라로부터 안개가 시작되는 거리
-    float StartDistance = 1.f;
+    float StartDistance = 100.f;
     // 안개 효과 계산을 중단하는 최대 거리
-    float FogCutoffDistance = 1.f;
+    float FogCutoffDistance = 100.f;
     // 안개가 최대로 짙어졌을때 최대 불투명도
-    float FogMaxOpacity = 0.5f;
+    float FogMaxOpacity = 0.7f;
 
     // 산란되어 들어오는 빛의 색상
     FVector FogInscatteringColor = {0.5f, 0.5f, 0.5f};

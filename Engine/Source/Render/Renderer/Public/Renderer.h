@@ -8,6 +8,7 @@
 class FViewport;
 class UCamera;
 class UPipeline;
+class FViewportClient;
 
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
@@ -39,7 +40,7 @@ public:
 	// Render
 	void Update();
 	void RenderBegin() const;
-	void RenderLevel(UCamera* InCurrentCamera);
+	void RenderLevel(FViewportClient& InViewportClient);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 

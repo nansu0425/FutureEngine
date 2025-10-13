@@ -2,6 +2,7 @@
 #include "Render/RenderPass/Public/FogPass.h"
 
 #include "Component/Public/HeightFogComponent.h"
+#include "Editor/Public/Camera.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
 FFogPass::FFogPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj,
@@ -29,7 +30,36 @@ void FFogPass::Execute(FRenderingContext& Context)
     // --- Draw Fog --- //
     for (UHeightFogComponent* Fog : Context.Fogs)
     {
+        FFogConstants FogConstant;
+        FogConstant.FogColor = Fog->GetFogInscatteringColor();
+        FogConstant.FogDensity = Fog->GetFogDenisity();
+        FogConstant.FogHeightFalloff = Fog->GetFogHeightFalloff();
+        FogConstant.StartDistance = Fog->GetStartDistance();
+        FogConstant.FogCutoffDistance = Fog->GetFogCutoffDistance();
+        FogConstant.FogMaxOpacity = Fog->GetFogMaxOpacity();
+
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
+        Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
+
+        FCameraInverseConstants CameraInverseConstants;
+        FViewProjConstants ViewProjConstants = Context.CurrentCamera->GetFViewProjConstantsInverse();
+        CameraInverseConstants.ProjectionInverse =  ViewProjConstants.Projection;
+        CameraInverseConstants.ViewInverse =  ViewProjConstants.View;
+
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
+        Pipeline->SetConstantBuffer(1, false, ConstantBufferFog);
+
+        FVIewportConstants VIewportConstants;
+        VIewportConstants.ViewportOffset = {Context.Viewport.TopLeftX, Context.Viewport.TopLeftY};
+        VIewportConstants.RenderTargetSize = Context.RenderTargetSize;
         
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
+        Pipeline->SetConstantBuffer(2, false, ConstantBufferFog);
+
+        Pipeline->SetTexture(0, false, nullptr);
+        Pipeline->SetSamplerState(0, false, nullptr);
+
+        Pipeline->Draw(3,0);
     }
 }
 

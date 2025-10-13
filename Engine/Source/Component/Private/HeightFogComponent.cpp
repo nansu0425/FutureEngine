@@ -2,6 +2,8 @@
 #include "Component/Public/HeightFogComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 
+IMPLEMENT_CLASS(UHeightFogComponent, USceneComponent)
+
 UHeightFogComponent::UHeightFogComponent()
 {
     bCanEverTick = false;
@@ -54,4 +56,5 @@ UObject* UHeightFogComponent::Duplicate()
     HeightFogComponent->FogCutoffDistance = FogCutoffDistance;
     HeightFogComponent->FogMaxOpacity = FogMaxOpacity;
 
-    return HeightFogComponent;}
+    return HeightFogComponent;
+}
