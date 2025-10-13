@@ -79,7 +79,7 @@ private:
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
 	ID3D11Buffer* ConstantBufferBatchLine = nullptr;
-
+	
 	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
 	// Default Shaders
@@ -92,9 +92,15 @@ private:
 	ID3D11PixelShader* TexturePixelShader = nullptr;
 	ID3D11InputLayout* TextureInputLayout = nullptr;
 
+	// Decal Shaders
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
+
+	// Fog Shaders
+	ID3D11VertexShader* FogVertexShader = nullptr;
+	ID3D11PixelShader* FogPixelShader = nullptr;
+	ID3D11InputLayout* FogInputLayout = nullptr;
 	
 	uint32 Stride = 0;
 

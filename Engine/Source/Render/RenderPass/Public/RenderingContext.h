@@ -17,4 +17,5 @@ struct FRenderingContext
     TArray<class UTextComponent*> Texts;
     TArray<class UUUIDTextComponent*> UUIDs;
     TArray<class UDecalComponent*> Decals;
+    TArray<class UHeightFogComponent*> Fogs;
 };

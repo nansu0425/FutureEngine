@@ -180,7 +180,8 @@ enum class EEngineShowFlags : uint64
 	SF_StaticMesh = 1 << 2,
 	SF_Text = 1 << 3,
 	SF_Decal = 1 << 4,
-	SF_Octree = 1 << 5
+	SF_Octree = 1 << 5,
+	SF_Fog = 1 << 6
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

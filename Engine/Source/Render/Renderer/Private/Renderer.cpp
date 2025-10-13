@@ -13,12 +13,14 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Component/Mesh/Public/StaticMesh.h"
+#include "Component/Public/HeightFogComponent.h"
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/FogPass.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -56,6 +58,10 @@ void URenderer::Init(HWND InWindowHandle)
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
+
+	FFogPass* FogPass = new FFogPass(Pipeline, ConstantBufferViewProj,
+		FogVertexShader, FogPixelShader, FogInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(FogPass);
 }
 
 void URenderer::Release()
@@ -273,6 +279,10 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
 			RenderingContext.Decals.push_back(Decal);
+		}
+		else if (auto Fog = Cast<UHeightFogComponent>(Prim))
+		{
+			RenderingContext.Fogs.push_back(Fog);
 		}
 	}
 
