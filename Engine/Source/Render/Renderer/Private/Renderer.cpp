@@ -1,24 +1,26 @@
 #include "pch.h"
-#include "Render/Renderer/Public/Renderer.h"
-#include "Component/Public/UUIDTextComponent.h"
-#include "Component/Public/PrimitiveComponent.h"
+#include "Component/Mesh/Public/StaticMesh.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/PointLightComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/UUIDTextComponent.h"
+#include "Editor/Public/Camera.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
 #include "Editor/Public/ViewportClient.h"
-#include "Editor/Public/Camera.h"
 #include "Level/Public/Level.h"
 #include "Manager/UI/Public/UIManager.h"
-#include "Render/UI/Overlay/Public/StatOverlay.h"
-#include "Render/RenderPass/Public/RenderPass.h"
-#include "Component/Mesh/Public/StaticMesh.h"
 #include "Optimization/Public/OcclusionCuller.h"
-#include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
+#include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/PointLightPass.h"
+#include "Render/RenderPass/Public/RenderPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
-#include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/Renderer/Public/RenderResourceFactory.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -56,6 +58,9 @@ void URenderer::Init(HWND InWindowHandle)
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
+
+	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(PointLightPass);
 }
 
 void URenderer::Release()
@@ -157,6 +162,19 @@ void URenderer::CreateDecalShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
 }
 
+void URenderer::CreatePointLightShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> PointLightLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/PointLightShader.hlsl", PointLightLayout, &PointLightVertexShader, &PointLightInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/PointLightShader.hlsl", &PointLightPixelShader);
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -167,6 +185,9 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(TextureVertexShader);
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
+	SafeRelease(PointLightVertexShader);
+	SafeRelease(PointLightPixelShader);
+	SafeRelease(PointLightInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -228,6 +249,11 @@ void URenderer::RenderBegin() const
 {
 	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
 	GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+
+	// @TODO: The clear color for the normal buffer should be a specific value (e.g., {0.5, 0.5, 1.0, 1.0})
+	auto* NormalRenderTargetView = DeviceResources->GetNormalRenderTargetView();
+	GetDeviceContext()->ClearRenderTargetView(NormalRenderTargetView, ClearColor);
+
 	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
 	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -273,6 +299,10 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
 			RenderingContext.Decals.push_back(Decal);
+		}
+		else if (auto PointLight = Cast<UPointLightComponent>(Prim))
+		{
+			RenderingContext.PointLights.push_back(PointLight);
 		}
 	}
 

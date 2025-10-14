@@ -37,6 +37,19 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	FStaticMesh* CurrentMeshAsset = nullptr;
 	UMaterial* CurrentMaterial = nullptr;
 
+	// --- RTVs Setup ---
+	
+	/**
+	 * @todo Find a better way to reduce depdency upon Renderer class.
+	 * @note How about introducing methods like BeginPass(), EndPass() to set up and release pass specific state?
+	 */
+	const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
+	ID3D11RenderTargetView* RTVs[2] = { DeviceResources->GetRenderTargetView(), DeviceResources->GetNormalRenderTargetView() };
+	ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
+	Pipeline->SetRenderTargets(2, RTVs, DSV);
+
+	// --- RTVs Setup End ---
+
 	for (UStaticMeshComponent* MeshComp : MeshComponents) 
 	{
 		if (!MeshComp->GetStaticMesh()) { continue; }
@@ -111,6 +124,17 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		}
 	}
 	Pipeline->SetConstantBuffer(2, false, nullptr);
+
+	
+	// --- RTVs Reset ---
+	
+	/**
+	 * @todo Find a better way to reduce depdency upon Renderer class.
+	 * @note How about introducing methods like BeginPass(), EndPass() to set up and release pass specific state?
+	 */
+	Pipeline->SetRenderTargets(1, RTVs, DSV);
+
+	// --- RTVs Reset End ---
 }
 
 void FStaticMeshPass::Release()

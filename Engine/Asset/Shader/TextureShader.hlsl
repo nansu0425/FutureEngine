@@ -62,14 +62,21 @@ PS_INPUT mainVS(VS_INPUT input)
 	tmp = mul(tmp, View);
 	tmp = mul(tmp, Projection);
 	output.position = tmp;
-	//output.normal = normalize(mul(float4(input.normal, 0.0f), world).xyz);
+	output.normal = normalize(mul(float4(input.normal, 0.0f), world).xyz);
 	output.tex = input.tex;
 
 	return output;
 }
 
-float4 mainPS(PS_INPUT input) : SV_TARGET
+struct PS_OUTPUT
 {
+	float4 SceneColor : SV_Target0;
+	float4 NormalData : SV_Target1;
+};
+
+PS_OUTPUT mainPS(PS_INPUT input) : SV_TARGET
+{
+	PS_OUTPUT output;
 	float4 finalColor = float4(0.f, 0.f, 0.f, 1.f);
 	float2 UV = input.tex;
 
@@ -97,6 +104,10 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 		finalColor.a = D;
 		finalColor.a *= alpha;
 	}
+
+	output.SceneColor = finalColor;
+	float3 encodedNormal = normalize(input.normal) * 0.5f + 0.5f; // [-1,1] → [0,1]
+	output.NormalData = float4(encodedNormal, 1.0f);
 	
-	return finalColor;
+	return output;
 }

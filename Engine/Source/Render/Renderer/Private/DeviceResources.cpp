@@ -47,7 +47,7 @@ void UDeviceResources::CreateDeviceAndSwapChain(HWND InWindowHandle)
 	SwapChainDescription.BufferDesc.Height = 0; // 창 크기에 맞게 자동으로 설정
 	SwapChainDescription.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // 색상 포맷
 	SwapChainDescription.SampleDesc.Count = 1; // 멀티 샘플링 비활성화
-	SwapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 렌더 타겟으로 사용
+	SwapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // 렌더 타겟으로 사용
 	SwapChainDescription.BufferCount = 2; // 더블 버퍼링
 	SwapChainDescription.OutputWindow = InWindowHandle; // 렌더링할 창 핸들
 	SwapChainDescription.Windowed = TRUE; // 창 모드
@@ -127,6 +127,15 @@ void UDeviceResources::CreateFrameBuffer()
 	framebufferRTVdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D; // 2D 텍스처
 
 	Device->CreateRenderTargetView(FrameBuffer, &framebufferRTVdesc, &FrameBufferRTV);
+
+	// 셰이더 리소스 뷰 생성
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	Device->CreateShaderResourceView(FrameBuffer, &srvDesc, &FrameBufferSRV);
 }
 
 /**
@@ -145,26 +154,99 @@ void UDeviceResources::ReleaseFrameBuffer()
 		FrameBufferRTV->Release();
 		FrameBufferRTV = nullptr;
 	}
+
+	if (FrameBufferSRV)
+	{
+		FrameBufferSRV->Release();
+		FrameBufferSRV = nullptr;
+	}
+}
+
+void UDeviceResources::CreateNormalBuffer()
+{
+	D3D11_TEXTURE2D_DESC Texture2DDesc = {};
+	Texture2DDesc.Width = Width;
+	Texture2DDesc.Height = Height;
+	Texture2DDesc.MipLevels = 1;
+	Texture2DDesc.ArraySize = 1;
+	Texture2DDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	Texture2DDesc.SampleDesc.Count = 1;
+	Texture2DDesc.SampleDesc.Quality = 0;
+	Texture2DDesc.Usage = D3D11_USAGE_DEFAULT;
+	Texture2DDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	Texture2DDesc.CPUAccessFlags = 0;
+	Texture2DDesc.MiscFlags = 0;
+
+	Device->CreateTexture2D(&Texture2DDesc, nullptr, &NormalBuffer);
+
+	D3D11_RENDER_TARGET_VIEW_DESC RenderTargetViewDesc = {};
+	RenderTargetViewDesc.Format = Texture2DDesc.Format;
+	RenderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RenderTargetViewDesc.Texture2D.MipSlice = 0;
+	
+	Device->CreateRenderTargetView(NormalBuffer, &RenderTargetViewDesc, &NormalBufferRTV);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = Texture2DDesc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	Device->CreateShaderResourceView(NormalBuffer, &srvDesc, &NormalBufferSRV);
+}
+
+void UDeviceResources::ReleaseNormalBuffer()
+{
+	if (NormalBuffer)
+	{
+		NormalBuffer->Release();
+		NormalBuffer = nullptr;
+	}
+
+	if (NormalBufferRTV)
+	{
+		NormalBufferRTV->Release();
+		NormalBufferRTV = nullptr;
+	}
+
+	if (NormalBufferSRV)
+	{
+		NormalBufferSRV->Release();
+		NormalBufferSRV = nullptr;
+	}
 }
 
 void UDeviceResources::CreateDepthBuffer()
 {
 	D3D11_TEXTURE2D_DESC dsDesc = {};
-
 	dsDesc.Width = Width;
 	dsDesc.Height = Height;
 	dsDesc.MipLevels = 1;
 	dsDesc.ArraySize = 1;
-	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 	dsDesc.SampleDesc.Count = 1;
 	dsDesc.SampleDesc.Quality = 0;
 	dsDesc.Usage = D3D11_USAGE_DEFAULT;
-	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	dsDesc.CPUAccessFlags = 0;
 	dsDesc.MiscFlags = 0;
 
 	Device->CreateTexture2D(&dsDesc, nullptr, &DepthBuffer);
-	Device->CreateDepthStencilView(DepthBuffer, nullptr, &DepthStencilView);
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Texture2D.MipSlice = 0;
+
+	Device->CreateDepthStencilView(DepthBuffer, &dsvDesc, &DepthStencilView);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	Device->CreateShaderResourceView(DepthBuffer, &srvDesc, &DepthBufferSRV);
 }
 
 void UDeviceResources::ReleaseDepthBuffer()
@@ -178,6 +260,11 @@ void UDeviceResources::ReleaseDepthBuffer()
 	{
 		DepthBuffer->Release();
 		DepthBuffer = nullptr;
+	}
+	if (DepthBufferSRV)
+	{
+		DepthBufferSRV->Release();
+		DepthBufferSRV = nullptr;
 	}
 }
 

@@ -84,6 +84,12 @@ void UPipeline::SetSamplerState(uint32 Slot, bool bIsVS, ID3D11SamplerState* Sam
 		DeviceContext->PSSetSamplers(Slot, 1, &SamplerState);
 }
 
+void UPipeline::SetRenderTargets(uint32 NumViews, ID3D11RenderTargetView* const* RenderTargetViews,
+	ID3D11DepthStencilView* DepthStencilView)
+{
+	DeviceContext->OMSetRenderTargets(NumViews, RenderTargetViews, DepthStencilView);
+}
+
 /// @brief 정점 개수를 기반으로 드로우 호출
 void UPipeline::Draw(uint32 VertexCount, uint32 StartLocation)
 {

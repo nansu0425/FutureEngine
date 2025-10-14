@@ -28,6 +28,7 @@ public:
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
+	void CreatePointLightShader();
 	void CreateConstantBuffers();
 
 	// Release
@@ -95,6 +96,10 @@ private:
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
+
+	ID3D11VertexShader* PointLightVertexShader = nullptr;
+	ID3D11PixelShader* PointLightPixelShader = nullptr;
+	ID3D11InputLayout* PointLightInputLayout = nullptr;
 	
 	uint32 Stride = 0;
 

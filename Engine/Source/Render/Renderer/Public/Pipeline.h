@@ -29,6 +29,9 @@ public:
 
 	void SetSamplerState(uint32 Slot, bool bIsVS, ID3D11SamplerState* SamplerState);
 
+	/** @todo This function is temporarily introduced for point light. */
+	void SetRenderTargets(uint32 NumViews, ID3D11RenderTargetView* const *RenderTargetViews, ID3D11DepthStencilView* DepthStencilView);
+
 	void Draw(uint32 VertexCount, uint32 StartLocation);
 
 	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 BaseVertexLocation);

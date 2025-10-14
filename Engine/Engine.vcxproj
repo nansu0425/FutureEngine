@@ -331,7 +331,9 @@
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalSpotLightComponent.h" />
+    <ClInclude Include="Source\Component\Public\PointLightComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
+    <ClInclude Include="Source\Component\Public\LightComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h" />
     <ClInclude Include="Source\Component\Public\SceneComponent.h" />
@@ -410,6 +412,7 @@
     <ClInclude Include="Source\Render\Renderer\Public\RenderResourceFactory.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\BillboardPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\PointLightPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\RenderingContext.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\RenderPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\StaticMeshPass.h" />
@@ -481,6 +484,8 @@
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalSpotLightComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\LightComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\PointLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp" />
@@ -548,6 +553,84 @@
     <ClCompile Include="Source\Render\Renderer\Private\RenderResourceFactory.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\BillboardPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\PointLightPass.cpp">
+      <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <SupportJustMyCode>true</SupportJustMyCode>
+      <AssemblerOutput>NoListing</AssemblerOutput>
+      <AssemblerListingLocation>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</AssemblerListingLocation>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <BrowseInformation>false</BrowseInformation>
+      <BrowseInformationFile>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</BrowseInformationFile>
+      <CompileAs>Default</CompileAs>
+      <UseDynamicDebugging>false</UseDynamicDebugging>
+      <ConformanceMode>true</ConformanceMode>
+      <DiagnosticsFormat>Column</DiagnosticsFormat>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <ErrorReporting>Prompt</ErrorReporting>
+      <ExpandAttributedSource>false</ExpandAttributedSource>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <EnableASAN>false</EnableASAN>
+      <EnableFuzzer>false</EnableFuzzer>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <EnableVectorLength>NotSet</EnableVectorLength>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+      <GenerateModuleDependencies>false</GenerateModuleDependencies>
+      <GenerateSourceDependencies>false</GenerateSourceDependencies>
+      <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <MinimalRebuild>false</MinimalRebuild>
+      <ModuleDependenciesFile>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</ModuleDependenciesFile>
+      <ModuleOutputFile>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</ModuleOutputFile>
+      <OmitDefaultLibName>false</OmitDefaultLibName>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ObjectFileName>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</ObjectFileName>
+      <CallingConvention>Cdecl</CallingConvention>
+      <ProgramDataBaseFileName>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\vc143.pdb</ProgramDataBaseFileName>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\Engine.pch</PrecompiledHeaderOutputFile>
+      <PreprocessToFile>false</PreprocessToFile>
+      <PreprocessKeepComments>false</PreprocessKeepComments>
+      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+      <ShowIncludes>false</ShowIncludes>
+      <SourceDependenciesFile>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</SourceDependenciesFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
+      <SpectreMitigation>false</SpectreMitigation>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <TrackerLogDirectory>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\Engine.tlog\</TrackerLogDirectory>
+      <TranslateIncludes>false</TranslateIncludes>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <UseFullPaths>true</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <XMLDocumentationFileName>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Build\Debug\Intermediate\</XMLDocumentationFileName>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <IntelJCCErratum>false</IntelJCCErratum>
+      <BuildStlModules>false</BuildStlModules>
+      <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+      <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+      <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_DEVELOP=1;_UNICODE;UNICODE;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\Engine\Source;C:\Users\Jungle\Desktop\Projects\Jungle\Week06\KTL\External\Include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
+      <LinkCompiled>true</LinkCompiled>
+    </ClCompile>
     <ClCompile Include="Source\Render\RenderPass\Private\RenderPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\StaticMeshPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\TextPass.cpp" />

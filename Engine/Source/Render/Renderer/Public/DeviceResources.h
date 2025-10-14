@@ -13,6 +13,8 @@ public:
 	void ReleaseDeviceAndSwapChain();
 	void CreateFrameBuffer();
 	void ReleaseFrameBuffer();
+	void CreateNormalBuffer();
+	void ReleaseNormalBuffer();
 	void CreateDepthBuffer();
 	void ReleaseDepthBuffer();
 
@@ -24,7 +26,13 @@ public:
 	ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext; }
 	IDXGISwapChain* GetSwapChain() const { return SwapChain; }
 	ID3D11RenderTargetView* GetRenderTargetView() const { return FrameBufferRTV; }
+	ID3D11RenderTargetView* GetNormalRenderTargetView() const { return NormalBufferRTV; }
 	ID3D11DepthStencilView* GetDepthStencilView() const { return DepthStencilView; }
+
+	ID3D11ShaderResourceView* GetSceneColorSRV() const { return FrameBufferSRV; }
+	ID3D11ShaderResourceView* GetNormalSRV() const { return NormalBufferSRV; }
+	ID3D11ShaderResourceView* GetDepthSRV() const { return DepthBufferSRV; }
+
 	const D3D11_VIEWPORT& GetViewportInfo() const { return ViewportInfo; }
 	void UpdateViewport(float InMenuBarHeight = 0.f);
 
@@ -38,9 +46,22 @@ private:
 
 	ID3D11Texture2D* FrameBuffer = nullptr;
 	ID3D11RenderTargetView* FrameBufferRTV = nullptr;
+	ID3D11ShaderResourceView* FrameBufferSRV = nullptr;
+	
+	/** 
+	 * This is introduced to support post-process point light effects
+	 * without modifying the existing forward rendering pipeline.
+	 * 
+	 * @note This variable is temporary and intended to be removed 
+	 * once a full deferred lighting system is implemented.
+	 */
+	ID3D11Texture2D* NormalBuffer = nullptr;
+	ID3D11RenderTargetView* NormalBufferRTV = nullptr;
+	ID3D11ShaderResourceView* NormalBufferSRV = nullptr;
 
 	ID3D11Texture2D* DepthBuffer = nullptr;
 	ID3D11DepthStencilView* DepthStencilView = nullptr;
+	ID3D11ShaderResourceView* DepthBufferSRV = nullptr;
 
 	D3D11_VIEWPORT ViewportInfo = {};
 
