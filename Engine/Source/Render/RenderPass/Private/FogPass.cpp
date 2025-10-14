@@ -42,7 +42,7 @@ void FFogPass::Execute(FRenderingContext& Context)
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
     Pipeline->UpdatePipeline(PipelineInfo);
-
+    
     // --- Draw Fog --- //
     for (UHeightFogComponent* Fog : Context.Fogs)
     {

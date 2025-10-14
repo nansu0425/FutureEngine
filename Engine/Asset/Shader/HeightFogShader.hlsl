@@ -71,19 +71,22 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	//카메라 -> 픽셀 벡터 계산 (뷰 좌표계에서 진행)
 	float distanceToPixel = length(viewPos.xyz);
 
-    // 최종 안개 농도(Opacity) 계산
-    float fogOpacity = 0.0f;
+	// 최종 안개 농도(Opacity) 계산
+	float fogOpacity = 0.0f;
+	// 안개는 FogCutoffDistance 안쪽에만 적용
+	if (distanceToPixel < FogCutoffDistance)
+	{
+	    // 1. 높이와 거리를 고려한 기본 지수 안개 계산
+	    float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.z);
+	    float exponentialFog = 1.0 - exp(-distanceToPixel * heightDensity);
+	
+	    // 2. StartDistance까지 선형으로 안개를 보간해주는 페이드인 계수 계산
+	    float fadeInFactor = saturate(distanceToPixel / StartDistance);
+	
+	    // 3. 기본 안개에 페이드인 계수를 곱해 최종 농도 결정
+	    fogOpacity = exponentialFog * fadeInFactor;
+	}
 
-    // 안개는 StartDistance와 FogCutoffDistance 사이의 거리에만 적용
-    if (distanceToPixel > StartDistance && distanceToPixel < FogCutoffDistance)
-    {
-        //높이에 따른 안개 밀도 계산
-        float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.z);
-        
-        //거리와 높이 밀도를 함께 고려하여 안개 양을 계산 
-        fogOpacity = 1.0 - exp(-distanceToPixel * heightDensity);
-    }
-    
     //최종 값 보정
     fogOpacity = saturate(fogOpacity) * FogMaxOpacity;
 
