@@ -30,11 +30,10 @@ UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 	Primitive.VertexShader = VertexShader;
 	Primitive.InputLayout = InputLayout;
 	Primitive.PixelShader = PixelShader;
-	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
-	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));
 	Primitive.NumVertices = static_cast<uint32>(Vertices.size());
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
-	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
+	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 }
 
 UBatchLines::~UBatchLines()
