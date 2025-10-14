@@ -20,6 +20,11 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent"
         }, {
+          "FogCutoffDistance" : "50000.000000",
+          "FogDensity" : "0.050000",
+          "FogHeightFalloff" : "0.010000",
+          "FogInScatteringColor" : [0.501961, 0.501961, 0.501961],
+          "FogMaxOpacity" : "0.980000",
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "Location" : [0.000000, 0.000000, 0.000000],
@@ -27,6 +32,7 @@
           "ParentName" : "USceneComponent_0",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
+          "StartDistance" : "1.500000",
           "Type" : "UHeightFogComponent"
         }],
       "Location" : [-7.605518, -3.140660, -3.040559],
@@ -36,7 +42,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "120" : {
+    "117" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -51,7 +57,7 @@
           "IsEditorOnly" : "true",
           "IsVisualizationComponent" : "false",
           "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UUUIDTextComponent_2",
+          "Name" : "UUUIDTextComponent_1",
           "ParentName" : "UStaticMeshComponent_0",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
@@ -90,9 +96,9 @@
     }, {
       "FOV" : [90.000000],
       "FarClip" : [1000.000000],
-      "Location" : [16.931561, 19.629112, 15.697585],
+      "Location" : [19.334011, 30.114664, 17.478107],
       "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 20.349874, -129.951538],
+      "Rotation" : [0.000000, 22.299843, -122.152023],
       "ViewportCameraType" : 0
     }]
 }

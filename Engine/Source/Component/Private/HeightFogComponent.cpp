@@ -27,19 +27,22 @@ void UHeightFogComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     // 불러오기
     if (bInIsLoading)
     {
-        // FJsonSerializer::ReadVector(InOutHandle, "Location", RelativeLocation, FVector::ZeroVector());
-        // FVector RotationEuler;
-        // FJsonSerializer::ReadVector(InOutHandle, "Rotation", RotationEuler, FVector::ZeroVector());
-        // RelativeRotation = FQuaternion::FromEuler(RotationEuler);
-        //
-        // FJsonSerializer::ReadVector(InOutHandle, "Scale", RelativeScale3D, FVector::OneVector());
+        FJsonSerializer::ReadVector(InOutHandle, "FogInScatteringColor", FogInScatteringColor, {0.5f, 0.5f, 0.5f});
+        FJsonSerializer::ReadFloat(InOutHandle, "FogDensity", FogDensity, 0.05f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogHeightFalloff", FogHeightFalloff, 0.01f);
+        FJsonSerializer::ReadFloat(InOutHandle, "StartDistance", StartDistance, 1.5f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogCutoffDistance", FogCutoffDistance, 50000.f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogMaxOpacity", FogMaxOpacity, 0.98f);
     }
     // 저장
     else
     {
-        // InOutHandle["Location"] = FJsonSerializer::VectorToJson(RelativeLocation);
-        // InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(RelativeRotation.ToEuler());
-        // InOutHandle["Scale"] = FJsonSerializer::VectorToJson(RelativeScale3D);
+        InOutHandle["FogInScatteringColor"] = FJsonSerializer::VectorToJson(FogInScatteringColor);
+        InOutHandle["FogDensity"] = to_string(FogDensity);
+        InOutHandle["FogHeightFalloff"] = to_string(FogHeightFalloff);
+        InOutHandle["StartDistance"] = to_string(StartDistance);
+        InOutHandle["FogCutoffDistance"] = to_string(FogCutoffDistance);
+        InOutHandle["FogMaxOpacity"] = to_string(FogMaxOpacity);
     }
 }
 
