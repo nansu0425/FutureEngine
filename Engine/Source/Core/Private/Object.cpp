@@ -24,16 +24,6 @@ UObject::UObject()
 	InternalIndex = static_cast<uint32>(GetUObjectArray().size()) - 1;
 }
 
-UObject::UObject(const FName& InName)
-	: Name(InName)
-	, Outer(nullptr)
-{
-	UUID = UEngineStatics::GenUUID();
-
-	GetUObjectArray().emplace_back(this);
-	InternalIndex = static_cast<uint32>(GetUObjectArray().size()) - 1;
-}
-
 UObject::~UObject()
 {
 	/** @todo: 이후에 리뷰 필요 */

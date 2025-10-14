@@ -14,7 +14,7 @@ class UMainBarWidget : public UWidget
 	DECLARE_CLASS(UMainBarWidget, UWidget)
 
 public:
-	UMainBarWidget();
+	UMainBarWidget() = default;
 	~UMainBarWidget() override = default;
 
 	void Initialize() override;

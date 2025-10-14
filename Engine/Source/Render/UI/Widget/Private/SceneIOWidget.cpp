@@ -5,12 +5,7 @@
 
 #include <shobjidl.h>
 
-USceneIOWidget::USceneIOWidget()
-	: UWidget("Scene IO Widget")
-{
-}
-
-USceneIOWidget::~USceneIOWidget() = default;
+IMPLEMENT_CLASS(USceneIOWidget, UWidget)
 
 void USceneIOWidget::Initialize()
 {

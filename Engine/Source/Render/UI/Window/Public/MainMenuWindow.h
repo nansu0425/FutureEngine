@@ -9,8 +9,7 @@ class UMainBarWidget;
  * 일반적인 윈도우와 달리 상단에 고정되며 뷰포트의 사이즈에 영향이 있음
  */
 UCLASS()
-class UMainMenuWindow :
-	public UUIWindow
+class UMainMenuWindow :	public UUIWindow
 {
 	GENERATED_BODY()
 	DECLARE_SINGLETON_CLASS(UMainMenuWindow, UUIWindow)

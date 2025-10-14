@@ -24,6 +24,10 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	ID3D11PixelShader* PixelShader = Context.ViewMode == EViewModeIndex::VMI_SceneDepth ? DepthPS : PS;
 	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PixelShader, nullptr };
 	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// Set a default sampler to slot 0 to ensure one is always bound
+	Pipeline->SetSamplerState(0, false, URenderer::GetInstance().GetDefaultSampler());
+
 	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 	Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
 	Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);

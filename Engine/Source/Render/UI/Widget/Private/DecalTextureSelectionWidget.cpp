@@ -229,7 +229,7 @@ void UDecalTextureSelectionWidget::RenderWidget()
 
 }
 
-UDecalTextureSelectionWidget::UDecalTextureSelectionWidget() : UWidget("Decal Texture Selection Widget")
+UDecalTextureSelectionWidget::UDecalTextureSelectionWidget()
 {
 }
 

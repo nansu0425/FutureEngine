@@ -30,18 +30,18 @@ UEditor::UEditor()
 
 	auto& UIManager = UUIManager::GetInstance();
 
-	if (auto* FPSWidget = reinterpret_cast<UFPSWidget*>(UIManager.FindWidget("FPS Widget")))
+	if (auto* FPSWidget = Cast<UFPSWidget>(UIManager.FindWidget("UFPSWidget")))
 	{
 		FPSWidget->SetBatchLine(&BatchLines);
 	}
 
 	// Splitter UI에게 Splitter 정보를 전달합니다.
-	if (auto* SplitterWidget = reinterpret_cast<USplitterDebugWidget*>(UIManager.FindWidget("Splitter Widget")))
+	if (auto* SplitterWidget = Cast<USplitterDebugWidget>(UIManager.FindWidget("USplitterDebugWidget")))
 	{
 		SplitterWidget->SetSplitters(&RootSplitter, &LeftSplitter, &RightSplitter);
 	}
 
-	if (auto* ViewportWidget = reinterpret_cast<UViewportMenuBarWidget*>(UIManager.FindWidget("ViewportMenuBar Widget")))
+	if (auto* ViewportWidget = Cast<UViewportMenuBarWidget>(UIManager.FindWidget("UViewportMenuBarWidget")))
 	{
 		ViewportWidget->SetEdtior(this);
 	}

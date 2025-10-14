@@ -5,7 +5,7 @@
 #include "Global/Memory.h"
 #include "Render/Renderer/Public/Renderer.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UStatOverlay)
+IMPLEMENT_SINGLETON_CLASS(UStatOverlay, UObject)
 
 UStatOverlay::UStatOverlay() {}
 UStatOverlay::~UStatOverlay() = default;

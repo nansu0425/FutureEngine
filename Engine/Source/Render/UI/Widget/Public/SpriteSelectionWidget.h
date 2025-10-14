@@ -5,8 +5,7 @@ class UClass;
 class UBillBoardComponent;
 
 UClass;
-class USpriteSelectionWidget
-	: public UWidget
+class USpriteSelectionWidget : public UWidget
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(USpriteSelectionWidget, UWidget)
@@ -16,8 +15,8 @@ public:
 	void RenderWidget() override;
 
 	// Special Member Function
-	USpriteSelectionWidget();
-	~USpriteSelectionWidget() override;
+	USpriteSelectionWidget() = default;
+	~USpriteSelectionWidget() override = default;
 
 private:
 	void SetSpriteOfActor(FString NewSprite);

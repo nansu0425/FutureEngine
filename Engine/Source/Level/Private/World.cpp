@@ -126,7 +126,8 @@ bool UWorld::LoadLevel(path InLevelFilePath)
 	try
 	{
 		FString LevelNameString = InLevelFilePath.stem().string();
-		NewLevel = new ULevel(FName(LevelNameString));
+		NewLevel = NewObject<ULevel>(this);
+		NewLevel->SetName(LevelNameString);
 
 		if (!FJsonSerializer::LoadJsonFromFile(LevelJson, InLevelFilePath.string()))
 		{

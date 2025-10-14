@@ -13,15 +13,17 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Component/Mesh/Public/StaticMesh.h"
+#include "Component/Public/HeightFogComponent.h"
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/FogPass.h"
 #include "Render/RenderPass/Public/FXAAPass.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
+IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
 URenderer::URenderer() = default;
 
@@ -38,9 +40,11 @@ void URenderer::Init(HWND InWindowHandle)
 	// 렌더링 상태 및 리소스 생성
 	CreateDepthStencilState();
 	CreateBlendState();
+	CreateSamplerState();
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
+	CreateFogShader();
 	CreateConstantBuffers();
 	CreateFXAAShader();
 	
@@ -61,6 +65,10 @@ void URenderer::Init(HWND InWindowHandle)
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
+
+	FFogPass* FogPass = new FFogPass(Pipeline, ConstantBufferViewProj,
+		FogVertexShader, FogPixelShader, FogInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(FogPass);
 
 	// UPipeline* InPipeline, UDeviceResources* InDeviceResources, ID3D11VertexShader* InVS,
 	// ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11SamplerState* InSampler
@@ -132,6 +140,19 @@ void URenderer::CreateBlendState()
     GetDevice()->CreateBlendState(&BlendDesc, &AlphaBlendState);
 }
 
+void URenderer::CreateSamplerState()
+{
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	GetDevice()->CreateSamplerState(&samplerDesc, &DefaultSampler);
+}
+
 void URenderer::CreateDefaultShader()
 {
 	TArray<D3D11_INPUT_ELEMENT_DESC> DefaultLayout =
@@ -172,6 +193,15 @@ void URenderer::CreateDecalShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
 }
 
+void URenderer::CreateFogShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FogLayout =
+	{
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/HeightFogShader.hlsl", FogLayout, &FogVertexShader, &FogInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
+}
+
 void URenderer::CreateFXAAShader()
 {
 	TArray<D3D11_INPUT_ELEMENT_DESC> FXAALayout =
@@ -195,6 +225,10 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(TextureVertexShader);
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
+	SafeRelease(DecalInputLayout);
+	SafeRelease(FogVertexShader);
+	SafeRelease(FogPixelShader);
+	SafeRelease(FogInputLayout);
 	SafeRelease(FXAAVertexShader);
 	SafeRelease(FXAAPixelShader);
 	SafeRelease(FXAAInputLayout);
@@ -245,15 +279,16 @@ void URenderer::Update()
         CurrentCamera->Update(ViewportClient.GetViewportInfo());
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
         Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
-
-        {
-            TIME_PROFILE(RenderEditor)
-            GEditor->GetEditorModule()->RenderEditor();
-        }
+	    
         {
             TIME_PROFILE(RenderLevel)
-            RenderLevel(CurrentCamera);
+            RenderLevel(ViewportClient);
         }
+	    {
+        	TIME_PROFILE(RenderEditor)
+			GEditor->GetEditorModule()->RenderEditor();
+	    }
+    	
         // Gizmo는 최종적으로 렌더
         GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
     }
@@ -307,8 +342,7 @@ void URenderer::RenderBegin() const
     DeviceResources->UpdateViewport();
 }
 
-
-void URenderer::RenderLevel(UCamera* InCurrentCamera)
+void URenderer::RenderLevel(FViewportClient& InViewportClient)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
@@ -316,16 +350,24 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	// 오클루전 컬링
 	TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
-	const FCameraConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
+	const FCameraConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
 	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
 	// Culler.PerformCulling(
 	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
 	// 	InCurrentCamera->GetLocation()
 	// );
 	TIME_PROFILE_END(Occlusion)
 
-	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
+	FRenderingContext RenderingContext(
+		&ViewProj,
+		&InViewportClient.Camera,
+		GEditor->GetEditorModule()->GetViewMode(),
+		CurrentLevel->GetShowFlags(),
+		InViewportClient.ViewportInfo,
+		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
+		);
+	// 1. Sort visible primitive components
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
 	for (auto& Prim : FinalVisiblePrims)
 	{
@@ -345,6 +387,18 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Decal = Cast<UDecalComponent>(Prim))
 		{
 			RenderingContext.Decals.push_back(Decal);
+		}
+	}
+
+	// 2. Collect HeightFogComponents from all actors in the level
+	for (const auto& Actor : CurrentLevel->GetLevelActors())
+	{
+		for (const auto& Component : Actor->GetOwnedComponents())
+		{
+			if (auto Fog = Cast<UHeightFogComponent>(Component))
+			{
+				RenderingContext.Fogs.push_back(Fog);
+			}
 		}
 	}
 

@@ -7,7 +7,7 @@
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UUIManager)
+IMPLEMENT_SINGLETON_CLASS(UUIManager, UObject)
 
 UUIManager::UUIManager()
 {
@@ -258,7 +258,7 @@ UWidget* UUIManager::FindWidget(const FName& InWidgetName) const
 	{
 		for (auto* Widget : Window->GetWidgets())
 		{
-			if (Widget->GetName() == InWidgetName)
+			if (Widget->GetName().ToBaseNameString() == InWidgetName.ToString())
 			{
 				return Widget;
 			}

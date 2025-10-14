@@ -9,6 +9,7 @@
 class FViewport;
 class UCamera;
 class UPipeline;
+class FViewportClient;
 class FFXAAPass;
 
 /**
@@ -27,9 +28,11 @@ public:
 	// Initialize
 	void CreateDepthStencilState();
 	void CreateBlendState();
+	void CreateSamplerState();
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
+	void CreateFogShader();
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
 
@@ -44,7 +47,7 @@ public:
 	// Render
 	void Update();
 	void RenderBegin() const;
-	void RenderLevel(UCamera* InCurrentCamera);
+	void RenderLevel(FViewportClient& InViewportClient);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
@@ -54,6 +57,10 @@ public:
 	ID3D11Device* GetDevice() const { return DeviceResources->GetDevice(); }
 	ID3D11DeviceContext* GetDeviceContext() const { return DeviceResources->GetDeviceContext(); }
 	IDXGISwapChain* GetSwapChain() const { return DeviceResources->GetSwapChain(); }
+	
+	ID3D11SamplerState* GetDefaultSampler() const { return DefaultSampler; }
+	ID3D11ShaderResourceView* GetDepthSRV() const { return DeviceResources->GetDepthStencilSRV(); }
+	
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
 	ID3D11RenderTargetView* GetSceneColorRenderTargetView()const {return DeviceResources->GetSceneColorRenderTargetView(); }
 	
@@ -80,13 +87,14 @@ private:
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11BlendState* AlphaBlendState = nullptr;
-
+	ID3D11SamplerState* DefaultSampler = nullptr;
+	
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
 	ID3D11Buffer* ConstantBufferBatchLine = nullptr;
-
+	
 	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
 	// Default Shaders
@@ -105,9 +113,15 @@ private:
 	ID3D11PixelShader* TexturePixelShader = nullptr;
 	ID3D11InputLayout* TextureInputLayout = nullptr;
 
+	// Decal Shaders
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
+
+	// Fog Shaders
+	ID3D11VertexShader* FogVertexShader = nullptr;
+	ID3D11PixelShader* FogPixelShader = nullptr;
+	ID3D11InputLayout* FogInputLayout = nullptr;
 	
 	uint32 Stride = 0;
 
