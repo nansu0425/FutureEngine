@@ -21,7 +21,7 @@ void URotatingMovementComponentWidget::RenderWidget()
         return;
     }
     
-	RotatingMovementComponent = Cast<URotatingMovementComponent>(Component);
+	URotatingMovementComponent* RotatingMovementComponent = Cast<URotatingMovementComponent>(Component);
     if (!RotatingMovementComponent) { return; }
 
     ImGui::DragFloat3("Rotation Rate", &RotatingMovementComponent->RotationRate.X);

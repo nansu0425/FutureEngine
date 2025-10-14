@@ -119,6 +119,16 @@ struct FVector
 			Z /= Length;
 		}
 	}
+	
+	/**
+	 * @brief 단위 벡터 반환하는 함수
+	 */
+	FVector GetNormalized() const
+	{
+		FVector NormalizedVector = *this;
+		NormalizedVector.Normalize();
+		return NormalizedVector;
+	}
 
 	bool IsZero() const
 	{

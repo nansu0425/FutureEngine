@@ -53,3 +53,10 @@ void UMovementComponent::StopMovementImmediately()
 {
     Velocity = FVector::Zero();
 }
+
+UObject* UMovementComponent::Duplicate()
+{
+    UMovementComponent* MovementComponent = Cast<UMovementComponent>(Super::Duplicate());
+    MovementComponent->Velocity = Velocity;
+    return MovementComponent;
+}

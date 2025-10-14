@@ -22,9 +22,13 @@ protected:
 
 // Velocity Section
 public:
-    const FVector& GetVelocity() { return Velocity; }
+    const FVector& GetVelocity() const { return Velocity; }
+    void SetVelocity(const FVector& InVelocity) { Velocity = InVelocity; }
     void StopMovementImmediately();
 
 protected:
     FVector Velocity;
+
+public:
+    UObject* Duplicate() override;
 };

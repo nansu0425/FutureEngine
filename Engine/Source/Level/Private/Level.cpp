@@ -292,7 +292,7 @@ void ULevel::UpdateOctree()
 	DynamicPrimitiveQueue = NotInsertedQueue;
 	if (Count != 0)
 	{
-		UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
+		// UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
 	}
 }
 

@@ -51,10 +51,9 @@ void UDetailWindow::OnSelectedComponentChanged(UActorComponent* Component)
 	if (Component)
 	{
 		UClass* WidgetClass = Component->GetSpecificWidgetClass();
-		if (WidgetClass)
+		if (WidgetClass && WidgetClass->IsChildOf(UWidget::StaticClass()))
 		{
-			UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass));
-			if (NewWidget)
+			if (UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass)))
 			{
 				AddWidget(NewWidget);
 				ComponentSpecificWidget = NewWidget;
