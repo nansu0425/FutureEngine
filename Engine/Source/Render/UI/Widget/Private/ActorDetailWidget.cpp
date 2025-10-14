@@ -7,8 +7,8 @@
 #include "Component/Public/TextComponent.h"
 #include "Global/Vector.h"
 
+IMPLEMENT_CLASS(UActorDetailWidget, UWidget)
 UActorDetailWidget::UActorDetailWidget()
-	: UWidget("Actor Detail Widget")
 {
 	LoadComponentClasses();
 }

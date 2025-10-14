@@ -3,10 +3,10 @@
 
 #include "Manager/Input/Public/InputManager.h"
 
-constexpr uint8 MaxKeyHistory = 10;
+IMPLEMENT_CLASS(UInputInformationWidget, UWidget)
 
+constexpr uint8 MaxKeyHistory = 10;
 UInputInformationWidget::UInputInformationWidget()
-	: UWidget("Input Information Widget")
 {
 }
 

@@ -1,9 +1,9 @@
 #pragma once
 #include "Widget.h"
 
-class UInputInformationWidget :
-	public UWidget
+class UInputInformationWidget :	public UWidget
 {
+	DECLARE_CLASS(UInputInformationWidget, UWidget)
 public:
 	void Initialize() override;
 	void Update() override;

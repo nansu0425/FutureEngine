@@ -1,19 +1,10 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/FPSWidget.h"
-
 #include "Manager/Time/Public/TimeManager.h"
-
 #include "Manager/Config/Public/ConfigManager.h"
 
+IMPLEMENT_CLASS(UFPSWidget, UWidget)
 constexpr float REFRESH_INTERVAL = 0.1f;
-
-UFPSWidget::UFPSWidget()
-	: UWidget("FPS Widget")
-{
-
-}
-
-UFPSWidget::~UFPSWidget() = default;
 
 void UFPSWidget::Initialize()
 {

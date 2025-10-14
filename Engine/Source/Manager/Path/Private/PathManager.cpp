@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Manager/Path/Public/PathManager.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UPathManager)
+IMPLEMENT_SINGLETON_CLASS(UPathManager, UObject)
 
 UPathManager::UPathManager()
 {

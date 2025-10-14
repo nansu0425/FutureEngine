@@ -9,9 +9,10 @@ class USplitterDebugWidget;
  */
 class UEditorWindow : public UUIWindow
 {
+	DECLARE_CLASS(UEditorWindow, UUIWindow);
 public:
 	UEditorWindow();
-	virtual ~UEditorWindow() override {}
+	virtual ~UEditorWindow() override = default;
 
 	void Initialize() override;
 

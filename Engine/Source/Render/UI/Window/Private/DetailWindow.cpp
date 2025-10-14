@@ -5,6 +5,8 @@
 #include "Manager/UI/Public/UIManager.h"
 #include "Level/Public/Level.h"
 
+IMPLEMENT_CLASS(UDetailWindow, UUIWindow)
+
 /**
  * @brief Detail Window Constructor
  * Selected된 Actor의 관리를 위한 적절한 크기의 윈도우 제공

@@ -1,15 +1,12 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/UIWindow.h"
-
 #include "ImGui/imgui_internal.h"
-
 #include "Render/UI/Widget/Public/Widget.h"
 
+IMPLEMENT_ABSTRACT_CLASS(UUIWindow, UObject)
 int UUIWindow::IssuedWindowID = 0;
 
-UUIWindow::UUIWindow(const FUIWindowConfig& InConfig)
-	: Config(InConfig)
-	  , CurrentState(InConfig.InitialState)
+UUIWindow::UUIWindow() : Config(FUIWindowConfig()), CurrentState(Config.InitialState)
 {
 	// 고유한 윈도우 ID 생성
 	WindowID = ++IssuedWindowID;

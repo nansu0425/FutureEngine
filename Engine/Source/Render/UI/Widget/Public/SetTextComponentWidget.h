@@ -9,8 +9,8 @@ class USetTextComponentWidget : public UWidget
 	GENERATED_BODY()
 	DECLARE_CLASS(USetTextComponentWidget, UWidget)
 public:
-	USetTextComponentWidget();
-	~USetTextComponentWidget() override;
+	USetTextComponentWidget() = default;
+	~USetTextComponentWidget() override = default;
 	
 	void Initialize() override;
 	void Update() override;

@@ -2,19 +2,10 @@
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
+#include "Level/Public/Level.h"
 #include <shobjidl.h>
 
-#include <algorithm>
-#include "Level/Public/Level.h"
-
-
-
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
-
-UMainBarWidget::UMainBarWidget()
-	: UWidget("MainBarWidget")
-{
-}
 
 /**
  * @brief MainBarWidget 초기화 함수

@@ -21,7 +21,7 @@
 #include "Render/RenderPass/Public/DecalPass.h"
 #include "Render/RenderPass/Public/FXAAPass.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
+IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
 URenderer::URenderer() = default;
 

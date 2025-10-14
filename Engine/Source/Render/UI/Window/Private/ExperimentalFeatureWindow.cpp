@@ -4,6 +4,8 @@
 #include "Render/UI/Widget/Public/InputInformationWidget.h"
 #include "Render/UI/Widget/Public/SceneIOWidget.h"
 
+IMPLEMENT_CLASS(UExperimentalFeatureWindow, UUIWindow)
+
 /**
  * @brief Window Constructor
  */
@@ -23,8 +25,8 @@ UExperimentalFeatureWindow::UExperimentalFeatureWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new UInputInformationWidget);
-	AddWidget(new USceneIOWidget);
+	AddWidget(NewObject<UInputInformationWidget>());
+	AddWidget(NewObject<USceneIOWidget>());
 }
 
 /**

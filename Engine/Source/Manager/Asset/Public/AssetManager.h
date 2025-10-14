@@ -10,8 +10,7 @@ struct FAABB;
  * @brief 전역의 On-Memory Asset을 관리하는 매니저 클래스
  */
 UCLASS()
-class UAssetManager
-	: public UObject
+class UAssetManager	: public UObject
 {
 	GENERATED_BODY()
 	DECLARE_SINGLETON_CLASS(UAssetManager, UObject)

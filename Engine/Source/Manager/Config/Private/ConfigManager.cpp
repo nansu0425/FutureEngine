@@ -6,7 +6,7 @@
 
 #include <json.hpp>
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UConfigManager)
+IMPLEMENT_SINGLETON_CLASS(UConfigManager, UObject)
 
 UConfigManager::UConfigManager()
 	: EditorIniFileName("editor.ini")
