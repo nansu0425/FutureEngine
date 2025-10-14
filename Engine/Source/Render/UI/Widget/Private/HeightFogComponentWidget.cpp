@@ -8,12 +8,6 @@
 
 IMPLEMENT_CLASS(UHeightFogComponentWidget, UWidget)
 
-UHeightFogComponentWidget::UHeightFogComponentWidget() : UWidget("Height Fog Component")
-{
-}
-
-UHeightFogComponentWidget::~UHeightFogComponentWidget() = default;
-
 void UHeightFogComponentWidget::Initialize()
 {
 }

@@ -13,8 +13,8 @@ public:
 	void Update() override;
 	void RenderWidget() override;
 
-	UHeightFogComponentWidget();
-	~UHeightFogComponentWidget() override;
+	UHeightFogComponentWidget() = default;
+	~UHeightFogComponentWidget() override = default;
 
 private:
 	UHeightFogComponent* FogComponent{};
