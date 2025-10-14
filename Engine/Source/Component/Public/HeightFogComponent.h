@@ -34,15 +34,15 @@ public:
     
 protected:
     // 안개의 밀도 
-    float FogDensity = 0.02f;
+    float FogDensity = 0.05f;
     // 높이에 따라 안개가 얼마나 빠르게 옅어지는지
     float FogHeightFalloff = 0.01f;
     // 카메라로부터 안개가 시작되는 거리
     float StartDistance = 50.f;
     // 안개 효과 계산을 중단하는 최대 거리
-    float FogCutoffDistance = 2500.f;
+    float FogCutoffDistance = 50000.f;
     // 안개가 최대로 짙어졌을때 최대 불투명도
-    float FogMaxOpacity = 0.85f;
+    float FogMaxOpacity = 0.98f;
 
     // 산란되어 들어오는 빛의 색상
     FVector FogInscatteringColor = {0.5f, 0.5f, 0.5f};

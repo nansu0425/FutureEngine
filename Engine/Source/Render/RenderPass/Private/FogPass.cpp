@@ -79,4 +79,5 @@ void FFogPass::Release()
 {
     SafeRelease(ConstantBufferFog);
     SafeRelease(ConstantBufferCameraInverse);
+    SafeRelease(ConstantBufferViewportInfo);
 }
