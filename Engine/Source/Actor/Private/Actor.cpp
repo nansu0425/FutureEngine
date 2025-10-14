@@ -252,6 +252,7 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 		RegisterComponent(NewComponent);
 	}
 
+	NewComponent->BeginPlay();
 	return NewComponent;
 }
 

@@ -91,7 +91,13 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 void ULevel::Init()
 {
-	// TEST CODE
+	for (AActor* Actor: LevelActors)
+	{
+		if (Actor)
+		{
+			Actor->BeginPlay();
+		}
+	}
 }
 
 AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSON* ActorJsonData)

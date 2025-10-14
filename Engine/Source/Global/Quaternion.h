@@ -27,5 +27,5 @@ struct FQuaternion
 	FQuaternion Conjugate() const { return FQuaternion(-X, -Y, -Z, W); }
 	FQuaternion Inverse() const { FQuaternion c = Conjugate(); float n = X * X + Y * Y + Z * Z + W * W; return (n > 0) ? FQuaternion(c.X / n, c.Y / n, c.Z / n, c.W / n) : FQuaternion(); }
 	static FVector RotateVector(const FQuaternion& q, const FVector& v);
-	FVector RotateVector(const FVector& v) const;
+	FVector RotateVector(const FVector& V) const;
 };

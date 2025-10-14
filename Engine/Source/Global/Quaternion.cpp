@@ -166,9 +166,10 @@ FVector FQuaternion::RotateVector(const FQuaternion& q, const FVector& v)
 	return FVector(r.X, r.Y, r.Z);
 }
 
-FVector FQuaternion::RotateVector(const FVector& v) const
+FVector FQuaternion::RotateVector(const FVector& V) const
 {
-	FQuaternion p(v.X, v.Y, v.Z, 0.0f);
-	FQuaternion r = (*this) * p * this->Inverse();
-	return FVector(r.X, r.Y, r.Z);
+	const FVector Q(X, Y, Z);
+	const FVector TT = Q.Cross(V) * 2.f;
+	const FVector Result = V + (TT * W) + Q.Cross(TT);
+	return Result;
 }
