@@ -38,7 +38,7 @@ protected:
     // 높이에 따라 안개가 얼마나 빠르게 옅어지는지
     float FogHeightFalloff = 0.01f;
     // 카메라로부터 안개가 시작되는 거리
-    float StartDistance = 50.f;
+    float StartDistance = 1.5f;
     // 안개 효과 계산을 중단하는 최대 거리
     float FogCutoffDistance = 50000.f;
     // 안개가 최대로 짙어졌을때 최대 불투명도
