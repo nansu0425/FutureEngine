@@ -78,8 +78,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	{
 	    // 1. 높이와 거리를 고려한 기본 지수 안개 계산
 	    float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.z);
+			//높을수록 강도 감소
 	    float exponentialFog = 1.0 - exp(-distanceToPixel * heightDensity);
-	
+			//멀수록 1에 가까워짐
+		
 	    // 2. StartDistance까지 선형으로 안개를 보간해주는 페이드인 계수 계산
 	    float fadeInFactor = saturate(distanceToPixel / StartDistance);
 	
