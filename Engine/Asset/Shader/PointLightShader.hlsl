@@ -129,7 +129,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 finalLighting = diffuse + specular;
 
     // Additive blending
-    float3 result = baseColor.rgb + finalLighting;
+    float3 result = finalLighting;
 
     return float4(result, 1.0f);
 }

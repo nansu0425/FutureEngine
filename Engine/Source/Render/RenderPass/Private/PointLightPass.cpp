@@ -11,10 +11,6 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
         : FRenderPass(InPipeline, nullptr, nullptr), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS), BS(InBS)
 {
     FNormalVertex NormalVertices[3] = {};
-    // NormalVertices[0].Position = { -1.0f, -1.0f, 0.0f };
-    // NormalVertices[1].Position = { 3.0f, -1.0f, 0.0f };
-    // NormalVertices[2].Position = { -1.0f, 3.0f, 0.0f };
-    
     NormalVertices[0].Position = { -1.0f, -1.0f, 0.0f };
     NormalVertices[1].Position = { 3.0f, -1.0f, 0.0f };
     NormalVertices[2].Position = { -1.0f, 3.0f, 0.0f };
@@ -73,10 +69,9 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         Pipeline->SetConstantBuffer(1, false, ConstantBufferPointLightData);
 
         Pipeline->Draw(3, 0);
-
-        ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
-        Pipeline->SetRenderTargets(1, RTVs, DSV);
     }
+    ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
+    Pipeline->SetRenderTargets(1, RTVs, DSV);
 }
 
 void FPointLightPass::Release()

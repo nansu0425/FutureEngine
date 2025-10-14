@@ -53,15 +53,15 @@ void URenderer::Init(HWND InWindowHandle)
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(DecalPass);
 
+	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, PointLightInputLayout, DisabledDepthStencilState, AdditiveBlendState);
+	RenderPasses.push_back(PointLightPass);
+	
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(BillboardPass);
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
-
-	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, PointLightInputLayout, DisabledDepthStencilState, AdditiveBlendState);
-	RenderPasses.push_back(PointLightPass);
 }
 
 void URenderer::Release()
@@ -236,12 +236,12 @@ void URenderer::Update()
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
 		{
-			TIME_PROFILE(RenderEditor)
-			GEditor->GetEditorModule()->RenderEditor();
-		}
-		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(CurrentCamera);
+		}
+		{
+			TIME_PROFILE(RenderEditor)
+			GEditor->GetEditorModule()->RenderEditor();
 		}
 		// Gizmo는 최종적으로 렌더
 		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
