@@ -380,6 +380,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 
 	DeviceResources->ReleaseFrameBuffer();
 	DeviceResources->ReleaseDepthBuffer();
+	DeviceResources->ReleaseNormalBuffer();
 	GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
 	if (FAILED(GetSwapChain()->ResizeBuffers(2, InWidth, InHeight, DXGI_FORMAT_UNKNOWN, 0)))
@@ -391,6 +392,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	DeviceResources->UpdateViewport();
 	DeviceResources->CreateFrameBuffer();
 	DeviceResources->CreateDepthBuffer();
+	DeviceResources->CreateNormalBuffer();
 
 	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
 	ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };

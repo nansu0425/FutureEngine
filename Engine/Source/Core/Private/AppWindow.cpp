@@ -127,10 +127,21 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 		URenderer::GetInstance().SetIsResizing(true);
 		break;
 	case WM_EXITSIZEMOVE: //드래그 종료
-		URenderer::GetInstance().SetIsResizing(false);
-		URenderer::GetInstance().OnResize();
-		UUIManager::GetInstance().RepositionImGuiWindows();
-		break;
+		{
+			URenderer::GetInstance().SetIsResizing(false);
+			RECT ClientRect{};
+			if (GetClientRect(InWindowHandle, &ClientRect))
+			{
+				const uint32 NewWidth = static_cast<uint32>(ClientRect.right - ClientRect.left);
+				const uint32 NewHeight = static_cast<uint32>(ClientRect.bottom - ClientRect.top);
+				if (NewWidth > 0 && NewHeight > 0)
+				{
+					URenderer::GetInstance().OnResize(NewWidth, NewHeight);
+					UUIManager::GetInstance().RepositionImGuiWindows();
+				}
+			}
+			break;
+		}
 	case WM_SIZE:
 		if (InWParam != SIZE_MINIMIZED)
 		{
