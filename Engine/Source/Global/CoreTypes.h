@@ -13,9 +13,9 @@
 //	uint32 BoundingBoxStartIndex; // 인덱스 버퍼에서, 바운딩박스가 시작되는 인덱스
 //};
 
-struct FViewProjConstants
+struct FCameraConstants
 {
-	FViewProjConstants()
+	FCameraConstants() : NearClip(0), FarClip(0)
 	{
 		View = FMatrix::Identity();
 		Projection = FMatrix::Identity();
@@ -23,6 +23,9 @@ struct FViewProjConstants
 
 	FMatrix View;
 	FMatrix Projection;
+	FVector ViewWorldLocation;    
+	float NearClip;
+	float FarClip;
 };
 
 #define HAS_DIFFUSE_MAP	 (1 << 0)

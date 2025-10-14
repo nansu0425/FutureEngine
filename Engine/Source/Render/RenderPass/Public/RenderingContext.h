@@ -2,11 +2,10 @@
 
 struct FRenderingContext
 {
-    FRenderingContext(){}
-    FRenderingContext(const FViewProjConstants* InViewProj, class UCamera* InCurrentCamera, EViewModeIndex InViewMode, uint64 InShowFlags)
+    FRenderingContext(const FCameraConstants* InViewProj, class UCamera* InCurrentCamera, EViewModeIndex InViewMode, uint64 InShowFlags)
         : ViewProjConstants(InViewProj), CurrentCamera(InCurrentCamera), ViewMode(InViewMode), ShowFlags(InShowFlags) {}
     
-    const FViewProjConstants* ViewProjConstants;
+    const FCameraConstants* ViewProjConstants;
     UCamera* CurrentCamera;
     EViewModeIndex ViewMode;
     uint64 ShowFlags;

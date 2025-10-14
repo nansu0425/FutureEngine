@@ -130,8 +130,8 @@ namespace
     }
 }
 
-FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
-    : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
+FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
+    : FRenderPass(InPipeline, InConstantBufferCamera, nullptr),
     VS(InVS), PS(InPS), InputLayout(InLayout), DS_Read(InDS_Read), BlendState(InBlendState)
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
@@ -142,13 +142,13 @@ void FDecalPass::Execute(FRenderingContext& Context)
 {
 	TIME_PROFILE(DecalPass)
 
-    if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) return;
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal) || (Context.ViewMode == EViewModeIndex::VMI_SceneDepth)) return;
     
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
     Pipeline->UpdatePipeline(PipelineInfo);
-    Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+    Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
 
     // --- Decals Stats ---
     uint32 RenderedDecal = 0;

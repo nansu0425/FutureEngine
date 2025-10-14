@@ -152,8 +152,8 @@ void URenderer::CreateTextureShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/TextureShader.hlsl", TextureLayout, &TextureVertexShader, &TextureInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TextureShader.hlsl", &TexturePixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/TextureVS.hlsl", TextureLayout, &TextureVertexShader, &TextureInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TexturePS.hlsl", &TexturePixelShader);
 }
 
 void URenderer::CreateDecalShader()
@@ -309,7 +309,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	// 오클루전 컬링
 	TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
-	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
+	const FCameraConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
 	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
 	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
 	// Culler.PerformCulling(
@@ -426,7 +426,7 @@ void URenderer::CreateConstantBuffers()
 {
 	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
-	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FViewProjConstants>();
+	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
 }
 
 
