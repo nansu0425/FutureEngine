@@ -22,6 +22,10 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
 	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
 	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// Set a default sampler to slot 0 to ensure one is always bound
+	Pipeline->SetSamplerState(0, false, URenderer::GetInstance().GetDefaultSampler());
+
 	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 	

@@ -5,12 +5,13 @@
 
 struct FFogConstants
 {
-    FVector FogColor;
+    FVector4 FogColor;
     float FogDensity;
     float FogHeightFalloff;
     float StartDistance;
     float FogCutoffDistance;
     float FogMaxOpacity;
+    float Padding[3];
 };
 
 struct FCameraInverseConstants
@@ -19,7 +20,7 @@ struct FCameraInverseConstants
     FMatrix ProjectionInverse;
 };
 
-struct FVIewportConstants
+struct FViewportConstants
 {
     FVector2 ViewportOffset;
     FVector2 RenderTargetSize;

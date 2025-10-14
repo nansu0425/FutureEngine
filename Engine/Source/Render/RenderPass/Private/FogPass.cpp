@@ -13,7 +13,7 @@ FFogPass::FFogPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj
 {
     ConstantBufferFog = FRenderResourceFactory::CreateConstantBuffer<FFogConstants>();
     ConstantBufferCameraInverse = FRenderResourceFactory::CreateConstantBuffer<FCameraInverseConstants>();
-    ConstantBufferViewportInfo = FRenderResourceFactory::CreateConstantBuffer<FVIewportConstants>();
+    ConstantBufferViewportInfo = FRenderResourceFactory::CreateConstantBuffer<FViewportConstants>();
 }
 
 void FFogPass::Execute(FRenderingContext& Context)
@@ -22,6 +22,14 @@ void FFogPass::Execute(FRenderingContext& Context)
 
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Fog)) return;
 
+    //--- Get Renderer Singleton ---//
+    URenderer& Renderer = URenderer::GetInstance();
+
+    //--- Detatch DSV from GPU ---//
+    auto* RTV = Renderer.GetDeviceResources()->GetRenderTargetView();
+    auto* DSV = Renderer.GetDeviceResources()->GetDepthStencilView();
+    Renderer.GetDeviceContext()->OMSetRenderTargets(1, &RTV, nullptr);
+    
     // --- Set Pipeline State --- //
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
@@ -30,13 +38,11 @@ void FFogPass::Execute(FRenderingContext& Context)
     // --- Draw Fog --- //
     for (UHeightFogComponent* Fog : Context.Fogs)
     {
-        // Get Renderer Singleton
-        URenderer& Renderer = URenderer::GetInstance();
-
         // Update Fog Constant Buffer (Slot 0)
         FFogConstants FogConstant;
-        FogConstant.FogColor = Fog->GetFogInscatteringColor();
-        FogConstant.FogDensity = Fog->GetFogDenisity();
+        FVector color3 = Fog->GetFogInscatteringColor();
+        FogConstant.FogColor = FVector4(color3.X, color3.Y, color3.Z, 1.0f);
+        FogConstant.FogDensity = Fog->GetFogDensity();
         FogConstant.FogHeightFalloff = Fog->GetFogHeightFalloff();
         FogConstant.StartDistance = Fog->GetStartDistance();
         FogConstant.FogCutoffDistance = Fog->GetFogCutoffDistance();
@@ -53,7 +59,7 @@ void FFogPass::Execute(FRenderingContext& Context)
         Pipeline->SetConstantBuffer(1, false, ConstantBufferCameraInverse);
 
         // Update ViewportInfo Constant Buffer (Slot 2)
-        FVIewportConstants ViewportConstants;
+        FViewportConstants ViewportConstants;
         ViewportConstants.ViewportOffset = { Context.Viewport.TopLeftX, Context.Viewport.TopLeftY };
         ViewportConstants.RenderTargetSize = { Context.RenderTargetSize.X, Context.RenderTargetSize.Y };
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewportInfo, ViewportConstants);
@@ -65,6 +71,10 @@ void FFogPass::Execute(FRenderingContext& Context)
 
         Pipeline->Draw(3,0);
     }
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    Pipeline->SetTexture(0, false, nullSRV);
+    
+    Renderer.GetDeviceContext()->OMSetRenderTargets(1, &RTV, DSV);
 }
 
 void FFogPass::Release()

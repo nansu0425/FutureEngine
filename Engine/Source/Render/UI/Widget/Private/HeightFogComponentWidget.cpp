@@ -42,15 +42,15 @@ void UHeightFogComponentWidget::RenderWidget()
     ImGui::PushItemWidth(150.0f);
 
     // FogDensity
-    float density = FogComponent->GetFogDenisity();
-    if (ImGui::InputFloat("Fog Density", &density, 0.01f, 0.1f, "%.3f"))
+    float density = FogComponent->GetFogDensity();
+    if (ImGui::SliderFloat("Fog Density", &density, 0.0f, 1.0f, "%.3f"))
     {
-        FogComponent->SetFogDenisity(density);
+        FogComponent->SetFogDensity(density);
     }
 
     // FogHeightFalloff
     float heightFalloff = FogComponent->GetFogHeightFalloff();
-    if (ImGui::InputFloat("Height Falloff", &heightFalloff, 0.01f, 0.1f, "%.3f"))
+    if (ImGui::SliderFloat("Height Falloff", &heightFalloff, 0.0f, 5.0f, "%.3f"))
     {
         FogComponent->SetFogHeightFalloff(heightFalloff);
     }

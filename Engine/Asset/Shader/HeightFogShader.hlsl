@@ -1,6 +1,6 @@
 cbuffer FogConstant : register(b0)
 {
-	float3 FogColor;
+	float4 FogColor;
 	float FogDensity;
 	float FogHeightFalloff;
 	float StartDistance;
@@ -65,10 +65,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	//절대 좌표 => depth 값 가져오기 위한 UV 좌표 생성
 	float2 UV = absPixelPos / RenderTargetSize;
 	float depth = DepthTexture.Sample(DepthSampler, UV);
-
-	if (depth >= 1.f)
-		discard;
-
+	
 	//ndc 좌표 변환 => [0, 1] => [-1, 1]
 	float2 ndcXY = UV * 2.f - 1.f;
 	ndcXY.y = - ndcXY.y;
@@ -103,5 +100,5 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     //최종 값 보정
     fogOpacity = saturate(fogOpacity) * FogMaxOpacity;
 
-	return float4(FogColor, fogOpacity);
+	return float4(FogColor.xyz, fogOpacity);
 }
