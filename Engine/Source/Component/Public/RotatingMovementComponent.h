@@ -14,6 +14,6 @@ public:
 
 public:
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+	UObject* Duplicate() override;
 	UClass* GetSpecificWidgetClass() const override;
-
 };

@@ -48,6 +48,16 @@ void URotatingMovementComponent::Serialize(const bool bInIsLoading, JSON& InOutH
 	}
 }
 
+UObject* URotatingMovementComponent::Duplicate()
+{
+	URotatingMovementComponent* RotatingMovementComponent = Cast<URotatingMovementComponent>(Super::Duplicate());
+	RotatingMovementComponent->bRotationInLocalSpace = bRotationInLocalSpace;
+	RotatingMovementComponent->RotationRate = RotationRate;
+	RotatingMovementComponent->PivotTranslation = PivotTranslation;
+
+	return RotatingMovementComponent;
+}
+
 UClass* URotatingMovementComponent::GetSpecificWidgetClass() const
 {
     return URotatingMovementComponentWidget::StaticClass();
