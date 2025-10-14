@@ -33,8 +33,9 @@ private:
 
 	// Helper functions
 	void RenderActorHeader(AActor* InSelectedActor);
-	void RenderComponentTree(AActor* InSelectedActor);
-	void RenderComponentNodeRecursive(UActorComponent* InComponent);
+	void RenderComponents(AActor* InSelectedActor);
+	void RenderSceneComponents(USceneComponent* InSceneComponent);
+	void RenderActorComponent(UActorComponent* InActorComponent);
 	void RenderAddComponentButton(AActor* InSelectedActor);
 	bool CenteredSelectable(const char* label);
 	void AddComponentByName(AActor* InSelectedActor, const FString& InComponentName);
