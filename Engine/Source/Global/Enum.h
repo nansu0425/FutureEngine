@@ -102,25 +102,6 @@ enum class EShaderType : uint8
 };
 
 /**
- * @brief Component Type Enum
- */
-enum class EComponentType : uint8
-{
-	None = 0,
-
-	Actor,
-	//ActorComponent Dervied Type
-
-	Scene,
-	//SceneComponent Dervied Type
-
-	Primitive,
-	//PrimitiveComponent Derived Type
-
-	End = 0xFF
-};
-
-/**
  * @brief UObject Primitive Type Enum
  */
 UENUM()

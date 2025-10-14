@@ -9,7 +9,6 @@ IMPLEMENT_CLASS(UPrimitiveComponent, USceneComponent)
 
 UPrimitiveComponent::UPrimitiveComponent()
 {
-	ComponentType = EComponentType::Primitive;
 	bCanEverTick = true;
 }
 

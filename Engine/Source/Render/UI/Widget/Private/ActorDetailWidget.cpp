@@ -339,11 +339,11 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 {
 	ImGui::SameLine();
 
-	const char* buttonText = "[+]";
-	float buttonWidth = ImGui::CalcTextSize(buttonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - buttonWidth);
+	const char* ButtonText = "[+]";
+	float ButtonWidth = ImGui::CalcTextSize(ButtonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - ButtonWidth);
 
-	if (ImGui::Button(buttonText))
+	if (ImGui::Button(ButtonText))
 	{
 		ImGui::OpenPopup("AddComponentPopup");
 	}
@@ -632,7 +632,10 @@ void UActorDetailWidget::SetSelectedComponent(UActorComponent* InComponent)
 void UActorDetailWidget::LoadComponentClasses()
 {
 	for (UClass* Class : UClass::FindClasses(UActorComponent::StaticClass()))
-	{ 
-		ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
+	{
+		if (!Class->IsAbstract())
+		{
+			ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
+		}
 	}
 }

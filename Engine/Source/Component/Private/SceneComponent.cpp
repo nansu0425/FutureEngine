@@ -12,7 +12,6 @@ IMPLEMENT_CLASS(USceneComponent, UActorComponent)
 
 USceneComponent::USceneComponent()
 {
-	ComponentType = EComponentType::Scene;
 }
 
 void USceneComponent::BeginPlay()
