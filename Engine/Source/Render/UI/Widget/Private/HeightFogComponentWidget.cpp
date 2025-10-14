@@ -37,35 +37,35 @@ void UHeightFogComponentWidget::RenderWidget()
 
     // FogDensity
     float density = FogComponent->GetFogDensity();
-    if (ImGui::SliderFloat("Fog Density", &density, 0.0f, 1.0f, "%.3f"))
+    if (ImGui::DragFloat("Fog Density", &density, 0.001f, 0.0f, 1.0f, "%.3f"))
     {
         FogComponent->SetFogDensity(density);
     }
 
     // FogHeightFalloff
     float heightFalloff = FogComponent->GetFogHeightFalloff();
-    if (ImGui::SliderFloat("Height Falloff", &heightFalloff, 0.0f, 5.0f, "%.3f"))
+    if (ImGui::DragFloat("Height Falloff", &heightFalloff, 0.001f, 0.0f, 1.0f, "%.3f"))
     {
         FogComponent->SetFogHeightFalloff(heightFalloff);
     }
 
     // StartDistance
     float startDistance = FogComponent->GetStartDistance();
-    if (ImGui::InputFloat("Start Distance", &startDistance, 1.0f, 10.0f, "%.1f"))
+    if (ImGui::DragFloat("Start Distance", &startDistance, 0.5f, 0.0f, FLT_MAX, "%.1f"))
     {
         FogComponent->SetStartDistance(startDistance);
     }
 
     // FogCutoffDistance
     float cutoffDistance = FogComponent->GetFogCutoffDistance();
-    if (ImGui::InputFloat("Cutoff Distance", &cutoffDistance, 1.0f, 10.0f, "%.1f"))
+    if (ImGui::DragFloat("Cutoff Distance", &cutoffDistance, 10.0f, 0.0f, FLT_MAX, "%.1f"))
     {
         FogComponent->SetFogCutoffDistance(cutoffDistance);
     }
 
     // FogMaxOpacity
     float maxOpacity = FogComponent->GetFogMaxOpacity();
-    if (ImGui::SliderFloat("Max Opacity", &maxOpacity, 0.0f, 1.0f, "%.2f"))
+    if (ImGui::DragFloat("Max Opacity", &maxOpacity, 0.01f, 0.0f, 1.0f, "%.2f"))
     {
         FogComponent->SetFogMaxOpacity(maxOpacity);
     }
