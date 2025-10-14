@@ -23,7 +23,7 @@ private:
     static TArray<UClass*>& GetAllClasses();
     
 public:
-    UClass(const FName& InName, UClass* InSuperClass, size_t InClassSize, ClassConstructorType InConstructor);
+    UClass(const FName& InName, UClass* InSuperClass, size_t InClassSize, ClassConstructorType InConstructor, bool InIsAbstract = false);
 
     // Getter
     const FName& GetName() const { return ClassName; }
@@ -33,12 +33,14 @@ public:
     bool IsChildOf(UClass* InClass) const;
     UObject* CreateDefaultObject() const;
 
+    bool IsAbstract() const { return bIsAbstract; }
 
 private:
     FName ClassName;
     UClass* SuperClass;
     size_t ClassSize;
     ClassConstructorType Constructor;
+    bool bIsAbstract;
 };
 
 /**
@@ -96,7 +98,8 @@ UClass* ClassName::StaticClass() \
         FString(#ClassName), \
         SuperClassName::StaticClass(), \
         sizeof(ClassName), \
-        nullptr \
+        nullptr, \
+        true \
     ); \
     UClass::SignUpClass(&Instance); \
     return &Instance; \
