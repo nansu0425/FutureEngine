@@ -9,6 +9,7 @@ using JSON = json::JSON;
 class UWorld;
 class AActor;
 class UPrimitiveComponent;
+class UPointLightComponent;
 class FOctree;
 
 UCLASS()
@@ -28,9 +29,9 @@ public:
 
 	const TArray<AActor*>& GetLevelActors() const { return LevelActors; }
 
-	void AddLevelPrimitiveComponent(AActor* Actor);
+	void AddLevelComponent(AActor* Actor);
 
-	void RegisterPrimitiveComponent(UPrimitiveComponent* InComponent);
+	void RegisterComponent(UActorComponent* InComponent);
 	void UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent);
 	bool DestroyActor(AActor* InActor);
 
@@ -60,6 +61,21 @@ public:
 protected:
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 
+private:
+	AActor* SpawnActorToLevel(UClass* InActorClass, const FName& InName = FName::GetNone(), JSON* ActorJsonData = nullptr);
+
+	TArray<AActor*> LevelActors;	// 레벨이 보유하고 있는 모든 Actor를 배열로 저장합니다.
+
+	// 지연 삭제를 위한 리스트
+	TArray<AActor*> ActorsToDelete;
+
+	uint64 ShowFlags =
+		static_cast<uint64>(EEngineShowFlags::SF_Billboard) |
+		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
+		static_cast<uint64>(EEngineShowFlags::SF_StaticMesh) |
+		static_cast<uint64>(EEngineShowFlags::SF_Text) |
+		static_cast<uint64>(EEngineShowFlags::SF_Decal);
+	
 	/*-----------------------------------------------------------------------------
 		Octree Management
 	-----------------------------------------------------------------------------*/
@@ -99,19 +115,13 @@ private:
 
 	/** @brief 각 UPrimitiveComponent가 움직인 가장 마지막 시간을 기록 */
 	TMap<UPrimitiveComponent*, float> DynamicPrimitiveMap;
+	
+	/*-----------------------------------------------------------------------------
+		Lighting Management
+	-----------------------------------------------------------------------------*/
+public:
+	const TArray<UPointLightComponent*>& GetPointLights() const { return PointLights; } 
 
 private:
-	AActor* SpawnActorToLevel(UClass* InActorClass, const FName& InName = FName::GetNone(), JSON* ActorJsonData = nullptr);
-
-	TArray<AActor*> LevelActors;	// 레벨이 보유하고 있는 모든 Actor를 배열로 저장합니다.
-
-	// 지연 삭제를 위한 리스트
-	TArray<AActor*> ActorsToDelete;
-
-	uint64 ShowFlags =
-		static_cast<uint64>(EEngineShowFlags::SF_Billboard) |
-		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
-		static_cast<uint64>(EEngineShowFlags::SF_StaticMesh) |
-		static_cast<uint64>(EEngineShowFlags::SF_Text) |
-		static_cast<uint64>(EEngineShowFlags::SF_Decal);
+	TArray<UPointLightComponent*> PointLights;
 };

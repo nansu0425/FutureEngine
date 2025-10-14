@@ -264,10 +264,7 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 
 	OwnedComponents.push_back(InNewComponent);
 
-	if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InNewComponent))
-	{
-		GWorld->GetLevel()->RegisterPrimitiveComponent(PrimitiveComponent);
-	}
+	GWorld->GetLevel()->RegisterComponent(InNewComponent);
 }
 
 bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldDetachChildren)

@@ -40,6 +40,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
+	CreatePointLightShader();
 	CreateConstantBuffers();
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
@@ -59,7 +60,7 @@ void URenderer::Init(HWND InWindowHandle)
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
 
-	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, PointLightInputLayout, DisabledDepthStencilState, AdditiveBlendState);
 	RenderPasses.push_back(PointLightPass);
 }
 
@@ -120,6 +121,18 @@ void URenderer::CreateBlendState()
     BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     GetDevice()->CreateBlendState(&BlendDesc, &AlphaBlendState);
+
+    // Additive Blending
+    D3D11_BLEND_DESC AdditiveBlendDesc = {};
+    AdditiveBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+    AdditiveBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    AdditiveBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+    AdditiveBlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    AdditiveBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    AdditiveBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    AdditiveBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    AdditiveBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    GetDevice()->CreateBlendState(&AdditiveBlendDesc, &AdditiveBlendState);
 }
 
 void URenderer::CreateDefaultShader()
@@ -204,6 +217,7 @@ void URenderer::ReleaseDepthStencilState()
 void URenderer::ReleaseBlendState()
 {
     SafeRelease(AlphaBlendState);
+	SafeRelease(AdditiveBlendState);
 }
 
 void URenderer::Update()
@@ -300,10 +314,11 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		{
 			RenderingContext.Decals.push_back(Decal);
 		}
-		else if (auto PointLight = Cast<UPointLightComponent>(Prim))
-		{
-			RenderingContext.PointLights.push_back(PointLight);
-		}
+	}
+
+	for (const auto& PointLight : CurrentLevel->GetPointLights())
+	{
+		RenderingContext.PointLights.push_back(PointLight);
 	}
 
 	for (auto RenderPass: RenderPasses)

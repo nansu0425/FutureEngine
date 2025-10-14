@@ -74,6 +74,7 @@ private:
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11BlendState* AlphaBlendState = nullptr;
+	ID3D11BlendState* AdditiveBlendState = nullptr;
 
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;

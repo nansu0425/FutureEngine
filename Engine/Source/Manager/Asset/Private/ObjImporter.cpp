@@ -96,7 +96,14 @@ bool FObjImporter::LoadObj(const std::filesystem::path& FilePath, FObjInfo* OutO
 				return false;
 			}
 
-			OutObjInfo->NormalList.emplace_back(Normal);
+			if (Config.bNormalToUEBasis)
+			{
+				OutObjInfo->NormalList.emplace_back(NormalToUEBasis(Normal));
+			}
+			else
+			{
+				OutObjInfo->NormalList.emplace_back(Normal);
+			}
 		}
 		/** Texture Coordinate */
 		else if (Prefix == "vt")

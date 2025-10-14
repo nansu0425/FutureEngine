@@ -7,7 +7,10 @@ struct FPointLightPerFrame
     FMatrix InvView;
     FMatrix InvProjection;
     FVector CameraLocation;
-    float Padding;
+    float Padding; // Aligns CameraLocation to 16 bytes
+    FVector4 Viewport;
+    FVector2 RenderTargetSize;
+    FVector2 Padding2; // Aligns the whole struct to a multiple of 16 bytes
 };
 
 struct FPointLightData

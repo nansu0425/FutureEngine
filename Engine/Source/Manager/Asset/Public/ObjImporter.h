@@ -156,6 +156,7 @@ struct FObjImporter
 		bool bIsBinaryEnabled = false;
 		bool bFlipWindingOrder = false;
 		bool bPositionToUEBasis = true;
+		bool bNormalToUEBasis = true;
 		bool bUVToUEBasis = true;
 		// ...
 	};
@@ -189,6 +190,11 @@ private:
 	static bool ParseFaceBuffer(const FString& FaceBuffer, FObjectInfo* OutObjectInfo);
 
 	static FVector PositionToUEBasis(const FVector& InVector)
+	{
+		return FVector(InVector.X, -InVector.Y, InVector.Z);
+	}
+
+	static FVector NormalToUEBasis(const FVector& InVector)
 	{
 		return FVector(InVector.X, -InVector.Y, InVector.Z);
 	}

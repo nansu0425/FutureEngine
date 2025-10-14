@@ -11,9 +11,13 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
         : FRenderPass(InPipeline, nullptr, nullptr), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS), BS(InBS)
 {
     FNormalVertex NormalVertices[3] = {};
+    // NormalVertices[0].Position = { -1.0f, -1.0f, 0.0f };
+    // NormalVertices[1].Position = { 3.0f, -1.0f, 0.0f };
+    // NormalVertices[2].Position = { -1.0f, 3.0f, 0.0f };
+    
     NormalVertices[0].Position = { -1.0f, -1.0f, 0.0f };
-    NormalVertices[1].Position = { 2.0f, -1.0f, 0.0f };
-    NormalVertices[2].Position = { -1.0f, 2.0f, 0.0f };
+    NormalVertices[1].Position = { 3.0f, -1.0f, 0.0f };
+    NormalVertices[2].Position = { -1.0f, 3.0f, 0.0f };
     
     VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(NormalVertices, sizeof(NormalVertices));
     ConstantBufferPerFrame = FRenderResourceFactory::CreateConstantBuffer<FPointLightPerFrame>();
@@ -23,15 +27,16 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
 
 void FPointLightPass::Execute(FRenderingContext& Context)
 {
-    TIME_PROFILE(PointLightPass)
-
-    auto RS = FRenderResourceFactory::GetRasterizerState( { ECullMode::None, EFillMode::Solid });
+    const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
+    
+    ID3D11RenderTargetView* RTVs[1] = { DeviceResources->GetRenderTargetView() };
+    Pipeline->SetRenderTargets(1, RTVs, nullptr);
+    auto RS = FRenderResourceFactory::GetRasterizerState( { ECullMode::None, EFillMode::Solid }); 
 
     FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, BS };
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetVertexBuffer(VertexBuffer, sizeof(FNormalVertex));
 
-    const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
     Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
     Pipeline->SetTexture(1, false, DeviceResources->GetNormalSRV());
     Pipeline->SetTexture(2, false, DeviceResources->GetDepthSRV());
@@ -45,9 +50,14 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         auto ViewProjConstantsInverse = Context.CurrentCamera->GetFViewProjConstantsInverse();
         
         FPointLightPerFrame PointLightPerFrame = {};
-        PointLightPerFrame.InvView = ViewProjConstantsInverse.View;;
+        PointLightPerFrame.InvView = ViewProjConstantsInverse.View;
         PointLightPerFrame.InvProjection = ViewProjConstantsInverse.Projection;
         PointLightPerFrame.CameraLocation = Context.CurrentCamera->GetLocation();
+
+        const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
+        const D3D11_VIEWPORT& ViewportInfo = DeviceResources->GetViewportInfo();
+        PointLightPerFrame.Viewport = FVector4(ViewportInfo.TopLeftX, ViewportInfo.TopLeftY, ViewportInfo.Width, ViewportInfo.Height);
+        PointLightPerFrame.RenderTargetSize = FVector2(static_cast<float>(DeviceResources->GetWidth()), static_cast<float>(DeviceResources->GetHeight()));
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPerFrame, PointLightPerFrame);
         Pipeline->SetConstantBuffer(0, false, ConstantBufferPerFrame);
@@ -63,6 +73,9 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         Pipeline->SetConstantBuffer(1, false, ConstantBufferPointLightData);
 
         Pipeline->Draw(3, 0);
+
+        ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
+        Pipeline->SetRenderTargets(1, RTVs, DSV);
     }
 }
 

@@ -20,6 +20,7 @@ void UDeviceResources::Create(HWND InWindowHandle)
 
 	CreateDeviceAndSwapChain(InWindowHandle);
 	CreateFrameBuffer();
+	CreateNormalBuffer();
 	CreateDepthBuffer();
 	CreateFactories();
 }
@@ -28,6 +29,7 @@ void UDeviceResources::Release()
 {
 	ReleaseFactories();
 	ReleaseFrameBuffer();
+	ReleaseNormalBuffer();
 	ReleaseDepthBuffer();
 	ReleaseDeviceAndSwapChain();
 }

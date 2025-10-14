@@ -18,6 +18,11 @@ class ULightComponent : public USceneComponent
 {
     GENERATED_BODY()
     DECLARE_CLASS(ULightComponent, USceneComponent)
+
+public:
+    ULightComponent() = default;
+
+    virtual ~ULightComponent() = default;
     
     /*-----------------------------------------------------------------------------
         UObject Features
@@ -74,11 +79,11 @@ public:
 
 private:
     /** Total energy that the light emits. */
-    float Intensity;
+    float Intensity = 5.0f;
 
     /**
      * Filter color of the light.
      * @todo Change type of this variable into FLinearColor
      */
-    FVector LightColor;
+    FVector LightColor = { 1.0f, 1.0f, 1.0f };
 };

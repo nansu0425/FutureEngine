@@ -3,4 +3,3 @@
 #include "Component/Public/LightComponent.h"
 
 IMPLEMENT_CLASS(ULightComponent, USceneComponent)
-

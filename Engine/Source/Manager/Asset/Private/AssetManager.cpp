@@ -140,8 +140,9 @@ void UAssetManager::LoadAllObjStaticMesh()
 	FObjImporter::Configuration Config;
 	Config.bFlipWindingOrder = false;
 	Config.bIsBinaryEnabled = true;
-	Config.bUVToUEBasis = true;
 	Config.bPositionToUEBasis = true;
+	Config.bNormalToUEBasis = true;
+	Config.bUVToUEBasis = true;
 
 	// 범위 기반 for문을 사용하여 배열의 모든 요소를 순회합니다.
 	for (const FName& ObjPath : ObjList)

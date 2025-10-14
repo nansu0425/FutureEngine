@@ -1,14 +1,16 @@
 #include "pch.h"
-#include "Level/Public/Level.h"
-#include "Component/Public/PrimitiveComponent.h"
-#include "Editor/Public/Editor.h"
 #include "Actor/Public/Actor.h"
+#include "Component/Public/LightComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/PointLightComponent.h"
 #include "Core/Public/Object.h"
+#include "Editor/Public/Editor.h"
+#include "Editor/Public/Viewport.h"
+#include "Global/Octree.h"
+#include "Level/Public/Level.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Editor/Public/Viewport.h"
 #include "Utility/Public/JsonSerializer.h"
-#include "Global/Octree.h"
 #include <json.hpp>
 
 IMPLEMENT_CLASS(ULevel, UObject)
@@ -124,14 +126,14 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 			NewActor->InitializeComponents();
 		}
 		NewActor->BeginPlay();
-		AddLevelPrimitiveComponent(NewActor);
+		AddLevelComponent(NewActor);
 		return NewActor;
 	}
 
 	return nullptr;
 }
 
-void ULevel::RegisterPrimitiveComponent(UPrimitiveComponent* InComponent)
+void ULevel::RegisterComponent(UActorComponent* InComponent)
 {
 	if (!InComponent)
 	{
@@ -143,11 +145,18 @@ void ULevel::RegisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 		return;
 	}
 
-	// StaticOctree에 먼저 삽입 시도
-	if (!(StaticOctree->Insert(InComponent)))
+	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(InComponent))
 	{
-		// 실패하면 DynamicPrimitiveQueue 목록에 추가
-		OnPrimitiveUpdated(InComponent);
+		// StaticOctree에 먼저 삽입 시도
+		if (!(StaticOctree->Insert(PrimitiveComponent)))
+		{
+			// 실패하면 DynamicPrimitiveQueue 목록에 추가
+			OnPrimitiveUpdated(PrimitiveComponent);
+		}
+	}
+	else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
+	{
+		PointLights.push_back(PointLightComponent);
 	}
 
 	UE_LOG("Level: '%s' 컴포넌트를 씬에 등록했습니다.", InComponent->GetName().ToString().data());
@@ -171,7 +180,7 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	OnPrimitiveUnregistered(InComponent);
 }
 
-void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
+void ULevel::AddLevelComponent(AActor* Actor)
 {
 	if (!Actor)
 	{
@@ -180,8 +189,14 @@ void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
 
 	for (auto& Component : Actor->GetOwnedComponents())
 	{
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		OnPrimitiveUpdated(PrimitiveComponent);
+		if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		{
+			OnPrimitiveUpdated(PrimitiveComponent);			
+		}
+		else if (auto PointLightComponent = Cast<UPointLightComponent>(Component))
+		{
+			PointLights.push_back(PointLightComponent);
+		}
 	}
 }
 
@@ -196,9 +211,17 @@ bool ULevel::DestroyActor(AActor* InActor)
 	// 컴포넌트들을 옥트리에서 제거
 	for (auto& Component : InActor->GetOwnedComponents())
 	{
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		
-		UnregisterPrimitiveComponent(PrimitiveComponent);
+		if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		{
+			UnregisterPrimitiveComponent(PrimitiveComponent);
+		}
+		else if (auto PointLightComponent = Cast<UPointLightComponent>(Component))
+		{
+			if (auto It = std::find(PointLights.begin(), PointLights.end(), PointLightComponent); It != PointLights.end())
+			{
+				PointLights.erase(It);
+			}
+		}
 	}
 
 	// LevelActors 리스트에서 제거
@@ -246,7 +269,7 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 	{
 		AActor* DuplicatedActor = Cast<AActor>(Actor->Duplicate());
 		DuplicatedLevel->LevelActors.push_back(DuplicatedActor);
-		DuplicatedLevel->AddLevelPrimitiveComponent(DuplicatedActor);
+		DuplicatedLevel->AddLevelComponent(DuplicatedActor);
 	}
 }
 

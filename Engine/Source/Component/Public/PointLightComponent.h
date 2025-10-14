@@ -7,6 +7,11 @@ class UPointLightComponent : public ULightComponent
 {
     GENERATED_BODY()
     DECLARE_CLASS(UPointLightComponent, ULightComponent)
+
+public:
+    UPointLightComponent() = default;
+
+    virtual ~UPointLightComponent() = default;
     
     /*-----------------------------------------------------------------------------
         UObject Features
@@ -38,7 +43,7 @@ public:
 
     virtual void EndPlay() override { Super::EndPlay(); }
 
-    virtual UClass* GetSpecificWidgetClass() const override;
+    virtual UClass* GetSpecificWidgetClass() const override; 
 
     /*-----------------------------------------------------------------------------
         ULightComponent Features
@@ -67,8 +72,8 @@ private:
      * 2 is almost linear and very unrealistic and around 8 it looks reasonable.
      * With large exponents, the light has contribution to only a small area of its influence radius but still costs the same as low exponents.
      */
-    float LightFalloffExtent;
+    float LightFalloffExtent = 2.0f;
     
     /** Radius of light source shape. */
-    float SourceRadius;
+    float SourceRadius = 10.0f;
 };

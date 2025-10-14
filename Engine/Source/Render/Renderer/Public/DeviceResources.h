@@ -34,6 +34,8 @@ public:
 	ID3D11ShaderResourceView* GetDepthSRV() const { return DepthBufferSRV; }
 
 	const D3D11_VIEWPORT& GetViewportInfo() const { return ViewportInfo; }
+	uint32 GetWidth() const { return Width; }
+	uint32 GetHeight() const { return Height; }
 	void UpdateViewport(float InMenuBarHeight = 0.f);
 
 	// Direct2D/DirectWrite factory getters
