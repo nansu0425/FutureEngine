@@ -3,11 +3,10 @@
 
 #include "Utility/Public/JsonSerializer.h"
 
-IMPLEMENT_CLASS(UActorComponent, UObject)
+IMPLEMENT_ABSTRACT_CLASS(UActorComponent, UObject)
 
-UActorComponent::UActorComponent()
+UActorComponent::UActorComponent() : Owner(nullptr)
 {
-	ComponentType = EComponentType::Actor;
 }
 
 UActorComponent::~UActorComponent()
@@ -68,7 +67,6 @@ UObject* UActorComponent::Duplicate()
 {
 	UActorComponent* ActorComponent = Cast<UActorComponent>(Super::Duplicate());
 	ActorComponent->bCanEverTick = bCanEverTick;
-	ActorComponent->ComponentType = ComponentType;
 	ActorComponent->bIsEditorOnly = bIsEditorOnly;
 	ActorComponent->bIsVisualizationComponent = bIsVisualizationComponent;
 
