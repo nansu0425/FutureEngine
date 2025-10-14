@@ -344,6 +344,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 		}
 
 		// Octree 표시 옵션
+		bool bShowFog = (ShowFlags & EEngineShowFlags::SF_Fog) != 0;
+		if (ImGui::MenuItem("Fog 표시", nullptr, bShowFog))
+		{
+			if (bShowFog)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_Fog);
+				UE_LOG("MainBarWidget: Fog 비표시");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Fog);
+				UE_LOG("MainBarWidget: Fog 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+		
+		// Octree 표시 옵션
 		bool bShowOctree = (ShowFlags & EEngineShowFlags::SF_Octree) != 0;
 		if (ImGui::MenuItem("Octree 표시", nullptr, bShowOctree))
 		{
