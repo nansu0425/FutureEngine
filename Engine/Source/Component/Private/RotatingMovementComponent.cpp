@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "Component/Public/RotatingMovementComponent.h"
-
 #include "Render/UI/Widget/Public/RotatingMovementComponentWidget.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(URotatingMovementComponent, UMovementComponent)
 
@@ -25,6 +25,27 @@ void URotatingMovementComponent::TickComponent(float DeltaTime)
     }
 
     MoveUpdatedComponent(DeltaLocation, NewRotation);
+}
+
+void URotatingMovementComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		FJsonSerializer::ReadVector(InOutHandle, "RotationRate", RotationRate, FVector::ZeroVector());
+		FJsonSerializer::ReadVector(InOutHandle, "PivotTranslation", PivotTranslation, FVector::ZeroVector());
+
+		FString bRotationInLocalSpaceString;
+		FJsonSerializer::ReadString(InOutHandle, "bRotationInLocalSpace", bRotationInLocalSpaceString, "false");
+		bRotationInLocalSpace = bRotationInLocalSpaceString == "true" ? true : false;
+	}
+	else
+	{
+		InOutHandle["RotationRate"] = FJsonSerializer::VectorToJson(RotationRate);
+		InOutHandle["PivotTranslation"] = FJsonSerializer::VectorToJson(PivotTranslation);
+		InOutHandle["bRotationInLocalSpace"] = bRotationInLocalSpace ? "true" : "false";
+	}
 }
 
 UClass* URotatingMovementComponent::GetSpecificWidgetClass() const

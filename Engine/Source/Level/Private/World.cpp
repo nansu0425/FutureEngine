@@ -197,7 +197,7 @@ bool UWorld::SaveCurrentLevel(path InLevelFilePath) const
 	return true;
 }
 
-AActor* UWorld::SpawnActor(UClass* InActorClass, const FName& InName, JSON* ActorJsonData)
+AActor* UWorld::SpawnActor(UClass* InActorClass, JSON* ActorJsonData)
 {
 	if (!Level)
 	{
@@ -205,7 +205,7 @@ AActor* UWorld::SpawnActor(UClass* InActorClass, const FName& InName, JSON* Acto
 		return nullptr;
 	}
 
-	return Level->SpawnActorToLevel(InActorClass, InName, ActorJsonData);
+	return Level->SpawnActorToLevel(InActorClass, ActorJsonData);
 }
 
 /**

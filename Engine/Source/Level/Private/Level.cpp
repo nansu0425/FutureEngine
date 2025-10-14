@@ -54,14 +54,13 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		{
 			for (auto& Pair : ActorsJson.ObjectRange())
 			{
-				const FString& IdString = Pair.first;
 				JSON& ActorDataJson = Pair.second;
 
 				FString TypeString;
 				FJsonSerializer::ReadString(ActorDataJson, "Type", TypeString);
 				
 				UClass* ActorClass = UClass::FindClass(TypeString);
-				AActor* NewActor = SpawnActorToLevel(ActorClass, IdString, &ActorDataJson); 
+				SpawnActorToLevel(ActorClass, &ActorDataJson); 
 			}
 		}
 	}
@@ -100,7 +99,7 @@ void ULevel::Init()
 	}
 }
 
-AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSON* ActorJsonData)
+AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, JSON* ActorJsonData)
 {
 	if (!InActorClass)
 	{
@@ -110,10 +109,6 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 	AActor* NewActor = Cast<AActor>(NewObject(InActorClass));
 	if (NewActor)
 	{
-		if (!InName.IsNone())
-		{
-			NewActor->SetName(InName);
-		}
 		LevelActors.push_back(NewActor);
 		if (ActorJsonData != nullptr)
 		{
@@ -262,7 +257,8 @@ void ULevel::UpdateOctree()
 	}
 	
 	uint32 Count = 0;
-
+	FDynamicPrimitiveQueue NotInsertedQueue;
+	
 	while (!DynamicPrimitiveQueue.empty() && Count < MAX_OBJECTS_TO_INSERT_PER_FRAME)
 	{
 		auto [Component, TimePoint] = DynamicPrimitiveQueue.front();
@@ -273,9 +269,16 @@ void ULevel::UpdateOctree()
 			if (It->second <= TimePoint)
 			{
 				// 큐에 기록된 오브젝트의 마지막 변경 시간 이후로 변경이 없었다면 Octree에 재삽입한다.
+				if (StaticOctree->Insert(Component))
+				{
+					DynamicPrimitiveMap.erase(It);
+				}
+				// 삽입이 안됐다면 다시 Queue에 들어가기 위해 저장
+				else
+				{
+					NotInsertedQueue.push({Component, It->second});
+				}
 				// TODO: 오브젝트의 유일성을 보장하기 위해 StaticOctree->Remove(Component)가 필요한가?
-				StaticOctree->Insert(Component);
-				DynamicPrimitiveMap.erase(It);
 				++Count;
 			}
 			else
@@ -285,10 +288,11 @@ void ULevel::UpdateOctree()
 			}
 		}
 	}
-
+	
+	DynamicPrimitiveQueue = NotInsertedQueue;
 	if (Count != 0)
 	{
-		//UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
+		UE_LOG("UpdateOctree: %d개의 컴포넌트가 업데이트 되었습니다.", Count);
 	}
 }
 

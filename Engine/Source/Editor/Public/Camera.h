@@ -65,7 +65,7 @@ public:
 	float GetFarZ() const { return FarZ; }
 	float GetOrthoWidth() const { return OrthoWidth; }
 	ECameraType GetCameraType() const { return CameraType; }
-	const ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
+	ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
 
 
 	// Camera Movement Speed Control
