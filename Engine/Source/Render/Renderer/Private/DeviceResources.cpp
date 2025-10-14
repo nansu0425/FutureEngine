@@ -207,10 +207,10 @@ void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 
 	// 메뉴바 아래에 위치하도록 뷰포트 조정
 	ViewportInfo = {
-		0.0f,
-		InMenuBarHeight,
+		0.f,
+		0.f,
 		FullWidth,
-		FullHeight - InMenuBarHeight,
+		FullHeight,
 		0.0f,
 		1.0f
 	};

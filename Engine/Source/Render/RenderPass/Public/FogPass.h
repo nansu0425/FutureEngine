@@ -22,8 +22,8 @@ struct FCameraInverseConstants
 
 struct FViewportConstants
 {
-    FVector2 ViewportOffset;
     FVector2 RenderTargetSize;
+    float Padding[2];
 };
 
 class FFogPass : public FRenderPass

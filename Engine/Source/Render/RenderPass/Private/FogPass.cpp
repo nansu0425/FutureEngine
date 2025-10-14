@@ -60,7 +60,6 @@ void FFogPass::Execute(FRenderingContext& Context)
 
         // Update ViewportInfo Constant Buffer (Slot 2)
         FViewportConstants ViewportConstants;
-        ViewportConstants.ViewportOffset = { Context.Viewport.TopLeftX, Context.Viewport.TopLeftY };
         ViewportConstants.RenderTargetSize = { Context.RenderTargetSize.X, Context.RenderTargetSize.Y };
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewportInfo, ViewportConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferViewportInfo);
@@ -71,8 +70,7 @@ void FFogPass::Execute(FRenderingContext& Context)
 
         Pipeline->Draw(3,0);
     }
-    ID3D11ShaderResourceView* nullSRV = nullptr;
-    Pipeline->SetTexture(0, false, nullSRV);
+    Pipeline->SetTexture(0, false, nullptr);
     
     Renderer.GetDeviceContext()->OMSetRenderTargets(1, &RTV, DSV);
 }

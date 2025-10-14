@@ -16,7 +16,6 @@ cbuffer CameraInverse : register(b1)
 
 cbuffer ViewportInfo : register(b2)
 {
-	float2 ViewportOffset;
 	float2 RenderTargetSize;
 }
 
@@ -60,13 +59,11 @@ PS_INPUT mainVS(uint vertexID : SV_VertexID)
 
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
-	//Input.Position은 뷰포트 기준 픽셀 좌표
-	float2 absPixelPos = Input.Position.xy + ViewportOffset;
 	//절대 좌표 => depth 값 가져오기 위한 UV 좌표 생성
-	float2 UV = absPixelPos / RenderTargetSize;
+	float2 UV = Input.Position.xy / RenderTargetSize;
 	float depth = DepthTexture.Sample(DepthSampler, UV);
 	
-	//ndc 좌표 변환 => [0, 1] => [-1, 1]
+	//UV => ndc 좌표 변환  ( [0, 1] => [-1, 1] )
 	float2 ndcXY = UV * 2.f - 1.f;
 	ndcXY.y = - ndcXY.y;
 	
@@ -74,11 +71,11 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	
 	float4 viewPos = mul(clipPos, ProjectionInverse);
 	viewPos /= viewPos.w; // 원근 나누기
-
+	
 	float4 worldPos = mul(viewPos, ViewInverse);
-
+	
 	float3 cameraPos = ViewInverse._41_42_43;
-
+	
 	//카메라 -> 픽셀 벡터 계산
 	float3 cameraToPixelVec = worldPos.xyz - cameraPos.xyz;
 	float distanceToPixel = length(cameraToPixelVec);
@@ -91,7 +88,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     {
         //높이에 따른 안개 밀도 계산
         //픽셀의 높이(worldPos.y)가 낮을수록 밀도 상승
-        float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.y);
+        float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.z);
         
         //거리와 높이 밀도를 함께 고려하여 안개 양을 계산 
         fogOpacity = 1.0 - exp(-distanceToPixel * heightDensity);
