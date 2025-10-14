@@ -28,21 +28,11 @@ public:
         UObject Features
      -----------------------------------------------------------------------------*/
 public:
-    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override
-    {
-        // TODO
-    }
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
-    virtual UObject* Duplicate() override
-    {
-        // TODO
-        return nullptr;
-    }
+    virtual UObject* Duplicate() override;
         
-    virtual void DuplicateSubObjects(UObject* DuplicatedObject) override
-    {
-        // TODO
-    }
+    virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 
     /*-----------------------------------------------------------------------------
         UActorComponent Features

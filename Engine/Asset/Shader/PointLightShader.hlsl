@@ -8,7 +8,7 @@
 // ------------------------------------------------
 // Constant Buffers
 // ------------------------------------------------
-cbuffer PerFrame : register(b0)
+cbuffer PerFrameConstants : register(b0)
 {
     row_major float4x4 InvView;        // Inverse of View matrix
     row_major float4x4 InvProjection;  // Inverse of Projection matrix
@@ -18,7 +18,7 @@ cbuffer PerFrame : register(b0)
     float2 RenderTargetSize;           // Full size of the render target
 };
 
-cbuffer PointLightData : register(b1)
+cbuffer PointLightConstants : register(b1)
 {
     float3 LightPosition;      // World-space position of light
     float  LightIntensity;     // Strength (brightness)
@@ -42,94 +42,94 @@ SamplerState LinearSampler : register(s0);
 // ------------------------------------------------
 struct VS_INPUT
 {
-    float3 position : POSITION;  // fullscreen quad position (-1~1)
+    float3 Position : POSITION;  // fullscreen quad position (-1~1)
 };
 
 struct PS_INPUT
 {
-    float4 position : SV_POSITION; // SV_Position provides screen-space coordinates
+    float4 Position : SV_POSITION; // SV_Position provides screen-space coordinates
 };
 
-PS_INPUT mainVS(VS_INPUT input)
+PS_INPUT mainVS(VS_INPUT Input)
 {
-    PS_INPUT output;
+    PS_INPUT Output;
 
     // Fullscreen quad input position is already in clip space (-1~1)
-    output.position = float4(input.position, 1.0f);
+    Output.Position = float4(Input.Position, 1.0f);
 
-    return output;
+    return Output;
 }
 
 // ------------------------------------------------
 // Helper : Reconstruct world-space position from depth
 // ------------------------------------------------
-float3 ReconstructWorldPosition(float2 clipPosXY, float depth)
+float3 ReconstructWorldPosition(float2 ClipPositionXY, float depth)
 {
     // depth : [0,1] from DepthTex
-    float4 clipPos = float4(clipPosXY, depth, 1.0f);
+    float4 ClipPosition = float4(ClipPositionXY, depth, 1.0f);
 
     // View-space reconstruction
-    float4 viewPos = mul(clipPos, InvProjection);
-    viewPos /= viewPos.w;
+    float4 ViewPosition = mul(ClipPosition, InvProjection);
+    ViewPosition /= ViewPosition.w;
 
     // World-space conversion
-    float4 worldPos = mul(viewPos, InvView);
-    return worldPos.xyz;
+    float4 WorldPosition = mul(ViewPosition, InvView);
+    return WorldPosition.xyz;
 }
 
 // ------------------------------------------------
 // Pixel Shader
 // ------------------------------------------------
-float4 mainPS(PS_INPUT input) : SV_TARGET
+float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
     // Use absolute screen coordinates from SV_Position
-    float2 screenPos = input.position.xy;
+    float2 ScreenPosition = Input.Position.xy;
 
     // Calculate UV coordinates based on full render target size
-    float2 uv = screenPos / RenderTargetSize;
+    float2 UV = ScreenPosition / RenderTargetSize;
 
     // Read G-Buffer data
-    float4 baseColor = SceneColorTex.Sample(LinearSampler, uv);
-    float4 encodedNormal = NormalTex.Sample(LinearSampler, uv);
-    float depth = DepthTex.Sample(LinearSampler, uv).r;
+    float4 BaseColor = SceneColorTex.Sample(LinearSampler, UV);
+    float4 EncodedNormal = NormalTex.Sample(LinearSampler, UV);
+    float Depth = DepthTex.Sample(LinearSampler, UV).r;
 
     // Skip background (no depth)
-    if (depth >= 1.0f)
-        return baseColor;
+    if (Depth >= 1.0f)
+        return BaseColor;
 
     // Decode normal
-    float3 normal = normalize(encodedNormal.xyz * 2.0f - 1.0f);
+    float3 Normal = normalize(EncodedNormal.xyz * 2.0f - 1.0f);
 
     // Reconstruct world position using viewport-aware clip space coordinates
-    float2 viewportUV = (screenPos - Viewport.xy) / Viewport.zw;
-    float2 viewportClipPos = viewportUV * 2.0 - 1.0;
-    viewportClipPos.y *= -1.0; // Flip Y for clip space
-    float3 worldPos = ReconstructWorldPosition(viewportClipPos, depth);
+    float2 ViewportUV = (ScreenPosition - Viewport.xy) / Viewport.zw;
+    float2 ViewportClipPosition = ViewportUV * 2.0 - 1.0;
+    ViewportClipPosition.y *= -1.0; // Flip Y for clip space
+    float3 WorldPosition = ReconstructWorldPosition(ViewportClipPosition, Depth);
 
     // Lighting vector
-    float3 L = LightPosition - worldPos;
-    float dist = length(L);
-    L /= dist;
+    float3 L = LightPosition - WorldPosition;
+    float Distance = length(L);
+    L /= Distance;
 
     // Attenuation
-    float attenuation = saturate(1.0f - pow(dist / LightRadius, LightFalloffExtent));
-    attenuation *= LightIntensity;
+    float Attenuation = saturate(1.0f - pow(Distance / LightRadius, LightFalloffExtent));
+    Attenuation *= LightIntensity;
 
     // Diffuse
-    float NdotL = saturate(dot(normal, L));
-    float3 diffuse = LightColor * NdotL * attenuation;
+    float NdotL = saturate(dot(Normal, L));
+    float3 Diffuse = LightColor * NdotL * Attenuation;
 
     // Specular (Blinn-Phong)
-    float3 V = normalize(CameraPosition - worldPos);
+    float3 V = normalize(CameraPosition - WorldPosition);
     float3 H = normalize(L + V);
-    float spec = pow(saturate(dot(normal, H)), 32.0f);
-    float3 specular = LightColor * spec * attenuation * 0.5f;
+    float Spec = pow(saturate(dot(Normal, H)), 32.0f);
+    float3 Specular = LightColor * Spec * Attenuation * 0.5f;
 
     // Combine lighting
-    float3 finalLighting = diffuse + specular;
+    float3 FinalLighting = Diffuse + Specular;
 
     // Additive blending
-    float3 result = finalLighting;
+    float3 Result = FinalLighting;
 
-    return float4(result, 1.0f);
+    return float4(Result, 1.0f);
 }
