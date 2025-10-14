@@ -235,14 +235,14 @@ void URenderer::Update()
 		CurrentCamera->Update(ViewportClient.GetViewportInfo());
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
-
-		{
-			TIME_PROFILE(RenderEditor)
-			GEditor->GetEditorModule()->RenderEditor();
-		}
+		
 		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(ViewportClient);
+		}
+		{
+			TIME_PROFILE(RenderEditor)
+			GEditor->GetEditorModule()->RenderEditor();
 		}
 		// Gizmo는 최종적으로 렌더
 		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
