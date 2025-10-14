@@ -11,6 +11,8 @@ class UStaticMeshComponentWidget : public UWidget
 	DECLARE_CLASS(UStaticMeshComponentWidget, UWidget)
 
 public:
+	void Initialize() override {}
+	void Update() override {}
 	void RenderWidget() override;
 
 private:

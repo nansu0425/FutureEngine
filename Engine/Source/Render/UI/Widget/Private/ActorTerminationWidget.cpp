@@ -1,23 +1,9 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ActorTerminationWidget.h"
-
 #include "Level/Public/Level.h"
 #include "Manager/Input/Public/InputManager.h"
 
-
-UActorTerminationWidget::UActorTerminationWidget()
-	: UWidget("Actor Termination Widget")
-	  , ActorDetailWidget(nullptr)
-{
-}
-
-UActorTerminationWidget::UActorTerminationWidget(UActorDetailWidget* InActorDetailWidget)
-	: UWidget("Actor Termination Widget")
-      , ActorDetailWidget(InActorDetailWidget)
-{
-}
-
-UActorTerminationWidget::~UActorTerminationWidget() = default;
+IMPLEMENT_CLASS(UActorTerminationWidget, UWidget)
 
 void UActorTerminationWidget::Initialize()
 {

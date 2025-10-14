@@ -58,11 +58,11 @@ public: \
 // 클래스 선언부에 사용하는 매크로
 #define DECLARE_CLASS(ClassName, SuperClassName) \
 public: \
-typedef ClassName ThisClass; \
-typedef SuperClassName Super; \
-static UClass* StaticClass(); \
-virtual UClass* GetClass() const; \
-static UObject* CreateDefaultObject##ClassName();
+    typedef ClassName ThisClass; \
+    typedef SuperClassName Super; \
+    static UClass* StaticClass(); \
+    virtual UClass* GetClass() const; \
+    static UObject* CreateDefaultObject##ClassName();
 
 // 클래스 구현부에 사용하는 매크로
 #define IMPLEMENT_CLASS(ClassName, SuperClassName) \
@@ -79,15 +79,33 @@ UClass* ClassName::StaticClass() \
     return &Instance; \
 } \
 UClass* ClassName::GetClass() const \
-{ \
-return ClassName::StaticClass(); \
-} \
+    { \
+        return ClassName::StaticClass(); \
+    } \
 UObject* ClassName::CreateDefaultObject##ClassName() \
-{ \
-return new ClassName(); \
-} \
+    { \
+        return new ClassName(); \
+    } \
 static bool bIsRegistered_##ClassName = [](){ ClassName::StaticClass(); return true; }();
 
+// 추상 클래스에 사용하는 매크로 (기본 객체를 생성하지 않음)
+#define IMPLEMENT_ABSTRACT_CLASS(ClassName, SuperClassName) \
+UClass* ClassName::StaticClass() \
+{ \
+    static UClass Instance( \
+        FString(#ClassName), \
+        SuperClassName::StaticClass(), \
+        sizeof(ClassName), \
+        nullptr \
+    ); \
+    UClass::SignUpClass(&Instance); \
+    return &Instance; \
+} \
+UClass* ClassName::GetClass() const \
+{ \
+    return ClassName::StaticClass(); \
+}\
+static bool bIsRegistered_##ClassName = [](){ ClassName::StaticClass(); return true; }();
 
 /**
  * @brief 싱글톤 클래스용 RTTI 매크로 시스템
@@ -139,34 +157,6 @@ ClassName& ClassName::GetInstance() \
     return Instance; \
 }\
 static bool bIsRegistered_##ClassName = [](){ ClassName::StaticClass(); return true; }();
-
-// 싱글톤 베이스 클래스용 매크로 (SuperClass가 nullptr인 경우)
-#define IMPLEMENT_SINGLETON_CLASS_BASE(ClassName) \
-UClass* ClassName::StaticClass() \
-{ \
-    /* 정적 지역 변수를 사용하여 UClass 객체를 자동 관리 (기반 클래스 버전) */ \
-    static UClass Instance( \
-        FString(#ClassName), \
-        nullptr, \
-        sizeof(ClassName), \
-        nullptr \
-    ); \
-    return &Instance; \
-} \
-UClass* ClassName::GetClass() const \
-{ \
-    return ClassName::StaticClass(); \
-} \
-UObject* ClassName::CreateDefaultObject##ClassName() \
-{ \
-    /* 싱글톤 인스턴스의 주소를 UObject* 타입으로 반환합니다. */ \
-    return &ClassName::GetInstance(); \
-} \
-ClassName& ClassName::GetInstance() \
-{ \
-    static ClassName Instance; \
-    return Instance; \
-}
 
 // UObject의 기본 매크로 (Base Class)
 #define IMPLEMENT_CLASS_BASE(ClassName) \

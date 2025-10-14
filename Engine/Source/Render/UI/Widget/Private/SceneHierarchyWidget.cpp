@@ -11,8 +11,8 @@
 #include "Editor/Public/Viewport.h"
 #include "Global/Quaternion.h"
 
+IMPLEMENT_CLASS(USceneHierarchyWidget, UWidget)
 USceneHierarchyWidget::USceneHierarchyWidget()
-	: UWidget("Scene Hierarchy Widget")
 {
 }
 

@@ -11,6 +11,7 @@ class UDecalSpotLightComponent;
 
 class UBatchLines : UObject
 {
+	DECLARE_CLASS(UBatchLines, UObject)
 public:
 	UBatchLines();
 	~UBatchLines();

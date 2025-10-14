@@ -11,13 +11,6 @@
 
 IMPLEMENT_CLASS(USpriteSelectionWidget, UWidget)
 
-USpriteSelectionWidget::USpriteSelectionWidget()
-	: UWidget("Sprite Selection Widget")
-{
-}
-
-USpriteSelectionWidget::~USpriteSelectionWidget() = default;
-
 void USpriteSelectionWidget::Initialize()
 {
 	// Do Nothing Here

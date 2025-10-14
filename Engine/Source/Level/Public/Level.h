@@ -12,14 +12,12 @@ class UPrimitiveComponent;
 class FOctree;
 
 UCLASS()
-class ULevel :
-	public UObject
+class ULevel : public UObject
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(ULevel, UObject)
 public:
 	ULevel();
-	ULevel(const FName& InName);
 	~ULevel() override;
 
 	virtual void Init();

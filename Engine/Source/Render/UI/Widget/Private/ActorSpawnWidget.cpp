@@ -2,8 +2,9 @@
 #include "Render/UI/Widget/Public/ActorSpawnWidget.h"
 #include "Level/Public/Level.h"
 
+IMPLEMENT_CLASS(UActorSpawnWidget, UWidget)
+
 UActorSpawnWidget::UActorSpawnWidget()
-	: UWidget("Actor Spawn Widget")
 {
 	LoadActorClasses();
 }

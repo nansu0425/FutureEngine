@@ -2,7 +2,7 @@
 #include "Manager/Input/Public/InputManager.h"
 #include "Core/Public/AppWindow.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UInputManager)
+IMPLEMENT_SINGLETON_CLASS(UInputManager, UObject)
 
 UInputManager::UInputManager()
 	: MouseWheelDelta(0.0f)

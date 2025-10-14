@@ -9,9 +9,9 @@ class UCamera;
  * @brief 현재 Level의 모든 Actor들을 트리 형태로 표시하는 Widget
  * Actor를 클릭하면 Level에서 선택되도록 하는 기능 포함
  */
-class USceneHierarchyWidget :
-	public UWidget
-{
+class USceneHierarchyWidget : public UWidget
+{	
+	DECLARE_CLASS(USceneHierarchyWidget, UWidget)
 public:
 	void Initialize() override;
 	void Update() override;

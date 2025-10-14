@@ -1,18 +1,18 @@
 #pragma once
 #include "Widget.h"
 
-class UActorSpawnWidget
-	:public UWidget
+class UActorSpawnWidget	: public UWidget
 {
+	DECLARE_CLASS(UActorSpawnWidget, UWidget)
+	
 public:
+	UActorSpawnWidget();
+	~UActorSpawnWidget() override;
+	
 	void Initialize() override;
 	void Update() override;
 	void RenderWidget() override;
 	void SpawnActors();
-
-	// Special Member Function
-	UActorSpawnWidget();
-	~UActorSpawnWidget() override;
 
 private:
 	void LoadActorClasses();

@@ -8,6 +8,8 @@
 #include "Component/Public/DecalSpotLightComponent.h"
 #include "Physics/Public/OBB.h"
 
+IMPLEMENT_CLASS(UBatchLines, UObject)
+
 UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 {
 	Vertices.reserve(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());

@@ -18,12 +18,6 @@ ULevel::ULevel()
 	StaticOctree = new FOctree(FVector(0, 0, -5), 75, 0);
 }
 
-ULevel::ULevel(const FName& InName)
-	: UObject(InName)
-{
-	StaticOctree = new FOctree(FVector(0, 0, -5), 75, 0);
-}
-
 ULevel::~ULevel()
 {
 	// LevelActors 배열에 남아있는 모든 액터의 메모리를 해제합니다.

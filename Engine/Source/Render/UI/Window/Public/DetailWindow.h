@@ -9,9 +9,10 @@ class AActor;
  */
 class UDetailWindow : public UUIWindow
 {
+	DECLARE_CLASS(UDetailWindow, UUIWindow)
 public:
 	UDetailWindow();
-	virtual ~UDetailWindow() override {}
+	~UDetailWindow() override = default;
 
 	void Initialize() override;
 

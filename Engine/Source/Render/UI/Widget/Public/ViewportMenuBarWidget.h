@@ -7,7 +7,7 @@ class UEditor;
 class UViewportMenuBarWidget : public UWidget
 {
 public:
-	UViewportMenuBarWidget() : UWidget("ViewportMenuBar Widget") {}
+	UViewportMenuBarWidget() = default;
 	virtual ~UViewportMenuBarWidget() override;
 
 	void Initialize() override {}

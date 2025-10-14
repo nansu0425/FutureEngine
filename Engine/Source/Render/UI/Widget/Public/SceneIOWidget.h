@@ -1,17 +1,17 @@
 #pragma once
 #include "Widget.h"
 
-class USceneIOWidget :
-	public UWidget
+class USceneIOWidget : public UWidget
 {
+	DECLARE_CLASS(USceneIOWidget, UWidget)
 public:
 	void Initialize() override;
 	void Update() override;
 	void RenderWidget() override;
 
 	// Special Member Function
-	USceneIOWidget();
-	~USceneIOWidget() override;
+	USceneIOWidget() = default;
+	~USceneIOWidget() override = default;
 
 private:
 	// Level Save & Load
