@@ -23,6 +23,11 @@ FFXAAPass::FFXAAPass(UPipeline* InPipeline, UDeviceResources* InDeviceResources,
     FXAAConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FFXAAConstants>();
 }
 
+FFXAAPass::~FFXAAPass()
+{
+    Release();
+}
+
 void FFXAAPass::Execute(FRenderingContext& Context)
 {
     ID3D11ShaderResourceView* SceneSRV = DeviceResources->GetSceneColorShaderResourceView(); // 오프스크린 컬러입력

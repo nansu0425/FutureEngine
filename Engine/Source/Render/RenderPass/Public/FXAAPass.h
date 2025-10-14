@@ -33,6 +33,11 @@ public:
 	  ID3D11SamplerState* InSampler);
 
 	/**
+	 * @brief FXAAPass 클래스의 소멸자입니다.
+	 */
+	~FFXAAPass();
+
+	/**
 	 * @brief FXAA 렌더링 패스를 실행합니다.
 	 * @param Context 렌더링 컨텍스트입니다.
 	 */

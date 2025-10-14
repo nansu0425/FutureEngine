@@ -82,6 +82,9 @@ void URenderer::Release()
 		RenderPass->Release();
 		SafeDelete(RenderPass);
 	}
+	FXAAPass->Release();
+	SafeDelete(FXAAPass);
+	
 
 	SafeDelete(ViewportClient);
 	SafeDelete(Pipeline);
