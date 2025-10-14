@@ -220,6 +220,7 @@ void URenderer::ReleaseSamplerState()
 
 void URenderer::Update()
 {
+	// 토글에 따라서 FXAA bool값 세팅
     if (const ULevel* CurrentLevel = GWorld->GetLevel())
     {
         bFXAAEnabled = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_FXAA) != 0;
@@ -255,6 +256,8 @@ void URenderer::Update()
     }
 
     // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
+	// FXAAPass->Execute의 RenderingContext는 쓰레기 값
+	// TODO : 포스트 프로세스 패스를 따로 파야할지도
     if (bFXAAEnabled)
     {
         ID3D11RenderTargetView* nullRTV[] = { nullptr };
@@ -280,6 +283,7 @@ void URenderer::RenderBegin() const
 {
     auto* DepthStencilView = DeviceResources->GetDepthStencilView();
 
+	// FXAA bool값 변수에 따라서 RTV세팅
     if (bFXAAEnabled)
     {
         auto* SceneColorRenderTargetView = DeviceResources->GetSceneColorRenderTargetView();
