@@ -63,7 +63,7 @@ float4 mainPS(VSOutput input) : SV_Target
     float3 rgbB = SceneColor.Sample(SceneSampler, tex + dir * (2.0f / 3.0f - 0.5f)).rgb;
 
     float3 averaged = 0.5f * (rgbA + rgbB);
-    float3 result = lerp(rgbM, averaged, 0.99f);
+    float3 result = lerp(rgbM, averaged, 0.9f);
     float lumaResult = dot(result, LumaCoeff);
 
     if (lumaResult < lumaMin || lumaResult > lumaMax)

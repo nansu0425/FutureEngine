@@ -362,6 +362,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
 
+		// FXAA 표시 옵션
+		bool bEnableFXAA = (ShowFlags & EEngineShowFlags::SF_FXAA) != 0;
+		if (ImGui::MenuItem("FXAA 적용", nullptr, bEnableFXAA))
+		{
+			if (bEnableFXAA)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_FXAA);
+				UE_LOG("MainBarWidget: FXAA 비활성화");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_FXAA);
+				UE_LOG("MainBarWidget: FXAA 활성화");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+
 		ImGui::EndMenu();
 	}
 }

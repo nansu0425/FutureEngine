@@ -114,6 +114,7 @@ private:
 	FViewport* ViewportClient = nullptr;
 	
 	bool bIsResizing = false;
+	bool bFXAAEnabled = true;
 
 	TArray<class FRenderPass*> RenderPasses;
 

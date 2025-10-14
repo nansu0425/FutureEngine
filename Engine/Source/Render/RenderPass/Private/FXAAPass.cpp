@@ -26,7 +26,10 @@ FFXAAPass::FFXAAPass(UPipeline* InPipeline, UDeviceResources* InDeviceResources,
 void FFXAAPass::Execute(FRenderingContext& Context)
 {
     ID3D11ShaderResourceView* SceneSRV = DeviceResources->GetSceneColorShaderResourceView(); // 오프스크린 컬러입력
-        if (!SceneSRV) { return; }
+    if (!SceneSRV)
+    {
+        return;
+    }
 
     UpdateConstants();
     SetRenderTargets();
@@ -104,9 +107,9 @@ void FFXAAPass::UpdateConstants()
     FXAAParams.InvResolution = FVector2(1.0f / VP.Width, 1.0f / VP.Height);
 
     // FXAA 품질 설정값을 명시적으로 업데이트                                           
-   FXAAParams.FXAASpanMax = 8.0f;                                        
-   FXAAParams.FXAAReduceMul = 1.0f / 8.0f;                               
-   FXAAParams.FXAAReduceMin = 1.0f / 128.0f;
+    FXAAParams.FXAASpanMax = 8.0f;                                        
+    FXAAParams.FXAAReduceMul = 1.0f / 8.0f;                               
+    FXAAParams.FXAAReduceMin = 1.0f / 128.0f;
     
     FRenderResourceFactory::UpdateConstantBufferData(FXAAConstantBuffer, FXAAParams);
 }
