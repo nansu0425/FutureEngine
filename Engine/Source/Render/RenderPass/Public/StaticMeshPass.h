@@ -12,6 +12,7 @@ public:
 private:
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
+    ID3D11PixelShader* DepthPS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;
     ID3D11DepthStencilState* DS = nullptr;
     

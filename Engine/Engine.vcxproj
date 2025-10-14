@@ -412,6 +412,7 @@
     <ClInclude Include="Source\Render\RenderPass\Public\BillboardPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\FogPass.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\FXAAPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\RenderingContext.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\RenderPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\StaticMeshPass.h" />
@@ -562,6 +563,7 @@
     <ClCompile Include="Source\Render\Renderer\Private\RenderResourceFactory.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\BillboardPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\FXAAPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\FogPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\RenderPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\StaticMeshPass.cpp" />
@@ -612,11 +614,29 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+      <FxCompile Include="Asset\Shader\FXAAShader.hlsl">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      </FxCompile>
     <FxCompile Include="Asset\Shader\DecalShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Asset\Shader\TextureDepthPS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Asset\Shader\TexturePS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+        <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -638,7 +658,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Asset\Shader\TextureShader.hlsl">
+    <FxCompile Include="Asset\Shader\TextureVS.hlsl">
       <FileType>Document</FileType>
       <DeploymentContent>false</DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

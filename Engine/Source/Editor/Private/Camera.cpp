@@ -8,7 +8,7 @@
 #include "Level/Public/Level.h"
 
 UCamera::UCamera() :
-	ViewProjConstants(FViewProjConstants()),
+	CameraConstants(FCameraConstants()),
 	RelativeLocation(FVector(-15.0f, 0.f, 10.0f)), RelativeRotation(FVector(0, 0, 0)),
 	FovY(90.f), Aspect(float(Render::INIT_SCREEN_WIDTH) / Render::INIT_SCREEN_HEIGHT),
 	NearZ(0.1f), FarZ(1000.0f), OrthoWidth(90.0f), CameraType(ECameraType::ECT_Perspective)
@@ -120,7 +120,7 @@ void UCamera::Update(const D3D11_VIEWPORT& InViewport)
         ViewVolumeCuller.Cull(
             CurrentLevel->GetStaticOctree(),
             CurrentLevel->GetDynamicPrimitives(),
-            ViewProjConstants
+            CameraConstants
         );
     }
 }
@@ -133,7 +133,7 @@ void UCamera::UpdateMatrixByPers()
 	FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
 	FMatrix R = FMatrix(Right, Up, Forward);
 	R = R.Transpose();
-	ViewProjConstants.View = T * R;
+	CameraConstants.View = T * R;
 
 	/**
 	 * @brief Projection 행렬 연산
@@ -155,7 +155,11 @@ void UCamera::UpdateMatrixByPers()
 	P.Data[3][2] = (-NearZ * FarZ) / (FarZ - NearZ);
 	P.Data[3][3] = 0.0f;
 
-	ViewProjConstants.Projection = P;
+	CameraConstants.Projection = P;
+	
+	CameraConstants.ViewWorldLocation = RelativeLocation;
+	CameraConstants.NearClip = NearZ;
+	CameraConstants.FarClip = FarZ;
 }
 
 void UCamera::UpdateMatrixByOrth()
@@ -166,7 +170,7 @@ void UCamera::UpdateMatrixByOrth()
 	FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
 	FMatrix R = FMatrix(Right, Up, Forward);
 	R = R.Transpose();
-	ViewProjConstants.View = T * R;
+	CameraConstants.View = T * R;
 	/*FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
 	FMatrix R = FMatrix::RotationMatrixInverse(FVector::GetDegreeToRadian(RelativeRotation));
 	ViewProjConstants.View = T * R;*/
@@ -188,15 +192,19 @@ void UCamera::UpdateMatrixByOrth()
 	P.Data[3][1] = -(Top + Bottom) / (Top - Bottom);
 	P.Data[3][2] = -NearZ / (FarZ - NearZ);
 	P.Data[3][3] = 1.0f;
-	ViewProjConstants.Projection = P;
+	CameraConstants.Projection = P;
+	
+	CameraConstants.ViewWorldLocation = RelativeLocation;
+	CameraConstants.NearClip = NearZ;
+	CameraConstants.FarClip = FarZ;
 }
 
-const FViewProjConstants UCamera::GetFViewProjConstantsInverse() const
+const FCameraConstants UCamera::GetFViewProjConstantsInverse() const
 {
 	/*
 	* @brief View^(-1) = R * T
 	*/
-	FViewProjConstants Result = {};
+	FCameraConstants Result = {};
 	//FMatrix R = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 	FMatrix R = FMatrix(Right, Up, Forward);
 	FMatrix T = FMatrix::TranslationMatrix(RelativeLocation);
@@ -240,6 +248,9 @@ const FViewProjConstants UCamera::GetFViewProjConstantsInverse() const
 		Result.Projection = P;
 	}
 
+	Result.ViewWorldLocation = RelativeLocation;
+	Result.NearClip = NearZ;
+	Result.FarClip = FarZ;
 	return Result;
 }
 
@@ -250,7 +261,7 @@ FRay UCamera::ConvertToWorldRay(float NdcX, float NdcY) const
 	 */
 	FRay Ray = {};
 
-	const FViewProjConstants& ViewProjMatrix = GetFViewProjConstantsInverse();
+	const FCameraConstants& ViewProjMatrix = GetFViewProjConstantsInverse();
 
 	/* *
 	 * @brief NDC 좌표 정보를 행렬로 변환합니다.

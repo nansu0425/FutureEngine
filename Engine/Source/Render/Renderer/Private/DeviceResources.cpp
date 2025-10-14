@@ -21,12 +21,14 @@ void UDeviceResources::Create(HWND InWindowHandle)
 	CreateDeviceAndSwapChain(InWindowHandle);
 	CreateFrameBuffer();
 	CreateDepthBuffer();
+	CreateSceneColorTarget();
 	CreateFactories();
 }
 
 void UDeviceResources::Release()
 {
 	ReleaseFactories();
+	ReleaseSceneColorTarget();
 	ReleaseFrameBuffer();
 	ReleaseDepthBuffer();
 	ReleaseDeviceAndSwapChain();
@@ -129,6 +131,9 @@ void UDeviceResources::CreateFrameBuffer()
 	Device->CreateRenderTargetView(FrameBuffer, &framebufferRTVdesc, &FrameBufferRTV);
 }
 
+
+
+
 /**
  * @brief 프레임 버퍼를 해제하는 함수
  */
@@ -146,6 +151,74 @@ void UDeviceResources::ReleaseFrameBuffer()
 		FrameBufferRTV = nullptr;
 	}
 }
+
+
+/**
+ * @brief Scene Color Texture, SRV, RTV 생성 함수
+ */
+void UDeviceResources::CreateSceneColorTarget()
+{
+	ReleaseSceneColorTarget();
+
+	if (!Device || Width == 0 || Height == 0)
+	{
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC SceneDesc = {};
+	SceneDesc.Width = Width;
+	SceneDesc.Height = Height;
+	SceneDesc.MipLevels = 1;
+	SceneDesc.ArraySize = 1;
+	SceneDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	SceneDesc.SampleDesc.Count = 1;
+	SceneDesc.SampleDesc.Quality = 0;
+	SceneDesc.Usage = D3D11_USAGE_DEFAULT;
+	SceneDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	SceneDesc.CPUAccessFlags = 0;
+	SceneDesc.MiscFlags = 0;
+
+
+	HRESULT Result = Device->CreateTexture2D(&SceneDesc, nullptr, &SceneColorTexture);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor Texture 생성 실패");
+		ReleaseSceneColorTarget();
+		return;
+	}
+
+	Result = Device->CreateRenderTargetView(SceneColorTexture, nullptr, &SceneColorTextureRTV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor RTV 생성 실패");
+		ReleaseSceneColorTarget();
+		return;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = SceneDesc.Format;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = 1;
+
+	Result = Device->CreateShaderResourceView(SceneColorTexture, &SRVDesc, &SceneColorTextureSRV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor SRV 생성 실패");
+		ReleaseSceneColorTarget();
+	}
+}
+
+/**
+ * @brief Scene Color Texture, SRV, RTV를 해제하는 함수
+ */
+void UDeviceResources::ReleaseSceneColorTarget()
+{
+	SafeRelease(SceneColorTextureSRV);
+	SafeRelease(SceneColorTextureRTV);
+	SafeRelease(SceneColorTexture);
+}
+
 
 void UDeviceResources::CreateDepthBuffer()
 {
@@ -195,6 +268,8 @@ void UDeviceResources::ReleaseDepthBuffer()
 		DepthBuffer = nullptr;
 	}
 }
+
+
 
 void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 {

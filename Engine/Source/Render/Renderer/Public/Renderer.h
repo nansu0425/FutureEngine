@@ -4,11 +4,13 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Render/Renderer/Public/Pipeline.h"
+#include "Render/RenderPass/Public/FXAAPass.h"
 
 class FViewport;
 class UCamera;
 class UPipeline;
 class FViewportClient;
+class FFXAAPass;
 
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
@@ -32,14 +34,16 @@ public:
 	void CreateDecalShader();
 	void CreateFogShader();
 	void CreateConstantBuffers();
+	void CreateFXAAShader();
 
+	
 	// Release
 	void ReleaseConstantBuffers();
-	void ReleaseSamplerState();
 	void ReleaseDefaultShader();
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
-
+	void ReleaseSamplerState();
+	
 	// Render
 	void Update();
 	void RenderBegin() const;
@@ -58,6 +62,8 @@ public:
 	ID3D11ShaderResourceView* GetDepthSRV() const { return DeviceResources->GetDepthStencilSRV(); }
 	
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
+	ID3D11RenderTargetView* GetSceneColorRenderTargetView()const {return DeviceResources->GetSceneColorRenderTargetView(); }
+	
 	UDeviceResources* GetDeviceResources() const { return DeviceResources; }
 	FViewport* GetViewportClient() const { return ViewportClient; }
 	UPipeline* GetPipeline() const { return Pipeline; }
@@ -95,6 +101,12 @@ private:
 	ID3D11VertexShader* DefaultVertexShader = nullptr;
 	ID3D11PixelShader* DefaultPixelShader = nullptr;
 	ID3D11InputLayout* DefaultInputLayout = nullptr;
+
+	// FXAA Shaders
+	ID3D11VertexShader* FXAAVertexShader = nullptr;
+	ID3D11PixelShader* FXAAPixelShader = nullptr;
+	ID3D11InputLayout* FXAAInputLayout = nullptr;
+	ID3D11SamplerState* FXAASamplerState = nullptr;
 	
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;
@@ -116,6 +128,9 @@ private:
 	FViewport* ViewportClient = nullptr;
 	
 	bool bIsResizing = false;
+	bool bFXAAEnabled = true;
 
 	TArray<class FRenderPass*> RenderPasses;
+
+	FFXAAPass* FXAAPass = nullptr;
 };

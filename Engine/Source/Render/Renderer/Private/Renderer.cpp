@@ -21,6 +21,7 @@
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
 #include "Render/RenderPass/Public/FogPass.h"
+#include "Render/RenderPass/Public/FXAAPass.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -28,12 +29,14 @@ URenderer::URenderer() = default;
 
 URenderer::~URenderer() = default;
 
+
 void URenderer::Init(HWND InWindowHandle)
 {
 	DeviceResources = new UDeviceResources(InWindowHandle);
 	Pipeline = new UPipeline(GetDeviceContext());
 	ViewportClient = new FViewport();
-
+	
+	
 	// 렌더링 상태 및 리소스 생성
 	CreateDepthStencilState();
 	CreateBlendState();
@@ -43,6 +46,8 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDecalShader();
 	CreateFogShader();
 	CreateConstantBuffers();
+	CreateFXAAShader();
+	
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -64,6 +69,12 @@ void URenderer::Init(HWND InWindowHandle)
 	FFogPass* FogPass = new FFogPass(Pipeline, ConstantBufferViewProj,
 		FogVertexShader, FogPixelShader, FogInputLayout, DefaultDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(FogPass);
+
+	// UPipeline* InPipeline, UDeviceResources* InDeviceResources, ID3D11VertexShader* InVS,
+	// ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11SamplerState* InSampler
+	FXAAPass = new FFXAAPass(Pipeline, DeviceResources, FXAAVertexShader, FXAAPixelShader, FXAAInputLayout, FXAASamplerState);
+	//RenderPasses.push_back(FXAAPass);
+	
 }
 
 void URenderer::Release()
@@ -79,6 +90,9 @@ void URenderer::Release()
 		RenderPass->Release();
 		SafeDelete(RenderPass);
 	}
+	FXAAPass->Release();
+	SafeDelete(FXAAPass);
+	
 
 	SafeDelete(ViewportClient);
 	SafeDelete(Pipeline);
@@ -139,11 +153,6 @@ void URenderer::CreateSamplerState()
 	GetDevice()->CreateSamplerState(&samplerDesc, &DefaultSampler);
 }
 
-void URenderer::ReleaseSamplerState()
-{
-	SafeRelease(DefaultSampler);
-}
-
 void URenderer::CreateDefaultShader()
 {
 	TArray<D3D11_INPUT_ELEMENT_DESC> DefaultLayout =
@@ -167,8 +176,8 @@ void URenderer::CreateTextureShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/TextureShader.hlsl", TextureLayout, &TextureVertexShader, &TextureInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TextureShader.hlsl", &TexturePixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/TextureVS.hlsl", TextureLayout, &TextureVertexShader, &TextureInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TexturePS.hlsl", &TexturePixelShader);
 }
 
 void URenderer::CreateDecalShader()
@@ -193,6 +202,19 @@ void URenderer::CreateFogShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
 }
 
+void URenderer::CreateFXAAShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FXAALayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    };
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FXAAShader.hlsl", FXAALayout, &FXAAVertexShader, &FXAAInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FXAAShader.hlsl", &FXAAPixelShader);
+	
+	FXAASamplerState = FRenderResourceFactory::CreateFXAASamplerState();
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -203,6 +225,13 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(TextureVertexShader);
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
+	SafeRelease(DecalInputLayout);
+	SafeRelease(FogVertexShader);
+	SafeRelease(FogPixelShader);
+	SafeRelease(FogInputLayout);
+	SafeRelease(FXAAVertexShader);
+	SafeRelease(FXAAPixelShader);
+	SafeRelease(FXAAInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -221,55 +250,96 @@ void URenderer::ReleaseBlendState()
     SafeRelease(AlphaBlendState);
 }
 
+void URenderer::ReleaseSamplerState()
+{
+	SafeRelease(FXAASamplerState);
+}
+
 void URenderer::Update()
 {
-	RenderBegin();
+	// 토글에 따라서 FXAA bool값 세팅
+    if (const ULevel* CurrentLevel = GWorld->GetLevel())
+    {
+        bFXAAEnabled = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_FXAA) != 0;
+    }
+    else
+    {
+        bFXAAEnabled = true;
+    }
 
-	for (FViewportClient& ViewportClient : ViewportClient->GetViewports())
-	{
-		if (ViewportClient.GetViewportInfo().Width < 1.0f || ViewportClient.GetViewportInfo().Height < 1.0f) { continue; }
+    RenderBegin();
 
-		ViewportClient.Apply(GetDeviceContext());
+    for (FViewportClient& ViewportClient : ViewportClient->GetViewports())
+    {
+        if (ViewportClient.GetViewportInfo().Width < 1.0f || ViewportClient.GetViewportInfo().Height < 1.0f) { continue; }
 
-		UCamera* CurrentCamera = &ViewportClient.Camera;
-		CurrentCamera->Update(ViewportClient.GetViewportInfo());
-		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
-		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
-		
-		{
-			TIME_PROFILE(RenderLevel)
-			RenderLevel(ViewportClient);
-		}
-		{
-			TIME_PROFILE(RenderEditor)
+        ViewportClient.Apply(GetDeviceContext());
+
+        UCamera* CurrentCamera = &ViewportClient.Camera;
+        CurrentCamera->Update(ViewportClient.GetViewportInfo());
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
+        Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	    
+        {
+            TIME_PROFILE(RenderLevel)
+            RenderLevel(ViewportClient);
+        }
+	    {
+        	TIME_PROFILE(RenderEditor)
 			GEditor->GetEditorModule()->RenderEditor();
-		}
-		// Gizmo는 최종적으로 렌더
-		GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
-	}
+	    }
+    	
+        // Gizmo는 최종적으로 렌더
+        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
+    }
 
-	{
-		TIME_PROFILE(UUIManager)
-		UUIManager::GetInstance().Render();
-	}
-	{
-		TIME_PROFILE(UStatOverlay)
-		UStatOverlay::GetInstance().Render();
-	}
+    // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
+	// FXAAPass->Execute의 RenderingContext는 쓰레기 값
+	// TODO : 포스트 프로세스 패스를 따로 파야할지도
+    if (bFXAAEnabled)
+    {
+        ID3D11RenderTargetView* nullRTV[] = { nullptr };
+        GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 
-	RenderEnd();
+        FRenderingContext RenderingContext;
+        FXAAPass->Execute(RenderingContext);
+    }
+
+    {
+        TIME_PROFILE(UUIManager)
+        UUIManager::GetInstance().Render();
+    }
+    {
+        TIME_PROFILE(UStatOverlay)
+        UStatOverlay::GetInstance().Render();
+    }
+
+    RenderEnd();
 }
 
 void URenderer::RenderBegin() const
 {
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
-	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
-	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    auto* DepthStencilView = DeviceResources->GetDepthStencilView();
 
-	ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
-	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
-	DeviceResources->UpdateViewport();
+	// FXAA bool값 변수에 따라서 RTV세팅
+    if (bFXAAEnabled)
+    {
+        auto* SceneColorRenderTargetView = DeviceResources->GetSceneColorRenderTargetView();
+        GetDeviceContext()->ClearRenderTargetView(SceneColorRenderTargetView, ClearColor);
+        GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        ID3D11RenderTargetView* rtvs[] = { SceneColorRenderTargetView };
+        GetDeviceContext()->OMSetRenderTargets(1, rtvs, DepthStencilView);
+    }
+    else
+    {
+        auto* RenderTargetView = DeviceResources->GetRenderTargetView();
+        GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+        GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
+        GetDeviceContext()->OMSetRenderTargets(1, rtvs, DepthStencilView);
+    }
+
+    DeviceResources->UpdateViewport();
 }
 
 void URenderer::RenderLevel(FViewportClient& InViewportClient)
@@ -280,7 +350,7 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 	// 오클루전 컬링
 	TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
-	const FViewProjConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
+	const FCameraConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
 	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
 	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
 	// Culler.PerformCulling(
@@ -387,33 +457,39 @@ void URenderer::RenderEnd() const
 
 void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 {
-	if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
+    if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
 
-	DeviceResources->ReleaseFrameBuffer();
-	DeviceResources->ReleaseDepthBuffer();
-	GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
+    DeviceResources->ReleaseSceneColorTarget();
+    DeviceResources->ReleaseFrameBuffer();
+    DeviceResources->ReleaseDepthBuffer();
+    GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
-	if (FAILED(GetSwapChain()->ResizeBuffers(2, InWidth, InHeight, DXGI_FORMAT_UNKNOWN, 0)))
-	{
-		UE_LOG("OnResize Failed");
-		return;
-	}
+    if (FAILED(GetSwapChain()->ResizeBuffers(2, InWidth, InHeight, DXGI_FORMAT_UNKNOWN, 0)))
+    {
+        UE_LOG("OnResize Failed");
+        return;
+    }
 
-	DeviceResources->UpdateViewport();
-	DeviceResources->CreateFrameBuffer();
-	DeviceResources->CreateDepthBuffer();
+    DeviceResources->UpdateViewport();
+    DeviceResources->CreateFrameBuffer();
+    DeviceResources->CreateDepthBuffer();
+    DeviceResources->CreateSceneColorTarget();
 
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };
-	GetDeviceContext()->OMSetRenderTargets(1, RenderTargetViews, DeviceResources->GetDepthStencilView());
+    ID3D11RenderTargetView* targetView = bFXAAEnabled
+        ? DeviceResources->GetSceneColorRenderTargetView()
+        : DeviceResources->GetRenderTargetView();
+    ID3D11RenderTargetView* targetViews[] = { targetView };
+    GetDeviceContext()->OMSetRenderTargets(1, targetViews, DeviceResources->GetDepthStencilView());
 }
+
 
 void URenderer::CreateConstantBuffers()
 {
 	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
-	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FViewProjConstants>();
+	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
 }
+
 
 void URenderer::ReleaseConstantBuffers()
 {

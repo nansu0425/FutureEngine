@@ -217,6 +217,7 @@ void UMainBarWidget::RenderViewMenu()
 		bool bIsLit = (CurrentMode == EViewModeIndex::VMI_Lit);
 		bool bIsUnlit = (CurrentMode == EViewModeIndex::VMI_Unlit);
 		bool bIsWireframe = (CurrentMode == EViewModeIndex::VMI_Wireframe);
+		bool bIsSceneDepth = (CurrentMode == EViewModeIndex::VMI_SceneDepth);
 
 		if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
 		{
@@ -234,6 +235,12 @@ void UMainBarWidget::RenderViewMenu()
 		{
 			EditorInstance->SetViewMode(EViewModeIndex::VMI_Wireframe);
 			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
+		}
+
+		if (ImGui::MenuItem("씬 뎁스(SceneDepth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
+		{
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_SceneDepth);
+			UE_LOG("MainBarWidget: ViewMode를 SceneDepth으로 변경");
 		}
 
 		ImGui::EndMenu();
@@ -375,6 +382,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			{
 				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Octree);
 				UE_LOG("MainBarWidget: Octree 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+
+		// FXAA 표시 옵션
+		bool bEnableFXAA = (ShowFlags & EEngineShowFlags::SF_FXAA) != 0;
+		if (ImGui::MenuItem("FXAA 적용", nullptr, bEnableFXAA))
+		{
+			if (bEnableFXAA)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_FXAA);
+				UE_LOG("MainBarWidget: FXAA 비활성화");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_FXAA);
+				UE_LOG("MainBarWidget: FXAA 활성화");
 			}
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}

@@ -26,12 +26,12 @@ public:
 	void Render();
 
 	// Stat control methods
-	void ShowFPS(bool bShow) { bShow ? EnableStat(EStatType::FPS) : DisableStat(EStatType::FPS); }
-	void ShowMemory(bool bShow) { bShow ? EnableStat(EStatType::Memory) : DisableStat(EStatType::Memory); }
-	void ShowPicking(bool bShow) { bShow ? EnableStat(EStatType::Picking) : DisableStat(EStatType::Picking); }
-	void ShowTime(bool bShow) { bShow ? EnableStat(EStatType::Time) : DisableStat(EStatType::Time); }
-	void ShowDecal(bool bShow) { bShow ? EnableStat(EStatType::Decal) : DisableStat(EStatType::Decal); }
-	void ShowAll(bool bShow) { SetStatType(bShow ? EStatType::All : EStatType::None); }
+	void ShowFPS() { IsStatEnabled(EStatType::FPS) ? DisableStat(EStatType::FPS) : EnableStat(EStatType::FPS); }
+	void ShowMemory() { IsStatEnabled(EStatType::Memory) ? DisableStat(EStatType::Memory) : EnableStat(EStatType::Memory); }
+	void ShowPicking() { IsStatEnabled(EStatType::Picking) ? DisableStat(EStatType::Picking) : EnableStat(EStatType::Picking); }
+	void ShowTime() { IsStatEnabled(EStatType::Time) ? DisableStat(EStatType::Time) : EnableStat(EStatType::Time); }
+	void ShowDecal() { IsStatEnabled(EStatType::Decal) ? DisableStat(EStatType::Decal) : EnableStat(EStatType::Decal); }
+	void ShowAll() { IsStatEnabled(EStatType::All) ? DisableStat(EStatType::All) : EnableStat(EStatType::All); }
 
 	// API to update stats
 	void RecordPickingStats(float ElapsedMS);
