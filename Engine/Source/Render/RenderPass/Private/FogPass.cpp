@@ -26,7 +26,15 @@ void FFogPass::Execute(FRenderingContext& Context)
     URenderer& Renderer = URenderer::GetInstance();
 
     //--- Detatch DSV from GPU ---//
-    auto* RTV = Renderer.GetDeviceResources()->GetRenderTargetView();
+    ID3D11RenderTargetView* RTV;
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_FXAA))
+    {
+        RTV = Renderer.GetDeviceResources()->GetRenderTargetView();
+    }
+    else
+    {
+        RTV = Renderer.GetDeviceResources()->GetSceneColorRenderTargetView();
+    }
     auto* DSV = Renderer.GetDeviceResources()->GetDepthStencilView();
     Renderer.GetDeviceContext()->OMSetRenderTargets(1, &RTV, nullptr);
     
