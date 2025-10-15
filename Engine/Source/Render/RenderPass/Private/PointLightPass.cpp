@@ -23,6 +23,11 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
 
 void FPointLightPass::Execute(FRenderingContext& Context)
 {
+    if (Context.ViewMode != EViewModeIndex::VMI_Lit)
+    {
+        return;
+    }
+    
     const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
     
     ID3D11RenderTargetView* RTVs[1] = { DeviceResources->GetRenderTargetView() };
