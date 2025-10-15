@@ -58,8 +58,8 @@ TArray<UClass*>& UClass::GetAllClasses()
  * @param InClassSize Class Size
  * @param InConstructor 생성자 함수 포인터
  */
-UClass::UClass(const FName& InName, UClass* InSuperClass, size_t InClassSize, ClassConstructorType InConstructor)
-	: ClassName(InName), SuperClass(InSuperClass), ClassSize(InClassSize), Constructor(InConstructor)
+UClass::UClass(const FName& InName, UClass* InSuperClass, size_t InClassSize, ClassConstructorType InConstructor, bool InIsAbstract)
+	: ClassName(InName), SuperClass(InSuperClass), ClassSize(InClassSize), Constructor(InConstructor), bIsAbstract(InIsAbstract)
 {
 	UE_LOG("UClass: 클래스 등록: %s", ClassName.ToString().data());
 }

@@ -22,12 +22,14 @@ void UDeviceResources::Create(HWND InWindowHandle)
 	CreateFrameBuffer();
 	CreateNormalBuffer();
 	CreateDepthBuffer();
+	CreateSceneColorTarget();
 	CreateFactories();
 }
 
 void UDeviceResources::Release()
 {
 	ReleaseFactories();
+	ReleaseSceneColorTarget();
 	ReleaseFrameBuffer();
 	ReleaseNormalBuffer();
 	ReleaseDepthBuffer();
@@ -57,7 +59,7 @@ void UDeviceResources::CreateDeviceAndSwapChain(HWND InWindowHandle)
 
 	// Direct3D 장치와 스왑 체인을 생성
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-	                                           D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+	                                           D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG ,
 	                                           featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
 	                                           &SwapChainDescription, &SwapChain, &Device, nullptr, &DeviceContext);
 
@@ -140,6 +142,9 @@ void UDeviceResources::CreateFrameBuffer()
 	Device->CreateShaderResourceView(FrameBuffer, &srvDesc, &FrameBufferSRV);
 }
 
+
+
+
 /**
  * @brief 프레임 버퍼를 해제하는 함수
  */
@@ -218,6 +223,74 @@ void UDeviceResources::ReleaseNormalBuffer()
 	}
 }
 
+
+/**
+ * @brief Scene Color Texture, SRV, RTV 생성 함수
+ */
+void UDeviceResources::CreateSceneColorTarget()
+{
+	ReleaseSceneColorTarget();
+
+	if (!Device || Width == 0 || Height == 0)
+	{
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC SceneDesc = {};
+	SceneDesc.Width = Width;
+	SceneDesc.Height = Height;
+	SceneDesc.MipLevels = 1;
+	SceneDesc.ArraySize = 1;
+	SceneDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	SceneDesc.SampleDesc.Count = 1;
+	SceneDesc.SampleDesc.Quality = 0;
+	SceneDesc.Usage = D3D11_USAGE_DEFAULT;
+	SceneDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	SceneDesc.CPUAccessFlags = 0;
+	SceneDesc.MiscFlags = 0;
+
+
+	HRESULT Result = Device->CreateTexture2D(&SceneDesc, nullptr, &SceneColorTexture);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor Texture 생성 실패");
+		ReleaseSceneColorTarget();
+		return;
+	}
+
+	Result = Device->CreateRenderTargetView(SceneColorTexture, nullptr, &SceneColorTextureRTV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor RTV 생성 실패");
+		ReleaseSceneColorTarget();
+		return;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = SceneDesc.Format;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = 1;
+
+	Result = Device->CreateShaderResourceView(SceneColorTexture, &SRVDesc, &SceneColorTextureSRV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: SceneColor SRV 생성 실패");
+		ReleaseSceneColorTarget();
+	}
+}
+
+/**
+ * @brief Scene Color Texture, SRV, RTV를 해제하는 함수
+ */
+void UDeviceResources::ReleaseSceneColorTarget()
+{
+	SafeRelease(SceneColorTextureSRV);
+	SafeRelease(SceneColorTextureRTV);
+	SafeRelease(SceneColorTexture);
+}
+
+
 void UDeviceResources::CreateDepthBuffer()
 {
 	D3D11_TEXTURE2D_DESC dsDesc = {};
@@ -249,6 +322,7 @@ void UDeviceResources::CreateDepthBuffer()
 	srvDesc.Texture2D.MipLevels = 1;
 
 	Device->CreateShaderResourceView(DepthBuffer, &srvDesc, &DepthBufferSRV);
+	Device->CreateShaderResourceView(DepthBuffer, &srvDesc, &DepthStencilSRV);
 }
 
 void UDeviceResources::ReleaseDepthBuffer()
@@ -257,6 +331,11 @@ void UDeviceResources::ReleaseDepthBuffer()
 	{
 		DepthStencilView->Release();
 		DepthStencilView = nullptr;
+	}
+	if (DepthStencilSRV)
+	{
+		DepthStencilSRV->Release();
+		DepthStencilSRV = nullptr;
 	}
 	if (DepthBuffer)
 	{
@@ -270,6 +349,8 @@ void UDeviceResources::ReleaseDepthBuffer()
 	}
 }
 
+
+
 void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 {
 	DXGI_SWAP_CHAIN_DESC SwapChainDescription = {};
@@ -281,10 +362,10 @@ void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 
 	// 메뉴바 아래에 위치하도록 뷰포트 조정
 	ViewportInfo = {
-		0.0f,
-		InMenuBarHeight,
+		0.f,
+		0.f,
 		FullWidth,
-		FullHeight - InMenuBarHeight,
+		FullHeight,
 		0.0f,
 		1.0f
 	};

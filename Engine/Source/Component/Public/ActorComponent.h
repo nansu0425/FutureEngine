@@ -31,18 +31,13 @@ public:
 	 */
 	virtual UClass* GetSpecificWidgetClass() const { return nullptr; }
 
-	EComponentType GetComponentType() { return ComponentType; }
-
 	void SetOwner(AActor* InOwner) { Owner = InOwner; }
 	AActor* GetOwner() const { return Owner; }
-
-	EComponentType GetComponentType() const { return ComponentType; }
 
 	bool CanEverTick() const { return bCanEverTick; }
 	void SetCanEverTick(bool InbCanEverTick) { bCanEverTick = InbCanEverTick; }
 
 protected:
-	EComponentType ComponentType;
 	bool bCanEverTick = false;
 
 private:

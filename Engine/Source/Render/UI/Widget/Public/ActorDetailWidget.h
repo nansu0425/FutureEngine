@@ -9,9 +9,9 @@ class USceneComponent;
  * @brief 선택된 Actor의 이름과 컴포넌트 트리를 표시하는 Widget
  * Rename 기능이 추가되어 있음
  */
-class UActorDetailWidget :
-	public UWidget
+class UActorDetailWidget : public UWidget
 {
+	DECLARE_CLASS(UActorDetailWidget, UObject);
 public:
 	void Initialize() override;
 	void Update() override;
@@ -33,8 +33,9 @@ private:
 
 	// Helper functions
 	void RenderActorHeader(AActor* InSelectedActor);
-	void RenderComponentTree(AActor* InSelectedActor);
-	void RenderComponentNodeRecursive(UActorComponent* InComponent);
+	void RenderComponents(AActor* InSelectedActor);
+	void RenderSceneComponents(USceneComponent* InSceneComponent);
+	void RenderActorComponent(UActorComponent* InActorComponent);
 	void RenderAddComponentButton(AActor* InSelectedActor);
 	bool CenteredSelectable(const char* label);
 	void AddComponentByName(AActor* InSelectedActor, const FString& InComponentName);

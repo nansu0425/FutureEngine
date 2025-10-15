@@ -5,6 +5,8 @@
 #include "Manager/UI/Public/UIManager.h"
 #include "Level/Public/Level.h"
 
+IMPLEMENT_CLASS(UDetailWindow, UUIWindow)
+
 /**
  * @brief Detail Window Constructor
  * Selected된 Actor의 관리를 위한 적절한 크기의 윈도우 제공
@@ -49,10 +51,9 @@ void UDetailWindow::OnSelectedComponentChanged(UActorComponent* Component)
 	if (Component)
 	{
 		UClass* WidgetClass = Component->GetSpecificWidgetClass();
-		if (WidgetClass)
+		if (WidgetClass && WidgetClass->IsChildOf(UWidget::StaticClass()))
 		{
-			UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass));
-			if (NewWidget)
+			if (UWidget* NewWidget = Cast<UWidget>(NewObject(WidgetClass)))
 			{
 				AddWidget(NewWidget);
 				ComponentSpecificWidget = NewWidget;

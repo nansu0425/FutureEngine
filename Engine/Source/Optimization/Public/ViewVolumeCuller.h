@@ -66,10 +66,10 @@ public:
 	void Cull(
         FOctree* StaticOctree,
         TArray<UPrimitiveComponent*>& DynamicPrimitives,
-		const FViewProjConstants& ViewProjConstants
+		const FCameraConstants& ViewProjConstants
 	);
 
-	const TArray<UPrimitiveComponent*>& GetRenderableObjects() const;
+	const TArray<UPrimitiveComponent*>& GetRenderableObjects();
 private:
     void CullOctree(FOctree* Octree);
 

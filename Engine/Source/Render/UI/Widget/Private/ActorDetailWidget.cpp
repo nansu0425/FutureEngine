@@ -7,8 +7,8 @@
 #include "Component/Public/TextComponent.h"
 #include "Global/Vector.h"
 
+IMPLEMENT_CLASS(UActorDetailWidget, UWidget)
 UActorDetailWidget::UActorDetailWidget()
-	: UWidget("Actor Detail Widget")
 {
 	LoadComponentClasses();
 }
@@ -74,10 +74,8 @@ void UActorDetailWidget::RenderWidget()
 	ImGui::Separator();
 
 	// 컴포넌트 트리 렌더링
-	RenderComponentTree(SelectedActor);
-
-	ImGui::Separator();
-
+	RenderComponents(SelectedActor);
+	
 	// 선택된 컴포넌트의 트랜스폼 정보 렌더링
 	RenderTransformEdit();
 }
@@ -130,12 +128,12 @@ void UActorDetailWidget::RenderActorHeader(AActor* InSelectedActor)
 }
 
 /**
- * @brief 컴포넌트들을 트리 형태로 표시하는 함수
+ * @brief 컴포넌트들 렌더(SceneComponent는 트리 형태로, 아닌 것은 일반 형태로
  * @param InSelectedActor 선택된 Actor
  */
-void UActorDetailWidget::RenderComponentTree(AActor* InSelectedActor)
+void UActorDetailWidget::RenderComponents(AActor* InSelectedActor)
 {
-	if (!InSelectedActor) return;
+	if (!InSelectedActor) { return; }
 
 	const auto& Components = InSelectedActor->GetOwnedComponents();
 
@@ -148,35 +146,35 @@ void UActorDetailWidget::RenderComponentTree(AActor* InSelectedActor)
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "No components");
 		return;
 	}
-
-	// 모든 컴포넌트 중 부모가 없는 최상위 컴포넌트만 찾아 재귀 렌더링을 시작합니다.
-	for (const auto& Component : Components)
+	
+	if (InSelectedActor->GetRootComponent())
 	{
-		if (!Component) continue;
-
-		USceneComponent* SceneComp = Cast<USceneComponent>(Component);
-		// SceneComponent가 아니거나, 부모가 없는 SceneComponent가 최상위입니다.
-		if (!SceneComp || !SceneComp->GetAttachParent())
-		{
-			RenderComponentNodeRecursive(Component);
-		}
+		RenderSceneComponents(InSelectedActor->GetRootComponent());
 	}
+	ImGui::Separator();
+	
+	bool bHasActorComponents = false;
+	for (UActorComponent* Component : Components)
+	{
+		if (Component->IsA(USceneComponent::StaticClass())) { continue; }
+		bHasActorComponents = true;
+		RenderActorComponent(Component);
+	}
+	if (bHasActorComponents) { ImGui::Separator(); }
 }
 
-void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InComponent)
+void UActorDetailWidget::RenderSceneComponents(USceneComponent* InSceneComponent)
 {
-	if (!InComponent || InComponent->IsVisualizationComponent()) { return; }
-
-	USceneComponent* SceneComp = Cast<USceneComponent>(InComponent);
-	FString ComponentName = InComponent->GetName().ToString();
+	if (!InSceneComponent || InSceneComponent->IsVisualizationComponent()) { return; }
+	FString ComponentName = InSceneComponent->GetName().ToString();
 
 	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (!SceneComp || SceneComp->GetChildren().empty())
+	if (!InSceneComponent || InSceneComponent->GetChildren().empty())
 		NodeFlags |= ImGuiTreeNodeFlags_Leaf;
-	if (SelectedComponent == InComponent)
+	if (SelectedComponent == InSceneComponent)
 		NodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-	bool bNodeOpen = ImGui::TreeNodeEx((void*)InComponent, NodeFlags, "%s", ComponentName.c_str());
+	bool bNodeOpen = ImGui::TreeNodeEx((void*)InSceneComponent, NodeFlags, "%s", ComponentName.c_str());
 
 	// -----------------------------
 	// Drag Source
@@ -185,7 +183,7 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 	{
 		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 		{
-			ImGui::SetDragDropPayload("COMPONENT_PTR", &InComponent, sizeof(UActorComponent*));
+			ImGui::SetDragDropPayload("COMPONENT_PTR", &InSceneComponent, sizeof(USceneComponent*));
 			ImGui::Text("Dragging %s", ComponentName.c_str());
 			ImGui::EndDragDropSource();
 		}
@@ -198,42 +196,37 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 	{
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("COMPONENT_PTR"))
 		{
-			IM_ASSERT(payload->DataSize == sizeof(UActorComponent*));
-			UActorComponent* DraggedComp = *(UActorComponent**)payload->Data;
+			IM_ASSERT(payload->DataSize == sizeof(USceneComponent*));
+			USceneComponent* DraggedComp = *(USceneComponent**)payload->Data;
 
-			if (!DraggedComp || DraggedComp == InComponent)
+			if (!DraggedComp || DraggedComp == InSceneComponent)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
-
 				return;
 			}
 
-			USceneComponent* DraggedScene = Cast<USceneComponent>(DraggedComp);
-			USceneComponent* TargetScene = Cast<USceneComponent>(InComponent);
 			AActor* Owner = DraggedComp->GetOwner();
 			if (!Owner)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
-
 				return;
 			}
 			
-			if (DraggedScene->GetAttachParent() == TargetScene)
+			if (DraggedComp->GetAttachParent() == InSceneComponent)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
-
 				return;
 			}
 			
 			// -----------------------------
 			// 자기 자신이나 자식에게 Drop 방지
 			// -----------------------------
-			if (DraggedScene && TargetScene)
+			if (DraggedComp && InSceneComponent)
 			{
-				USceneComponent* Iter = TargetScene;
+				USceneComponent* Iter = InSceneComponent;
 				while (Iter)
 				{
-					if (Iter == DraggedScene)
+					if (Iter == DraggedComp)
 					{
 						UE_LOG_WARNING("Cannot drop onto self or own child.");
 						ImGui::EndDragDropTarget();
@@ -248,68 +241,51 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 			// -----------------------------
 			// 부모-자식 관계 설정
 			// -----------------------------
-			if (DraggedScene)
+			if (DraggedComp)
 			{
 				// 드롭 대상이 유효한 SceneComponent가 아니면, 작업을 진행하지 않습니다.
-				if (!TargetScene)
+				if (!InSceneComponent)
 				{
 					ImGui::EndDragDropTarget();		ImGui::TreePop();
-
 					return;
 				}
 
 				// 자기 부모에게 드롭하는 경우, 아무 작업도 하지 않음
-				if (TargetScene == DraggedScene->GetAttachParent())
+				if (InSceneComponent == DraggedComp->GetAttachParent())
 				{
 					ImGui::EndDragDropTarget();		ImGui::TreePop();
-
 					return;
 				}
 
 				// 1. 이전 부모로부터 분리
-				if (USceneComponent* OldParent = DraggedScene->GetAttachParent())
+				if (USceneComponent* OldParent = DraggedComp->GetAttachParent())
 				{
-					DraggedScene->DetachFromComponent();
+					DraggedComp->DetachFromComponent();
 				}
 
 				// 2. 새로운 부모에 연결하고 월드 트랜스폼 유지
-				const FMatrix OldWorldMatrix = DraggedScene->GetWorldTransformMatrix();
-				DraggedScene->AttachToComponent(TargetScene);
-				const FMatrix NewParentWorldMatrixInverse = TargetScene->GetWorldTransformMatrixInverse();
+				const FMatrix OldWorldMatrix = DraggedComp->GetWorldTransformMatrix();
+				DraggedComp->AttachToComponent(InSceneComponent);
+				const FMatrix NewParentWorldMatrixInverse = InSceneComponent->GetWorldTransformMatrixInverse();
 				const FMatrix NewLocalMatrix = OldWorldMatrix * NewParentWorldMatrixInverse;
 
 				FVector NewLocation, NewRotation, NewScale;
 				DecomposeMatrix(NewLocalMatrix, NewLocation, NewRotation, NewScale);
 
-				DraggedScene->SetRelativeLocation(NewLocation);
-				DraggedScene->SetRelativeRotation(FQuaternion::FromEuler(NewRotation));
-				DraggedScene->SetRelativeScale3D(NewScale);
-			}
-			// -----------------------------
-			// Non-SceneComponent는 순서만 변경
-			// -----------------------------
-			else
-			{
-				auto& Components = Owner->GetOwnedComponents();
-				auto it = std::find(Components.begin(), Components.end(), DraggedComp);
-				if (it != Components.end())
-				{
-					Components.erase(it);
-					Components.push_back(DraggedComp);
-				}
+				DraggedComp->SetRelativeLocation(NewLocation);
+				DraggedComp->SetRelativeRotation(FQuaternion::FromEuler(NewRotation));
+				DraggedComp->SetRelativeScale3D(NewScale);
 			}
 		}
 		ImGui::EndDragDropTarget();
 	}
-
-
 
 	// -----------------------------
 	// 클릭 선택 처리
 	// -----------------------------
 	if (ImGui::IsItemClicked())
 	{
-		SelectedComponent = InComponent;
+		SelectedComponent = InSceneComponent;
 		GEditor->GetEditorModule()->SelectComponent(SelectedComponent);
 	}
 
@@ -318,13 +294,43 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 	// -----------------------------
 	if (bNodeOpen)
 	{
-		if (SceneComp)
+		if (InSceneComponent)
 		{
-			for (auto& Child : SceneComp->GetChildren())
+			for (auto& Child : InSceneComponent->GetChildren())
 			{
-				RenderComponentNodeRecursive(Child);
+				RenderSceneComponents(Child);
 			}
 		}
+		ImGui::TreePop();
+	}
+}
+
+/**
+ * @brief SceneComponent가 아닌 ActorComponent를 렌더
+ * @param InActorComponent 띄울 ActorComponent
+ */
+void UActorDetailWidget::RenderActorComponent(UActorComponent* InActorComponent)
+{
+	FString ComponentName = InActorComponent->GetName().ToString();
+
+	// --- 노드 속성 설정 (항상 잎 노드) ---
+	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_SpanAvailWidth;
+	if (SelectedComponent == InActorComponent)
+	{
+		NodeFlags |= ImGuiTreeNodeFlags_Selected;
+	}
+
+	bool bNodeOpen = ImGui::TreeNodeEx((void*)InActorComponent, NodeFlags, "%s", ComponentName.c_str());
+
+	// --- 클릭 선택 처리 ---
+	if (ImGui::IsItemClicked())
+	{
+		SelectedComponent = InActorComponent;
+		GEditor->GetEditorModule()->SelectComponent(SelectedComponent);
+	}
+    
+	if (bNodeOpen)
+	{
 		ImGui::TreePop();
 	}
 }
@@ -333,11 +339,11 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 {
 	ImGui::SameLine();
 
-	const char* buttonText = "[+]";
-	float buttonWidth = ImGui::CalcTextSize(buttonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - buttonWidth);
+	const char* ButtonText = "[+]";
+	float ButtonWidth = ImGui::CalcTextSize(ButtonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - ButtonWidth);
 
-	if (ImGui::Button(buttonText))
+	if (ImGui::Button(ButtonText))
 	{
 		ImGui::OpenPopup("AddComponentPopup");
 	}
@@ -626,7 +632,10 @@ void UActorDetailWidget::SetSelectedComponent(UActorComponent* InComponent)
 void UActorDetailWidget::LoadComponentClasses()
 {
 	for (UClass* Class : UClass::FindClasses(UActorComponent::StaticClass()))
-	{ 
-		ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
+	{
+		if (!Class->IsAbstract())
+		{
+			ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
+		}
 	}
 }

@@ -3,6 +3,7 @@
 
 #include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
 
+IMPLEMENT_CLASS(UOutlinerWindow, UUIWindow)
 UOutlinerWindow::UOutlinerWindow()
 {
 	FUIWindowConfig Config;
@@ -18,7 +19,7 @@ UOutlinerWindow::UOutlinerWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new USceneHierarchyWidget);
+	AddWidget(NewObject<USceneHierarchyWidget>());
 }
 
 void UOutlinerWindow::Initialize()

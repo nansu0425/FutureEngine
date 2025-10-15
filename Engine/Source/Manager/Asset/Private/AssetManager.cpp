@@ -8,8 +8,7 @@
 #include "Manager/Path/Public/PathManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
-
+IMPLEMENT_SINGLETON_CLASS(UAssetManager, UObject)
 UAssetManager::UAssetManager() = default;
 
 UAssetManager::~UAssetManager() = default;

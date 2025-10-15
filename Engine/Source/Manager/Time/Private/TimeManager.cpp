@@ -2,7 +2,7 @@
 #include "Manager/Time/Public/TimeManager.h"
 #include "Utility/Public/ScopeCycleCounter.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UTimeManager)
+IMPLEMENT_SINGLETON_CLASS(UTimeManager, UObject)
 
 UTimeManager::UTimeManager()
 {

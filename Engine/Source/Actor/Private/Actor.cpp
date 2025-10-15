@@ -29,59 +29,58 @@ AActor::~AActor()
 
 void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
-    // UObject::Serialize 호출 (상위 UObject 속성 처리)
-    // Super::Serialize(bInIsLoading, InOutHandle); 
+    Super::Serialize(bInIsLoading, InOutHandle); 
 
     // 불러오기 (Load)
     if (bInIsLoading)
     {
     	// 컴포넌트 포인터와 JSON 데이터를 임시 저장할 구조체
-        struct FComponentLoadData
+        struct FSceneCompData
         {
             USceneComponent* Component = nullptr;
             FString ParentName; // ParentName을 임시 저장
-            JSON ComponentData;     // 모든 JSON 데이터 임시 저장
         };
-        TMap<FString, FComponentLoadData> ComponentMap;
-        TArray<FComponentLoadData*> LoadList;
-        // ----------------------------------------------------
-        
-        // Components 목록 로드 및 역직렬화 시작
+
         JSON ComponentsJson;
         if (FJsonSerializer::ReadArray(InOutHandle, "Components", ComponentsJson))
         {
-            // --- [PASS 1: Component Creation & Data Load] ---
+			TMap<FString, FSceneCompData> ComponentMap;
+	        TArray<FSceneCompData*> LoadList;
+	        // --- [PASS 1: Component Creation & Data Load] ---
             for (JSON& ComponentData : ComponentsJson.ArrayRange())
             {
                 FString TypeString;
                 FString NameString;
-                std::string ParentNameStd;
+                FString ParentNameStd;
         
                 FJsonSerializer::ReadString(ComponentData, "Type", TypeString);
                 FJsonSerializer::ReadString(ComponentData, "Name", NameString);
                 FJsonSerializer::ReadString(ComponentData, "ParentName", ParentNameStd, ""); // 부모 이름 로드
         
             	UClass* ComponentClass = UClass::FindClass(TypeString);
-                USceneComponent* NewComp = Cast<USceneComponent>(NewObject(ComponentClass));
+                UActorComponent* NewComp = Cast<UActorComponent>(NewObject(ComponentClass));
+            	NewComp->SetName(NameString);
                 
                 if (NewComp)
                 {
                 	NewComp->SetOwner(this);
                 	OwnedComponents.push_back(NewComp);
-                    NewComp->Serialize(bInIsLoading, ComponentData); 
+                    NewComp->Serialize(bInIsLoading, ComponentData);
+                	
+                	if (USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp))
+                	{
+                		FSceneCompData LoadData;
+                		LoadData.Component = NewSceneComp;
+                		LoadData.ParentName = ParentNameStd;
                     
-                    FComponentLoadData LoadData;
-                    LoadData.Component = NewComp;
-                    LoadData.ParentName = ParentNameStd;
-                    LoadData.ComponentData = ComponentData;
-                    
-                    ComponentMap[NameString] = LoadData;
-                    LoadList.push_back(&ComponentMap[NameString]);
+                		ComponentMap[NameString] = LoadData;
+                		LoadList.push_back(&ComponentMap[NameString]);
+                	}
                 }
             }
             
             // --- [PASS 2: Hierarchy Rebuild] ---
-            for (FComponentLoadData* LoadDataPtr : LoadList)
+            for (FSceneCompData* LoadDataPtr : LoadList)
             {
                 USceneComponent* ChildComp = LoadDataPtr->Component;
                 const FString& ParentName = LoadDataPtr->ParentName;
@@ -113,14 +112,14 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         	if (RootComponent)
         	{
-    							FVector Location, RotationEuler, Scale;
-    					        
-    			    			FJsonSerializer::ReadVector(InOutHandle, "Location", Location, GetActorLocation());
-    			    			FJsonSerializer::ReadVector(InOutHandle, "Rotation", RotationEuler, GetActorRotation().ToEuler());
-    			    			FJsonSerializer::ReadVector(InOutHandle, "Scale", Scale, GetActorScale3D());
-    					        
-    			    			SetActorLocation(Location);
-    			    			SetActorRotation(FQuaternion::FromEuler(RotationEuler));	    		SetActorScale3D(Scale); 
+    			FVector Location, RotationEuler, Scale;
+    	        
+    		    FJsonSerializer::ReadVector(InOutHandle, "Location", Location, GetActorLocation());
+    		    FJsonSerializer::ReadVector(InOutHandle, "Rotation", RotationEuler, GetActorRotation().ToEuler());
+    		    FJsonSerializer::ReadVector(InOutHandle, "Scale", Scale, GetActorScale3D());
+    	        
+    		    SetActorLocation(Location);
+    		    SetActorRotation(FQuaternion::FromEuler(RotationEuler));	    		SetActorScale3D(Scale); 
         	}
 
 			FString bCanEverTickString;
@@ -146,21 +145,18 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         for (UActorComponent* Component : OwnedComponents) 
         {
-        	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-        	if (SceneComponent == nullptr) { continue; }
-        	
-            JSON ComponentJson;
-            ComponentJson["Type"] = SceneComponent->GetClass()->GetName().ToString();
-            
-            FString ComponentName = SceneComponent->GetName().ToString();
-        	ComponentJson["Name"] = ComponentName;
+        	JSON ComponentJson;
+        	ComponentJson["Type"] = Component->GetClass()->GetName().ToString();
+        	ComponentJson["Name"] = Component->GetName().ToString();
 
-            USceneComponent* Parent = SceneComponent->GetAttachParent();
-            FString ParentName = Parent ? Parent->GetName().ToString() : "";
-        	ComponentJson["ParentName"] = ParentName;
+	        if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+        	{
+        		USceneComponent* Parent = SceneComponent->GetAttachParent();
+        		FString ParentName = Parent ? Parent->GetName().ToString() : "";
+        		ComponentJson["ParentName"] = ParentName;
+        	}
 
-            SceneComponent->Serialize(bInIsLoading, ComponentJson); 
-            
+        	Component->Serialize(bInIsLoading, ComponentJson);
             ComponentsJson.append(ComponentJson);
         }
         InOutHandle["Components"] = ComponentsJson;
@@ -252,6 +248,7 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 		RegisterComponent(NewComponent);
 	}
 
+	NewComponent->BeginPlay();
 	return NewComponent;
 }
 

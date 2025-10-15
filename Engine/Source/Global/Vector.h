@@ -119,7 +119,22 @@ struct FVector
 			Z /= Length;
 		}
 	}
+	
+	/**
+	 * @brief 단위 벡터 반환하는 함수
+	 */
+	FVector GetNormalized() const
+	{
+		FVector NormalizedVector = *this;
+		NormalizedVector.Normalize();
+		return NormalizedVector;
+	}
 
+	bool IsZero() const
+	{
+		return X==0.f && Y==0.f && Z==0.f;
+	}
+	
 	/**
 	 * @brief 각도를 라디안으로 변환한 값을 반환하는 함수
 	 */

@@ -14,7 +14,6 @@ class UObject
 public:
 	// 생성자 및 소멸자
 	UObject();
-	explicit UObject(const FName& InName);
 	virtual ~UObject();
 
 	// 2. 가상 함수 (인터페이스)

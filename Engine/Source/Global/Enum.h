@@ -102,25 +102,6 @@ enum class EShaderType : uint8
 };
 
 /**
- * @brief Component Type Enum
- */
-enum class EComponentType : uint8
-{
-	None = 0,
-
-	Actor,
-	//ActorComponent Dervied Type
-
-	Scene,
-	//SceneComponent Dervied Type
-
-	Primitive,
-	//PrimitiveComponent Derived Type
-
-	End = 0xFF
-};
-
-/**
  * @brief UObject Primitive Type Enum
  */
 UENUM()
@@ -168,6 +149,7 @@ enum class EViewModeIndex : uint32
 	VMI_Lit,
 	VMI_Unlit,
 	VMI_Wireframe,
+	VMI_SceneDepth
 };
 
 /**
@@ -180,7 +162,9 @@ enum class EEngineShowFlags : uint64
 	SF_StaticMesh = 1 << 2,
 	SF_Text = 1 << 3,
 	SF_Decal = 1 << 4,
-	SF_Octree = 1 << 5
+	SF_FXAA = 1 << 5,
+	SF_Fog = 1 << 6,
+	SF_Octree = 1 << 7,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

@@ -5,6 +5,7 @@
 #include "Render/UI/Widget/Public/FPSWidget.h"
 #include "Render/UI/Widget/Public/ActorSpawnWidget.h"
 
+IMPLEMENT_CLASS(UControlPanelWindow, UUIWindow)
 /**
  * @brief Control Panel Constructor
  * 적절한 사이즈의 윈도우 제공
@@ -25,8 +26,8 @@ UControlPanelWindow::UControlPanelWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(new UFPSWidget);
-	AddWidget(new UActorSpawnWidget);
+	AddWidget(NewObject<UFPSWidget>());
+	AddWidget(NewObject<UActorSpawnWidget>());
 	// 현재 ViewportMenuBarWidget.cpp 에서 사용 중
 	//AddWidget(new UCameraControlWidget);
 }

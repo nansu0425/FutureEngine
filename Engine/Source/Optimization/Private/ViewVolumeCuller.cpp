@@ -2,6 +2,7 @@
 #include "Optimization/Public/ViewVolumeCuller.h"
 #include "Core/Public/Object.h"
 #include "Global/Octree.h"
+#include "Level/Public/Level.h"
 
 namespace
 {
@@ -14,7 +15,7 @@ namespace
 	}
 }
 
-void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>& DynamicPrimitives, const FViewProjConstants& ViewProjConstants)
+void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>& DynamicPrimitives, const FCameraConstants& ViewProjConstants)
 {
 	// 이전의 Cull했던 정보를 지운다.
 	RenderableObjects.clear();
@@ -55,8 +56,11 @@ void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>&
 	}
 }
 
-const TArray<UPrimitiveComponent*>& ViewVolumeCuller::GetRenderableObjects() const
+const TArray<UPrimitiveComponent*>& ViewVolumeCuller::GetRenderableObjects()
 {
+	// Octree에 없는 DynamicPrimitives들 추가
+	TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
+	RenderableObjects.insert(RenderableObjects.end(), DynamicPrimitives.begin(), DynamicPrimitives.end());
 	return RenderableObjects;
 }
 

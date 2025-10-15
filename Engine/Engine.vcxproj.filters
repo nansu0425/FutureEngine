@@ -4,12 +4,6 @@
     <FxCompile Include="Asset\Shader\SampleShader.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLinePS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\BatchLineVS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Asset\Shader\ShaderFont.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
@@ -19,6 +13,8 @@
     <FxCompile Include="Asset\Shader\DecalShader.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Asset\Shader\HeightFogShader.hlsl" />
+    <FxCompile Include="Asset\Shader\BatchLineShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Global\Octree.cpp">
@@ -54,9 +50,6 @@
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Actor\Private\SquareActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
@@ -81,9 +74,6 @@
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Component\Private\LineComponent.cpp">
-      <Filter>Source\Component\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
@@ -97,18 +87,6 @@
       <Filter>Source\Component\Mesh\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Component\Mesh\Private\StaticMeshComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\CubeComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\SphereComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\SquareComponent.cpp">
-      <Filter>Source\Component\Mesh\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Mesh\Private\TriangleComponent.cpp">
       <Filter>Source\Component\Mesh\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp">
@@ -141,9 +119,6 @@
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp">
       <Filter>Source\Render\RenderPass\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Render\RenderPass\Private\PrimitivePass.cpp">
-      <Filter>Source\Render\RenderPass\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Render\RenderPass\Private\RenderPass.cpp">
       <Filter>Source\Render\RenderPass\Private</Filter>
     </ClCompile>
@@ -152,9 +127,6 @@
     </ClCompile>
     <ClCompile Include="Source\Render\RenderPass\Private\TextPass.cpp">
       <Filter>Source\Render\RenderPass\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\FontRenderer\Private\FontRenderer.cpp">
-      <Filter>Source\Render\FontRenderer\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\UI\Factory\Private\UIWindowFactory.cpp">
       <Filter>Source\Render\UI\Factory\Private</Filter>
@@ -186,9 +158,6 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp">
       <Filter>Source\Render\UI\Widget\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp">
-      <Filter>Source\Render\UI\Widget\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp">
       <Filter>Source\Render\UI\Widget\Private</Filter>
     </ClCompile>
@@ -205,9 +174,6 @@
       <Filter>Source\Render\UI\Widget\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\UI\Widget\Private\StaticMeshComponentWidget.cpp">
-      <Filter>Source\Render\UI\Widget\Private</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\UI\Widget\Private\TargetActorTransformWidget.cpp">
       <Filter>Source\Render\UI\Widget\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportMenuBarWidget.cpp">
@@ -306,9 +272,6 @@
     <ClCompile Include="Source\Editor\Private\ObjectPicker.cpp">
       <Filter>Source\Editor\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Utility\Private\ActorTypeMapper.cpp">
-      <Filter>Source\Utility\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp">
       <Filter>Source\Utility\Private</Filter>
     </ClCompile>
@@ -396,6 +359,13 @@
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp">
       <Filter>Source\Optimization\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Actor\Private\DecalSpotLightActor.cpp" />
+    <ClCompile Include="Source\Component\Private\DecalSpotLightComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
+    <ClCompile Include="Source\Editor\Private\SpotLightLines.cpp" />
+    <ClCompile Include="Source\Manager\Asset\Private\TextureManager.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\FogPass.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\ActorSpawnWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Global\Octree.h">
@@ -429,9 +399,6 @@
     <ClInclude Include="Source\Actor\Public\SphereActor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Actor\Public\SquareActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
@@ -456,9 +423,6 @@
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Component\Public\LineComponent.h">
-      <Filter>Source\Component\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
@@ -472,18 +436,6 @@
       <Filter>Source\Component\Mesh\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\Mesh\Public\StaticMeshComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\CubeComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\SphereComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\SquareComponent.h">
-      <Filter>Source\Component\Mesh\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Component\Mesh\Public\TriangleComponent.h">
       <Filter>Source\Component\Mesh\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\Mesh\Public\VertexDatas.h">
@@ -519,9 +471,6 @@
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h">
       <Filter>Source\Render\RenderPass\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\RenderPass\Public\PrimitivePass.h">
-      <Filter>Source\Render\RenderPass\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Render\RenderPass\Public\RenderingContext.h">
       <Filter>Source\Render\RenderPass\Public</Filter>
     </ClInclude>
@@ -533,9 +482,6 @@
     </ClInclude>
     <ClInclude Include="Source\Render\RenderPass\Public\TextPass.h">
       <Filter>Source\Render\RenderPass\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Render\FontRenderer\Public\FontRenderer.h">
-      <Filter>Source\Render\FontRenderer\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\UI\Factory\Public\UIWindowFactory.h">
       <Filter>Source\Render\UI\Factory\Public</Filter>
@@ -567,9 +513,6 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h">
       <Filter>Source\Render\UI\Widget\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h">
-      <Filter>Source\Render\UI\Widget\Public</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h">
       <Filter>Source\Render\UI\Widget\Public</Filter>
     </ClInclude>
@@ -586,9 +529,6 @@
       <Filter>Source\Render\UI\Widget\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\UI\Widget\Public\StaticMeshComponentWidget.h">
-      <Filter>Source\Render\UI\Widget\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Render\UI\Widget\Public\TargetActorTransformWidget.h">
       <Filter>Source\Render\UI\Widget\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportMenuBarWidget.h">
@@ -698,9 +638,6 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Public\ObjectPicker.h">
       <Filter>Source\Editor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Utility\Public\ActorTypeMapper.h">
-      <Filter>Source\Utility\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h">
       <Filter>Source\Utility\Public</Filter>
@@ -819,6 +756,13 @@
     <ClInclude Include="Source\Optimization\Public\ViewVolumeCuller.h">
       <Filter>Source\Optimization\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Actor\Public\DecalSpotLightActor.h" />
+    <ClInclude Include="Source\Component\Public\DecalSpotLightComponent.h" />
+    <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
+    <ClInclude Include="Source\Editor\Public\SpotLightLines.h" />
+    <ClInclude Include="Source\Manager\Asset\Public\TextureManager.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\FogPass.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\ActorSpawnWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Engine.rc" />

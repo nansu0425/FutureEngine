@@ -5,7 +5,7 @@
 #include "Global/Memory.h"
 #include "Render/Renderer/Public/Renderer.h"
 
-IMPLEMENT_SINGLETON_CLASS_BASE(UStatOverlay)
+IMPLEMENT_SINGLETON_CLASS(UStatOverlay, UObject)
 
 UStatOverlay::UStatOverlay() {}
 UStatOverlay::~UStatOverlay() = default;
@@ -28,8 +28,6 @@ void UStatOverlay::Initialize()
             &TextFormat
         );
     }
-    // Decal 발제용 켜놓기
-    EnableStat(EStatType::Decal);
 }
 
 void UStatOverlay::Release()

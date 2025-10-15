@@ -13,14 +13,12 @@ class UPointLightComponent;
 class FOctree;
 
 UCLASS()
-class ULevel :
-	public UObject
+class ULevel : public UObject
 {
 	GENERATED_BODY()
 	DECLARE_CLASS(ULevel, UObject)
 public:
 	ULevel();
-	ULevel(const FName& InName);
 	~ULevel() override;
 
 	virtual void Init();
@@ -62,7 +60,7 @@ protected:
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 
 private:
-	AActor* SpawnActorToLevel(UClass* InActorClass, const FName& InName = FName::GetNone(), JSON* ActorJsonData = nullptr);
+	AActor* SpawnActorToLevel(UClass* InActorClass, JSON* ActorJsonData = nullptr);
 
 	TArray<AActor*> LevelActors;	// 레벨이 보유하고 있는 모든 Actor를 배열로 저장합니다.
 

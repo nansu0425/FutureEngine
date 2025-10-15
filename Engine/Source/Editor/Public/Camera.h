@@ -47,8 +47,8 @@ public:
 	/**
 	 * @brief Getter
 	 */
-	const FViewProjConstants& GetFViewProjConstants() const { return ViewProjConstants; }
-	const FViewProjConstants GetFViewProjConstantsInverse() const;
+	const FCameraConstants& GetFViewProjConstants() const { return CameraConstants; }
+	const FCameraConstants GetFViewProjConstantsInverse() const;
 
 	FRay ConvertToWorldRay(float NdcX, float NdcY) const;
 
@@ -65,7 +65,7 @@ public:
 	float GetFarZ() const { return FarZ; }
 	float GetOrthoWidth() const { return OrthoWidth; }
 	ECameraType GetCameraType() const { return CameraType; }
-	const ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
+	ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
 
 
 	// Camera Movement Speed Control
@@ -92,7 +92,7 @@ public:
 	}
 
 private:
-	FViewProjConstants ViewProjConstants = {};
+	FCameraConstants CameraConstants = {};
 	FVector RelativeLocation = {};
 	FVector RelativeRotation = {};
 	FVector Forward = { 1,0,0 };

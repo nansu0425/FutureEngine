@@ -6,13 +6,6 @@
 
 IMPLEMENT_CLASS(USetTextComponentWidget, UWidget)
 
-USetTextComponentWidget::USetTextComponentWidget()
-	: UWidget("Set TextComponent Widget")
-{
-}
-
-USetTextComponentWidget::~USetTextComponentWidget() = default;
-
 void USetTextComponentWidget::Initialize()
 {
 	// Do Nothing Here

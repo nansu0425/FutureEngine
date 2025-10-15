@@ -10,9 +10,10 @@ class AActor;
  */
 class UControlPanelWindow : public UUIWindow
 {
+	DECLARE_CLASS(UControlPanelWindow, UUIWindow)
 public:
 	UControlPanelWindow();
-	virtual ~UControlPanelWindow() override {}
+	virtual ~UControlPanelWindow() override = default;
 
 	void Initialize() override;
 };
