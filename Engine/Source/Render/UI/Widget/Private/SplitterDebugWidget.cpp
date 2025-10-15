@@ -3,6 +3,13 @@
 #include "Editor/Public/SplitterWindow.h"
 #include "Manager/Input/Public/InputManager.h"
 
+USplitterDebugWidget::USplitterDebugWidget()
+{
+	RootSplitter = GEditor->GetEditorModule()->GetRootSplitter();
+	LeftSplitter = GEditor->GetEditorModule()->GetLeftSplitter();
+	RightSplitter = GEditor->GetEditorModule()->GetRightSplitter();
+}
+
 USplitterDebugWidget::~USplitterDebugWidget()
 {
 	RootSplitter = nullptr;

@@ -3,12 +3,6 @@
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Viewport.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Render/UI/Widget/Public/FPSWidget.h"
-#include "Render/UI/Widget/Public/SceneHierarchyWidget.h"
-#include "Render/UI/Widget/Public/SplitterDebugWidget.h"
-#include "Render/UI/Widget/Public/CameraControlWidget.h"
-#include "Render/UI/Widget/Public/ViewportMenuBarWidget.h"
-
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Config/Public/ConfigManager.h"
@@ -18,7 +12,6 @@
 #include "Global/Quaternion.h"
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
-#include "Component/Public/UUIDTextComponent.h"
 #include "Component/Public/DecalSpotLightComponent.h"
 
 UEditor::UEditor()
@@ -28,27 +21,7 @@ UEditor::UEditor()
 	LeftSplitter.SetRatio(SplitterRatio[1]);
 	RightSplitter.SetRatio(SplitterRatio[2]);
 
-	auto& UIManager = UUIManager::GetInstance();
-
-	if (auto* FPSWidget = Cast<UFPSWidget>(UIManager.FindWidget("UFPSWidget")))
-	{
-		FPSWidget->SetBatchLine(&BatchLines);
-	}
-
-	// Splitter UI에게 Splitter 정보를 전달합니다.
-	if (auto* SplitterWidget = Cast<USplitterDebugWidget>(UIManager.FindWidget("USplitterDebugWidget")))
-	{
-		SplitterWidget->SetSplitters(&RootSplitter, &LeftSplitter, &RightSplitter);
-	}
-
-	if (auto* ViewportWidget = Cast<UViewportMenuBarWidget>(UIManager.FindWidget("UViewportMenuBarWidget")))
-	{
-		ViewportWidget->SetEdtior(this);
-	}
-
 	InitializeLayout();
-
-	Gizmo.SetEditor(this);
 }
 
 UEditor::~UEditor()

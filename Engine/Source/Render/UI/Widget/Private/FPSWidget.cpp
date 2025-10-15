@@ -8,6 +8,7 @@ constexpr float REFRESH_INTERVAL = 0.1f;
 
 void UFPSWidget::Initialize()
 {
+	BatchLine = GEditor->GetEditorModule()->GetBatchLines();
 	// 히스토리 초기화
 	for (int i = 0; i < 60; ++i)
 	{
@@ -96,10 +97,10 @@ void UFPSWidget::RenderWidget()
 	}
 
 	// test용: CellSize 값을 실시간으로 조정
-	CellSize = PbatchLine->GetCellSize();
+	CellSize = BatchLine->GetCellSize();
 	if (ImGui::SliderFloat("Grid Spacing", &CellSize, 0.0f, 10.0f, "%.1f"))
 	{
-		PbatchLine->UpdateUGridVertices(CellSize);
+		BatchLine->UpdateUGridVertices(CellSize);
 	}
 
 	ImGui::Separator();

@@ -15,17 +15,12 @@ public:
 
 	static ImVec4 GetFPSColor(float InFPS);
 
-	void SetBatchLine(UBatchLines* pBatchLine)
-	{
-		PbatchLine = pBatchLine;
-	}
-
 	// Special Member Function
 	UFPSWidget() = default;
 	~UFPSWidget() override = default;
 
 private:
-	UBatchLines* PbatchLine;
+	UBatchLines* BatchLine;
 
 	float FrameTimeHistory[60] = {};
 	int32 FrameTimeIndex = 0;

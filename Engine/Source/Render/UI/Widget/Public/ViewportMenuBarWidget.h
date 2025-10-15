@@ -7,7 +7,7 @@ class UEditor;
 class UViewportMenuBarWidget : public UWidget
 {
 public:
-	UViewportMenuBarWidget() = default;
+	UViewportMenuBarWidget();
 	virtual ~UViewportMenuBarWidget() override;
 
 	void Initialize() override {}
@@ -15,7 +15,6 @@ public:
 	void RenderWidget() override;
 
 	void SetViewportClient(FViewport* InViewportClient) { Viewport = InViewportClient; }
-	void SetEdtior(UEditor* InEditor) { Editor = InEditor; }
 
 private:
 	void RenderCameraControls(UCamera& InCamera); // 특정 카메라의 제어 UI를 렌더링하는 헬퍼 함수

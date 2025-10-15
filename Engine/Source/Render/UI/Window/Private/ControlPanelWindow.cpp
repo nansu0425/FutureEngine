@@ -26,8 +26,13 @@ UControlPanelWindow::UControlPanelWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	AddWidget(NewObject<UFPSWidget>());
-	AddWidget(NewObject<UActorSpawnWidget>());
+	UWidget* FPSWidget = NewObject<UFPSWidget>();
+	FPSWidget->Initialize();
+	AddWidget(FPSWidget);
+	
+	UWidget* ActorSpawnWidget = NewObject<UActorSpawnWidget>();
+	ActorSpawnWidget->Initialize();
+	AddWidget(ActorSpawnWidget);
 	// 현재 ViewportMenuBarWidget.cpp 에서 사용 중
 	//AddWidget(new UCameraControlWidget);
 }

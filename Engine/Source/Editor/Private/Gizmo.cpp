@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
 #include "Editor/Public/Camera.h"
-
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Actor/Public/Actor.h"
@@ -60,7 +59,7 @@ UGizmo::~UGizmo() = default;
 
 void UGizmo::UpdateScale(UCamera* InCamera)
 {
-	TargetComponent = Cast<USceneComponent>(Editor->GetSelectedComponent());
+	TargetComponent = Cast<USceneComponent>(GEditor->GetEditorModule()->GetSelectedComponent());
 	if (!TargetComponent || !InCamera) { return; }
 
 	float Scale;
@@ -82,7 +81,7 @@ void UGizmo::UpdateScale(UCamera* InCamera)
 
 void UGizmo::RenderGizmo(UCamera* InCamera)
 {
-	TargetComponent = Cast<USceneComponent>(Editor->GetSelectedComponent());
+	TargetComponent = Cast<USceneComponent>(GEditor->GetEditorModule()->GetSelectedComponent());
 	if (!TargetComponent || !InCamera) { return; }
 
 	float RenderScale;

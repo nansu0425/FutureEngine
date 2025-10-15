@@ -100,7 +100,6 @@ public:
 	void OnMouseHovering() {}
 	void OnMouseDragStart(FVector& CollisionPoint);
 	void OnMouseRelease(EGizmoDirection DirectionReleased) {}
-	void SetEditor(UEditor* InEditor) { this->Editor = InEditor;}
 
 private:
 	static inline int AxisIndex(EGizmoDirection InDirection)

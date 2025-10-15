@@ -20,6 +20,11 @@ const ImVec4 FrameBgHovered = ImVec4(pow(0.25f, 2.2f), pow(0.25f, 2.2f), pow(0.2
 const ImVec4 SliderGrab = ImVec4(pow(0.6f, 2.2f), pow(0.6f, 2.2f), pow(0.6f, 2.2f), 1.00f);
 const ImVec4 SliderGrabActive = ImVec4(pow(0.8f, 2.2f), pow(0.8f, 2.2f), pow(0.8f, 2.2f), 1.00f);
 
+UViewportMenuBarWidget::UViewportMenuBarWidget()
+{
+	Editor = GEditor->GetEditorModule();
+}
+
 UViewportMenuBarWidget::~UViewportMenuBarWidget()
 {
 	Viewport = nullptr;

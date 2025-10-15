@@ -43,6 +43,15 @@ public:
 	void SelectComponent(UActorComponent* InComponent);
 	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
 
+// Getter
+public:
+	UBatchLines* GetBatchLines() { return &BatchLines; }
+	UAxis* GetAxis() { return &Axis; }
+	UGizmo* GetGizmo() { return &Gizmo; }
+	SSplitter* GetRootSplitter() { return &RootSplitter; }
+	SSplitter* GetLeftSplitter() { return &LeftSplitter; }
+	SSplitter* GetRightSplitter() { return &RightSplitter; }
+	
 private:
 	void InitializeLayout();
 	void UpdateBatchLines();

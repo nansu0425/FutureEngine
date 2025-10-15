@@ -94,13 +94,13 @@ int FClientApp::InitializeSystem() const
 	// StatOverlay Initialize
 	auto& StatOverlay = UStatOverlay::GetInstance();
 	StatOverlay.Initialize();
-
+	
+	GEditor = NewObject<UEditorEngine>();
+	
 	// UIManager Initialize
 	auto& UIManger = UUIManager::GetInstance();
 	UIManger.Initialize(Window->GetWindowHandle());
 	UUIWindowFactory::CreateDefaultUILayout();
-	
-	GEditor = NewObject<UEditorEngine>();
 	
 	return S_OK;
 }
