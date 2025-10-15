@@ -15,6 +15,10 @@ FTextureManager::~FTextureManager()
     {
         SafeDelete(TextureCache.second);
     }
+    if (DefaultSampler)
+    {
+        SafeRelease(DefaultSampler);
+    }
 }
 
 UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
@@ -48,7 +52,6 @@ UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
 
     // Not Cached
     ComPtr<ID3D11ShaderResourceView> SRV = CreateTextureFromFile(AbsolutePath.string());
-    SRV->AddRef();
 
     if (!DefaultSampler)
     {

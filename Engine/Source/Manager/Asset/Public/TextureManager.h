@@ -14,5 +14,5 @@ private:
     ComPtr<ID3D11ShaderResourceView> CreateTextureFromFile(const path& InFilePath);
 	
     TMap<FName, UTexture*> TextureCaches;
-    ComPtr<ID3D11SamplerState> DefaultSampler; // 추후 샘플러 종류가 많아지면 매핑 형태로 캐싱 후 사용
+    ID3D11SamplerState* DefaultSampler; // 추후 샘플러 종류가 많아지면 매핑 형태로 캐싱 후 사용
 };
