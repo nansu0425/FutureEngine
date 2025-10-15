@@ -49,11 +49,6 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 void USceneComponent::AttachToComponent(USceneComponent* Parent, bool bRemainTransform)
 {
 	if (!Parent || Parent == this || GetOwner() != Parent->GetOwner()) { return; }
-
-	FVector OldWorldLocation = GetWorldLocation();
-	FQuaternion OldWorldRotation = GetWorldRotationAsQuaternion();
-	FVector OldWorldScale3D = GetWorldScale3D();
-	
 	if (AttachParent)
 	{
 		AttachParent->DetachChild(this);
@@ -62,23 +57,6 @@ void USceneComponent::AttachToComponent(USceneComponent* Parent, bool bRemainTra
 	AttachParent = Parent;
 	Parent->AttachChildren.push_back(this);
 
-	if (!bRemainTransform)
-	{
-		FVector NewRelativeScale = OldWorldScale3D / Parent->GetWorldScale3D();
-
-		// 회전 계산
-		FQuaternion ParentInverseRot = Parent->GetWorldRotationAsQuaternion().Inverse();
-		FQuaternion NewRelativeRotation = ParentInverseRot * OldWorldRotation;
-
-		// 위치 계산
-		FVector WorldOffset = OldWorldLocation - Parent->GetWorldLocation();
-		FVector RotatedOffset = ParentInverseRot.RotateVector(WorldOffset);
-		FVector NewRelativeLocation = RotatedOffset / Parent->GetWorldScale3D();
-
-		SetRelativeLocation(NewRelativeLocation);
-		SetRelativeRotation(NewRelativeRotation);
-		SetRelativeScale3D(NewRelativeScale);
-	}
 	MarkAsDirty();
 }
 

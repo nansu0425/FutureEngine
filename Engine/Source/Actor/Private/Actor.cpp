@@ -280,7 +280,7 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
     
     if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
     {
-         GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
+         GWorld->GetLevel()->UnregisterComponent(PrimitiveComponent);
     }
 
     if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))

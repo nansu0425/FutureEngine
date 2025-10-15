@@ -30,7 +30,7 @@ public:
 	void AddLevelComponent(AActor* Actor);
 
 	void RegisterComponent(UActorComponent* InComponent);
-	void UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent);
+	void UnregisterComponent(UActorComponent* InComponent);
 	bool DestroyActor(AActor* InActor);
 
 	uint64 GetShowFlags() const { return ShowFlags; }
