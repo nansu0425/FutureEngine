@@ -60,6 +60,11 @@ UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
     Texture->SetFilePath(CacheKey);
     Texture->CreateRenderProxy(SRV, DefaultSampler);
 
+    if (TextureCaches.find(CacheKey) != TextureCaches.end())
+    {
+        SafeDelete(TextureCaches[CacheKey]);
+    }
+
     TextureCaches[CacheKey] = Texture;
     return Texture;
 }
@@ -118,6 +123,7 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
     transform(FileExtension.begin(), FileExtension.end(), FileExtension.begin(), ::tolower);
 
     ID3D11ShaderResourceView* TextureSRV = nullptr;
+    
     HRESULT ResultHandle;
 
     try
