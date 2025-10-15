@@ -59,6 +59,7 @@ UObject* UHeightFogComponent::Duplicate()
     HeightFogComponent->StartDistance = StartDistance;
     HeightFogComponent->FogCutoffDistance = FogCutoffDistance;
     HeightFogComponent->FogMaxOpacity = FogMaxOpacity;
+    HeightFogComponent->FogInScatteringColor = FogInScatteringColor;
 
     return HeightFogComponent;
 }
