@@ -55,6 +55,7 @@ void FFogPass::Execute(FRenderingContext& Context)
         FogConstant.StartDistance = Fog->GetStartDistance();
         FogConstant.FogCutoffDistance = Fog->GetFogCutoffDistance();
         FogConstant.FogMaxOpacity = Fog->GetFogMaxOpacity();
+        FogConstant.FogZ = Fog->GetWorldLocation().Z;
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
         Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
 

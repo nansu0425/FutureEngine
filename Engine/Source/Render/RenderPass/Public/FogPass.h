@@ -11,7 +11,8 @@ struct FFogConstants
     float StartDistance;
     float FogCutoffDistance;
     float FogMaxOpacity;
-    float Padding[3];
+    float FogZ;
+    float Padding[2];
 };
 
 struct FCameraInverseConstants
@@ -42,7 +43,6 @@ public:
     void Release() override;
 
 private:
-    
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;

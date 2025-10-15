@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Component/Public/HeightFogComponent.h"
-
 #include "Render/UI/Widget/Public/HeightFogComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
 
@@ -27,29 +26,22 @@ void UHeightFogComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     // 불러오기
     if (bInIsLoading)
     {
-        std::string tempString;
         FJsonSerializer::ReadVector(InOutHandle, "FogInScatteringColor", FogInScatteringColor, {0.5f, 0.5f, 0.5f});
-
-        FJsonSerializer::ReadString(InOutHandle, "FogDensity", tempString, "0.05");
-        FogDensity = std::stof(tempString);
-        FJsonSerializer::ReadString(InOutHandle, "FogHeightFalloff", tempString, "0.01");
-        FogHeightFalloff = std::stof(tempString);
-        FJsonSerializer::ReadString(InOutHandle, "StartDistance", tempString, "1.5");
-        StartDistance = std::stof(tempString);
-        FJsonSerializer::ReadString(InOutHandle, "FogCutoffDistance", tempString, "50000.0");
-        FogCutoffDistance = std::stof(tempString);
-        FJsonSerializer::ReadString(InOutHandle, "FogMaxOpacity", tempString, "0.98");
-        FogMaxOpacity = std::stof(tempString);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogDensity", FogDensity, 0.05f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogHeightFalloff", FogHeightFalloff, 0.01f);
+        FJsonSerializer::ReadFloat(InOutHandle, "StartDistance", StartDistance, 1.5f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogCutoffDistance", FogCutoffDistance, 50000.0f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FogMaxOpacity", FogMaxOpacity, 0.98f);
     }
     // 저장
     else
     {
         InOutHandle["FogInScatteringColor"] = FJsonSerializer::VectorToJson(FogInScatteringColor);
-        InOutHandle["FogDensity"] = to_string(FogDensity);
-        InOutHandle["FogHeightFalloff"] = to_string(FogHeightFalloff);
-        InOutHandle["StartDistance"] = to_string(StartDistance);
-        InOutHandle["FogCutoffDistance"] = to_string(FogCutoffDistance);
-        InOutHandle["FogMaxOpacity"] = to_string(FogMaxOpacity);
+        InOutHandle["FogDensity"] = FJsonSerializer::FloatToArrayJson(FogDensity);
+        InOutHandle["FogHeightFalloff"] = FJsonSerializer::FloatToArrayJson(FogHeightFalloff);
+        InOutHandle["StartDistance"] = FJsonSerializer::FloatToArrayJson(StartDistance);
+        InOutHandle["FogCutoffDistance"] = FJsonSerializer::FloatToArrayJson(FogCutoffDistance);
+        InOutHandle["FogMaxOpacity"] = FJsonSerializer::FloatToArrayJson(FogMaxOpacity);
     }
 }
 

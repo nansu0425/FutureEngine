@@ -6,6 +6,7 @@ cbuffer FogConstant : register(b0)
 	float StartDistance;
 	float FogCutoffDistance;
 	float FogMaxOpacity;
+	float FogZ;
 }
 
 cbuffer CameraInverse : register(b1)
@@ -77,7 +78,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	if (distanceToPixel < FogCutoffDistance)
 	{
 	    // 1. 높이와 거리를 고려한 기본 지수 안개 계산
-	    float heightDensity = FogDensity * exp(-FogHeightFalloff * worldPos.z);
+	    float heightDensity = FogDensity * exp(-FogHeightFalloff * (worldPos.z - FogZ));
 			//높을수록 강도 감소
 	    float exponentialFog = 1.0 - exp(-distanceToPixel * heightDensity);
 			//멀수록 1에 가까워짐
