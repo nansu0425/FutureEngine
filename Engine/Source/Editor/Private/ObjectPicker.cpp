@@ -58,19 +58,11 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 
 	if (Gizmo.GetGizmoMode() == EGizmoMode::Scale || !Gizmo.IsWorldMode())
 	{
-		FVector Rad = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		FMatrix R = FMatrix::RotationMatrix(Rad);
-		//FQuaternion q = FQuaternion::FromEuler(Rad);
-
+		FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
 		for (int i = 0; i < 3; i++)
 		{
-			//GizmoAxises[a] = FQuaternion::RotateVector(q, GizmoAxises[a]); // 쿼터니언으로 축 회전
-			//GizmoAxises[a].Normalize();
-			const FVector4 a4(GizmoAxises[i].X, GizmoAxises[i].Y, GizmoAxises[i].Z, 0.0f);
-			FVector4 rotated4 = a4 * R;
-			FVector V(rotated4.X, rotated4.Y, rotated4.Z);
-			V.Normalize();
-			GizmoAxises[i] = V;
+			// 쿼터니언을 사용해 기본 축을 회전시킵니다.
+			GizmoAxises[i] = q.RotateVector(GizmoAxises[i]);
 		}
 	}
 

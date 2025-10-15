@@ -86,6 +86,7 @@ public:
 	float GetRotateOuterRadius() const { return RotateCollisionConfig.OuterRadius * RotateCollisionConfig.Scale; }
 	float GetRotateInnerRadius() const { return RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale; }
 	float GetRotateThickness()   const { return std::max(0.001f, RotateCollisionConfig.InnerRadius * RotateCollisionConfig.Scale); }
+	USceneComponent* GetTargetComponent() {return TargetComponent;}
 	void SetSelectedComponent(USceneComponent* InComponent) { TargetComponent = InComponent; }
 	USceneComponent* GetSelectedComponent() const { return TargetComponent; }
 	bool IsInRadius(float Radius);

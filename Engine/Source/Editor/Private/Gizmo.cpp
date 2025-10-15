@@ -119,21 +119,22 @@ void UGizmo::RenderGizmo(UCamera* InCamera)
 	{
 		LocalRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
 	}
-
+	FVector LocalRotEuler = LocalRot.ToEuler();
+	
 	// X축 (Forward) - 빨간색
-	FQuaternion RotX = LocalRot * FQuaternion::Identity();
+	FQuaternion RotX = LocalRot.Inverse() * FQuaternion::Identity();
 	P.Rotation = RotX.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Forward);
 	Renderer.RenderEditorPrimitive(P, RenderState);
-
+	
 	// Y축 (Right) - 초록색 (Z축 주위로 90도 회전)
-	FQuaternion RotY = LocalRot * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
+	FQuaternion RotY = LocalRot.Inverse() * FQuaternion::FromAxisAngle(FVector::UpVector(), 90.0f * (PI / 180.0f));
 	P.Rotation = RotY.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Right);
 	Renderer.RenderEditorPrimitive(P, RenderState);
-
+	
 	// Z축 (Up) - 파란색 (Y축 주위로 -90도 회전)
-	FQuaternion RotZ = LocalRot * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
+	FQuaternion RotZ = LocalRot.Inverse() * FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
 	P.Rotation = RotZ.ToEuler();
 	P.Color = ColorFor(EGizmoDirection::Up);
 	Renderer.RenderEditorPrimitive(P, RenderState);

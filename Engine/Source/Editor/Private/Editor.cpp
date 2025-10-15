@@ -493,9 +493,8 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 
 	if (!Gizmo.IsWorldMode())
 	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+		GizmoAxis = q.RotateVector(GizmoAxis); 
 	}
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, InActiveCamera->CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
