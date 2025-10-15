@@ -48,7 +48,7 @@ UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
 
     // Not Cached
     ComPtr<ID3D11ShaderResourceView> SRV = CreateTextureFromFile(AbsolutePath.string());
-    if (!SRV) { return nullptr; }
+    SRV->AddRef();
 
     if (!DefaultSampler)
     {
@@ -95,7 +95,10 @@ void FTextureManager::LoadAllTexturesFromDirectory(const path& InDirectoryPath)
         if (SupportedExtensions.count(Extension))
         {
             FName TextureName(FilePath.string());
-            LoadTexture(TextureName);
+            UTexture* Texture = LoadTexture(TextureName);
+            Texture->GetTextureSRV()->AddRef();
+            int temp = Texture->GetTextureSRV()->Release();
+            int y =1;
         }
     }
 
@@ -122,8 +125,7 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
     FString FileExtension = InFilePath.extension().string();
     transform(FileExtension.begin(), FileExtension.end(), FileExtension.begin(), ::tolower);
 
-    ID3D11ShaderResourceView* TextureSRV = nullptr;
-    
+    ComPtr<ID3D11ShaderResourceView> TextureSRV = nullptr;
     HRESULT ResultHandle;
 
     try
@@ -132,7 +134,7 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
         if (FileExtension == ".dds")
         {
             ResultHandle = DirectX::CreateDDSTextureFromFile(Device, DeviceContext,
-                InFilePath.c_str(), nullptr, &TextureSRV);
+                InFilePath.c_str(), nullptr, TextureSRV.GetAddressOf());
 
             if (SUCCEEDED(ResultHandle))
             {
@@ -164,6 +166,5 @@ ComPtr<ID3D11ShaderResourceView> FTextureManager::CreateTextureFromFile(const pa
         UE_LOG_ERROR("TextureManager: 텍스처 로드 중 예외 발생 - %ls: %s", InFilePath.c_str(), Exception.what());
         return nullptr;
     }
-
     return SUCCEEDED(ResultHandle) ? TextureSRV : nullptr;
 }
