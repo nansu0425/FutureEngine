@@ -69,6 +69,7 @@ public:
 	FViewport* GetViewportClient() const { return ViewportClient; }
 	UPipeline* GetPipeline() const { return Pipeline; }
 	bool GetIsResizing() const { return bIsResizing; }
+	bool GetFXAA() const { return bFXAAEnabled; }
 
 	ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return DefaultDepthStencilState; }
 	ID3D11DepthStencilState* GetDisabledDepthStencilState() const { return DisabledDepthStencilState; }

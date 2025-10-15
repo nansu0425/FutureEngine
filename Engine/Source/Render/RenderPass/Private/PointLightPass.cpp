@@ -23,9 +23,23 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
 
 void FPointLightPass::Execute(FRenderingContext& Context)
 {
-    const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
+    if (Context.ViewMode != EViewModeIndex::VMI_Lit)
+    {
+        return;
+    }
     
-    ID3D11RenderTargetView* RTVs[1] = { DeviceResources->GetRenderTargetView() };
+	const auto& Renderer = URenderer::GetInstance();
+    const auto& DeviceResources = Renderer.GetDeviceResources();
+    ID3D11RenderTargetView* RTV = nullptr;
+    if (Renderer.GetFXAA())
+    {
+        RTV = DeviceResources->GetSceneColorRenderTargetView();	
+    }
+    else
+    {
+        RTV = DeviceResources->GetRenderTargetView();	
+    }
+    ID3D11RenderTargetView* RTVs[1] = { RTV };
     Pipeline->SetRenderTargets(1, RTVs, nullptr);
     auto RS = FRenderResourceFactory::GetRasterizerState( { ECullMode::None, EFillMode::Solid }); 
 
