@@ -1,6 +1,12 @@
 ﻿#pragma once
 #include "RenderPass.h"
 
+struct FSceneDepthConstants
+{
+    FVector2 RenderTarget;
+    int32 IsOrthographic;
+};
+
 class FSceneDepthPass : public FRenderPass
 {
 public:

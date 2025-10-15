@@ -1,5 +1,7 @@
 ﻿#include "pch.h"
 #include "Render/RenderPass/Public/SceneDepthPass.h"
+
+#include "Editor/Public/Camera.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
@@ -12,7 +14,7 @@ FSceneDepthPass::FSceneDepthPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
     FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/SceneDepthShader.hlsl", &PixelShader);
 
     SamplerState = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
-    ConstantBufferPerFrame = FRenderResourceFactory::CreateConstantBuffer<FVector2>();
+    ConstantBufferPerFrame = FRenderResourceFactory::CreateConstantBuffer<FSceneDepthConstants>();
 }
 
 void FSceneDepthPass::Execute(FRenderingContext& Context)
@@ -29,8 +31,10 @@ void FSceneDepthPass::Execute(FRenderingContext& Context)
     FPipelineInfo PipelineInfo = { nullptr, VertexShader, RS, DS, PixelShader, nullptr };
     Pipeline->UpdatePipeline(PipelineInfo);
 
-    FVector2 Viewport = FVector2(Context.RenderTargetSize.X, Context.RenderTargetSize.Y);
-    FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPerFrame, Viewport);
+    FSceneDepthConstants SceneDepthConstants;
+    SceneDepthConstants.RenderTarget = FVector2(Context.RenderTargetSize.X, Context.RenderTargetSize.Y);
+    SceneDepthConstants.IsOrthographic = Context.CurrentCamera->GetCameraType() == ECameraType::ECT_Orthographic;
+    FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPerFrame, SceneDepthConstants);
     Pipeline->SetConstantBuffer(0, false, ConstantBufferPerFrame);
     Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);
     Pipeline->SetTexture(0, false, DeviceResources->GetDepthSRV());

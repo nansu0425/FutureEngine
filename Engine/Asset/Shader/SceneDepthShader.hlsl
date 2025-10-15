@@ -11,6 +11,7 @@
 cbuffer PerFrameConstants : register(b0)
 {
     float2 RenderTargetSize;                   // Viewport rectangle (x, y, width, height)
+    int IsOrthographic;
 };
 
 cbuffer Camera : register(b1)
@@ -64,21 +65,25 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float2 uv = ScreenPosition / RenderTargetSize;
     
     float nonLinearDepth = DepthTexture.Sample(PointSampler, uv).r;
-    float viewSpaceDepth = (FarClip * NearClip) / (nonLinearDepth * (NearClip - FarClip) + FarClip);
-    float linearDepth = saturate(viewSpaceDepth / FarClip);
+    float linearDepth;
 
-    // 5. [수정] 깊이 값을 밴드 크기로 나누어 스케일링
-    //    linearDepth가 0~1 사이를 변할 때, scaledDepth는 0~1/BandSize 사이를 변하게 됨
-    float BandSize = 0.02f; // 또는 상수 버퍼에서 이 값을 받아옴
+    // IsOrthographic 플래그 값에 따라 분기
+    float BandSize = 0.001f;
+    if (IsOrthographic > 0)
+    {
+        // 직교 투영일 경우: 깊이 값은 이미 선형적이므로 그대로 사용
+        linearDepth = nonLinearDepth;
+    }
+    else
+    {
+        // 원근 투영일 경우: 기존의 선형화 공식을 사용
+        float viewSpaceDepth = (FarClip * NearClip) / (nonLinearDepth * (NearClip - FarClip) + FarClip);
+        linearDepth = saturate(viewSpaceDepth / FarClip);
+        BandSize = 0.02f;
+    }
+    
     float scaledDepth = linearDepth / BandSize;
-
-    // 6. [추가] frac 함수로 0~1 사이를 반복하는 톱니파(sawtooth wave) 패턴 생성
-    //    frac(3.7)의 결과는 0.7
     float sawtooth = frac(scaledDepth);
-
-    // 7. [추가] "흰색 -> 검은색"으로 변하도록 패턴을 반전
     float bandPattern = 1.0f - sawtooth;
-
-    // 8. 최종 밴드 패턴을 회색조로 출력
     return float4(bandPattern, bandPattern, bandPattern, 1.0f);
 }
