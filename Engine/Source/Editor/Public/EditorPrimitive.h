@@ -14,7 +14,7 @@ struct FEditorPrimitive
 	D3D11_PRIMITIVE_TOPOLOGY Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	FVector4 Color;
 	FVector Location;
-	FVector Rotation;
+	FQuaternion Rotation;
 	FVector Scale;
 	FRenderState RenderState;
 	bool bShouldAlwaysVisible = false;

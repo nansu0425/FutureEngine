@@ -493,9 +493,12 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 
 	if (!Gizmo.IsWorldMode())
 	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		// RotationMatrix 로직에 문제
+		// FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
+		// FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
+		// GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+		GizmoAxis = q.RotateVector(GizmoAxis); 
 	}
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, InActiveCamera->CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis), MouseWorld))
@@ -514,9 +517,8 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 
 	if (!Gizmo.IsWorldMode())
 	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+		GizmoAxis = q.RotateVector(GizmoAxis); 
 	}
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxis, MouseWorld))
@@ -551,12 +553,10 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
 	FVector CardinalAxis = Gizmo.GetGizmoAxis();
-
-	FVector4 GizmoAxis4{ CardinalAxis.X, CardinalAxis.Y, CardinalAxis.Z, 0.0f };
-	FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
+	
 	FVector GizmoAxis = Gizmo.GetGizmoAxis();
-	GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
-
+	FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+	GizmoAxis = q.RotateVector(GizmoAxis); 
 
 	FVector PlaneNormal = InActiveCamera->CalculatePlaneNormal(GizmoAxis).Cross(GizmoAxis);
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
