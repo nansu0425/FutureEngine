@@ -24,7 +24,7 @@ UAxis::UAxis()
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	Primitive.Color = FVector4(1, 1, 1, 0);
 	Primitive.Location = FVector(0, 0, 0);
-	Primitive.Rotation = FVector(0, 0, 0);
+	Primitive.Rotation = FQuaternion(0, 0, 0, 1);
 	Primitive.Scale = FVector(1, 1, 1);
 }
 
