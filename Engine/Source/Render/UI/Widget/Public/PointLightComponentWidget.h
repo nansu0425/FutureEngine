@@ -12,7 +12,7 @@ class UPointLightComponentWidget : public UWidget
     DECLARE_CLASS(UPointLightComponentWidget, UWidget)
     
 public:
-    UPointLightComponentWidget() : UWidget("Point Light Component Widget") {}
+    UPointLightComponentWidget() = default;
     
     virtual ~UPointLightComponentWidget() = default;
     

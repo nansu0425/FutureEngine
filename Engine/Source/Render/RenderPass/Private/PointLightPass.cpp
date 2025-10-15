@@ -51,9 +51,9 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         PointLightPerFrame.CameraLocation = Context.CurrentCamera->GetLocation();
 
         const auto& DeviceResources = URenderer::GetInstance().GetDeviceResources();
-        const D3D11_VIEWPORT& ViewportInfo = DeviceResources->GetViewportInfo();
+        const D3D11_VIEWPORT& ViewportInfo = Context.Viewport;
         PointLightPerFrame.Viewport = FVector4(ViewportInfo.TopLeftX, ViewportInfo.TopLeftY, ViewportInfo.Width, ViewportInfo.Height);
-        PointLightPerFrame.RenderTargetSize = FVector2(static_cast<float>(DeviceResources->GetWidth()), static_cast<float>(DeviceResources->GetHeight()));
+        PointLightPerFrame.RenderTargetSize = FVector2(Context.RenderTargetSize.X, Context.RenderTargetSize.Y);
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPerFrame, PointLightPerFrame);
         Pipeline->SetConstantBuffer(0, false, ConstantBufferPerFrame);

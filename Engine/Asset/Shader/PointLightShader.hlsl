@@ -122,14 +122,12 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     // Specular (Blinn-Phong)
     float3 V = normalize(CameraPosition - WorldPosition);
     float3 H = normalize(L + V);
-    float Spec = pow(saturate(dot(Normal, H)), 32.0f);
-    float3 Specular = LightColor * Spec * Attenuation * 0.5f;
+    float Spec = pow(saturate(dot(Normal, H)), 64.0f);
+    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
+    float3 Specular = SpecularColor * Spec * Attenuation * 0.5f;
 
     // Combine lighting
     float3 FinalLighting = Diffuse + Specular;
 
-    // Additive blending
-    float3 Result = FinalLighting;
-
-    return float4(Result, 1.0f);
+    return float4(FinalLighting, 1.0f);
 }

@@ -29,8 +29,16 @@ SamplerState SamplerWrap : register(s0);
 #define HAS_ALPHA_MAP	 (1 << 4)
 #define HAS_BUMP_MAP	 (1 << 5)
 
-float4 mainPS(PS_INPUT Input) : SV_TARGET
+struct PS_OUTPUT
 {
+    float4 SceneColor : SV_Target0;
+    float4 NormalData : SV_Target1;
+};
+
+PS_OUTPUT mainPS(PS_INPUT Input) : SV_TARGET
+{
+    PS_OUTPUT Output;
+    
     float4 FinalColor = float4(0.f, 0.f, 0.f, 1.f);
     float2 UV = Input.Tex;
 
@@ -58,6 +66,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         FinalColor.a = D;
         FinalColor.a *= alpha;
     }
+
+    Output.SceneColor = FinalColor;
+    float3 EncodedNormal = normalize(Input.WorldNormal) * 0.5f + 0.5f;
+    Output.NormalData = float4(EncodedNormal, 1.0f);
 	
-    return FinalColor;
+    return Output;
 }
