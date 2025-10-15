@@ -10,7 +10,6 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TextureDepthPS.hlsl", &DepthPS);
 }
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
@@ -21,8 +20,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::WireFrame;
 	}
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
-	ID3D11PixelShader* PixelShader = Context.ViewMode == EViewModeIndex::VMI_SceneDepth ? DepthPS : PS;
-	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PixelShader, nullptr };
+	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
 	Pipeline->UpdatePipeline(PipelineInfo);
 
 	// Set a default sampler to slot 0 to ensure one is always bound
@@ -157,5 +155,4 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 void FStaticMeshPass::Release()
 {
 	SafeRelease(ConstantBufferMaterial);
-	SafeRelease(DepthPS);
 }
