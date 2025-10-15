@@ -475,7 +475,8 @@ void URenderer::RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const
     Pipeline->UpdatePipeline(PipelineInfo);
 
     // Update constant buffers
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModels, FMatrix::GetModelMatrix(InPrimitive.Location, FVector::GetDegreeToRadian(InPrimitive.Rotation), InPrimitive.Scale));
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModels,
+		FMatrix::GetModelMatrix(InPrimitive.Location, FQuaternion::FromEuler(InPrimitive.Rotation), InPrimitive.Scale));
 	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
 	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 	

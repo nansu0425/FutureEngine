@@ -172,9 +172,9 @@ FMatrix FMatrix::RotationMatrix(const FVector& InOtherVector)
 	// UE yaw(z), pitch(y), roll(x)
 	// 회전 축이 바뀌어서 각 회전행렬 함수에 바뀐 값을 적용
 
-	const float yaw = InOtherVector.Y;
-	const float pitch = InOtherVector.X;
-	const float roll = InOtherVector.Z;
+	const float yaw = InOtherVector.Y; // pitch
+	const float pitch = InOtherVector.X; // roll
+	const float roll = InOtherVector.Z; // yaw
 	//return RotationZ(yaw) * RotationY(pitch) * RotationX(roll);
 	//return RotationX(yaw) * RotationY(roll) * RotationZ(pitch);
 	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
