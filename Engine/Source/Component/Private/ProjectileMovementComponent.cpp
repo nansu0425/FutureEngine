@@ -60,9 +60,9 @@ void UProjectileMovementComponent::Serialize(const bool bInIsLoading, JSON& InOu
     }
     else
     {
-        InOutHandle["InitialSpeed"] = FJsonSerializer::FloatToArrayJson(InitialSpeed);
-        InOutHandle["MaxSpeed"] = FJsonSerializer::FloatToArrayJson(MaxSpeed);
-        InOutHandle["GravityScale"] = FJsonSerializer::FloatToArrayJson(GravityScale);
+        InOutHandle["InitialSpeed"] = InitialSpeed;
+        InOutHandle["MaxSpeed"] = MaxSpeed;
+        InOutHandle["GravityScale"] = GravityScale;
         InOutHandle["bRotationFollowsVelocity"] = bRotationFollowsVelocity ? "true" : "false";
     }
 }

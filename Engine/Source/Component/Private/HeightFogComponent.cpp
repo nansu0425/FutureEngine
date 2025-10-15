@@ -37,11 +37,11 @@ void UHeightFogComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     else
     {
         InOutHandle["FogInScatteringColor"] = FJsonSerializer::VectorToJson(FogInScatteringColor);
-        InOutHandle["FogDensity"] = FJsonSerializer::FloatToArrayJson(FogDensity);
-        InOutHandle["FogHeightFalloff"] = FJsonSerializer::FloatToArrayJson(FogHeightFalloff);
-        InOutHandle["StartDistance"] = FJsonSerializer::FloatToArrayJson(StartDistance);
-        InOutHandle["FogCutoffDistance"] = FJsonSerializer::FloatToArrayJson(FogCutoffDistance);
-        InOutHandle["FogMaxOpacity"] = FJsonSerializer::FloatToArrayJson(FogMaxOpacity);
+        InOutHandle["FogDensity"] = FogDensity;
+        InOutHandle["FogHeightFalloff"] = FogHeightFalloff;
+        InOutHandle["StartDistance"] = StartDistance;
+        InOutHandle["FogCutoffDistance"] = FogCutoffDistance;
+        InOutHandle["FogMaxOpacity"] = FogMaxOpacity;
     }
 }
 

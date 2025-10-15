@@ -51,11 +51,9 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
             {
                 FString TypeString;
                 FString NameString;
-                FString ParentNameStd;
         
                 FJsonSerializer::ReadString(ComponentData, "Type", TypeString);
                 FJsonSerializer::ReadString(ComponentData, "Name", NameString);
-                FJsonSerializer::ReadString(ComponentData, "ParentName", ParentNameStd, ""); // 부모 이름 로드
         
             	UClass* ComponentClass = UClass::FindClass(TypeString);
                 UActorComponent* NewComp = Cast<UActorComponent>(NewObject(ComponentClass));
@@ -69,6 +67,9 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                 	
                 	if (USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp))
                 	{
+                		FString ParentNameStd;
+                		FJsonSerializer::ReadString(ComponentData, "ParentName", ParentNameStd, ""); // 부모 이름 로드
+
                 		FSceneCompData LoadData;
                 		LoadData.Component = NewSceneComp;
                 		LoadData.ParentName = ParentNameStd;
