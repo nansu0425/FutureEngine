@@ -83,4 +83,5 @@ void FBillboardPass::Execute(FRenderingContext& Context)
 
 void FBillboardPass::Release()
 {
+    SafeRelease(ConstantBufferMaterial);
 }

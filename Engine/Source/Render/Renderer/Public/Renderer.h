@@ -90,14 +90,11 @@ private:
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11BlendState* AlphaBlendState = nullptr;
 	ID3D11BlendState* AdditiveBlendState = nullptr;
-
-	ID3D11SamplerState* DefaultSampler = nullptr;
 	
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
-	ID3D11Buffer* ConstantBufferBatchLine = nullptr;
 	
 	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
@@ -122,13 +119,16 @@ private:
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
 
+	// Point Light Shaders
 	ID3D11VertexShader* PointLightVertexShader = nullptr;
 	ID3D11PixelShader* PointLightPixelShader = nullptr;
 	ID3D11InputLayout* PointLightInputLayout = nullptr;
+	
 	// Fog Shaders
 	ID3D11VertexShader* FogVertexShader = nullptr;
 	ID3D11PixelShader* FogPixelShader = nullptr;
 	ID3D11InputLayout* FogInputLayout = nullptr;
+	ID3D11SamplerState* DefaultSampler = nullptr;
 	
 	uint32 Stride = 0;
 

@@ -9,13 +9,16 @@
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
 IMPLEMENT_SINGLETON_CLASS(UAssetManager, UObject)
-UAssetManager::UAssetManager() = default;
+UAssetManager::UAssetManager()
+{
+	TextureManager = new FTextureManager();
+}
 
 UAssetManager::~UAssetManager() = default;
 
 void UAssetManager::Initialize()
 {
-	TextureManager.LoadAllTexturesFromDirectory(UPathManager::GetInstance().GetDataPath());
+	TextureManager->LoadAllTexturesFromDirectory(UPathManager::GetInstance().GetDataPath());
 	// Data 폴더 속 모든 .obj 파일 로드 및 캐싱
 	LoadAllObjStaticMesh();
 
@@ -108,6 +111,8 @@ void UAssetManager::Release()
 	// TMap.Empty()
 	VertexBuffers.clear();
 	IndexBuffers.clear();
+	
+	SafeDelete(TextureManager);
 }
 
 /**
@@ -281,7 +286,7 @@ FAABB UAssetManager::CalculateAABB(const TArray<FNormalVertex>& Vertices)
  */
 UTexture* UAssetManager::LoadTexture(const FName& InFilePath)
 {
-	return TextureManager.LoadTexture(InFilePath);
+	return TextureManager->LoadTexture(InFilePath);
 }
 
 /**
@@ -290,5 +295,5 @@ UTexture* UAssetManager::LoadTexture(const FName& InFilePath)
  */
 const TMap<FName, UTexture*>& UAssetManager::GetTextureCache() const
 {
-	return TextureManager.GetTextureCache();
+	return TextureManager->GetTextureCache();
 }

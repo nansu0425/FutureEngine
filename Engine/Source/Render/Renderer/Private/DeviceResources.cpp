@@ -85,6 +85,7 @@ void UDeviceResources::ReleaseDeviceAndSwapChain()
 {
 	if (DeviceContext)
 	{
+		DeviceContext->ClearState();
 		// 남아있는 GPU 명령 실행
 		DeviceContext->Flush();
 	}
@@ -95,25 +96,26 @@ void UDeviceResources::ReleaseDeviceAndSwapChain()
 		SwapChain = nullptr;
 	}
 
-	// DX 메모리 Leak 디버깅용 함수
-	ID3D11Debug* DebugPointer = nullptr;
-	HRESULT Result = GetDevice()->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugPointer));
-	if (SUCCEEDED(Result))
-	{
-		DebugPointer->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-		DebugPointer->Release();
-	}
-
-	if (Device)
-	{
-		Device->Release();
-		Device = nullptr;
-	}
-
 	if (DeviceContext)
 	{
 		DeviceContext->Release();
 		DeviceContext = nullptr;
+	}
+
+	// DX 메모리 Leak 디버깅용 함수
+	// DXGI 누출 로그 출력 시 주석 해제로 타입 확인 가능
+	// ID3D11Debug* DebugPointer = nullptr;
+	// HRESULT Result = GetDevice()->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&DebugPointer));
+	// if (SUCCEEDED(Result))
+	// {
+	// 	DebugPointer->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+	// 	DebugPointer->Release();
+	// }
+	
+	if (Device)
+	{
+		Device->Release();
+		Device = nullptr;
 	}
 }
 
@@ -141,9 +143,6 @@ void UDeviceResources::CreateFrameBuffer()
 
 	Device->CreateShaderResourceView(FrameBuffer, &srvDesc, &FrameBufferSRV);
 }
-
-
-
 
 /**
  * @brief 프레임 버퍼를 해제하는 함수

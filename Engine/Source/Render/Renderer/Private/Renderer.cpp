@@ -100,7 +100,6 @@ void URenderer::Release()
 	FXAAPass->Release();
 	SafeDelete(FXAAPass);
 	
-
 	SafeDelete(ViewportClient);
 	SafeDelete(Pipeline);
 	SafeDelete(DeviceResources);
@@ -252,18 +251,23 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(DefaultInputLayout);
 	SafeRelease(DefaultPixelShader);
 	SafeRelease(DefaultVertexShader);
+	
 	SafeRelease(TextureInputLayout);
 	SafeRelease(TexturePixelShader);
 	SafeRelease(TextureVertexShader);
+	
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
 	SafeRelease(DecalInputLayout);
+	
 	SafeRelease(PointLightVertexShader);
 	SafeRelease(PointLightPixelShader);
 	SafeRelease(PointLightInputLayout);
+	
 	SafeRelease(FogVertexShader);
 	SafeRelease(FogPixelShader);
 	SafeRelease(FogInputLayout);
+	
 	SafeRelease(FXAAVertexShader);
 	SafeRelease(FXAAPixelShader);
 	SafeRelease(FXAAInputLayout);
@@ -289,6 +293,7 @@ void URenderer::ReleaseBlendState()
 void URenderer::ReleaseSamplerState()
 {
 	SafeRelease(FXAASamplerState);
+	SafeRelease(DefaultSampler);
 }
 
 void URenderer::Update()

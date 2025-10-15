@@ -13,7 +13,7 @@ public:
 	static void CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* StaticMeshAsset, const FName& ObjFilePath);
 
 	static constexpr size_t INVALID_INDEX = SIZE_MAX;
-
+	
 private:
 	static TMap<FName, std::unique_ptr<FStaticMesh>> ObjFStaticMeshMap;
 };

@@ -5,6 +5,7 @@
 // Window Library
 #include <windows.h>
 #include <wrl.h>
+#include <wrl/client.h>
 
 // D3D Library
 #include <d3d11.h>

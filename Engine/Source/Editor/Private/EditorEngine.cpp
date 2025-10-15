@@ -36,10 +36,16 @@ UEditorEngine::~UEditorEngine()
 {
     if (IsPIESessionActive()) { EndPIE(); }
 
-    if (WorldContexts.empty())
+    for (auto WorldContext : WorldContexts)
     {
-        const UWorld* EditorWorld = WorldContexts[0].World();
-        delete EditorWorld;
+        if (WorldContext.World())
+        {
+            delete WorldContext.World();
+        }
+    }
+    if (EditorModule)
+    {
+        delete EditorModule;
     }
     
     GWorld = nullptr;

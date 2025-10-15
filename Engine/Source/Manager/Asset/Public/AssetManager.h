@@ -75,5 +75,5 @@ public:
 	const TMap<FName, UTexture*>& GetTextureCache() const;
 
 private:
-	FTextureManager TextureManager;
+	FTextureManager* TextureManager;
 };
