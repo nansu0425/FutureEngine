@@ -3,7 +3,7 @@
 #include "Component/Public/LightComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 
-IMPLEMENT_CLASS(ULightComponent, USceneComponent)
+IMPLEMENT_ABSTRACT_CLASS(ULightComponent, USceneComponent)
 
 void ULightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
