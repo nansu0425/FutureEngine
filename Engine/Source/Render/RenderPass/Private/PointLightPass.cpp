@@ -47,7 +47,14 @@ void FPointLightPass::Execute(FRenderingContext& Context)
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetVertexBuffer(VertexBuffer, sizeof(FNormalVertex));
 
-    Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
+    if (Renderer.GetFXAA())
+    {
+        Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorShaderResourceView());
+    }
+    else
+    {
+        Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
+    }
     Pipeline->SetTexture(1, false, DeviceResources->GetNormalSRV());
     Pipeline->SetTexture(2, false, DeviceResources->GetDepthSRV());
     Pipeline->SetSamplerState(0, false, PointLightSampler);
