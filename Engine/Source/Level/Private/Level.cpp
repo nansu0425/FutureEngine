@@ -157,7 +157,7 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 	UE_LOG("Level: '%s' 컴포넌트를 씬에 등록했습니다.", InComponent->GetName().ToString().data());
 }
 
-void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
+void ULevel::UnregisterComponent(UActorComponent* InComponent)
 {
 	if (!InComponent)
 	{
@@ -168,11 +168,22 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	{
 		return;
 	}
+
+	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(InComponent))
+	{
+		// StaticOctree에서 제거 시도
+		StaticOctree->Remove(PrimitiveComponent);
 	
-	// StaticOctree에서 제거 시도
-	StaticOctree->Remove(InComponent);
+		OnPrimitiveUnregistered(PrimitiveComponent);
+	}
+	else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
+	{
+		if (auto It = std::find(PointLights.begin(), PointLights.end(), PointLightComponent); It != PointLights.end())
+		{
+			PointLights.erase(It);
+		}	
+	}
 	
-	OnPrimitiveUnregistered(InComponent);
 }
 
 void ULevel::AddLevelComponent(AActor* Actor)
@@ -206,17 +217,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 	// 컴포넌트들을 옥트리에서 제거
 	for (auto& Component : InActor->GetOwnedComponents())
 	{
-		if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
-		{
-			UnregisterPrimitiveComponent(PrimitiveComponent);
-		}
-		else if (auto PointLightComponent = Cast<UPointLightComponent>(Component))
-		{
-			if (auto It = std::find(PointLights.begin(), PointLights.end(), PointLightComponent); It != PointLights.end())
-			{
-				PointLights.erase(It);
-			}
-		}
+		UnregisterComponent(Component);
 	}
 
 	// LevelActors 리스트에서 제거
