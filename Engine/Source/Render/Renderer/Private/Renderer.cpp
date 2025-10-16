@@ -401,17 +401,8 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
 
-	// 오클루전 컬링
-	TIME_PROFILE(Occlusion)
-	// static COcclusionCuller Culler;
 	const FCameraConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
-	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
 	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
-	// Culler.PerformCulling(
-	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-	// 	InCurrentCamera->GetLocation()
-	// );
-	TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(
 		&ViewProj,
