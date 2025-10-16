@@ -1,7 +1,7 @@
 # Blender 4.2.0
 # www.blender.org
-mtllib apple_mid.mtl
-o tgzpdhlpa_LOD0_TIER2_000
+mtllib Apple.mtl
+o AppleObj
 v -0.215913 -0.298880 -0.125273
 v -0.072901 0.049247 0.399210
 v -0.061752 -0.371278 -0.000955
@@ -3543,7 +3543,7 @@ vt 0.033501 0.523819
 vt 0.030051 0.478437
 vt 0.604622 0.186768
 s 1
-usemtl MatID_1
+usemtl Material_Apple
 f 110/1/1 562/2/2 44/3/3
 f 46/4/4 111/5/5 45/6/6
 f 418/7/7 415/8/8 552/9/9

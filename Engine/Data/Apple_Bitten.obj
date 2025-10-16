@@ -1,7 +1,7 @@
 # Blender 4.2.0
 # www.blender.org
-mtllib bitten_apple_mid.mtl
-o tgyociqpa_LOD0_TIER2_000
+mtllib Apple_Bitten.mtl
+o Apple_Bitten
 v -0.064686 -0.396048 0.157463
 v -0.048676 -0.378120 0.161660
 v -0.108834 -0.368085 0.158072
@@ -3425,7 +3425,7 @@ vt 0.037567 0.729422
 vt 0.029461 0.097531
 vt 0.041449 0.085813
 s 1
-usemtl MatID_1.001
+usemtl Material_Apple_Bitten
 f 26/1/1 234/2/2 625/3/3
 f 388/4/4 590/5/5 40/6/6
 f 117/7/7 421/8/8 425/9/9

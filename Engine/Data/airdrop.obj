@@ -1,7 +1,7 @@
 # Blender 4.5.2 LTS
 # www.blender.org
-mtllib airdrop.mtl
-o Object_2
+mtllib Airdrop.mtl
+o Airdrop
 v 1.103855 1.182607 2.139984
 v 1.109509 1.127673 2.287548
 v 1.114545 1.132482 2.139984
@@ -3527,7 +3527,7 @@ vt 0.244888 0.023880
 vt 0.243361 0.015370
 vt 0.243360 0.023880
 s 1
-usemtl initialShadingGroup
+usemtl Material_Airdrop
 f 1/1/1 2/2/2 3/3/3
 f 2/2/2 4/4/4 3/3/3
 f 5/5/5 6/6/6 7/7/7
