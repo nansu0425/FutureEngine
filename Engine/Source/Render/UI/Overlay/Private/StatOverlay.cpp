@@ -61,6 +61,10 @@ void UStatOverlay::Render()
 
     ID2D1Device* D2DDevice = nullptr;
     D2DFactory->CreateDevice(DXGIDevice, &D2DDevice);
+    if (D2DDevice == nullptr)
+    {
+        return;
+    }
 
     ID2D1DeviceContext* D2DCtx = nullptr;
     D2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &D2DCtx);
