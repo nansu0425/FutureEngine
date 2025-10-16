@@ -19,7 +19,7 @@ UDecalComponent::UDecalComponent()
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
-	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/PerlinNoiseFadeTexture.png")));
+	SetFadeTexture(UAssetManager::GetInstance().LoadTexture(FName("Data/Texture/FadeTexture/PerlinNoiseFadeTexture.png")));
 	
     SetPerspective(false);
 	bReceivesDecals = false;
