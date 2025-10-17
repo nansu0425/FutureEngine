@@ -83,8 +83,8 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         PointLightData.LightLocation = PointLight->GetWorldLocation();
         PointLightData.LightIntensity = PointLight->GetIntensity();
         PointLightData.LightColor = PointLight->GetLightColor();
-        PointLightData.LightRadius = PointLight->GetSourceRadius();
-        PointLightData.LightFalloffExtent = PointLight->GetLightFalloffExtent();
+        PointLightData.LightRadius = PointLight->GetAttenuationRadius();
+        PointLightData.LightFalloffExponent = PointLight->GetLightFalloffExponent();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPointLightData, PointLightData);
         Pipeline->SetConstantBuffer(1, false, ConstantBufferPointLightData);
