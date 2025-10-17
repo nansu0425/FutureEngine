@@ -48,18 +48,18 @@ void UPointLightComponentWidget::RenderWidget()
         PointLightComponent->SetIntensity(Intensity);
     }
 
-    // Source Radius
-    float SourceRadius = PointLightComponent->GetSourceRadius();
-    if (ImGui::DragFloat("Source Radius", &SourceRadius, 0.1f, 0.0f, 1000.0f))
+    // Attenuation Radius
+    float AttenuationRadius = PointLightComponent->GetAttenuationRadius();
+    if (ImGui::DragFloat("Attenuation Radius", &AttenuationRadius, 0.1f, 0.0f, 1000.0f))
     {
-        PointLightComponent->SetSourceRadius(SourceRadius);
+        PointLightComponent->SetAttenuationRadius(AttenuationRadius);
     }
 
     // Light Falloff Extent
-    float LightFalloffExtent = PointLightComponent->GetLightFalloffExtent();
-    if (ImGui::DragFloat("Light Falloff Extent", &LightFalloffExtent, 0.1f, 2.0f, 16.0f))
+    float LightFalloffExponent = PointLightComponent->GetLightFalloffExponent();
+    if (ImGui::DragFloat("Light Falloff Exponent", &LightFalloffExponent, 0.1f, 2.0f, 16.0f))
     {
-        PointLightComponent->SetLightFalloffExtent(LightFalloffExtent);
+        PointLightComponent->SetLightFalloffExponent(LightFalloffExponent);
     }
 
     ImGui::Separator();
