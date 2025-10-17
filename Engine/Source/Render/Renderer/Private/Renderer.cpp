@@ -432,7 +432,7 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 			RenderingContext.Decals.push_back(Decal);
 		}
 	}
-
+	
 	for (const auto& LightComponent : CurrentLevel->GetPointLights())
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
