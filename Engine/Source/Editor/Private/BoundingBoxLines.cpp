@@ -2,6 +2,7 @@
 #include "Editor/Public/BoundingBoxLines.h"
 #include "Physics/Public/AABB.h"
 #include "Physics/Public/OBB.h"
+#include "Physics/Public/BoundingSphere.h"
 
 UBoundingBoxLines::UBoundingBoxLines()
 	: Vertices(TArray<FVector>()),
@@ -161,7 +162,101 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 			SpotLightLineIdx[LineIdx++] = Idx + 1;
 		}
 		break;
+	}
+	case EBoundingVolumeType::Sphere:
+	{
+		const FBoundingSphere* Sphere = static_cast<const FBoundingSphere*>(NewBoundingVolume);
 
+		const FVector Center = Sphere->Center;
+		const float Radius = Sphere->Radius;
+
+		CurrentType = EBoundingVolumeType::Sphere;
+		CurrentNumVertices = SphereVertices;
+		Vertices.resize(SphereVertices);
+
+		uint32 VertexIndex = 0;
+
+		// 1) XY 평면 대원
+		for (int32 Step = 0; Step < 60; ++Step)
+		{
+			const float AngleRadians = (6.0f * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			Vertices[VertexIndex++] = FVector(
+				Center.X + CosValue * Radius,
+				Center.Y + SinValue * Radius,
+				Center.Z
+			);
+		}
+
+		// 2) XZ 평면 대원
+		for (int32 Step = 0; Step < 60; ++Step)
+		{
+			const float AngleRadians = (6.0f * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			Vertices[VertexIndex++] = FVector(
+				Center.X + CosValue * Radius,
+				Center.Y,
+				Center.Z + SinValue * Radius
+			);
+		}
+
+		// 3) YZ 평면 대원
+		for (int32 Step = 0; Step < 60; ++Step)
+		{
+			const float AngleRadians = (6.0f * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			Vertices[VertexIndex++] = FVector(
+				Center.X,
+				Center.Y + CosValue * Radius,
+				Center.Z + SinValue * Radius
+			);
+		}
+
+		int32 LineIndex = 0;
+
+		// XY 원 인덱스
+		{
+			const int32 Base = 0;
+			for (int32 Step = 0; Step < 59; ++Step)
+			{
+				SphereLineIdx[LineIndex++] = Base + Step;
+				SphereLineIdx[LineIndex++] = Base + Step + 1;
+			}
+			SphereLineIdx[LineIndex++] = Base + 59;
+			SphereLineIdx[LineIndex++] = Base + 0;
+		}
+
+		// XZ 원 인덱스
+		{
+			const int32 Base = 60;
+			for (int32 Step = 0; Step < 59; ++Step)
+			{
+				SphereLineIdx[LineIndex++] = Base + Step;
+				SphereLineIdx[LineIndex++] = Base + Step + 1;
+			}
+			SphereLineIdx[LineIndex++] = Base + 59;
+			SphereLineIdx[LineIndex++] = Base + 0;
+		}
+
+		// YZ 원 인덱스
+		{
+			const int32 Base = 120;
+			for (int32 Step = 0; Step < 59; ++Step)
+			{
+				SphereLineIdx[LineIndex++] = Base + Step;
+				SphereLineIdx[LineIndex++] = Base + Step + 1;
+			}
+			SphereLineIdx[LineIndex++] = Base + 59;
+			SphereLineIdx[LineIndex++] = Base + 0;
+		}
+
+		break;
 	}
 	default:
 		break;
@@ -184,6 +279,10 @@ int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 	{
 		return SpotLightLineIdx;
 	}
+	case EBoundingVolumeType::Sphere:
+	{
+		return SphereLineIdx;
+	}
 	default:
 		break;
 	}
@@ -201,6 +300,8 @@ uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) 
 		return 24;
 	case EBoundingVolumeType::SpotLight:
 		return 240;
+	case EBoundingVolumeType::Sphere:
+		return 360;
 	default:
 		break;
 	}

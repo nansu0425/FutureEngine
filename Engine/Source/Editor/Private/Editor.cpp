@@ -13,6 +13,8 @@
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/DecalSpotLightComponent.h"
+#include "Component/Public/PointLightComponent.h"
+#include "Physics/Public/BoundingSphere.h"
 #include "Component/Public/DirectionalLightComponent.h"
 
 UEditor::UEditor()
@@ -208,6 +210,22 @@ void UEditor::UpdateBatchLines()
 				}
 				return; 
 			}
+		}
+		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
+		{
+			if (UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(Component))
+			{
+				if (ShowFlags & EEngineShowFlags::SF_Bounds)
+				{
+					const FVector Center = PointLightComponent->GetWorldLocation();
+					const float Radius = PointLightComponent->GetAttenuationRadius();
+
+					FBoundingSphere PointSphere(Center, Radius);
+					BatchLines.UpdateBoundingBoxVertices(&PointSphere);
+					return;
+				}
+			}
+			// TODO - 다른 라이트 라인들 추가
 		}
 	}
 

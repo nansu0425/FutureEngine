@@ -15,7 +15,7 @@ struct FMaterial
 	FVector Ka;
 
 	/** Diffuse color (Kd). */
-	FVector Kd{1,1,1};
+	FVector Kd{0.1,0.1,0.1}; // 기본 값을 바꿔줘야 프리미티브들의 색상이 바뀜
 
 	/** Specular color (Ks). */
 	FVector Ks;

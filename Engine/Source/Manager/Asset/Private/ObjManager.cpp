@@ -147,10 +147,10 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 		}
 	}
 	if (StaticMesh->MaterialInfo.empty())
-	{
+	{ // TODO - 아마도 이것 때문에 드롭다운에서 DefaultMaterial 이 3개나 생기는 것 같음 추후에 수정해줄 것.
 		StaticMesh->MaterialInfo.resize(1);
 		StaticMesh->MaterialInfo[0].Name = "DefaultMaterial";
-		StaticMesh->MaterialInfo[0].Kd = FVector(0.9f, 0.9f, 0.9f);
+		StaticMesh->MaterialInfo[0].Kd = FVector(0.9f, 0.9f, 0.9f); // 이걸 바꾼다고 기본 프리미티브 색상이 바뀌진않음
 	}
 	
 	/** #4. 오브젝트의 서브메쉬 정보를 저장 */

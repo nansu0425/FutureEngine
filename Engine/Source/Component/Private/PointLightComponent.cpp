@@ -11,21 +11,21 @@ void UPointLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	Super::Serialize(bInIsLoading, InOutHandle);
 	if (bInIsLoading)
 	{
-		FJsonSerializer::ReadFloat(InOutHandle, "LightFalloffExtent", LightFalloffExtent);
-		FJsonSerializer::ReadFloat(InOutHandle, "SourceRadius", SourceRadius);
+		FJsonSerializer::ReadFloat(InOutHandle, "LightFalloffExponent", LightFalloffExponent);
+		FJsonSerializer::ReadFloat(InOutHandle, "AttenuationRadius", AttenuationRadius);
 	}
 	else
 	{
-		InOutHandle["LightFalloffExtent"] = LightFalloffExtent;
-		InOutHandle["SourceRadius"] = SourceRadius;
+		InOutHandle["LightFalloffExponent"] = LightFalloffExponent;
+		InOutHandle["AttenuationRadius"] = AttenuationRadius;
 	}
 }
 
 UObject* UPointLightComponent::Duplicate()
 {
 	UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(Super::Duplicate());
-	PointLightComponent->LightFalloffExtent = LightFalloffExtent;
-	PointLightComponent->SourceRadius = SourceRadius;
+	PointLightComponent->LightFalloffExponent = LightFalloffExponent;
+	PointLightComponent->AttenuationRadius = AttenuationRadius;
 
 	return PointLightComponent;
 }
