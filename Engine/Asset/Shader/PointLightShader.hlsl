@@ -24,7 +24,7 @@ cbuffer PointLightConstants : register(b1)
     float  LightIntensity;     // Strength (brightness)
     float3 LightColor;         // RGB color
     float  AttenuationRadius;        // Max effective range
-    float  LightFalloffExponent; // Falloff sharpness
+    float  DistanceFalloffExponent; // Falloff sharpness
     float3 Padding1;
 };
 
@@ -112,7 +112,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     L /= Distance;
 
     // Attenuation
-    float Attenuation = saturate(1.0f - pow(Distance / AttenuationRadius, LightFalloffExponent));
+    float Attenuation = saturate(1.0f - pow(Distance / AttenuationRadius, DistanceFalloffExponent));
     Attenuation *= LightIntensity;
 
     // Diffuse

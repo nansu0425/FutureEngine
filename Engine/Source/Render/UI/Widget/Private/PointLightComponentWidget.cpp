@@ -56,10 +56,10 @@ void UPointLightComponentWidget::RenderWidget()
     }
 
     // Light Falloff Extent
-    float LightFalloffExponent = PointLightComponent->GetLightFalloffExponent();
-    if (ImGui::DragFloat("Light Falloff Exponent", &LightFalloffExponent, 0.1f, 2.0f, 16.0f))
+    float DistanceFalloffExponent = PointLightComponent->GetDistanceFalloffExponent();
+    if (ImGui::DragFloat("Distance Falloff Exponent", &DistanceFalloffExponent, 0.1f, 2.0f, 16.0f))
     {
-        PointLightComponent->SetLightFalloffExponent(LightFalloffExponent);
+        PointLightComponent->SetDistanceFalloffExponent(DistanceFalloffExponent);
     }
 
     ImGui::Separator();

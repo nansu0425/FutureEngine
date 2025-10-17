@@ -1,12 +1,12 @@
 #pragma once
 #include "Global/Constant.h"
-#include "LightComponent.h"
+#include "Component/Public/PointLightComponent.h"
 
 UCLASS()
-class USpotLightComponent : public ULightComponent
+class USpotLightComponent : public UPointLightComponent
 {
     GENERATED_BODY()
-    DECLARE_CLASS(USpotLightComponent, ULightComponent)
+    DECLARE_CLASS(USpotLightComponent, UPointLightComponent)
 
 public:
     USpotLightComponent() = default;
@@ -36,7 +36,7 @@ public:
     virtual UClass* GetSpecificWidgetClass() const override; 
 
     /*-----------------------------------------------------------------------------
-        ULightComponent Features
+        UPointLightComponent Features
      -----------------------------------------------------------------------------*/
 public:
     virtual ELightComponentType GetLightType() const override { return ELightComponentType::LightType_Spot; }
@@ -47,26 +47,19 @@ public:
 public:
     // --- Getters & Setters ---
 
-    float GetDistanceFalloffExponent() const { return DistanceFalloffExponent; }
     float GetAngleFalloffExponent() const { return AngleFalloffExponent; }
-    float GetAttenuationRadius() const { return AttenuationRadius; }
     float GetAttenuationAngle() const { return AttenuationAngleRad; }
     
-    /** @note Sets the light falloff exponent and clamps it to the same range as Unreal Engine (2.0 - 16.0). */
-    void SetDistanceFalloffExponent(float InDistanceFalloffExponent) { DistanceFalloffExponent = std::clamp(InDistanceFalloffExponent, 2.0f, 16.0f); }
-    void SetAngleFalloffExponent(float InAngleFlloffExponent) { AngleFalloffExponent = std::clamp(InAngleFlloffExponent, 1.0f, 128.0f); }
-    void SetAttenuationRadius(float InAttenuationRadius) { AttenuationRadius = InAttenuationRadius; }
-    void SetAttenuationAngle(float InAttenuationAngle) { AttenuationAngleRad = InAttenuationAngle; }
+    void SetAngleFalloffExponent(float const InAngleFalloffExponent) { AngleFalloffExponent = std::clamp(InAngleFalloffExponent, 1.0f, 128.0f); }
+    void SetAttenuationAngle(float const InAttenuationAngleRad) { AttenuationAngleRad = InAttenuationAngleRad; }
 
 private:
     /**
-     * 작을수록 attenuation이 선형에 가깝게 완만하게 감소하고,
-     * 커질수록 중심 인근에서는 거의 감소하지 않다가 가장자리 부근에서 급격히 감소합니다.
+     * 거리 감쇠 지수는 부모(UPointLightComponent)가 관리하며,
+     * 각도 감쇠 지수는 이 값을 통해 제어합니다.
      */
-    float DistanceFalloffExponent = 2.0f; // clamp(1 - (d/R)^(DistFalloffExponent), 0, 1)
     float AngleFalloffExponent = 64.0f; // clamp(cos(theta) ^ (AngleFalloffExponent), 0, 1)
-    
-    /** Radius and angle of light source shape. */
-    float AttenuationRadius = 10.0f;
+
+    /** Angle of light source shape. */
     float AttenuationAngleRad = PI / 4.0f;
 };

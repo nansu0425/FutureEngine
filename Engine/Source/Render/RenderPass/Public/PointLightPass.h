@@ -19,7 +19,7 @@ struct FPointLightData
     float LightIntensity;
     FVector LightColor;
     float LightRadius;
-    float LightFalloffExponent;
+    float DistanceFalloffExponent;
     float Padding[3];
 };
 

@@ -3,23 +3,20 @@
 #include "Render/UI/Widget/Public/SpotLightComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
 
-IMPLEMENT_CLASS(USpotLightComponent, ULightComponent)
+IMPLEMENT_CLASS(USpotLightComponent, UPointLightComponent)
 
 void USpotLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
     if (bInIsLoading)
     {
-        FJsonSerializer::ReadFloat(InOutHandle, "DistanceFalloffExponent", DistanceFalloffExponent, 2.0f);
-        FJsonSerializer::ReadFloat(InOutHandle, "AngleFalloffExponent", AngleFalloffExponent, 64.0f);
-        FJsonSerializer::ReadFloat(InOutHandle, "AttenuationRadius", AttenuationRadius, 10.0f);
-        FJsonSerializer::ReadFloat(InOutHandle, "AttenuationAngle", AttenuationAngleRad, PI / 4.0f);
+        FJsonSerializer::ReadFloat(InOutHandle, "AngleFalloffExponent", AngleFalloffExponent);
+        SetAngleFalloffExponent(AngleFalloffExponent); // clamping을 위해 Setter 사용
+        FJsonSerializer::ReadFloat(InOutHandle, "AttenuationAngle", AttenuationAngleRad);
     }
     else
     {
-        InOutHandle["DistanceFalloffExponent"] = DistanceFalloffExponent;
         InOutHandle["AngleFalloffExponent"] = AngleFalloffExponent;
-        InOutHandle["AttenuationRadius"] = AttenuationRadius;
         InOutHandle["AttenuationAngle"] = AttenuationAngleRad;
     }
 }
@@ -27,11 +24,9 @@ void USpotLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 UObject* USpotLightComponent::Duplicate()
 {
     USpotLightComponent* NewSpotLightComponent = Cast<USpotLightComponent>(Super::Duplicate());
-    NewSpotLightComponent->DistanceFalloffExponent = DistanceFalloffExponent;
-    NewSpotLightComponent->AngleFalloffExponent = AngleFalloffExponent;
-    NewSpotLightComponent->AttenuationRadius = AttenuationRadius;
-    NewSpotLightComponent->AttenuationAngleRad = AttenuationAngleRad;
-    
+    NewSpotLightComponent->SetAngleFalloffExponent(AngleFalloffExponent);
+    NewSpotLightComponent->SetAttenuationAngle(AttenuationAngleRad);
+
     return NewSpotLightComponent;
 }
 

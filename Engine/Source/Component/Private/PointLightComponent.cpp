@@ -11,12 +11,13 @@ void UPointLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	Super::Serialize(bInIsLoading, InOutHandle);
 	if (bInIsLoading)
 	{
-		FJsonSerializer::ReadFloat(InOutHandle, "LightFalloffExponent", LightFalloffExponent);
+		FJsonSerializer::ReadFloat(InOutHandle, "DistanceFalloffExponent", DistanceFalloffExponent);
+		SetDistanceFalloffExponent(DistanceFalloffExponent); // clamping을 위해 Setter 사용
 		FJsonSerializer::ReadFloat(InOutHandle, "AttenuationRadius", AttenuationRadius);
 	}
 	else
 	{
-		InOutHandle["LightFalloffExponent"] = LightFalloffExponent;
+		InOutHandle["DistanceFalloffExponent"] = DistanceFalloffExponent;
 		InOutHandle["AttenuationRadius"] = AttenuationRadius;
 	}
 }
@@ -24,7 +25,7 @@ void UPointLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 UObject* UPointLightComponent::Duplicate()
 {
 	UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(Super::Duplicate());
-	PointLightComponent->LightFalloffExponent = LightFalloffExponent;
+	PointLightComponent->DistanceFalloffExponent = DistanceFalloffExponent;
 	PointLightComponent->AttenuationRadius = AttenuationRadius;
 
 	return PointLightComponent;
