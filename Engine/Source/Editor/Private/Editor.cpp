@@ -15,6 +15,7 @@
 #include "Component/Public/DecalSpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Physics/Public/BoundingSphere.h"
+#include "Component/Public/DirectionalLightComponent.h"
 
 UEditor::UEditor()
 {
@@ -71,6 +72,19 @@ void UEditor::RenderGizmo(UCamera* InCamera)
 {
 	if (GEditor->IsPIESessionActive()) { return; }
 	Gizmo.RenderGizmo(InCamera);
+	
+	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
+	if (ULevel* CurrentLevel = GWorld->GetLevel())
+	{
+		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetPointLights();
+		for (ULightComponent* LightComp : LightComponents)
+		{
+			if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(LightComp))
+			{
+				DirLight->RenderLightDirectionGizmo(InCamera);
+			}
+		}
+	}
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)

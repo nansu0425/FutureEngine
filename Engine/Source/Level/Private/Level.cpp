@@ -3,6 +3,7 @@
 #include "Component/Public/LightComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/PointLightComponent.h"
+#include "Component/Public/DirectionalLightComponent.h"
 #include "Core/Public/Object.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
@@ -159,10 +160,10 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 		{
 			LightsComponents.push_back(PointLightComponent);
 		}
-		//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
-		//{
-		//	LightsComponents.push_back(DirectionalLightComponent);
-		//}
+		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+		{
+			LightsComponents.push_back(DirectionalLightComponent);
+		}
 		//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
 		//{
 		//	LightsComponents.push_back(SpotLightComponent);
@@ -226,10 +227,10 @@ void ULevel::AddLevelComponent(AActor* Actor)
 			{
 				LightsComponents.push_back(PointLightComponent);
 			}
-			//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
-			//{
-			//	LightsComponent.push_back(DirectionalLightComponent);
-			//}
+			if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+			{
+				LightsComponents.push_back(DirectionalLightComponent);
+			}
 			//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
 			//{
 			//	LightsComponent.push_back(AmbientLightComponent);
