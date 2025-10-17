@@ -98,8 +98,8 @@ int FClientApp::InitializeSystem() const
 	GEditor = NewObject<UEditorEngine>();
 	
 	// UIManager Initialize
-	auto& UIManger = UUIManager::GetInstance();
-	UIManger.Initialize(Window->GetWindowHandle());
+	auto& UIManager = UUIManager::GetInstance();
+	UIManager.Initialize(Window->GetWindowHandle());
 	UUIWindowFactory::CreateDefaultUILayout();
 	
 	return S_OK;

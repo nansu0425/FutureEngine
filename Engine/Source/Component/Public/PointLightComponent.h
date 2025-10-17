@@ -58,9 +58,9 @@ public:
 
 private:
     /**
-     * Controls the radial falloff of the light.
-     * 2 is almost linear and very unrealistic and around 8 it looks reasonable.
-     * With large exponents, the light has contribution to only a small area of its influence radius but still costs the same as low exponents.
+     * 물리 기반 fall off를 껐을 때의 radial falloff 값입니다.
+     * 작을수록 attenuation이 선형에 가깝게 완만하게 감소하고,
+     * 커질수록 중심 인근에서는 거의 감소하지 않다가 가장자리 부근에서 급격히 감소합니다.
      */
     float LightFalloffExponent = 2.0f;
     
