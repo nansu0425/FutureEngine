@@ -1,6 +1,10 @@
 #pragma once
 
 #include "LightComponent.h"
+#include "Editor/Public/EditorPrimitive.h"
+
+struct FEditorPrimitive;
+class UCamera;
 
 UCLASS()
 class UDirectionalLightComponent : public ULightComponent
@@ -9,7 +13,7 @@ class UDirectionalLightComponent : public ULightComponent
     DECLARE_CLASS(UDirectionalLightComponent, ULightComponent)
 
 public:
-    UDirectionalLightComponent() = default;
+    UDirectionalLightComponent();
 
     virtual ~UDirectionalLightComponent() = default;
     
@@ -45,5 +49,8 @@ public:
         UDirectionalLightComponent Features
      -----------------------------------------------------------------------------*/
 public:
+    void RenderLightDirectionGizmo(UCamera* InCamera);
 
+private:
+    FEditorPrimitive LightDirectionArrow;
 };
