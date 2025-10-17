@@ -149,11 +149,31 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 			OnPrimitiveUpdated(PrimitiveComponent);
 		}
 	}
-	else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
+	//else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
+	//{
+	//	PointLights.push_back(PointLightComponent);
+	//}
+	else if (auto LightComponent = Cast<ULightComponent>(InComponent))
 	{
-		PointLights.push_back(PointLightComponent);
+		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
+		{
+			LightsComponents.push_back(PointLightComponent);
+		}
+		//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+		//{
+		//	LightsComponents.push_back(DirectionalLightComponent);
+		//}
+		//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+		//{
+		//	LightsComponents.push_back(SpotLightComponent);
+		//}
+		//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+		//{
+		//	LightsComponents.push_back(AmbientLightComponent);
+		//}
+		
+		
 	}
-
 	UE_LOG("Level: '%s' 컴포넌트를 씬에 등록했습니다.", InComponent->GetName().ToString().data());
 }
 
@@ -176,12 +196,13 @@ void ULevel::UnregisterComponent(UActorComponent* InComponent)
 	
 		OnPrimitiveUnregistered(PrimitiveComponent);
 	}
-	else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
+	else if (auto LightComponent = Cast<ULightComponent>(InComponent))
 	{
-		if (auto It = std::find(PointLights.begin(), PointLights.end(), PointLightComponent); It != PointLights.end())
+		if (auto It = std::find(LightsComponents.begin(), LightsComponents.end(), LightComponent); It != LightsComponents.end())
 		{
-			PointLights.erase(It);
-		}	
+			LightsComponents.erase(It);
+		}
+		
 	}
 	
 }
@@ -199,9 +220,24 @@ void ULevel::AddLevelComponent(AActor* Actor)
 		{
 			OnPrimitiveUpdated(PrimitiveComponent);			
 		}
-		else if (auto PointLightComponent = Cast<UPointLightComponent>(Component))
+		else if (auto LightComponent = Cast<ULightComponent>(Component))
 		{
-			PointLights.push_back(PointLightComponent);
+			if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
+			{
+				LightsComponents.push_back(PointLightComponent);
+			}
+			//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+			//{
+			//	LightsComponent.push_back(DirectionalLightComponent);
+			//}
+			//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+			//{
+			//	LightsComponent.push_back(AmbientLightComponent);
+			//}
+			//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+			//{
+			//	LightsComponent.push_back(SpotLightComponent);
+			//}
 		}
 	}
 }

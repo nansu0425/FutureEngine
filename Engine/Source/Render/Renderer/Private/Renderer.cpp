@@ -435,9 +435,27 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 		}
 	}
 
-	for (const auto& PointLight : CurrentLevel->GetPointLights())
+	for (const auto& LightComponent : CurrentLevel->GetPointLights())
 	{
-		RenderingContext.PointLights.push_back(PointLight);
+		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
+		{
+			RenderingContext.PointLights.push_back(PointLightComponent);
+		}
+		//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+		//{
+		//	
+		//}
+		//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+		//{
+		//	
+		//}
+		//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+		//{
+		//	
+		//}
+
+		
+		
 	}
 
 	// 2. Collect HeightFogComponents from all actors in the level
