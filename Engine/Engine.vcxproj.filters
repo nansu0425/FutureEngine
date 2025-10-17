@@ -440,6 +440,10 @@
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp">
       <Filter>Source\Optimization\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Component\Private\LightComponentBase.cpp" />
+    <ClCompile Include="Source\Component\Private\AmbientLightComponent.cpp">
+      <Filter>Source\Component\Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Global\BVH.h">
@@ -892,6 +896,12 @@
     </ClInclude>
     <ClInclude Include="Source\Optimization\Public\ViewVolumeCuller.h">
       <Filter>Source\Optimization\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="AmbientLightComponent.h">
+      <Filter>Source\Component\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\Public\LightComponentBase.h">
+      <Filter>Source\Component\Public</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
