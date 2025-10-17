@@ -510,6 +510,7 @@
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalSpotLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LightComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\LightComponentBase.cpp" />
     <ClCompile Include="Source\Component\Private\PointLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\MovementComponent.cpp" />
     <ClCompile Include="Source\Component\Private\ProjectileMovementComponent.cpp" />
@@ -636,6 +637,7 @@
     <Content Include="Asset\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Source\Component\Public\LightComponentBase.h" />
   </ItemGroup>
   <ItemGroup>
       <FxCompile Include="Asset\Shader\SceneDepthShader.hlsl">

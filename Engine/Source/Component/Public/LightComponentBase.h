@@ -1,29 +1,17 @@
-﻿#pragma once
+#pragma once
 
 #include "SceneComponent.h"
-#include "LightComponentBase.h"
-
-UENUM()
-enum class ELightComponentType
-{
-    LightType_Directional = 0,
-    LightType_Point       = 1,
-    LightType_Spot        = 2,
-    LightType_Rect        = 3,
-    LightType_Max         = 4
-};
-DECLARE_ENUM_REFLECTION(ELightComponentType)
 
 UCLASS()
-class ULightComponent : public ULightComponentBase
+class ULightComponentBase : public USceneComponent
 {
     GENERATED_BODY()
-    DECLARE_CLASS(ULightComponent, ULightComponentBase)
+    DECLARE_CLASS(ULightComponentBase, USceneComponent)
 
 public:
-    ULightComponent() = default;
+    ULightComponentBase() = default;
 
-    virtual ~ULightComponent() = default;
+    virtual ~ULightComponentBase() = default;
     
     /*-----------------------------------------------------------------------------
         UObject Features
@@ -51,7 +39,14 @@ public:
 public:
     // --- Getters & Setters ---
 
-    virtual ELightComponentType GetLightType() const { return ELightComponentType::LightType_Max; }
+    float GetIntensity() const { return Intensity; }
+
+    FVector GetLightColor() const { return LightColor;}
+
+    //virtual ELightComponentType GetLightType() const { return ELightComponentType::LightType_Max; }
+    
+    
+    bool GetVisible() const { return bVisible; }
 
     // --- [UE Style] ---
 
@@ -60,8 +55,23 @@ public:
     // virtual FSphere GetBoundingSphere() const;
     
     /** @note Sets the light intensity and clamps it to the same range as Unreal Engine (0.0 - 20.0). */
- 
+    void SetIntensity(float InIntensity) { Intensity = std::clamp(InIntensity, 0.0f, 20.0f); }
 
-private:
+    void SetLightColor(FVector InLightColor) { LightColor = InLightColor; }
     
+    void SetVisible(bool InVisible) { bVisible = InVisible; }
+    
+    
+
+protected:
+    /** Total energy that the light emits. */
+    float Intensity = 5.0f;
+
+    /**
+     * Filter color of the light.
+     * @todo Change type of this variable into FLinearColor
+     */
+    FVector LightColor = { 1.0f, 1.0f, 1.0f };
+
+    bool bVisible = true;
 };

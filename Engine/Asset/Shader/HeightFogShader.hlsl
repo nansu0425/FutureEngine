@@ -29,6 +29,8 @@ struct PS_INPUT
 	float2 NDC : TEXCOORD;
 };
 
+
+
 PS_INPUT mainVS(uint vertexID : SV_VertexID)
 {
 	PS_INPUT output;
