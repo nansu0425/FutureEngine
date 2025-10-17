@@ -1,31 +1,18 @@
-﻿#pragma once
+#pragma once
 
-#include "SceneComponent.h"
-#include "LightComponentBase.h"
-
-UENUM()
-enum class ELightComponentType
-{
-    LightType_Directional = 0,
-    LightType_Point       = 1,
-    LightType_Spot        = 2,
-    LightType_Ambient     = 3,
-    LightType_Rect        = 4,
-    LightType_Max         = 5
-};
-DECLARE_ENUM_REFLECTION(ELightComponentType)
+#include "Component/Public/LightComponent.h"
 
 UCLASS()
-class ULightComponent : public ULightComponentBase
+class UAmbientLightComponent : public ULightComponent
 {
-    GENERATED_BODY()
-    DECLARE_CLASS(ULightComponent, ULightComponentBase)
+	GENERATED_BODY()
+	DECLARE_CLASS(UAmbientLightComponent, ULightComponent)
 
 public:
-    ULightComponent() = default;
+    UAmbientLightComponent() = default;
 
-    virtual ~ULightComponent() = default;
-    
+    virtual ~UAmbientLightComponent() = default;
+
     /*-----------------------------------------------------------------------------
         UObject Features
      -----------------------------------------------------------------------------*/
@@ -33,7 +20,7 @@ public:
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
     virtual UObject* Duplicate() override;
-        
+
     virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 
     /*-----------------------------------------------------------------------------
@@ -41,28 +28,21 @@ public:
      -----------------------------------------------------------------------------*/
 public:
     virtual void BeginPlay() override { Super::BeginPlay(); }
-    
+
     virtual void TickComponent(float DeltaTime) override { Super::TickComponent(DeltaTime); }
 
     virtual void EndPlay() override { Super::EndPlay(); }
+
+    virtual UClass* GetSpecificWidgetClass() const override;
 
     /*-----------------------------------------------------------------------------
         ULightComponent Features
      -----------------------------------------------------------------------------*/
 public:
-    // --- Getters & Setters ---
+    virtual ELightComponentType GetLightType() const override { return ELightComponentType::LightType_Ambient; }
 
-    virtual ELightComponentType GetLightType() const { return ELightComponentType::LightType_Max; }
-
-    // --- [UE Style] ---
-
-    // virtual FBox GetBoundingBox() const;
-
-    // virtual FSphere GetBoundingSphere() const;
-    
-    /** @note Sets the light intensity and clamps it to the same range as Unreal Engine (0.0 - 20.0). */
- 
-
-private:
-    
+    /*-----------------------------------------------------------------------------
+        UDirectionalLightComponent Features
+     -----------------------------------------------------------------------------*/
+public:
 };
