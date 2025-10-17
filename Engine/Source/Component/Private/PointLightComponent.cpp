@@ -12,6 +12,7 @@ void UPointLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	if (bInIsLoading)
 	{
 		FJsonSerializer::ReadFloat(InOutHandle, "DistanceFalloffExponent", DistanceFalloffExponent);
+		SetDistanceFalloffExponent(DistanceFalloffExponent); // clamping을 위해 Setter 사용
 		FJsonSerializer::ReadFloat(InOutHandle, "AttenuationRadius", AttenuationRadius);
 	}
 	else

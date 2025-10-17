@@ -11,6 +11,7 @@ void USpotLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     if (bInIsLoading)
     {
         FJsonSerializer::ReadFloat(InOutHandle, "AngleFalloffExponent", AngleFalloffExponent);
+        SetAngleFalloffExponent(AngleFalloffExponent); // clamping을 위해 Setter 사용
         FJsonSerializer::ReadFloat(InOutHandle, "AttenuationAngle", AttenuationAngleRad);
     }
     else
