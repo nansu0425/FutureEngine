@@ -3,4 +3,4 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/MeshComponent.h"
 
-IMPLEMENT_CLASS(UMeshComponent, UPrimitiveComponent)
+IMPLEMENT_ABSTRACT_CLASS(UMeshComponent, UPrimitiveComponent)
