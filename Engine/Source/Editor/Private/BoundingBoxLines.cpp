@@ -263,6 +263,51 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 	}
 }
 
+void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertices)
+{
+	if (InVertices.empty())
+	{
+		CurrentType = EBoundingVolumeType::SpotLight;
+		CurrentNumVertices = 0;
+		Vertices.clear();
+		return;
+	}
+
+	const uint32 NumVerticesRequested = static_cast<uint32>(InVertices.size());
+
+	CurrentType = EBoundingVolumeType::SpotLight;
+	CurrentNumVertices = NumVerticesRequested;
+	Vertices.resize(NumVerticesRequested);
+
+	std::copy(InVertices.begin(), InVertices.end(), Vertices.begin());
+
+	const int32 ApexIndex = 0;
+	const uint32 NumRimVertices = NumVerticesRequested > 0 ? NumVerticesRequested - 1 : 0;
+
+	int32 LineIdx = 0;
+
+	if (NumRimVertices == 0)
+	{
+		return;
+	}
+
+	// Apex에서 원 둘레 각 점까지의 선분
+	for (uint32 RimIdx = 0; RimIdx < NumRimVertices; ++RimIdx)
+	{
+		SpotLightLineIdx[LineIdx++] = ApexIndex;
+		SpotLightLineIdx[LineIdx++] = ApexIndex + 1 + static_cast<int32>(RimIdx);
+	}
+
+	// 원 둘레 선분
+	for (uint32 RimIdx = 0; RimIdx < NumRimVertices; ++RimIdx)
+	{
+		const int32 Start = ApexIndex + 1 + static_cast<int32>(RimIdx);
+		const int32 End = ApexIndex + 1 + static_cast<int32>((RimIdx + 1) % NumRimVertices);
+		SpotLightLineIdx[LineIdx++] = Start;
+		SpotLightLineIdx[LineIdx++] = End;
+	}
+}
+
 int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 {
 	switch (BoundingVolumeType)

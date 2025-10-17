@@ -10,6 +10,7 @@ public:
 
 	void MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex);
 	void UpdateVertices(const IBoundingVolume* NewBoundingVolume);
+	void UpdateSpotLightVertices(const TArray<FVector>& InVertices);
 	int32* GetIndices(EBoundingVolumeType BoundingVolumeType);
 	uint32 GetNumVertices() const
 	{

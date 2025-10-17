@@ -16,6 +16,7 @@
 #include "Component/Public/PointLightComponent.h"
 #include "Physics/Public/BoundingSphere.h"
 #include "Component/Public/DirectionalLightComponent.h"
+#include "Component/Public/SpotLightComponent.h"
 
 UEditor::UEditor()
 {
@@ -205,7 +206,7 @@ void UEditor::UpdateBatchLines()
 					// 만약 선택된 타입이 decalspotlightcomponent라면
 					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
 					{
-						BatchLines.UpdateSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
+						BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
 					}
 				}
 				return; 
@@ -213,10 +214,19 @@ void UEditor::UpdateBatchLines()
 		}
 		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
 		{
-			if (UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(Component))
+			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
-				if (ShowFlags & EEngineShowFlags::SF_Bounds)
+				if (UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(Component))
 				{
+					if (USpotLightComponent* SpotLightComponent = Cast<USpotLightComponent>(Component))
+					{
+						const FVector Center = SpotLightComponent->GetWorldLocation();
+						const float Radius = SpotLightComponent->GetAttenuationRadius();
+						const float Radian = SpotLightComponent->GetAttenuationAngle();
+						FQuaternion Rotation = SpotLightComponent->GetWorldRotationAsQuaternion();
+						BatchLines.UpdateConeVertices(Center, Radius, Radian, Rotation);
+						return;
+					}
 					const FVector Center = PointLightComponent->GetWorldLocation();
 					const float Radius = PointLightComponent->GetAttenuationRadius();
 
@@ -224,8 +234,8 @@ void UEditor::UpdateBatchLines()
 					BatchLines.UpdateBoundingBoxVertices(&PointSphere);
 					return;
 				}
+				
 			}
-			// TODO - 다른 라이트 라인들 추가
 		}
 	}
 
