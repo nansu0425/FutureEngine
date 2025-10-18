@@ -146,7 +146,9 @@ enum class EFillMode : uint8_t
 
 enum class EViewModeIndex : uint32
 {
-	VMI_Lit,
+	VMI_Gouraud,
+	VMI_Lambert,
+	VMI_BlinnPhong,
 	VMI_Unlit,
 	VMI_Wireframe,
 	VMI_SceneDepth

@@ -205,17 +205,33 @@ void UMainBarWidget::RenderViewMenu()
 		EViewModeIndex CurrentMode = EditorInstance->GetViewMode();
 
 		// ViewMode 메뉴 아이템
-		bool bIsLit = (CurrentMode == EViewModeIndex::VMI_Lit);
+		bool bIsGroraud = (CurrentMode == EViewModeIndex::VMI_Gouraud);
+		bool bIsLambert = (CurrentMode == EViewModeIndex::VMI_Lambert);
+		bool bIsBlinnPhong = (CurrentMode == EViewModeIndex::VMI_BlinnPhong);
 		bool bIsUnlit = (CurrentMode == EViewModeIndex::VMI_Unlit);
 		bool bIsWireframe = (CurrentMode == EViewModeIndex::VMI_Wireframe);
 		bool bIsSceneDepth = (CurrentMode == EViewModeIndex::VMI_SceneDepth);
 
-		if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
+		//if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
+		//{
+		//	EditorInstance->SetViewMode(EViewModeIndex::VMI_Lit);
+		//	UE_LOG("MainBarWidget: ViewMode를 Lit으로 변경");
+		//}
+		if (ImGui::MenuItem("고로 셰이딩 적용(Gouraud)", nullptr, bIsGroraud) && !bIsGroraud)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Lit);
-			UE_LOG("MainBarWidget: ViewMode를 Lit으로 변경");
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_Gouraud);
+			UE_LOG("MainBarWidget: ViewMode를 고로 셰이딩으로 변경");
 		}
-
+		if (ImGui::MenuItem("램버트 셰이딩 적용(Lambert)", nullptr, bIsLambert) && !bIsLambert)
+		{
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_Lambert);
+			UE_LOG("MainBarWidget: ViewMode를 램버트 셰이딩로 변경");
+		}
+		if (ImGui::MenuItem("블린-퐁 셰이딩 적용(Blinn-Phong)", nullptr, bIsBlinnPhong) && !bIsBlinnPhong)
+		{
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
+			UE_LOG("MainBarWidget: ViewMode를 블린-퐁 셰이딩으로 변경");
+		}
 		if (ImGui::MenuItem("조명 비적용(Unlit)", nullptr, bIsUnlit) && !bIsUnlit)
 		{
 			EditorInstance->SetViewMode(EViewModeIndex::VMI_Unlit);

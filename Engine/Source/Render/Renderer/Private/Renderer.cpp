@@ -261,22 +261,41 @@ void URenderer::CreateStaticMeshShader()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
 	
-	// Compile with Lambert lighting model
-	TArray<D3D_SHADER_MACRO> Macros = {
-		//{ "LIGHTING_MODEL_LAMBERT", "1" },
-		{ "LIGHTING_MODEL_BlinnPHONG", "1" },
+	// Compile Lambert variant (default)
+	TArray<D3D_SHADER_MACRO> LambertMacros = {
+		{ "LIGHTING_MODEL_LAMBERT", "1" },
 		{ nullptr, nullptr }
 	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShader, &UberLitInputLayout, "Uber_VS", LambertMacros.data());
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShader, "Uber_PS", LambertMacros.data());
 	
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShader, &UberLitInputLayout, "Uber_VS", Macros.data());
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShader, "Uber_PS", Macros.data());
+	// Compile Gouraud variant
+	TArray<D3D_SHADER_MACRO> GouraudMacros = {
+		{ "LIGHTING_MODEL_GOURAUD", "1" },
+		{ nullptr, nullptr }
+	};
+	ID3D11InputLayout* GouraudInputLayout = nullptr;
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShaderGouraud, &GouraudInputLayout, "Uber_VS", GouraudMacros.data());
+	SafeRelease(GouraudInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderGouraud, "Uber_PS", GouraudMacros.data());
+	
+	// Compile Phong (Blinn-Phong) variant
+	TArray<D3D_SHADER_MACRO> PhongMacros = {
+		{ "LIGHTING_MODEL_BLINNPHONG", "1" },
+		{ nullptr, nullptr }
+	};
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
 }
+
 
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(UberLitInputLayout);
 	SafeRelease(UberLitPixelShader);
+	SafeRelease(UberLitPixelShaderGouraud);
+	SafeRelease(UberLitPixelShaderBlinnPhong);
 	SafeRelease(UberLitVertexShader);
+	SafeRelease(UberLitVertexShaderGouraud);
 	
 	SafeRelease(DefaultInputLayout);
 	SafeRelease(DefaultPixelShader);
@@ -573,6 +592,33 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
     GetDeviceContext()->OMSetRenderTargets(1, targetViews, DeviceResources->GetDepthStencilView());
 }
 
+ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) const
+{
+	if (ViewModeIndex == EViewModeIndex::VMI_Gouraud)
+	{
+		return UberLitVertexShaderGouraud;
+	}
+	else
+	{
+		return UberLitVertexShader;
+	}
+}
+
+ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
+{
+	if (ViewModeIndex == EViewModeIndex::VMI_Gouraud)
+	{
+		return UberLitPixelShaderGouraud;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert)
+	{
+		return UberLitPixelShader;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
+	{
+		return UberLitPixelShaderBlinnPhong;
+	}
+}
 
 void URenderer::CreateConstantBuffers()
 {

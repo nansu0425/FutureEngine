@@ -20,11 +20,16 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
 {
+	const auto& Renderer = URenderer::GetInstance();
 	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
 	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
 	{
-		RenderState.CullMode = ECullMode::None; RenderState.FillMode = EFillMode::WireFrame;
+		RenderState.CullMode = ECullMode::None;
+		RenderState.FillMode = EFillMode::WireFrame;
 	}
+	VS = Renderer.GetVertexShader(Context.ViewMode);
+	PS = Renderer.GetPixelShader(Context.ViewMode);
+	
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
 	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
 	Pipeline->UpdatePipeline(PipelineInfo);
@@ -117,7 +122,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	 * @todo Find a better way to reduce depdency upon Renderer class.
 	 * @note How about introducing methods like BeginPass(), EndPass() to set up and release pass specific state?
 	 */
-	const auto& Renderer = URenderer::GetInstance();
 	const auto& DeviceResources = Renderer.GetDeviceResources();
 	ID3D11RenderTargetView* RTV = nullptr;
 	if (Renderer.GetFXAA())

@@ -84,8 +84,10 @@ void UPipeline::SetSamplerState(uint32 Slot, bool bIsVS, ID3D11SamplerState* Sam
 		DeviceContext->PSSetSamplers(Slot, 1, &SamplerState);
 }
 
+
+
 void UPipeline::SetRenderTargets(uint32 NumViews, ID3D11RenderTargetView* const* RenderTargetViews,
-	ID3D11DepthStencilView* DepthStencilView)
+                                 ID3D11DepthStencilView* DepthStencilView)
 {
 	DeviceContext->OMSetRenderTargets(NumViews, RenderTargetViews, DepthStencilView);
 }

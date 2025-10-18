@@ -12,6 +12,9 @@ class UPipeline;
 class FViewportClient;
 class FFXAAPass;
 
+
+
+
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
  */
@@ -79,6 +82,9 @@ public:
 
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
+	ID3D11VertexShader* GetVertexShader(EViewModeIndex ViewModeIndex) const;
+	ID3D11PixelShader* GetPixelShader(EViewModeIndex ViewModeIndex) const;
+
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -111,7 +117,10 @@ private:
 
 	// StaticMesh Shaders
 	ID3D11VertexShader* UberLitVertexShader = nullptr;
+	ID3D11VertexShader* UberLitVertexShaderGouraud = nullptr;
 	ID3D11PixelShader* UberLitPixelShader = nullptr;
+	ID3D11PixelShader* UberLitPixelShaderGouraud = nullptr;
+	ID3D11PixelShader* UberLitPixelShaderBlinnPhong = nullptr;
 	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
 	// Texture Shaders

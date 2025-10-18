@@ -23,7 +23,7 @@ FPointLightPass::FPointLightPass(UPipeline* InPipeline,
 
 void FPointLightPass::Execute(FRenderingContext& Context)
 {
-    if (Context.ViewMode != EViewModeIndex::VMI_Lit)
+    if (Context.ViewMode == EViewModeIndex::VMI_Unlit || Context.ViewMode == EViewModeIndex::VMI_Wireframe || Context.ViewMode == EViewModeIndex::VMI_SceneDepth)
     {
         return;
     }

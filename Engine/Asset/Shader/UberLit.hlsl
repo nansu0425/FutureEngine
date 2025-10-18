@@ -134,7 +134,7 @@ float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal,
     
     float4 diffuse = Info.Color * Info.Intensity * NdotL;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BLINNPHONG
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = LightDir;
@@ -167,7 +167,7 @@ float4 CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 Worl
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BLINNPHONG
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
@@ -210,7 +210,7 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * SpotFactor;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BLINNPHONG
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
@@ -286,7 +286,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     // Use pre-calculated vertex lighting
     finalPixel.rgb = Input.LightColor.rgb * diffuseColor.rgb;
     
-#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BlinnPHONG
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BLINNPHONG
     // Calculate lighting in pixel shader
     float4 lighting = CalculateAmbientLight(Ambient) * ambientColor;
     lighting += CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
