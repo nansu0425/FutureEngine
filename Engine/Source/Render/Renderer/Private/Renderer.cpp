@@ -481,16 +481,20 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			RenderingContext.PointLights.push_back(PointLightComponent);
+			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+			{
+				RenderingContext.SpotLights.push_back(SpotLightComponent);
+			}
+			else
+			{
+				RenderingContext.PointLights.push_back(PointLightComponent);
+			}
 		}
 		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 		{
 			RenderingContext.DirectionalLights.push_back(DirectionalLightComponent);
 		}
-		if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-		{
-			RenderingContext.SpotLights.push_back(SpotLightComponent);
-		}
+		
 		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
 		{
 			RenderingContext.AmbientLights.push_back(AmbientLightComponent);

@@ -78,8 +78,8 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		
 		LightingData.PointLights[i].Color = FVector4(LightColor.X, LightColor.Y, LightColor.Z, 1.0f);
 		LightingData.PointLights[i].Position = FVector(LightPos.X, LightPos.Y, LightPos.Z);
-		LightingData.PointLights[i].Range = Light->GetAttenuationRadius();
 		LightingData.PointLights[i].Intensity = Light->GetIntensity();
+		LightingData.PointLights[i].Range = Light->GetAttenuationRadius();
 		LightingData.PointLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
 	}
 	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
@@ -95,11 +95,13 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
     
 		LightingData.SpotLights[i].Color = FVector4(color.X, color.Y, color.Z, 1.0f);
 		LightingData.SpotLights[i].Position = FVector(pos.X, pos.Y, pos.Z);
-		LightingData.SpotLights[i].Direction = FVector(dir.X, dir.Y, dir.Z);
-		LightingData.SpotLights[i].Range = Light->GetAttenuationRadius();
-		LightingData.SpotLights[i].InnerConeAngle = Light->GetAttenuationAngle();
-		LightingData.SpotLights[i].OuterConeAngle = Light->GetAngleFalloffExponent();
 		LightingData.SpotLights[i].Intensity = Light->GetIntensity();
+		LightingData.SpotLights[i].Range = Light->GetAttenuationRadius();
+		LightingData.SpotLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
+		LightingData.SpotLights[i].InnerConeAngle = Light->GetInnerConeAngle();
+		LightingData.SpotLights[i].OuterConeAngle = Light->GetOuterConeAngle();
+		LightingData.SpotLights[i].AngleFalloffExponent = Light->GetAngleFalloffExponent();
+		LightingData.SpotLights[i].Direction = FVector(dir.X, dir.Y, dir.Z);
 	}
 
 	LightingData.NumPointLights = PointLightCount;

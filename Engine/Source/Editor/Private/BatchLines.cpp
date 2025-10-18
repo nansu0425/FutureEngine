@@ -126,7 +126,7 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter, float InGenerating
 	// x, y 평면 위 호 버텍스
 	for (uint32 Segment = 0; Segment <= NumSegments; ++Segment)
 	{
-		const float Angle = -static_cast<float>(PI) / 2.0f + InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
+		const float Angle = -InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
 
 		LocalVertices.emplace_back(
 			cosf(Angle),
@@ -138,7 +138,7 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter, float InGenerating
 	// z, x 평면 위 호 버텍스
 	for (uint32 Segment = 0; Segment <= NumSegments; ++Segment)
 	{
-		const float Angle = -static_cast<float>(PI) / 2.0f + InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
+		const float Angle = -InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
 
 		LocalVertices.emplace_back(
 			cosf(Angle),
