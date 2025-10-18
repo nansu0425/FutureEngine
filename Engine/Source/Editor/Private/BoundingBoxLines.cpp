@@ -121,6 +121,7 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 		OBBToWorld *= FMatrix::TranslationMatrix(OBB->Center);
 
 		// 61개의 점들을 로컬에서 찍는다.
+		constexpr uint32 NumSegments = 60;
 		FVector LocalSpotLight[61];
 		LocalSpotLight[0] = FVector(-Extents.X, 0.0f, 0.0f); // 0: Center
 
@@ -140,8 +141,8 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 		FVector WorldCorner = OBBToWorld.TransformPosition(LocalSpotLight[0]);
 		Vertices[0] = { WorldCorner.X, WorldCorner.Y, WorldCorner.Z };
 
-		int32 LineIdx = 0;
-
+		SpotLightLineIdx.clear();
+		SpotLightLineIdx.reserve(NumSegments * 4);
 
 		// 꼭지점에서 원으로 뻗는 60개의 선을 월드로 바꾸고 인덱스 번호를 지정한다
 		for (uint32 Idx = 1; Idx < 61; ++Idx)
@@ -149,17 +150,17 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 			FVector WorldCorner = OBBToWorld.TransformPosition(LocalSpotLight[Idx]);
 
 			Vertices[Idx] = { WorldCorner.X, WorldCorner.Y, WorldCorner.Z };
-			SpotLightLineIdx[LineIdx++] = 0;
-			SpotLightLineIdx[LineIdx++] = Idx;
+			SpotLightLineIdx.emplace_back(0);
+			SpotLightLineIdx.emplace_back(static_cast<int32>(Idx));
 		}
 
 		// 원에서 각 점을 잇는 선의 인덱스 번호를 지정한다
-		SpotLightLineIdx[LineIdx++] = 60;
-		SpotLightLineIdx[LineIdx++] = 1;
+		SpotLightLineIdx.emplace_back(60);
+		SpotLightLineIdx.emplace_back(1);
 		for (uint32 Idx = 1; Idx < 60; ++Idx)
 		{
-			SpotLightLineIdx[LineIdx++] = Idx;
-			SpotLightLineIdx[LineIdx++] = Idx + 1;
+			SpotLightLineIdx.emplace_back(static_cast<int32>(Idx));
+			SpotLightLineIdx.emplace_back(static_cast<int32>(Idx + 1));
 		}
 		break;
 	}
@@ -265,11 +266,14 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 
 void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertices)
 {
+	SpotLightLineIdx.clear();
+
 	if (InVertices.empty())
 	{
 		CurrentType = EBoundingVolumeType::SpotLight;
 		CurrentNumVertices = 0;
 		Vertices.clear();
+		SpotLightLineIdx.clear();
 		return;
 	}
 
@@ -281,30 +285,53 @@ void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertice
 
 	std::copy(InVertices.begin(), InVertices.end(), Vertices.begin());
 
+	constexpr uint32 NumSegments = 40;
 	const int32 ApexIndex = 0;
-	const uint32 NumRimVertices = NumVerticesRequested > 0 ? NumVerticesRequested - 1 : 0;
+	const uint32 OuterStart = 1;
+	const uint32 OuterCount = NumVerticesRequested > OuterStart ? std::min(NumSegments, NumVerticesRequested - OuterStart) : 0;
+	const uint32 InnerStart = OuterStart + OuterCount;
+	const uint32 InnerCount = NumVerticesRequested > InnerStart ? std::min(NumSegments, NumVerticesRequested - InnerStart) : 0;
 
-	int32 LineIdx = 0;
-
-	if (NumRimVertices == 0)
+	if (OuterCount == 0)
 	{
 		return;
 	}
 
+	SpotLightLineIdx.reserve((OuterCount * 4) + (InnerCount * 4));
+
 	// Apex에서 원 둘레 각 점까지의 선분
-	for (uint32 RimIdx = 0; RimIdx < NumRimVertices; ++RimIdx)
+	for (uint32 Segment = 0; Segment < OuterCount; ++Segment)
 	{
-		SpotLightLineIdx[LineIdx++] = ApexIndex;
-		SpotLightLineIdx[LineIdx++] = ApexIndex + 1 + static_cast<int32>(RimIdx);
+		SpotLightLineIdx.emplace_back(ApexIndex);
+		SpotLightLineIdx.emplace_back(static_cast<int32>(OuterStart + Segment));
+	}
+	
+	// 원 둘레 선분
+	for (uint32 Segment = 0; Segment < OuterCount; ++Segment)
+	{
+		const int32 Start = static_cast<int32>(OuterStart + Segment);
+		const int32 End = static_cast<int32>(OuterStart + ((Segment + 1) % OuterCount));
+		SpotLightLineIdx.emplace_back(Start);
+		SpotLightLineIdx.emplace_back(End);
 	}
 
-	// 원 둘레 선분
-	for (uint32 RimIdx = 0; RimIdx < NumRimVertices; ++RimIdx)
+	if (InnerCount >= 2)
 	{
-		const int32 Start = ApexIndex + 1 + static_cast<int32>(RimIdx);
-		const int32 End = ApexIndex + 1 + static_cast<int32>((RimIdx + 1) % NumRimVertices);
-		SpotLightLineIdx[LineIdx++] = Start;
-		SpotLightLineIdx[LineIdx++] = End;
+		// Apex에서 원 둘레 각 점까지의 선분
+		for (uint32 Segment = 0; Segment < InnerCount; ++Segment)
+		{
+			SpotLightLineIdx.emplace_back(ApexIndex);
+			SpotLightLineIdx.emplace_back(static_cast<int32>(InnerStart + Segment));
+		}
+
+		// 원 둘레 선분
+		for (uint32 Segment = 0; Segment < InnerCount; ++Segment)
+		{
+			const int32 Start = static_cast<int32>(InnerStart + Segment);
+			const int32 End = static_cast<int32>(InnerStart + ((Segment + 1) % InnerCount));
+			SpotLightLineIdx.emplace_back(Start);
+			SpotLightLineIdx.emplace_back(End);
+		}
 	}
 }
 
@@ -322,7 +349,7 @@ int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 	}
 	case EBoundingVolumeType::SpotLight:
 	{
-		return SpotLightLineIdx;
+		return SpotLightLineIdx.empty() ? nullptr : SpotLightLineIdx.data();
 	}
 	case EBoundingVolumeType::Sphere:
 	{
@@ -344,7 +371,7 @@ uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) 
 	case EBoundingVolumeType::OBB:
 		return 24;
 	case EBoundingVolumeType::SpotLight:
-		return 240;
+		return static_cast<uint32>(SpotLightLineIdx.size());
 	case EBoundingVolumeType::Sphere:
 		return 360;
 	default:
