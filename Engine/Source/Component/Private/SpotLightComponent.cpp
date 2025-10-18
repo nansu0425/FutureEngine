@@ -43,7 +43,7 @@ UClass* USpotLightComponent::GetSpecificWidgetClass() const
     return USpotLightComponentWidget::StaticClass();
 }
 
-FVector USpotLightComponent::GetForwardVector()
+FVector USpotLightComponent::GetForwardVector() const
 {
     FQuaternion Rotation = GetWorldRotationAsQuaternion();
     return Rotation.RotateVector(FVector(1.0f, 0.0f, 0.0f));
@@ -62,15 +62,4 @@ void USpotLightComponent::SetInnerAngle(float const InAttenuationAngleRad)
 
 void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 {
-}
-
-float USpotLightComponent::GetAttenuationAngle() const
-{
-    return InnerConeAngleRad;
-}
-
-FVector USpotLightComponent::GetForwardVector() const
-{
-    // 임시 리턴값
-    return FVector(0,0,0);
 }

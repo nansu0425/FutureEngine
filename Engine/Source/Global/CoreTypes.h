@@ -139,22 +139,26 @@ struct FPointLightInfo
 {
 	FVector4 Color;
 	FVector Position;
-	float Range;
 	float Intensity;
+	float Range;
 	float DistanceFalloffExponent;
 	FVector2 Padding;
 };
 
 struct FSpotLightInfo
 {
+	// Point Light와 공유하는 속성 (필드 순서 맞춤)
 	FVector4 Color;
 	FVector Position;
+	float Intensity;
 	float Range;
-	FVector Direction;
+	float DistanceFalloffExponent;
+
+	// SpotLight 고유 속성
 	float InnerConeAngle;
 	float OuterConeAngle;
-	float Intensity;
-	FVector2 Padding;
+	float AngleFalloffExponent;
+	FVector Direction;
 };
 
 struct FLightingConstants

@@ -23,8 +23,8 @@ struct FPointLightInfo
 {
     float4 Color;
     float3 Position;
-    float Range;
     float Intensity;
+    float Range;
     float DistanceFalloffExponent;
     float2 Padding;
 };
@@ -33,11 +33,13 @@ struct FSpotLightInfo
 {
     float4 Color;
     float3 Position;
-    float Range;
-    float3 Direction;
-    float SpotAngle;
     float Intensity;
-    float3 Padding;
+    float Range;
+    float DistanceFalloffExponent;
+    float InnerConeAngle;
+    float OuterConeAngle;
+    float AngleFalloffExponent;
+    float3 Direction;
 };
 
 // Constant Buffers
@@ -196,20 +198,28 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     LightDir = normalize(LightDir);
     float3 SpotDir = normalize(Info.Direction);
     
-    float SpotAngle = dot(-LightDir, SpotDir);
-    float SpotCutoff = cos(Info.SpotAngle);
-    
-    if (SpotAngle < SpotCutoff)
+    float CosAngle = dot(-LightDir, SpotDir);
+    float CosOuter = cos(Info.OuterConeAngle);
+    float CosInner = cos(Info.InnerConeAngle);
+    if (CosAngle < CosOuter)
         return float4(0, 0, 0, 0);
     
     float NdotL = saturate(dot(WorldNormal, LightDir));
     
-    float Attenuation = 1.0f - saturate(Distance / Info.Range);
-    Attenuation *= Attenuation;
+    float AttenuationDistance = 1.0f - saturate(Distance / Info.Range);
+    AttenuationDistance *= AttenuationDistance;
     
-    float SpotFactor = pow(SpotAngle, 2.0f);
+    float AttenuationAngle = 0.0f;
+    if (CosAngle >= CosInner || CosInner - CosOuter <= 1e-4)
+    {
+        AttenuationAngle = 1.0f;
+    }
+    else
+    {
+        AttenuationAngle = pow(saturate((CosAngle - CosOuter) / (CosInner - CosOuter)), Info.AngleFalloffExponent);
+    }
     
-    float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * SpotFactor;
+    float4 Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle;
     
 #if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
@@ -221,7 +231,7 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
     float3 Specular = SpecularColor * Spec  * 0.5f;
     float4 SpecularLight = float4(Specular, 0.0f);
-    return Diffuse + Ks * SpecularLight * Info.Intensity * Attenuation * SpotFactor;
+    return Diffuse + Ks * SpecularLight * Info.Intensity * AttenuationDistance * AttenuationAngle;
     
 #endif
     

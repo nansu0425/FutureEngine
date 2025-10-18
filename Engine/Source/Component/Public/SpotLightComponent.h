@@ -53,7 +53,7 @@ public:
     // --- Getters & Setters ---
 
     // 월드 좌표계에서의 forward vector를 반환합니다.
-    FVector GetForwardVector();
+    FVector GetForwardVector() const;
     
     float GetAngleFalloffExponent() const { return AngleFalloffExponent; }
     float GetOuterConeAngle() const { return OuterConeAngleRad; }
@@ -63,14 +63,7 @@ public:
     void SetOuterAngle(float const InAttenuationAngleRad);
     void SetInnerAngle(float const InAttenuationAngleRad);
 
-public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
-
-
-    float GetAttenuationAngle()const;
-
-    
-    FVector GetForwardVector() const;
     
 private:
     /**
