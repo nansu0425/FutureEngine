@@ -162,4 +162,7 @@ struct FLightingConstants
 	FDirectionalLightInfo Directional;
 	FPointLightInfo PointLights[NUM_POINT_LIGHT];
 	FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
+	uint32 NumPointLights;
+	uint32 NumSpotLights;
+	FVector2 PaddingLighting;
 };

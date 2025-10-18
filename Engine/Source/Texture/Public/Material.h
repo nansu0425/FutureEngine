@@ -79,6 +79,8 @@ public:
 	UTexture* GetAlphaTexture() const { return AlphaTexture; }
 	UTexture* GetBumpTexture() const { return BumpTexture; }
 
+	void SetMaterialData(const FMaterial& InMaterialData) { MaterialData = InMaterialData; }
+
 	void SetDiffuseTexture(UTexture* InTexture) { DiffuseTexture = InTexture; }
 	void SetAmbientTexture(UTexture* InTexture) { AmbientTexture = InTexture; }
 	void SetSpecularTexture(UTexture* InTexture) { SpecularTexture = InTexture; }

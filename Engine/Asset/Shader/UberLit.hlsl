@@ -72,6 +72,9 @@ cbuffer Lighting : register(b3)
     FDirectionalLightInfo Directional;
     FPointLightInfo PointLights[NUM_POINT_LIGHT];
     FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
+    uint NumPointLights;
+    uint NumSpotLights;
+    float2 PaddingLighting;
 }
 
 // Textures
@@ -222,13 +225,15 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     // ambient 계산
     Output.LightColor = CalculateAmbientLight(Ambient) * Ka;
     Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
-    
-    for (int i = 0; i < NUM_POINT_LIGHT; i++)
+
+    [unroll]
+    for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
     {
         Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
     }
-    
-    for (int j = 0; j < NUM_SPOT_LIGHT; j++)
+
+    [unroll]
+    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
     {
         Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
     }
@@ -269,12 +274,14 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     //float4 lighting = CalculateAmbientLight(Ambient);
     lighting += CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     
-    for (int i = 0; i < NUM_POINT_LIGHT; i++)
+    [unroll]
+    for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
     {
         lighting += CalculatePointLight(PointLights[i], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     }
     
-    for (int j = 0; j < NUM_SPOT_LIGHT; j++)
+    [unroll]
+    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
     {
         lighting += CalculateSpotLight(SpotLights[j], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     }

@@ -92,6 +92,9 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		LightingData.SpotLights[i].OuterConeAngle = Light->GetAngleFalloffExponent();
 		LightingData.SpotLights[i].Intensity = Light->GetIntensity();
 	}
+
+	LightingData.NumPointLights = PointLightCount;
+	LightingData.NumSpotLights = SpotLightCount;
 	
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferLighting, LightingData);
 	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);
