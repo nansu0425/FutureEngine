@@ -90,7 +90,7 @@ void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLig
 		return;
 	}
 	
-	SpotLightOBBLines.UpdateVertices(SpotLightBounding);
+	SpotLightLines.UpdateVertices(SpotLightBounding);
 	bRenderSpotLight = true;
 	bChangedVertices = true;
 }
@@ -142,7 +142,7 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter, float InGenerating
 		WorldVertices[Index] = WorldMatrix.TransformPosition(LocalVertices[Index]);
 	}
 
-	SpotLightOBBLines.UpdateSpotLightVertices(WorldVertices);
+	SpotLightLines.UpdateSpotLightVertices(WorldVertices);
 	bRenderSpotLight = true;
 	bChangedVertices = true;
 }
@@ -171,7 +171,7 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
-		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightOBBLines.GetNumVertices() : 0;
+		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
 		{
@@ -186,8 +186,8 @@ void UBatchLines::UpdateVertexBuffer()
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
 		if (bRenderSpotLight)
 		{
-			SpotLightOBBLines.MergeVerticesAt(Vertices, CurrentOffset);
-			CurrentOffset += SpotLightOBBLines.GetNumVertices();
+			SpotLightLines.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += SpotLightLines.GetNumVertices();
 		}
 
 		for (auto& Line : OctreeLines)
@@ -247,9 +247,9 @@ void UBatchLines::SetIndices()
 
 	if (bRenderSpotLight)
 	{
-		const EBoundingVolumeType SpotLightType = SpotLightOBBLines.GetCurrentType();
-		int32* SpotLineIdx = SpotLightOBBLines.GetIndices(SpotLightType);
-		const uint32 NumSpotLightIndices = SpotLightOBBLines.GetNumIndices(SpotLightType);
+		const EBoundingVolumeType SpotLightType = SpotLightLines.GetCurrentType();
+		int32* SpotLineIdx = SpotLightLines.GetIndices(SpotLightType);
+		const uint32 NumSpotLightIndices = SpotLightLines.GetNumIndices(SpotLightType);
 
 		if (SpotLineIdx)
 		{
@@ -259,7 +259,7 @@ void UBatchLines::SetIndices()
 			}
 		}
 
-		BaseVertexOffset += SpotLightOBBLines.GetNumVertices();
+		BaseVertexOffset += SpotLightLines.GetNumVertices();
 	}
 
 	for (auto& OctreeLine : OctreeLines)

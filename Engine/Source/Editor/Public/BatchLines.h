@@ -66,7 +66,7 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
-	UBoundingBoxLines SpotLightOBBLines;
+	UBoundingBoxLines SpotLightLines;
 	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
