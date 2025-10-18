@@ -127,86 +127,104 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
     return info.Color * info.Intensity;
 }
 
-float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 worldNormal, float3 worldPos, float3 viewPos)
+float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
-    float3 lightDir = normalize(-Info.Direction);
-    float NdotL = saturate(dot(worldNormal, lightDir));
+    float3 LightDir = normalize(-Info.Direction);
+    float NdotL = saturate(dot(WorldNormal, LightDir));
     
     float4 diffuse = Info.Color * Info.Intensity * NdotL;
     
-#if LIGHTING_MODEL_PHONG
-    // Specular calculation for Phong
-    float3 viewDir = normalize(viewPos - worldPos);
-    float3 reflectDir = reflect(-lightDir, worldNormal);
-    float specular = pow(saturate(dot(viewDir, reflectDir)), Ns);
-    diffuse += Ks * specular * Info.Intensity;
+#if LIGHTING_MODEL_BlinnPHONG
+    // Specular (Blinn-Phong)
+    float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
+    float3 WorldToLightVector = LightDir;
+    
+    float3 H = normalize(WorldToLightVector + WorldToCameraVector);
+    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
+    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
+    float3 Specular = SpecularColor * Spec  * 0.5f;
+    float4 SpecularLight = float4(Specular, 0.0f);
+    return diffuse + Ks * SpecularLight * Info.Intensity;
+    
 #endif
     
     return diffuse;
 }
 
-float4 CalculatePointLight(FPointLightInfo info, float3 worldNormal, float3 worldPos, float3 viewPos)
+float4 CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
-    float3 lightDir = info.Position - worldPos;
-    float distance = length(lightDir);
+    float3 LightDir = Info.Position - WorldPos;
+    float Distance = length(LightDir);
     
-    if (distance > info.Range)
+    if (Distance > Info.Range)
         return float4(0, 0, 0, 0);
     
-    lightDir = normalize(lightDir);
-    float NdotL = saturate(dot(worldNormal, lightDir));
+    LightDir = normalize(LightDir);
+    float NdotL = saturate(dot(WorldNormal, LightDir));
     
-    float attenuation = 1.0f - saturate(distance / info.Range);
-    attenuation *= attenuation;
+    float Attenuation = 1.0f - saturate(Distance / Info.Range);
+    Attenuation *= Attenuation;
     
-    float4 diffuse = info.Color * info.Intensity * NdotL * attenuation;
+    float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
     
-#if LIGHTING_MODEL_PHONG
-    // Specular calculation for Phong
-    float3 viewDir = normalize(viewPos - worldPos);
-    float3 reflectDir = reflect(-lightDir, worldNormal);
-    float specular = pow(saturate(dot(viewDir, reflectDir)), Ns);
-    diffuse += Ks * specular * info.Intensity * attenuation;
+#if LIGHTING_MODEL_BlinnPHONG
+    // Specular (Blinn-Phong)
+    float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
+    float3 WorldToLightVector = normalize(Info.Position - WorldPos);
+    
+    float3 H = normalize(WorldToLightVector + WorldToCameraVector);
+    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
+    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
+    float3 Specular = SpecularColor * Spec  * 0.5f;
+    float4 SpecularLight = float4(Specular, 0.0f);
+    return Diffuse + Ks * SpecularLight * Info.Intensity;
+    
 #endif
     
-    return diffuse;
+    return Diffuse;
 }
 
-float4 CalculateSpotLight(FSpotLightInfo info, float3 worldNormal, float3 worldPos, float3 viewPos)
+float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
-    float3 lightDir = info.Position - worldPos;
-    float distance = length(lightDir);
+    float3 LightDir = Info.Position - WorldPos;
+    float Distance = length(LightDir);
     
-    if (distance > info.Range)
+    if (Distance > Info.Range)
         return float4(0, 0, 0, 0);
     
-    lightDir = normalize(lightDir);
-    float3 spotDir = normalize(info.Direction);
+    LightDir = normalize(LightDir);
+    float3 SpotDir = normalize(Info.Direction);
     
-    float spotAngle = dot(-lightDir, spotDir);
-    float spotCutoff = cos(info.SpotAngle);
+    float SpotAngle = dot(-LightDir, SpotDir);
+    float SpotCutoff = cos(Info.SpotAngle);
     
-    if (spotAngle < spotCutoff)
+    if (SpotAngle < SpotCutoff)
         return float4(0, 0, 0, 0);
     
-    float NdotL = saturate(dot(worldNormal, lightDir));
+    float NdotL = saturate(dot(WorldNormal, LightDir));
     
-    float attenuation = 1.0f - saturate(distance / info.Range);
-    attenuation *= attenuation;
+    float Attenuation = 1.0f - saturate(Distance / Info.Range);
+    Attenuation *= Attenuation;
     
-    float spotFactor = pow(spotAngle, 2.0f);
+    float SpotFactor = pow(SpotAngle, 2.0f);
     
-    float4 diffuse = info.Color * info.Intensity * NdotL * attenuation * spotFactor;
+    float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * SpotFactor;
     
-#if LIGHTING_MODEL_PHONG
-    // Specular calculation for Phong
-    float3 viewDir = normalize(viewPos - worldPos);
-    float3 reflectDir = reflect(-lightDir, worldNormal);
-    float specular = pow(saturate(dot(viewDir, reflectDir)), Ns);
-    diffuse += Ks * specular * info.Intensity * attenuation * spotFactor;
+#if LIGHTING_MODEL_BlinnPHONG
+    // Specular (Blinn-Phong)
+    float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
+    float3 WorldToLightVector = normalize(Info.Position - WorldPos);
+    
+    float3 H = normalize(WorldToLightVector + WorldToCameraVector);
+    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
+    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
+    float3 Specular = SpecularColor * Spec  * 0.5f;
+    float4 SpecularLight = float4(Specular, 0.0f);
+    return Diffuse + Ks * SpecularLight * Info.Intensity * Attenuation * SpotFactor;
+    
 #endif
     
-    return diffuse;
+    return Diffuse;
 }
 
 // Vertex Shader
@@ -268,10 +286,9 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     // Use pre-calculated vertex lighting
     finalPixel.rgb = Input.LightColor.rgb * diffuseColor.rgb;
     
-#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BlinnPHONG
     // Calculate lighting in pixel shader
     float4 lighting = CalculateAmbientLight(Ambient) * ambientColor;
-    //float4 lighting = CalculateAmbientLight(Ambient);
     lighting += CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     
     [unroll]
