@@ -25,7 +25,8 @@ struct FPointLightInfo
     float3 Position;
     float Range;
     float Intensity;
-    float3 Padding;
+    float DistanceFalloffExponent;
+    float2 Padding;
 };
 
 struct FSpotLightInfo
@@ -88,12 +89,12 @@ Texture2D BumpTexture : register(t5);
 SamplerState SamplerWrap : register(s0);
 
 // Material flags
-#define HAS_DIFFUSE_MAP  (1 << 0)
-#define HAS_AMBIENT_MAP  (1 << 1)
-#define HAS_SPECULAR_MAP (1 << 2)
-#define HAS_NORMAL_MAP   (1 << 3)
-#define HAS_ALPHA_MAP    (1 << 4)
-#define HAS_BUMP_MAP     (1 << 5)
+#define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
+#define HAS_AMBIENT_MAP  (1 << 1) // map_Ka
+#define HAS_SPECULAR_MAP (1 << 2) // map_Ks
+#define HAS_NORMAL_MAP   (1 << 3) // map_Ns
+#define HAS_ALPHA_MAP    (1 << 4) // map_d
+#define HAS_BUMP_MAP     (1 << 5) // map_bump
 
 // Vertex Shader Input/Output
 struct VS_INPUT
@@ -134,7 +135,7 @@ float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal,
     
     float4 diffuse = Info.Color * Info.Intensity * NdotL;
     
-#if LIGHTING_MODEL_BLINNPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = LightDir;
@@ -162,12 +163,12 @@ float4 CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 Worl
     LightDir = normalize(LightDir);
     float NdotL = saturate(dot(WorldNormal, LightDir));
     
-    float Attenuation = 1.0f - saturate(Distance / Info.Range);
-    Attenuation *= Attenuation;
+    float R = Distance / Info.Range;
+    float Attenuation = saturate(1.0f - pow(R, Info.DistanceFalloffExponent));
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
     
-#if LIGHTING_MODEL_BLINNPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
@@ -210,7 +211,7 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * SpotFactor;
     
-#if LIGHTING_MODEL_BLINNPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
@@ -238,22 +239,22 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     Output.Tex = Input.Tex;
     
 #if LIGHTING_MODEL_GOURAUD
-    // Calculate lighting in vertex shader
-
-    // ambient 계산
-    Output.LightColor = CalculateAmbientLight(Ambient) * Ka;
-    Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+    // Calculate lighting in vertex shader (Gouraud)
+    // Accumulate light only; material and textures are applied in pixel stage
+    Output.LightColor = CalculateAmbientLight(Ambient);
+    Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition,
+    ViewWorldLocation);
 
     [unroll]
-    for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
+    for (int i = 0; i < NumPointLights && i < NUM_POINT_LIGHT; i++)
     {
-        Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+        Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
     }
 
     [unroll]
-    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
+    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
-        Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+        Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
     }
 #endif
     
@@ -283,7 +284,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     }
     
 #if LIGHTING_MODEL_GOURAUD
-    // Use pre-calculated vertex lighting
+    // Use pre-calculated vertex lighting; apply diffuse material/texture per-pixel
     finalPixel.rgb = Input.LightColor.rgb * diffuseColor.rgb;
     
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BLINNPHONG
@@ -298,7 +299,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     }
     
     [unroll]
-    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
+    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
         lighting += CalculateSpotLight(SpotLights[j], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     }

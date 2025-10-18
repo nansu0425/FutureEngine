@@ -141,7 +141,8 @@ struct FPointLightInfo
 	FVector Position;
 	float Range;
 	float Intensity;
-	FVector Padding;
+	float DistanceFalloffExponent;
+	FVector2 Padding;
 };
 
 struct FSpotLightInfo
