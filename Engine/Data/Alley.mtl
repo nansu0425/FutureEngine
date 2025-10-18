@@ -1,4 +1,4 @@
-# Blender 4.5.2 LTS MTL File: 'None'
+# Blender 4.5.3 LTS MTL File: 'Alley.blend'
 # www.blender.org
 
 newmtl Material_Alley_Light
@@ -9,7 +9,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Light.jpg
+map_Kd C:/Users/Jungle/Desktop/git/KTL/Engine/Data/Texture/Alley_Light.jpg
 
 newmtl Material_Alley_Pipe
 Ns 250.000000
@@ -19,27 +19,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Pipe.jpg
-
-newmtl Material_Alley_Street
-Ns 250.000000
-Ka 1.000000 1.000000 1.000000
-Ks 0.500000 0.500000 0.500000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 2
-map_Kd Texture/Alley_Street.png
-
-newmtl Material_Alley_Wall
-Ns 250.000000
-Ka 1.000000 1.000000 1.000000
-Ks 0.500000 0.500000 0.500000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 2
-map_Kd Texture/Alley_Wall.jpg
+map_Kd C:/Users/Jungle/Desktop/git/KTL/Engine/Data/Texture/Alley_Pipe.jpg
 
 newmtl Material_Alley_Rock
 Ns 250.000000
@@ -49,4 +29,24 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Rock.jpg
+map_Kd C:/Users/Jungle/Desktop/git/KTL/Engine/Data/Texture/Alley_Rock.jpg
+
+newmtl Material_Alley_Street
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/Users/Jungle/Desktop/git/KTL/Engine/Data/Texture/Alley_Street.png
+
+newmtl Material_Alley_Wall
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/Users/Jungle/Desktop/git/KTL/Engine/Data/Texture/Alley_Wall.jpg
