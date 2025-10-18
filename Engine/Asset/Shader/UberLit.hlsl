@@ -25,7 +25,8 @@ struct FPointLightInfo
     float3 Position;
     float Range;
     float Intensity;
-    float3 Padding;
+    float DistanceFalloffExponent;
+    float2 Padding;
 };
 
 struct FSpotLightInfo
@@ -88,12 +89,12 @@ Texture2D BumpTexture : register(t5);
 SamplerState SamplerWrap : register(s0);
 
 // Material flags
-#define HAS_DIFFUSE_MAP  (1 << 0)
-#define HAS_AMBIENT_MAP  (1 << 1)
-#define HAS_SPECULAR_MAP (1 << 2)
-#define HAS_NORMAL_MAP   (1 << 3)
-#define HAS_ALPHA_MAP    (1 << 4)
-#define HAS_BUMP_MAP     (1 << 5)
+#define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
+#define HAS_AMBIENT_MAP  (1 << 1) // map_Ka
+#define HAS_SPECULAR_MAP (1 << 2) // map_Ks
+#define HAS_NORMAL_MAP   (1 << 3) // map_Ns
+#define HAS_ALPHA_MAP    (1 << 4) // map_d
+#define HAS_BUMP_MAP     (1 << 5) // map_bump
 
 // Vertex Shader Input/Output
 struct VS_INPUT
@@ -156,8 +157,8 @@ float4 CalculatePointLight(FPointLightInfo info, float3 worldNormal, float3 worl
     lightDir = normalize(lightDir);
     float NdotL = saturate(dot(worldNormal, lightDir));
     
-    float attenuation = 1.0f - saturate(distance / info.Range);
-    attenuation *= attenuation;
+    float r = distance / info.Range;
+    float attenuation = saturate(1.0f - pow(r, info.DistanceFalloffExponent));
     
     float4 diffuse = info.Color * info.Intensity * NdotL * attenuation;
     
@@ -227,13 +228,13 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
 
     [unroll]
-    for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
+    for (int i = 0; i < NumPointLights && i < NUM_POINT_LIGHT; i++)
     {
         Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
     }
 
     [unroll]
-    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
+    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
         Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
     }
@@ -281,7 +282,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     }
     
     [unroll]
-    for (int j = 0; j < NumSpotLights && i < NUM_SPOT_LIGHT; j++)
+    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
         lighting += CalculateSpotLight(SpotLights[j], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     }

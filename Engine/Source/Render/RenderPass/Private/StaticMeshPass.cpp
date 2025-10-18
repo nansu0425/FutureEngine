@@ -72,6 +72,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		LightingData.PointLights[i].Position = FVector(LightPos.X, LightPos.Y, LightPos.Z);
 		LightingData.PointLights[i].Range = Light->GetAttenuationRadius();
 		LightingData.PointLights[i].Intensity = Light->GetIntensity();
+		LightingData.PointLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
 	}
 	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
 	int32 SpotLightCount = std::min((int32)Context.SpotLights.size(), NUM_SPOT_LIGHT);
