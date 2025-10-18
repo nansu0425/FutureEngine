@@ -48,10 +48,12 @@ public:
     // --- Getters & Setters ---
 
     float GetAngleFalloffExponent() const { return AngleFalloffExponent; }
-    float GetAttenuationAngle() const { return AttenuationAngleRad; }
+    float GetOuterConeAngle() const { return OuterConeAngleRad; }
+    float GetInnerConeAngle() const { return InnerConeAngleRad; }
     
     void SetAngleFalloffExponent(float const InAngleFalloffExponent) { AngleFalloffExponent = std::clamp(InAngleFalloffExponent, 1.0f, 128.0f); }
-    void SetAttenuationAngle(float const InAttenuationAngleRad) { AttenuationAngleRad = InAttenuationAngleRad; }
+    void SetOuterAngle(float const InAttenuationAngleRad);
+    void SetInnerAngle(float const InAttenuationAngleRad);
 
 private:
     /**
@@ -61,5 +63,6 @@ private:
     float AngleFalloffExponent = 64.0f; // clamp(cos(theta) ^ (AngleFalloffExponent), 0, 1)
 
     /** Angle of light source shape. */
-    float AttenuationAngleRad = PI / 4.0f;
+    float OuterConeAngleRad = PI / 4.0f;
+    float InnerConeAngleRad = 0.0f;
 };

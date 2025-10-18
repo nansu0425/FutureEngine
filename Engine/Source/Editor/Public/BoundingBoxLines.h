@@ -34,7 +34,7 @@ private:
 	FAABB DisabledBoundingBox = FAABB(FVector(0, 0, 0), FVector(0, 0, 0));
 
 	int32 BoundingBoxLineIdx[24];
-	int32 SpotLightLineIdx[240];
+	TArray<int32> SpotLightLineIdx;
 
 	int32 SphereLineIdx[360];         // 각 대원 60세그 × 2 인덱스 × 3개
 };
