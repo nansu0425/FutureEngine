@@ -286,8 +286,8 @@ void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertice
 	std::copy(InVertices.begin(), InVertices.end(), Vertices.begin());
 
 	constexpr uint32 NumSegments = 40;
-	const int32 ApexIndex = 0;
-	const uint32 OuterStart = 1;
+	const int32 ApexIndex = 2 * (NumSegments + 1);
+	const uint32 OuterStart = ApexIndex + 1;
 	const uint32 OuterCount = NumVerticesRequested > OuterStart ? std::min(NumSegments, NumVerticesRequested - OuterStart) : 0;
 	const uint32 InnerStart = OuterStart + OuterCount;
 	const uint32 InnerCount = NumVerticesRequested > InnerStart ? std::min(NumSegments, NumVerticesRequested - InnerStart) : 0;
@@ -297,16 +297,27 @@ void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertice
 		return;
 	}
 
-	SpotLightLineIdx.reserve((OuterCount * 4) + (InnerCount * 4));
+	SpotLightLineIdx.reserve((NumSegments * 4) + (OuterCount * 4) + (InnerCount * 4));
 
-	// Apex에서 원 둘레 각 점까지의 선분
+	for (uint32 Segment = 0; Segment < NumSegments; ++Segment)
+	{
+		// xy 평면 위 호
+		SpotLightLineIdx.emplace_back(Segment);
+		SpotLightLineIdx.emplace_back(Segment + 1);
+
+		// zx 평면 위 호
+		SpotLightLineIdx.emplace_back(Segment + NumSegments + 1);
+		SpotLightLineIdx.emplace_back(Segment + NumSegments + 2);
+	}
+	
+	// Apex에서 outer cone 밑면 각 점까지의 선분
 	for (uint32 Segment = 0; Segment < OuterCount; ++Segment)
 	{
 		SpotLightLineIdx.emplace_back(ApexIndex);
 		SpotLightLineIdx.emplace_back(static_cast<int32>(OuterStart + Segment));
 	}
 	
-	// 원 둘레 선분
+	// outer cone 밑면 둘레 선분
 	for (uint32 Segment = 0; Segment < OuterCount; ++Segment)
 	{
 		const int32 Start = static_cast<int32>(OuterStart + Segment);
@@ -317,14 +328,14 @@ void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertice
 
 	if (InnerCount >= 2)
 	{
-		// Apex에서 원 둘레 각 점까지의 선분
+		// Apex에서 inner cone 밑면 각 점까지의 선분
 		for (uint32 Segment = 0; Segment < InnerCount; ++Segment)
 		{
 			SpotLightLineIdx.emplace_back(ApexIndex);
 			SpotLightLineIdx.emplace_back(static_cast<int32>(InnerStart + Segment));
 		}
 
-		// 원 둘레 선분
+		// inner cone 밑면 둘레 선분
 		for (uint32 Segment = 0; Segment < InnerCount; ++Segment)
 		{
 			const int32 Start = static_cast<int32>(InnerStart + Segment);

@@ -95,9 +95,8 @@ void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLig
 	bChangedVertices = true;
 }
 
-void UBatchLines::UpdateConeVertices(const FVector& InCenter
-	, float InGeneratingLineLength, float InOuterHalfAngleRad
-	, float InInnerHalfAngleRad, FQuaternion InRotation)
+void UBatchLines::UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength
+	, float InOuterHalfAngleRad, float InInnerHalfAngleRad, FQuaternion InRotation)
 {
 	// SpotLight는 scale의 영향을 받지 않으므로 world transformation matrix 직접 계산
 	FMatrix TranslationMat = FMatrix::TranslationMatrix(InCenter);
@@ -116,17 +115,44 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter
 	const float CosInner = InInnerHalfAngleRad > MATH_EPSILON ? cosf(InInnerHalfAngleRad) : 0.0f;
 	const float SinInner = InInnerHalfAngleRad > MATH_EPSILON ? sinf(InInnerHalfAngleRad) : 0.0f;
 
-	constexpr float SegmentAngle = (2.0f * PI) / static_cast<float>(NumSegments);
+	constexpr float BaseSegmentAngle = (2.0f * PI) / static_cast<float>(NumSegments);
+	const float ArcSegmentAngle = 2.0f * InOuterHalfAngleRad / static_cast<float>(NumSegments);
 	const bool bHasInnerCone = InInnerHalfAngleRad > MATH_EPSILON;
 
 	TArray<FVector> LocalVertices;
 	LocalVertices.reserve(1 + NumSegments + (bHasInnerCone ? NumSegments : 0));
-	LocalVertices.emplace_back(0.0f, 0.0f, 0.0f); // Apex
+	
 
+	// x, y 평면 위 호 버텍스
+	for (uint32 Segment = 0; Segment <= NumSegments; ++Segment)
+	{
+		const float Angle = -static_cast<float>(PI) / 2.0f + InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
+
+		LocalVertices.emplace_back(
+			cosf(Angle),
+			sinf(Angle),
+			0.0f
+		);
+	}
+
+	// z, x 평면 위 호 버텍스
+	for (uint32 Segment = 0; Segment <= NumSegments; ++Segment)
+	{
+		const float Angle = -static_cast<float>(PI) / 2.0f + InOuterHalfAngleRad + ArcSegmentAngle * static_cast<float>(Segment);
+
+		LocalVertices.emplace_back(
+			cosf(Angle),
+			0.0f,
+			sinf(Angle)
+		);
+	}
+
+	LocalVertices.emplace_back(0.0f, 0.0f, 0.0f); // Apex
+	
 	// 외곽 원 버텍스
 	for (uint32 Segment = 0; Segment < NumSegments; ++Segment)
 	{
-		const float Angle = SegmentAngle * static_cast<float>(Segment);
+		const float Angle = BaseSegmentAngle * static_cast<float>(Segment);
 		const float CosValue = cosf(Angle);
 		const float SinValue = sinf(Angle);
 
@@ -136,13 +162,13 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter
 			SinOuter * SinValue
 		);
 	}
-
+	
 	// 내곽 원 버텍스 (있을 경우)
 	if (bHasInnerCone)
 	{
 		for (uint32 Segment = 0; Segment < NumSegments; ++Segment)
 		{
-			const float Angle = SegmentAngle * static_cast<float>(Segment);
+			const float Angle = BaseSegmentAngle * static_cast<float>(Segment);
 			const float CosValue = cosf(Angle);
 			const float SinValue = sinf(Angle);
 
@@ -153,7 +179,7 @@ void UBatchLines::UpdateConeVertices(const FVector& InCenter
 			);
 		}
 	}
-
+	
 	FMatrix WorldMatrix = ScaleMat;
 	WorldMatrix *= RotationMat;
 	WorldMatrix *= TranslationMat;
