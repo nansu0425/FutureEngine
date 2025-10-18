@@ -15,12 +15,12 @@ void USpotLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     {
         FJsonSerializer::ReadFloat(InOutHandle, "AngleFalloffExponent", AngleFalloffExponent);
         SetAngleFalloffExponent(AngleFalloffExponent); // clamping을 위해 Setter 사용
-        FJsonSerializer::ReadFloat(InOutHandle, "AttenuationAngle", AttenuationAngleRad);
+        FJsonSerializer::ReadFloat(InOutHandle, "AttenuationAngle", OuterConeAngleRad);
     }
     else
     {
         InOutHandle["AngleFalloffExponent"] = AngleFalloffExponent;
-        InOutHandle["AttenuationAngle"] = AttenuationAngleRad;
+        InOutHandle["AttenuationAngle"] = OuterConeAngleRad;
     }
 }
 
@@ -28,7 +28,7 @@ UObject* USpotLightComponent::Duplicate()
 {
     USpotLightComponent* NewSpotLightComponent = Cast<USpotLightComponent>(Super::Duplicate());
     NewSpotLightComponent->SetAngleFalloffExponent(AngleFalloffExponent);
-    NewSpotLightComponent->SetAttenuationAngle(AttenuationAngleRad);
+    NewSpotLightComponent->SetOuterAngle(OuterConeAngleRad);
 
     return NewSpotLightComponent;
 }
@@ -43,51 +43,19 @@ UClass* USpotLightComponent::GetSpecificWidgetClass() const
     return USpotLightComponentWidget::StaticClass();
 }
 
-void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
+FVector USpotLightComponent::GetForwardVector()
 {
-    if (!InCamera) return;
-    
-    // 라이트의 위치와 회전 가져오기
-    FVector LightLocation = GetWorldLocation();
-    FQuaternion LightRotation = GetWorldRotationAsQuaternion();
-    
-    // 카메라 거리 기반 스케일 조정 (기즈모처럼)
-    float Distance = (InCamera->GetLocation() - LightLocation).Length();
-    float Scale = Distance * 0.2f; // 적절한 크기
-    if (Distance < 7.0f) Scale = 7.0f * 0.2f; // 최소 크기 보장
-    
-    // DirectionalLight는 -Z축 방향으로 빛이 나감
-    // 화살표는 기본적으로 +X축을 향하므로, +X -> -Z로 회전 필요
-    // +X를 -Z로 변환: Y축 기준 -90도 회전
-    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
-    
-    // 최종 회전 = 라이트 회전 * 화살표 보정 회전
-    FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
-    
-    // 화살표 프리미티브 업데이트
-    LightDirectionArrow.Location = LightLocation;
-    LightDirectionArrow.Rotation = FinalRotation;
-    LightDirectionArrow.Scale = FVector(Scale, Scale, Scale);
-    
-    // 렌더링
-    FRenderState RenderState;
-    RenderState.FillMode = EFillMode::Solid;
-    RenderState.CullMode = ECullMode::None;
-    
-    URenderer::GetInstance().RenderEditorPrimitive(LightDirectionArrow, RenderState);
+    FQuaternion Rotation = GetWorldRotationAsQuaternion();
+    return Rotation.RotateVector(FVector(1.0f, 0.0f, 0.0f));
 }
 
-FVector USpotLightComponent::GetForwardVector() const
+void USpotLightComponent::SetOuterAngle(float const InAttenuationAngleRad)
 {
-    FQuaternion LightRotation = GetWorldRotationAsQuaternion();
+    OuterConeAngleRad = std::clamp(InAttenuationAngleRad, 0.0f, PI/2.0f - MATH_EPSILON);
+    InnerConeAngleRad = std::min(InnerConeAngleRad, OuterConeAngleRad);
+}
 
-    // DirectionalLight는 -Z축 방향으로 빛이 나감
-    // 화살표는 기본적으로 +X축을 향하므로, +X -> -Z로 회전 필요
-    // +X를 -Z로 변환: Y축 기준 -90도 회전
-    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
-    
-    // 최종 회전 = 라이트 회전 * 화살표 보정 회전
-    FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
-
-    return FinalRotation.RotateVector(FVector::ForwardVector());
+void USpotLightComponent::SetInnerAngle(float const InAttenuationAngleRad)
+{
+    InnerConeAngleRad = std::clamp(InAttenuationAngleRad, 0.0f, OuterConeAngleRad);
 }

@@ -69,11 +69,18 @@ void USpotLightComponentWidget::RenderWidget()
         SpotLightComponent->SetAttenuationRadius(AttenuationRadius);
     }
 
-    // Attenuation Angle
-    float AttenuationAngleDegrees = SpotLightComponent->GetAttenuationAngle() * ToDeg;
-    if (ImGui::DragFloat("Attenuation Angle (deg)", &AttenuationAngleDegrees, 0.5f, 0.0f, 180.0f))
+    // Outer Cone Angle
+    float OuterAngleDegrees = SpotLightComponent->GetOuterConeAngle() * ToDeg;
+    if (ImGui::DragFloat("Outer Cone Angle (deg)", &OuterAngleDegrees, 1.0f, 0.0f, 89.0f))
     {
-        SpotLightComponent->SetAttenuationAngle(AttenuationAngleDegrees * ToRad);
+        SpotLightComponent->SetOuterAngle(OuterAngleDegrees * ToRad);
+    }
+
+    // Inner Cone Angle
+    float InnerAngleDegrees = SpotLightComponent->GetInnerConeAngle() * ToDeg;
+    if (ImGui::DragFloat("Inner Cone Angle (deg)", &InnerAngleDegrees, 1.0f, 0.0f, OuterAngleDegrees))
+    {
+        SpotLightComponent->SetInnerAngle(InnerAngleDegrees * ToRad);
     }
 
     ImGui::Separator();

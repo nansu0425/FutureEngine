@@ -22,7 +22,8 @@ public:
 	void UpdateOctreeVertices(const FOctree* InOctree);
 	// Decal SpotLight용 불법 증축
 	void UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
-	void UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength, float InHalfAngleRad, FQuaternion InRotation);
+	void UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength
+		, float InOuterHalfAngleRad, float InInnerHalfAngleRad, FQuaternion InRotation);
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
 

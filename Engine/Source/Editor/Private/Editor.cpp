@@ -226,9 +226,10 @@ void UEditor::UpdateBatchLines()
 					{
 						const FVector Center = SpotLightComponent->GetWorldLocation();
 						const float Radius = SpotLightComponent->GetAttenuationRadius();
-						const float Radian = SpotLightComponent->GetAttenuationAngle();
+						const float OuterRadian = SpotLightComponent->GetOuterConeAngle();
+						const float InnerRadian = SpotLightComponent->GetInnerConeAngle();
 						FQuaternion Rotation = SpotLightComponent->GetWorldRotationAsQuaternion();
-						BatchLines.UpdateConeVertices(Center, Radius, Radian, Rotation);
+						BatchLines.UpdateConeVertices(Center, Radius, OuterRadian, InnerRadian, Rotation);
 						return;
 					}
 					const FVector Center = PointLightComponent->GetWorldLocation();
