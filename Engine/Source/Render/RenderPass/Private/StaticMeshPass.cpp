@@ -98,6 +98,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	LightingData.NumSpotLights = SpotLightCount;
 	
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferLighting, LightingData);
+	Pipeline->SetConstantBuffer(3, true, ConstantBufferLighting);
 	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);
 	
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }

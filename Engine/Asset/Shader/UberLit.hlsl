@@ -239,22 +239,22 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     Output.Tex = Input.Tex;
     
 #if LIGHTING_MODEL_GOURAUD
-    // Calculate lighting in vertex shader
-
-    // ambient 계산
-    Output.LightColor = CalculateAmbientLight(Ambient) * Ka;
-    Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+    // Calculate lighting in vertex shader (Gouraud)
+    // Accumulate light only; material and textures are applied in pixel stage
+    Output.LightColor = CalculateAmbientLight(Ambient);
+    Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition,
+    ViewWorldLocation);
 
     [unroll]
     for (int i = 0; i < NumPointLights && i < NUM_POINT_LIGHT; i++)
     {
-        Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+        Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
     }
 
     [unroll]
     for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
-        Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation) * Kd;
+        Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
     }
 #endif
     
@@ -284,7 +284,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     }
     
 #if LIGHTING_MODEL_GOURAUD
-    // Use pre-calculated vertex lighting
+    // Use pre-calculated vertex lighting; apply diffuse material/texture per-pixel
     finalPixel.rgb = Input.LightColor.rgb * diffuseColor.rgb;
     
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BlinnPHONG

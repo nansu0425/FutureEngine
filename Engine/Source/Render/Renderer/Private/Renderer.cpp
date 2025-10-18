@@ -263,8 +263,9 @@ void URenderer::CreateStaticMeshShader()
 	
 	// Compile with Lambert lighting model
 	TArray<D3D_SHADER_MACRO> Macros = {
+		{ "LIGHTING_MODEL_GOURAUD", "1" },
 		//{ "LIGHTING_MODEL_LAMBERT", "1" },
-		{ "LIGHTING_MODEL_BlinnPHONG", "1" },
+		//{ "LIGHTING_MODEL_BlinnPHONG", "1" },
 		{ nullptr, nullptr }
 	};
 	
