@@ -4,6 +4,9 @@
 #include "Component/Public/DecalComponent.h"
 #include "Component/Public/HeightFogComponent.h"
 #include "Component/Public/PointLightComponent.h"
+#include "Component/Public/SpotLightComponent.h"
+#include "Component/Public/DirectionalLightComponent.h"
+#include "Component/Public/AmbientLightComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Camera.h"
@@ -53,20 +56,17 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateFogShader();
 	CreateConstantBuffers();
 	CreateFXAAShader();
-	
+	CreateStaticMeshShader();
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
+	ConstantBufferLighting, UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(DecalPass);
-
-	FPointLightPass* PointLightPass = new FPointLightPass(Pipeline, PointLightVertexShader, PointLightPixelShader, PointLightInputLayout, DisabledDepthStencilState, AdditiveBlendState);
-	RenderPasses.push_back(PointLightPass);
 	
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
@@ -251,8 +251,33 @@ void URenderer::CreateFXAAShader()
 	FXAASamplerState = FRenderResourceFactory::CreateFXAASamplerState();
 }
 
+void URenderer::CreateStaticMeshShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> ShaderMeshLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+	};
+	
+	// Compile with Lambert lighting model
+	TArray<D3D_SHADER_MACRO> Macros = {
+		//{ "LIGHTING_MODEL_LAMBERT", "1" },
+		{ "LIGHTING_MODEL_LAMBERT", "1" },
+		{ nullptr, nullptr }
+	};
+	
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShader, &UberLitInputLayout, "Uber_VS", Macros.data());
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShader, "Uber_PS", Macros.data());
+}
+
 void URenderer::ReleaseDefaultShader()
 {
+	SafeRelease(UberLitInputLayout);
+	SafeRelease(UberLitPixelShader);
+	SafeRelease(UberLitVertexShader);
+	
 	SafeRelease(DefaultInputLayout);
 	SafeRelease(DefaultPixelShader);
 	SafeRelease(DefaultVertexShader);
@@ -433,27 +458,24 @@ void URenderer::RenderLevel(FViewportClient& InViewportClient)
 		}
 	}
 	
-	for (const auto& LightComponent : CurrentLevel->GetPointLights())
+	for (const auto& LightComponent : CurrentLevel->GetLightComponents())
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
 			RenderingContext.PointLights.push_back(PointLightComponent);
 		}
-		//if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
-		//{
-		//	
-		//}
-		//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-		//{
-		//	
-		//}
-		//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
-		//{
-		//	
-		//}
-
-		
-		
+		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+		{
+			RenderingContext.DirectionalLights.push_back(DirectionalLightComponent);
+		}
+		if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+		{
+			RenderingContext.SpotLights.push_back(SpotLightComponent);
+		}
+		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+		{
+			RenderingContext.AmbientLights.push_back(AmbientLightComponent);
+		}
 	}
 
 	// 2. Collect HeightFogComponents from all actors in the level
@@ -557,6 +579,7 @@ void URenderer::CreateConstantBuffers()
 	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
+	ConstantBufferLighting = FRenderResourceFactory::CreateConstantBuffer<FLightingConstants>();
 }
 
 
@@ -565,4 +588,5 @@ void URenderer::ReleaseConstantBuffers()
 	SafeRelease(ConstantBufferModels);
 	SafeRelease(ConstantBufferColor);
 	SafeRelease(ConstantBufferViewProj);
+	SafeRelease(ConstantBufferLighting);
 }

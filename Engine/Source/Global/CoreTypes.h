@@ -116,3 +116,50 @@ struct FRect
 	float GetRight() const { return Left + Width; }
 	float GetBottom() const { return Top + Height; }
 };
+
+
+#define NUM_POINT_LIGHT 16
+#define NUM_SPOT_LIGHT 16
+
+struct FAmbientLightInfo
+{
+	FVector4 Color;
+	float Intensity;
+	FVector Padding;
+};
+
+struct FDirectionalLightInfo
+{
+	FVector4 Color;
+	FVector Direction;
+	float Intensity;
+};
+
+struct FPointLightInfo
+{
+	FVector4 Color;
+	FVector Position;
+	float Range;
+	float Intensity;
+	FVector Padding;
+};
+
+struct FSpotLightInfo
+{
+	FVector4 Color;
+	FVector Position;
+	float Range;
+	FVector Direction;
+	float InnerConeAngle;
+	float OuterConeAngle;
+	float Intensity;
+	FVector2 Padding;
+};
+
+struct FLightingConstants
+{
+	FAmbientLightInfo Ambient;
+	FDirectionalLightInfo Directional;
+	FPointLightInfo PointLights[NUM_POINT_LIGHT];
+	FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
+};

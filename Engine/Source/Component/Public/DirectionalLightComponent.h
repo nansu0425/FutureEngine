@@ -48,6 +48,10 @@ public:
     /*-----------------------------------------------------------------------------
         UDirectionalLightComponent Features
      -----------------------------------------------------------------------------*/
+
+
+public:
+    FVector GetForwardVector() const;
 public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
 

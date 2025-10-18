@@ -1,8 +1,8 @@
 // UberLit.hlsl - Uber Shader with Multiple Lighting Models
 // Supports: Gouraud, Lambert, Phong lighting models
 
-#define NUM_POINT_LIGHT 4
-#define NUM_SPOT_LIGHT 4
+#define NUM_POINT_LIGHT 16
+#define NUM_SPOT_LIGHT 16
 
 // Light Structure Definitions
 struct FAmbientLightInfo
@@ -266,6 +266,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     // Calculate lighting in pixel shader
     float4 lighting = CalculateAmbientLight(Ambient) * ambientColor;
+    //float4 lighting = CalculateAmbientLight(Ambient);
     lighting += CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
     
     for (int i = 0; i < NUM_POINT_LIGHT; i++)

@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "Component/Public/DirectionalLightComponent.h"
-//#include "Render/UI/Widget/Public/PointLightComponentWidget.h"
+#include "Render/UI/Widget/Public/DirectionalLightComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
@@ -14,6 +14,8 @@ IMPLEMENT_CLASS(UDirectionalLightComponent, ULightComponent)
 
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
+    Intensity = 3.0f;
+    
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
     
     // 화살표 프리미티브 설정 (빛 방향 표시용)
@@ -59,8 +61,23 @@ void UDirectionalLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 
 UClass* UDirectionalLightComponent::GetSpecificWidgetClass() const
 {
-    //return UPointLightComponentWidget::StaticClass();
-    return nullptr;
+    return UDirectionalLightComponentWidget::StaticClass();
+    //return nullptr;
+}
+
+FVector UDirectionalLightComponent::GetForwardVector() const
+{
+    FQuaternion LightRotation = GetWorldRotationAsQuaternion();
+
+    // DirectionalLight는 -Z축 방향으로 빛이 나감
+    // 화살표는 기본적으로 +X축을 향하므로, +X -> -Z로 회전 필요
+    // +X를 -Z로 변환: Y축 기준 -90도 회전
+    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
+    
+    // 최종 회전 = 라이트 회전 * 화살표 보정 회전
+    FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
+
+    return FinalRotation.RotateVector(FVector::ForwardVector());
 }
 
 void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)

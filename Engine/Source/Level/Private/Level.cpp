@@ -4,6 +4,8 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Public/DirectionalLightComponent.h"
+#include "Component/Public/AmbientLightComponent.h"
+#include "Component/Public/SpotLightComponent.h"
 #include "Core/Public/Object.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
@@ -150,28 +152,24 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 			OnPrimitiveUpdated(PrimitiveComponent);
 		}
 	}
-	//else if (auto PointLightComponent = Cast<UPointLightComponent>(InComponent))
-	//{
-	//	PointLights.push_back(PointLightComponent);
-	//}
 	else if (auto LightComponent = Cast<ULightComponent>(InComponent))
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			LightsComponents.push_back(PointLightComponent);
+			LightComponents.push_back(PointLightComponent);
 		}
 		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 		{
-			LightsComponents.push_back(DirectionalLightComponent);
+			LightComponents.push_back(DirectionalLightComponent);
 		}
-		//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-		//{
-		//	LightsComponents.push_back(SpotLightComponent);
-		//}
-		//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
-		//{
-		//	LightsComponents.push_back(AmbientLightComponent);
-		//}
+		if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+		{
+			LightComponents.push_back(SpotLightComponent);
+		}
+		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+		{
+			LightComponents.push_back(AmbientLightComponent);
+		}
 		
 		
 	}
@@ -199,9 +197,9 @@ void ULevel::UnregisterComponent(UActorComponent* InComponent)
 	}
 	else if (auto LightComponent = Cast<ULightComponent>(InComponent))
 	{
-		if (auto It = std::find(LightsComponents.begin(), LightsComponents.end(), LightComponent); It != LightsComponents.end())
+		if (auto It = std::find(LightComponents.begin(), LightComponents.end(), LightComponent); It != LightComponents.end())
 		{
-			LightsComponents.erase(It);
+			LightComponents.erase(It);
 		}
 		
 	}
@@ -225,20 +223,20 @@ void ULevel::AddLevelComponent(AActor* Actor)
 		{
 			if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 			{
-				LightsComponents.push_back(PointLightComponent);
+				LightComponents.push_back(PointLightComponent);
 			}
 			if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 			{
-				LightsComponents.push_back(DirectionalLightComponent);
+				LightComponents.push_back(DirectionalLightComponent);
 			}
-			//if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
-			//{
-			//	LightsComponent.push_back(AmbientLightComponent);
-			//}
-			//if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-			//{
-			//	LightsComponent.push_back(SpotLightComponent);
-			//}
+			if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+			{
+				LightComponents.push_back(AmbientLightComponent);
+			}
+			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+			{
+				LightComponents.push_back(SpotLightComponent);
+			}
 		}
 	}
 }

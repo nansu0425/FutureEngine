@@ -120,8 +120,8 @@ private:
 		Lighting Management
 	-----------------------------------------------------------------------------*/
 public:
-	const TArray<ULightComponent*>& GetPointLights() const { return LightsComponents; } 
+	const TArray<ULightComponent*>& GetLightComponents() const { return LightComponents; } 
 
 private:
-	TArray<ULightComponent*> LightsComponents;
+	TArray<ULightComponent*> LightComponents;
 };

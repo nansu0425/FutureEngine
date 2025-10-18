@@ -77,10 +77,14 @@ void UEditor::RenderGizmo(UCamera* InCamera)
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
 	if (ULevel* CurrentLevel = GWorld->GetLevel())
 	{
-		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetPointLights();
+		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetLightComponents();
 		for (ULightComponent* LightComp : LightComponents)
 		{
 			if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(LightComp))
+			{
+				DirLight->RenderLightDirectionGizmo(InCamera);
+			}
+			if (USpotLightComponent* DirLight = Cast<USpotLightComponent>(LightComp))
 			{
 				DirLight->RenderLightDirectionGizmo(InCamera);
 			}

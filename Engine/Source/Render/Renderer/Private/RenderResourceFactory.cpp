@@ -23,6 +23,28 @@ void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InF
 	SafeRelease(VertexShaderBlob);
 }
 
+void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
+                                                              const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescs, ID3D11VertexShader** OutVertexShader, ID3D11InputLayout** OutInputLayout,
+                                                              const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros)
+{
+	ID3DBlob* VertexShaderBlob = nullptr;
+	ID3DBlob* ErrorBlob = nullptr;
+
+	HRESULT Result = D3DCompileFromFile(InFilePath.data(), InMacros, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "vs_5_0", 0, 0, &VertexShaderBlob, &ErrorBlob);
+	if (FAILED(Result))
+	{
+		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }
+		SafeRelease(VertexShaderBlob);
+		return;
+	}
+
+	URenderer::GetInstance().GetDevice()->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), nullptr, OutVertexShader);
+	if (InInputLayoutDescs.size() > 0)
+		URenderer::GetInstance().GetDevice()->CreateInputLayout(InInputLayoutDescs.data(), static_cast<uint32>(InInputLayoutDescs.size()), VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), OutInputLayout);
+	
+	SafeRelease(VertexShaderBlob);
+}
+
 ID3D11Buffer* FRenderResourceFactory::CreateVertexBuffer(FNormalVertex* InVertices, uint32 InByteWidth)
 {
 	D3D11_BUFFER_DESC Desc = { InByteWidth, D3D11_USAGE_IMMUTABLE, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0 };
@@ -61,6 +83,24 @@ void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11
 	ID3DBlob* ErrorBlob = nullptr;
 
 	HRESULT Result = D3DCompileFromFile(InFilePath.data(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "mainPS", "ps_5_0", 0, 0, &PixelShaderBlob, &ErrorBlob);
+	if (FAILED(Result))
+	{
+		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }
+		SafeRelease(PixelShaderBlob);
+		return;
+	}
+
+	URenderer::GetInstance().GetDevice()->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
+	SafeRelease(PixelShaderBlob);
+}
+
+void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader,
+                                                const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros)
+{
+	ID3DBlob* PixelShaderBlob = nullptr;
+	ID3DBlob* ErrorBlob = nullptr;
+
+	HRESULT Result = D3DCompileFromFile(InFilePath.data(), InMacros, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "ps_5_0", 0, 0, &PixelShaderBlob, &ErrorBlob);
 	if (FAILED(Result))
 	{
 		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }

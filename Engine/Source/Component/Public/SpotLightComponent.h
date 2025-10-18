@@ -1,6 +1,11 @@
 #pragma once
 #include "Global/Constant.h"
 #include "Component/Public/PointLightComponent.h"
+#include "Editor/Public/EditorPrimitive.h"
+
+struct FEditorPrimitive;
+class UCamera;
+
 
 UCLASS()
 class USpotLightComponent : public UPointLightComponent
@@ -53,6 +58,11 @@ public:
     void SetAngleFalloffExponent(float const InAngleFalloffExponent) { AngleFalloffExponent = std::clamp(InAngleFalloffExponent, 1.0f, 128.0f); }
     void SetAttenuationAngle(float const InAttenuationAngleRad) { AttenuationAngleRad = InAttenuationAngleRad; }
 
+public:
+    void RenderLightDirectionGizmo(UCamera* InCamera);
+    
+    FVector GetForwardVector() const;
+    
 private:
     /**
      * 거리 감쇠 지수는 부모(UPointLightComponent)가 관리하며,
@@ -62,4 +72,7 @@ private:
 
     /** Angle of light source shape. */
     float AttenuationAngleRad = PI / 4.0f;
+
+private:
+    FEditorPrimitive LightDirectionArrow;
 };

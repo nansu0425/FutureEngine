@@ -36,7 +36,7 @@ public:
 	void CreateFogShader();
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
-
+	void CreateStaticMeshShader();
 	
 	// Release
 	void ReleaseConstantBuffers();
@@ -95,7 +95,7 @@ private:
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
-	
+	ID3D11Buffer* ConstantBufferLighting = nullptr;
 	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
 	// Default Shaders
@@ -108,6 +108,11 @@ private:
 	ID3D11PixelShader* FXAAPixelShader = nullptr;
 	ID3D11InputLayout* FXAAInputLayout = nullptr;
 	ID3D11SamplerState* FXAASamplerState = nullptr;
+
+	// StaticMesh Shaders
+	ID3D11VertexShader* UberLitVertexShader = nullptr;
+	ID3D11PixelShader* UberLitPixelShader = nullptr;
+	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;
