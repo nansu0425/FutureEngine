@@ -57,7 +57,7 @@ PS_OUTPUT mainPS(PS_INPUT Input) : SV_TARGET
         AmbientColor *= AmbientTexture.Sample(SamplerWrap, UV);
     }
 
-    FinalColor.rgb = DiffuseColor.rgb + AmbientColor.rgb;
+    FinalColor.rgb = DiffuseColor.rgb;
 
     // Alpha handling
     if (MaterialFlags & HAS_ALPHA_MAP)

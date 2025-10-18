@@ -598,9 +598,13 @@ ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) con
 	{
 		return UberLitVertexShaderGouraud;
 	}
-	else
+	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert || ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
 	{
 		return UberLitVertexShader;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_Unlit || ViewModeIndex == EViewModeIndex::VMI_SceneDepth)
+	{
+		return TextureVertexShader;
 	}
 }
 
@@ -617,6 +621,10 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	else if (ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
 	{
 		return UberLitPixelShaderBlinnPhong;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_Unlit || ViewModeIndex == EViewModeIndex::VMI_SceneDepth)
+	{
+		return TexturePixelShader;
 	}
 }
 

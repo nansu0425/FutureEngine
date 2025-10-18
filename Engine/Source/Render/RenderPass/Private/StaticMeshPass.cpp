@@ -27,8 +27,11 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		RenderState.CullMode = ECullMode::None;
 		RenderState.FillMode = EFillMode::WireFrame;
 	}
-	VS = Renderer.GetVertexShader(Context.ViewMode);
-	PS = Renderer.GetPixelShader(Context.ViewMode);
+	else
+	{
+		VS = Renderer.GetVertexShader(Context.ViewMode);
+		PS = Renderer.GetPixelShader(Context.ViewMode);
+	}
 	
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(RenderState);
 	FPipelineInfo PipelineInfo = { InputLayout, VS, RS, DS, PS, nullptr };
