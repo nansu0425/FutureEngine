@@ -135,7 +135,7 @@ float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal,
     
     float4 diffuse = Info.Color * Info.Intensity * NdotL;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = LightDir;
@@ -168,7 +168,7 @@ float4 CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 Worl
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
@@ -211,7 +211,7 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     
     float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * SpotFactor;
     
-#if LIGHTING_MODEL_BlinnPHONG
+#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = normalize(Info.Position - WorldPos);
