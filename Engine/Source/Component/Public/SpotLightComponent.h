@@ -65,6 +65,10 @@ public:
 
 public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
+
+
+    float GetAttenuationAngle()const;
+
     
     FVector GetForwardVector() const;
     

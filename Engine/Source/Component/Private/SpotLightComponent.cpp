@@ -59,3 +59,18 @@ void USpotLightComponent::SetInnerAngle(float const InAttenuationAngleRad)
 {
     InnerConeAngleRad = std::clamp(InAttenuationAngleRad, 0.0f, OuterConeAngleRad);
 }
+
+void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
+{
+}
+
+float USpotLightComponent::GetAttenuationAngle() const
+{
+    return InnerConeAngleRad;
+}
+
+FVector USpotLightComponent::GetForwardVector() const
+{
+    // 임시 리턴값
+    return FVector(0,0,0);
+}
