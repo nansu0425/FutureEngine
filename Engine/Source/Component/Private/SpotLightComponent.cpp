@@ -40,6 +40,12 @@ UClass* USpotLightComponent::GetSpecificWidgetClass() const
     return USpotLightComponentWidget::StaticClass();
 }
 
+FVector USpotLightComponent::GetForwardVector()
+{
+    FQuaternion Rotation = GetWorldRotationAsQuaternion();
+    return Rotation.RotateVector(FVector(1.0f, 0.0f, 0.0f));
+}
+
 void USpotLightComponent::SetOuterAngle(float const InAttenuationAngleRad)
 {
     OuterConeAngleRad = std::clamp(InAttenuationAngleRad, 0.0f, PI/2.0f - MATH_EPSILON);

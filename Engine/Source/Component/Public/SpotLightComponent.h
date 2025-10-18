@@ -47,6 +47,9 @@ public:
 public:
     // --- Getters & Setters ---
 
+    // 월드 좌표계에서의 forward vector를 반환합니다.
+    FVector GetForwardVector();
+    
     float GetAngleFalloffExponent() const { return AngleFalloffExponent; }
     float GetOuterConeAngle() const { return OuterConeAngleRad; }
     float GetInnerConeAngle() const { return InnerConeAngleRad; }
