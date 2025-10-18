@@ -127,19 +127,19 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
     return info.Color * info.Intensity;
 }
 
-float4 CalculateDirectionalLight(FDirectionalLightInfo info, float3 worldNormal, float3 worldPos, float3 viewPos)
+float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 worldNormal, float3 worldPos, float3 viewPos)
 {
-    float3 lightDir = normalize(-info.Direction);
+    float3 lightDir = normalize(-Info.Direction);
     float NdotL = saturate(dot(worldNormal, lightDir));
     
-    float4 diffuse = info.Color * info.Intensity * NdotL;
+    float4 diffuse = Info.Color * Info.Intensity * NdotL;
     
 #if LIGHTING_MODEL_PHONG
     // Specular calculation for Phong
     float3 viewDir = normalize(viewPos - worldPos);
     float3 reflectDir = reflect(-lightDir, worldNormal);
     float specular = pow(saturate(dot(viewDir, reflectDir)), Ns);
-    diffuse += Ks * specular * info.Intensity;
+    diffuse += Ks * specular * Info.Intensity;
 #endif
     
     return diffuse;
