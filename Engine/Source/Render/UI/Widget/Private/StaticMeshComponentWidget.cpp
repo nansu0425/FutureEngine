@@ -108,6 +108,24 @@ void UStaticMeshComponentWidget::RenderMaterialSections()
 
 			ImGui::EndCombo();
 		}
+		FVector Ambient = CurrentMaterial->GetAmbientColor();
+		FVector Diffuse = CurrentMaterial->GetDiffuseColor();
+		FVector Specular = CurrentMaterial->GetSpecularColor();
+		if (ImGui::ColorEdit3("Ambient", &Ambient.X))
+		{
+			CurrentMaterial->SetAmbientColor(Ambient);
+		}
+		if (ImGui::ColorEdit3("Diffuse", &Diffuse.X))
+		{
+			CurrentMaterial->SetDiffuseColor(Diffuse);
+		}
+		if (ImGui::ColorEdit3("Specular", &Specular.X))
+		{
+			CurrentMaterial->SetSpecularColor(Specular);
+		}
+
+
+
 		ImGui::PopID();
 	}
 }

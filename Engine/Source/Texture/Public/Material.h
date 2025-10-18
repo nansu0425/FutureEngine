@@ -88,6 +88,11 @@ public:
 	void SetAlphaTexture(UTexture* InTexture) { AlphaTexture = InTexture; }
 	void SetBumpTexture(UTexture* InTexture) { BumpTexture = InTexture; }
 
+
+	void SetAmbientColor(FVector& InColor) { MaterialData.Ka = InColor; }
+	void SetDiffuseColor(FVector& InColor) { MaterialData.Kd = InColor; }
+	void SetSpecularColor(FVector& InColor) { MaterialData.Ks = InColor; }
+
 private:
 	UTexture* DiffuseTexture = nullptr;
 	UTexture* AmbientTexture = nullptr;
