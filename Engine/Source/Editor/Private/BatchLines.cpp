@@ -74,7 +74,7 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	bChangedVertices = true;
 }
 
-void UBatchLines::UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
+void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
 {
 	if (!SpotLightComponent)
 	{
@@ -90,10 +90,63 @@ void UBatchLines::UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightCom
 		return;
 	}
 	
-	SpotLightOBBLines.UpdateVertices(SpotLightBounding);
+	SpotLightLines.UpdateVertices(SpotLightBounding);
 	bRenderSpotLight = true;
 	bChangedVertices = true;
 }
+
+void UBatchLines::UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength, float InHalfAngleRad, FQuaternion InRotation)
+{
+	// SpotLight는 scale의 영향을 받지 않으므로 world transformation matrix 직접 계산
+	FMatrix TranslationMat = FMatrix::TranslationMatrix(InCenter);
+	FMatrix ScaleMat = FMatrix::ScaleMatrix(FVector(InGeneratingLineLength, InGeneratingLineLength, InGeneratingLineLength));
+	FMatrix RotationMat = InRotation.ToRotationMatrix();
+
+	if (InGeneratingLineLength <= 0.0f)
+	{
+		bRenderSpotLight = false;
+		return;
+	}
+
+	constexpr uint32 NumSegments = 60;
+	const float CosHalfAngle = cosf(InHalfAngleRad);
+	const float SinHalfAngle = sinf(InHalfAngleRad);
+
+	TArray<FVector> LocalVertices;
+	LocalVertices.reserve(NumSegments + 1);
+	LocalVertices.emplace_back(0.0f, 0.0f, 0.0f); // Apex
+
+	const float SegmentAngle = (2.0f * PI) / static_cast<float>(NumSegments);
+
+	for (uint32 Segment = 0; Segment < NumSegments; ++Segment)
+	{
+		const float Angle = SegmentAngle * static_cast<float>(Segment);
+		const float CosValue = cosf(Angle);
+		const float SinValue = sinf(Angle);
+
+		// 단위 모선 길이를 기준으로 원뿔의 밑면 정점을 정의
+		LocalVertices.emplace_back(
+			CosHalfAngle,
+			SinHalfAngle * CosValue,
+			SinHalfAngle * SinValue
+		);
+	}
+
+	FMatrix WorldMatrix = ScaleMat;
+	WorldMatrix *= RotationMat;
+	WorldMatrix *= TranslationMat;
+
+	TArray<FVector> WorldVertices(LocalVertices.size());
+	for (size_t Index = 0; Index < LocalVertices.size(); ++Index)
+	{
+		WorldVertices[Index] = WorldMatrix.TransformPosition(LocalVertices[Index]);
+	}
+
+	SpotLightLines.UpdateSpotLightVertices(WorldVertices);
+	bRenderSpotLight = true;
+	bChangedVertices = true;
+}
+
 
 void UBatchLines::TraverseOctree(const FOctree* InNode)
 {
@@ -118,7 +171,7 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
-		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightOBBLines.GetNumVertices() : 0;
+		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
 		{
@@ -133,8 +186,8 @@ void UBatchLines::UpdateVertexBuffer()
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
 		if (bRenderSpotLight)
 		{
-			SpotLightOBBLines.MergeVerticesAt(Vertices, CurrentOffset);
-			CurrentOffset += SpotLightOBBLines.GetNumVertices();
+			SpotLightLines.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += SpotLightLines.GetNumVertices();
 		}
 
 		for (auto& Line : OctreeLines)
@@ -194,9 +247,9 @@ void UBatchLines::SetIndices()
 
 	if (bRenderSpotLight)
 	{
-		const EBoundingVolumeType SpotLightType = SpotLightOBBLines.GetCurrentType();
-		int32* SpotLineIdx = SpotLightOBBLines.GetIndices(SpotLightType);
-		const uint32 NumSpotLightIndices = SpotLightOBBLines.GetNumIndices(SpotLightType);
+		const EBoundingVolumeType SpotLightType = SpotLightLines.GetCurrentType();
+		int32* SpotLineIdx = SpotLightLines.GetIndices(SpotLightType);
+		const uint32 NumSpotLightIndices = SpotLightLines.GetNumIndices(SpotLightType);
 
 		if (SpotLineIdx)
 		{
@@ -206,7 +259,7 @@ void UBatchLines::SetIndices()
 			}
 		}
 
-		BaseVertexOffset += SpotLightOBBLines.GetNumVertices();
+		BaseVertexOffset += SpotLightLines.GetNumVertices();
 	}
 
 	for (auto& OctreeLine : OctreeLines)

@@ -21,7 +21,8 @@ public:
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateOctreeVertices(const FOctree* InOctree);
 	// Decal SpotLight용 불법 증축
-	void UpdateSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
+	void UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
+	void UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength, float InHalfAngleRad, FQuaternion InRotation);
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
 
@@ -29,11 +30,6 @@ public:
 	{
 		return Grid.GetCellSize();
 	}
-
-	/*void SetCellSize(const float newCellSize)
-	{
-		Grid.SetCellSize(newCellSize);
-	}*/
 
 	void DisableRenderBoundingBox()
 	{
@@ -70,7 +66,7 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
-	UBoundingBoxLines SpotLightOBBLines;
+	UBoundingBoxLines SpotLightLines;
 	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
