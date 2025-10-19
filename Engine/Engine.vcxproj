@@ -319,7 +319,6 @@
     <ClInclude Include="Source\Actor\Public\Light.h" />
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
     <ClInclude Include="Source\Actor\Public\PointLight.h" />
-    <ClInclude Include="Source\Actor\Public\PointLightActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
     <ClInclude Include="Source\Actor\Public\SpotLight.h" />
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
@@ -503,7 +502,6 @@
     <ClCompile Include="Source\Actor\Private\MovingCubeActor.cpp">
     </ClCompile>
     <ClCompile Include="Source\Actor\Private\PointLight.cpp" />
-    <ClCompile Include="Source\Actor\Private\PointLightActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SpotLight.cpp" />
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">

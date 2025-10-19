@@ -56,6 +56,9 @@ public:
     
     void SetAttenuationRadius(float InAttenuationRadius) { AttenuationRadius = InAttenuationRadius; }
 
+private:
+    void EnsureVisualizationBillboard()override;
+    
 protected:
     /**
      * 작을수록 attenuation이 선형에 가깝게 완만하게 감소하고,

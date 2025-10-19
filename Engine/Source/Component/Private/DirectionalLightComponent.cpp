@@ -3,11 +3,9 @@
 #include "Component/Public/DirectionalLightComponent.h"
 #include "Render/UI/Widget/Public/DirectionalLightComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
-#include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/EditorPrimitive.h"
-#include "Component/Public/BillBoardComponent.h"
 #include "Component/Public/ActorComponent.h"
 #include "Editor/Public/EditorEngine.h"
 #include "Actor/Public/Actor.h"
@@ -27,12 +25,14 @@ UDirectionalLightComponent::UDirectionalLightComponent()
     LightDirectionArrow.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     LightDirectionArrow.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
     LightDirectionArrow.bShouldAlwaysVisible = true;
+
+    //EnsureVisualizationBillboard();
 }
 
 void UDirectionalLightComponent::BeginPlay()
 {
     Super::BeginPlay();
-    EnsureVisualizationBillboard();
+    
 }
 
 void UDirectionalLightComponent::EndPlay()

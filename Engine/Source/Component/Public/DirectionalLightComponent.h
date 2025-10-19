@@ -52,10 +52,9 @@ public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
 
 private:
-    void EnsureVisualizationBillboard();
+    void EnsureVisualizationBillboard()override;
 
 private:
     FEditorPrimitive LightDirectionArrow;
-    UBillBoardComponent* VisualizationBillboard = nullptr;
 };
 

@@ -47,5 +47,6 @@ public:
     /*-----------------------------------------------------------------------------
         UDirectionalLightComponent Features
      -----------------------------------------------------------------------------*/
-public:
+private:
+    void EnsureVisualizationBillboard()override;
 };

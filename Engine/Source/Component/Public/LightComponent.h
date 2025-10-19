@@ -2,6 +2,10 @@
 
 #include "SceneComponent.h"
 #include "LightComponentBase.h"
+#include "Component/Public/BillBoardComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
+
+class UBillBoardComponent;
 
 UENUM()
 enum class ELightComponentType
@@ -61,8 +65,16 @@ public:
     // virtual FSphere GetBoundingSphere() const;
     
     /** @note Sets the light intensity and clamps it to the same range as Unreal Engine (0.0 - 20.0). */
- 
 
+    virtual void EnsureVisualizationBillboard(){};
+
+    UBillBoardComponent* GetBillBoardComponent() const
+    {
+        return VisualizationBillboard;
+    }
+    
+protected:
+    UBillBoardComponent* VisualizationBillboard = nullptr;
 private:
     
 };

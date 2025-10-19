@@ -64,6 +64,9 @@ public:
     void SetInnerAngle(float const InAttenuationAngleRad);
 
     void RenderLightDirectionGizmo(UCamera* InCamera);
+
+private:
+    void EnsureVisualizationBillboard()override;
     
 private:
     /**

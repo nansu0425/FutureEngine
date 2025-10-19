@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Actor/Public/Actor.h"
+
+#include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/LightComponent.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Editor.h"
@@ -207,6 +210,12 @@ void AActor::InitializeComponents()
 	USceneComponent* SceneComp = Cast<USceneComponent>(CreateDefaultSubobject(GetDefaultRootComponent()));
 	SetRootComponent(SceneComp);
 
+	if (SceneComp->IsA(ULightComponent::StaticClass()))
+	{
+		static_cast<ULightComponent*>(SceneComp)->EnsureVisualizationBillboard();
+	}
+	
+	
 	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
 	UUID->AttachToComponent(GetRootComponent());
 	UUID->SetOffset(5.0f);
@@ -243,7 +252,7 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 {
 	if (!InClass->IsChildOf(UActorComponent::StaticClass())) { return nullptr; }
 	UActorComponent* NewComponent = Cast<UActorComponent>(NewObject(InClass, this));
-
+	
 	if (NewComponent)
 	{
 		RegisterComponent(NewComponent);

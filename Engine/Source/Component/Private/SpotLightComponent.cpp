@@ -63,3 +63,39 @@ void USpotLightComponent::SetInnerAngle(float const InAttenuationAngleRad)
 void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 {
 }
+
+void USpotLightComponent::EnsureVisualizationBillboard()
+{
+    if (VisualizationBillboard)
+    {
+        return;
+    }
+
+    AActor* OwnerActor = GetOwner();
+    if (!OwnerActor)
+    {
+        return;
+    }
+
+    if (GWorld)
+    {
+        EWorldType WorldType = GWorld->GetWorldType();
+        if (WorldType != EWorldType::Editor && WorldType != EWorldType::EditorPreview)
+        {
+            return;
+        }
+    }
+
+    UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
+    if (!Billboard)
+    {
+        return;
+    }
+    Billboard->AttachToComponent(this);
+    Billboard->SetIsVisualizationComponent(true);
+    Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightSpot.png"));
+    Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+    Billboard->SetScreenSizeScaled(true);
+
+    VisualizationBillboard = Billboard;
+}
