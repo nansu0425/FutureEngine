@@ -1,7 +1,17 @@
+cbuffer PerModel : register(b0)
+{
+	row_major float4x4 World;
+};
+
 cbuffer PerFrame : register(b1)
 {
 	row_major float4x4 View; // View Matrix Calculation of MVP Matrix
 	row_major float4x4 Projection; // Projection Matrix Calculation of MVP Matrix
+};
+
+cbuffer PerScene : register(b2)
+{
+	float4 Color;
 };
 
 struct VS_INPUT
@@ -18,6 +28,7 @@ PS_INPUT mainVS(VS_INPUT input)
 {
 	PS_INPUT output;
 	float4 tmp = input.position;
+	tmp = mul(tmp, World);
 	tmp = mul(tmp, View);
 	tmp = mul(tmp, Projection);
 	
@@ -28,5 +39,5 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-	return float4(0.5f, 0.5f, 0.5f, 1.0f);
+	return Color;
 }

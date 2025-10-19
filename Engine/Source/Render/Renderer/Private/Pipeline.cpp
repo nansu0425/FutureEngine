@@ -5,6 +5,7 @@
 UPipeline::UPipeline(ID3D11DeviceContext* InDeviceContext)
 	: DeviceContext(InDeviceContext)
 {
+	LastPipelineInfo = {};
 }
 
 UPipeline::~UPipeline()
