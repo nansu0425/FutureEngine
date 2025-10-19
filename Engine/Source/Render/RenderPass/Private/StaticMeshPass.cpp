@@ -231,7 +231,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	 * @todo Find a better way to reduce depdency upon Renderer class.
 	 * @note How about introducing methods like BeginPass(), EndPass() to set up and release pass specific state?
 	 */
-	Pipeline->SetRenderTargets(1, RTVs, DSV);
+	Pipeline->SetRenderTargets(2, RTVs, DSV);
 
 	// --- RTVs Reset End ---
 }

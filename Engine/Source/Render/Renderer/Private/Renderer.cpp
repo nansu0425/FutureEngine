@@ -421,18 +421,22 @@ void URenderer::RenderBegin() const
     if (bFXAAEnabled)
     {
         auto* SceneColorRenderTargetView = DeviceResources->GetSceneColorRenderTargetView();
+        auto* NormalRenderTargetView = DeviceResources->GetNormalRenderTargetView();
         GetDeviceContext()->ClearRenderTargetView(SceneColorRenderTargetView, ClearColor);
+        GetDeviceContext()->ClearRenderTargetView(NormalRenderTargetView, ClearColor);
         GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-        ID3D11RenderTargetView* rtvs[] = { SceneColorRenderTargetView };
-        GetDeviceContext()->OMSetRenderTargets(1, rtvs, DepthStencilView);
+        ID3D11RenderTargetView* rtvs[] = { SceneColorRenderTargetView, NormalRenderTargetView };
+        GetDeviceContext()->OMSetRenderTargets(2, rtvs, DepthStencilView);
     }
     else
     {
         auto* RenderTargetView = DeviceResources->GetRenderTargetView();
+        auto* NormalRenderTargetView = DeviceResources->GetNormalRenderTargetView();
         GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+        GetDeviceContext()->ClearRenderTargetView(NormalRenderTargetView, ClearColor);
         GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-        ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
-        GetDeviceContext()->OMSetRenderTargets(1, rtvs, DepthStencilView);
+        ID3D11RenderTargetView* rtvs[] = { RenderTargetView, NormalRenderTargetView };
+        GetDeviceContext()->OMSetRenderTargets(2, rtvs, DepthStencilView);
     }
 
     DeviceResources->UpdateViewport();
