@@ -28,9 +28,9 @@ UDirectionalLightComponent::UDirectionalLightComponent()
 
 
     //UBillBoardComponent* Billboard = CreateDefaultSubobject<UBillBoardComponent>();
-    //Billboard->AttachToComponent(GetRootComponent());
+    //Billboard->AttachToComponent(this);
     //Billboard->SetIsVisualizationComponent(true);
-    //Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/PointLight_64x.png"));
+    //Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
     //Billboard->SetScreenSizeScaled(true);
 }
 

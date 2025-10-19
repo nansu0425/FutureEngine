@@ -5,6 +5,7 @@
 
 struct FEditorPrimitive;
 class UCamera;
+class UBillboardComponent;
 
 UCLASS()
 class UDirectionalLightComponent : public ULightComponent
@@ -57,4 +58,5 @@ public:
 
 private:
     FEditorPrimitive LightDirectionArrow;
+    UBillboardComponent* BillboardComponent = nullptr;
 };
