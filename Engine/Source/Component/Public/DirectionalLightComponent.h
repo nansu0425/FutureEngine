@@ -3,9 +3,11 @@
 #include "LightComponent.h"
 #include "Editor/Public/EditorPrimitive.h"
 
+namespace json { class JSON; }
+
 struct FEditorPrimitive;
 class UCamera;
-class UBillboardComponent;
+class UBillBoardComponent;
 
 UCLASS()
 class UDirectionalLightComponent : public ULightComponent
@@ -15,9 +17,8 @@ class UDirectionalLightComponent : public ULightComponent
 
 public:
     UDirectionalLightComponent();
-
     virtual ~UDirectionalLightComponent() = default;
-    
+
     /*-----------------------------------------------------------------------------
         UObject Features
      -----------------------------------------------------------------------------*/
@@ -32,13 +33,10 @@ public:
         UActorComponent Features
      -----------------------------------------------------------------------------*/
 public:
-    virtual void BeginPlay() override { Super::BeginPlay(); }
-    
-    virtual void TickComponent(float DeltaTime) override { Super::TickComponent(DeltaTime); }
+    virtual void BeginPlay() override;
+    virtual void EndPlay() override;
 
-    virtual void EndPlay() override { Super::EndPlay(); }
-
-    virtual UClass* GetSpecificWidgetClass() const override; 
+    virtual UClass* GetSpecificWidgetClass() const override;
 
     /*-----------------------------------------------------------------------------
         ULightComponent Features
@@ -49,14 +47,15 @@ public:
     /*-----------------------------------------------------------------------------
         UDirectionalLightComponent Features
      -----------------------------------------------------------------------------*/
-
-
 public:
     FVector GetForwardVector() const;
-public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
 
 private:
+    void EnsureVisualizationBillboard();
+
+private:
     FEditorPrimitive LightDirectionArrow;
-    UBillboardComponent* BillboardComponent = nullptr;
+    UBillBoardComponent* VisualizationBillboard = nullptr;
 };
+

@@ -9,48 +9,87 @@
 #include "Editor/Public/EditorPrimitive.h"
 #include "Component/Public/BillBoardComponent.h"
 #include "Component/Public/ActorComponent.h"
+#include "Editor/Public/EditorEngine.h"
+#include "Actor/Public/Actor.h"
+#include "Level/Public/World.h"
 
 IMPLEMENT_CLASS(UDirectionalLightComponent, ULightComponent)
 
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
     Intensity = 3.0f;
-    
+
     UAssetManager& ResourceManager = UAssetManager::GetInstance();
-    
+
     // 화살표 프리미티브 설정 (빛 방향 표시용)
     LightDirectionArrow.VertexBuffer = ResourceManager.GetVertexbuffer(EPrimitiveType::Arrow);
     LightDirectionArrow.NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Arrow);
     LightDirectionArrow.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    LightDirectionArrow.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f); // 흰색
+    LightDirectionArrow.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
     LightDirectionArrow.bShouldAlwaysVisible = true;
+}
 
+void UDirectionalLightComponent::BeginPlay()
+{
+    Super::BeginPlay();
+    EnsureVisualizationBillboard();
+}
 
+void UDirectionalLightComponent::EndPlay()
+{
+    Super::EndPlay();
+    VisualizationBillboard = nullptr;
+}
 
-    //UBillBoardComponent* Billboard = CreateDefaultSubobject<UBillBoardComponent>();
-    //Billboard->AttachToComponent(this);
-    //Billboard->SetIsVisualizationComponent(true);
-    //Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
-    //Billboard->SetScreenSizeScaled(true);
+void UDirectionalLightComponent::EnsureVisualizationBillboard()
+{
+    if (VisualizationBillboard)
+    {
+        return;
+    }
+
+    AActor* OwnerActor = GetOwner();
+    if (!OwnerActor)
+    {
+        return;
+    }
+
+    if (GWorld)
+    {
+        EWorldType WorldType = GWorld->GetWorldType();
+        if (WorldType != EWorldType::Editor && WorldType != EWorldType::EditorPreview)
+        {
+            return;
+        }
+    }
+
+    UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
+    if (!Billboard)
+    {
+        return;
+    }
+    Billboard->AttachToComponent(this);
+    Billboard->SetIsVisualizationComponent(true);
+    Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
+    Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+    Billboard->SetScreenSizeScaled(true);
+
+    VisualizationBillboard = Billboard;
 }
 
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
-    if (bInIsLoading)
+
+    if (!bInIsLoading)
     {
-        
-    }
-    else
-    {
-       
+        EnsureVisualizationBillboard();
     }
 }
 
 UObject* UDirectionalLightComponent::Duplicate()
 {
     UDirectionalLightComponent* DirectionalLightComponent = Cast<UDirectionalLightComponent>(Super::Duplicate());
-
     return DirectionalLightComponent;
 }
 
@@ -62,19 +101,13 @@ void UDirectionalLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 UClass* UDirectionalLightComponent::GetSpecificWidgetClass() const
 {
     return UDirectionalLightComponentWidget::StaticClass();
-    //return nullptr;
 }
 
 FVector UDirectionalLightComponent::GetForwardVector() const
 {
     FQuaternion LightRotation = GetWorldRotationAsQuaternion();
 
-    // DirectionalLight는 -Z축 방향으로 빛이 나감
-    // 화살표는 기본적으로 +X축을 향하므로, +X -> -Z로 회전 필요
-    // +X를 -Z로 변환: Y축 기준 -90도 회전
     FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
-    
-    // 최종 회전 = 라이트 회전 * 화살표 보정 회전
     FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
 
     return FinalRotation.RotateVector(FVector::ForwardVector());
@@ -83,33 +116,25 @@ FVector UDirectionalLightComponent::GetForwardVector() const
 void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 {
     if (!InCamera) return;
-    
-    // 라이트의 위치와 회전 가져오기
+
     FVector LightLocation = GetWorldLocation();
     FQuaternion LightRotation = GetWorldRotationAsQuaternion();
-    
-    // 카메라 거리 기반 스케일 조정 (기즈모처럼)
+
     float Distance = (InCamera->GetLocation() - LightLocation).Length();
-    float Scale = Distance * 0.2f; // 적절한 크기
-    if (Distance < 7.0f) Scale = 7.0f * 0.2f; // 최소 크기 보장
-    
-    // DirectionalLight는 -Z축 방향으로 빛이 나감
-    // 화살표는 기본적으로 +X축을 향하므로, +X -> -Z로 회전 필요
-    // +X를 -Z로 변환: Y축 기준 -90도 회전
+    float Scale = Distance * 0.2f;
+    if (Distance < 7.0f) Scale = 7.0f * 0.2f;
+
     FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
-    
-    // 최종 회전 = 라이트 회전 * 화살표 보정 회전
     FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
-    
-    // 화살표 프리미티브 업데이트
+
     LightDirectionArrow.Location = LightLocation;
     LightDirectionArrow.Rotation = FinalRotation;
     LightDirectionArrow.Scale = FVector(Scale, Scale, Scale);
-    
-    // 렌더링
+
     FRenderState RenderState;
     RenderState.FillMode = EFillMode::Solid;
     RenderState.CullMode = ECullMode::None;
-    
+
     URenderer::GetInstance().RenderEditorPrimitive(LightDirectionArrow, RenderState);
 }
+
