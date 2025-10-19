@@ -9,7 +9,10 @@ class UAmbientLightComponent : public ULightComponent
 	DECLARE_CLASS(UAmbientLightComponent, ULightComponent)
 
 public:
-    UAmbientLightComponent() = default;
+    UAmbientLightComponent()
+    {
+        Intensity = 0.05f;
+    }
 
     virtual ~UAmbientLightComponent() = default;
 
