@@ -75,6 +75,7 @@ void UDirectionalLightComponent::EnsureVisualizationBillboard()
     Billboard->SetScreenSizeScaled(true);
 
     VisualizationBillboard = Billboard;
+    UpdateVisualizationBillboardTint();
 }
 
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

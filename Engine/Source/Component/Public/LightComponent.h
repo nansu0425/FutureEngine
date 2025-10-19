@@ -66,14 +66,24 @@ public:
     
     /** @note Sets the light intensity and clamps it to the same range as Unreal Engine (0.0 - 20.0). */
 
+    void SetIntensity(float InIntensity) override;
+    void SetLightColor(FVector InLightColor) override;
+
     virtual void EnsureVisualizationBillboard(){};
 
     UBillBoardComponent* GetBillBoardComponent() const
     {
         return VisualizationBillboard;
     }
+
+    void SetBillBoardComponent(UBillBoardComponent* InBillBoardComponent)
+    {
+        VisualizationBillboard = InBillBoardComponent;
+    }
     
 protected:
+    void UpdateVisualizationBillboardTint();
+
     UBillBoardComponent* VisualizationBillboard = nullptr;
 private:
     

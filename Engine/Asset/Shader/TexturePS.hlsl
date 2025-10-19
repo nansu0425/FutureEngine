@@ -58,7 +58,7 @@ PS_OUTPUT mainPS(PS_INPUT Input) : SV_TARGET
     }
 
     FinalColor.rgb = DiffuseColor.rgb;
-
+    
     // Alpha handling
     if (MaterialFlags & HAS_ALPHA_MAP)
     {

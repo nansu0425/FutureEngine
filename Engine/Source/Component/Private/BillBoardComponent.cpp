@@ -8,6 +8,8 @@
 #include "Texture/Public/Texture.h"
 #include "Utility/Public/JsonSerializer.h"
 
+#include <algorithm>
+
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
 UBillBoardComponent::UBillBoardComponent()
@@ -56,10 +58,18 @@ void UBillBoardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     // 저장
     else
     {
-        InOutHandle["BillBoardSprite"] = Sprite->GetFilePath().ToBaseNameString();
+        if (Sprite)
+        {
+            InOutHandle["BillBoardSprite"] = Sprite->GetFilePath().ToBaseNameString();
+        }
+        else
+        {
+            InOutHandle["BillBoardSprite"] = "";
+        }
         InOutHandle["BillBoardScreenSizeScaled"] = bScreenSizeScaled ? "true" : "false"; 
         InOutHandle["BillBoardScreenSize"] = to_string(ScreenSize); 
-    }}
+    }
+}
 
 void UBillBoardComponent::FaceCamera(const FVector& CameraForward)
 {
@@ -82,6 +92,21 @@ UTexture* UBillBoardComponent::GetSprite() const
 void UBillBoardComponent::SetSprite(UTexture* InSprite)
 {
     Sprite = InSprite;
+}
+
+void UBillBoardComponent::SetSpriteTint(const FVector4& InTint)
+{
+    FVector4 ClampedTint = InTint;
+    ClampedTint.X = std::clamp(ClampedTint.X, 0.0f, 1.0f);
+    ClampedTint.Y = std::clamp(ClampedTint.Y, 0.0f, 1.0f);
+    ClampedTint.Z = std::clamp(ClampedTint.Z, 0.0f, 1.0f);
+    ClampedTint.W = std::clamp(ClampedTint.W, 0.0f, 1.0f);
+    SpriteTint = ClampedTint;
+}
+
+void UBillBoardComponent::SetSpriteTint(const FVector& InTint, float Alpha)
+{
+    SetSpriteTint(FVector4(InTint.X, InTint.Y, InTint.Z, Alpha));
 }
 
 UClass* UBillBoardComponent::GetSpecificWidgetClass() const

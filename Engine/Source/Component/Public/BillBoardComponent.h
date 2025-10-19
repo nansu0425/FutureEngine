@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component/Public/PrimitiveComponent.h"
+#include "Global/Vector.h"
 
 UCLASS()
 class UBillBoardComponent : public UPrimitiveComponent
@@ -19,12 +20,17 @@ public:
 	UTexture* GetSprite() const;
 	void SetSprite(UTexture* Sprite);
 
+	FVector4 GetSpriteTint() const { return SpriteTint; }
+	void SetSpriteTint(const FVector4& InTint);
+	void SetSpriteTint(const FVector& InTint, float Alpha = 1.0f);
+
 	UClass* GetSpecificWidgetClass() const override;
 
 	static const FRenderState& GetClassDefaultRenderState(); 
 
 private:
-	UTexture* Sprite;
+	UTexture* Sprite = nullptr;
+	FVector4 SpriteTint = FVector4::OneVector();
 
 // Screen Size Section
 public:	

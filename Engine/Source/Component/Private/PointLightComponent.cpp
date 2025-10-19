@@ -75,4 +75,5 @@ void UPointLightComponent::EnsureVisualizationBillboard()
 	Billboard->SetScreenSizeScaled(true);
 
 	VisualizationBillboard = Billboard;
+	UpdateVisualizationBillboardTint();
 }

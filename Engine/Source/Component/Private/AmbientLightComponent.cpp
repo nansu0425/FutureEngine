@@ -60,4 +60,5 @@ void UAmbientLightComponent::EnsureVisualizationBillboard()
 	Billboard->SetScreenSizeScaled(true);
 
 	VisualizationBillboard = Billboard;
+	UpdateVisualizationBillboardTint();
 }

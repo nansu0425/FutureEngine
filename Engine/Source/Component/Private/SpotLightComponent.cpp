@@ -98,4 +98,5 @@ void USpotLightComponent::EnsureVisualizationBillboard()
     Billboard->SetScreenSizeScaled(true);
 
     VisualizationBillboard = Billboard;
+    UpdateVisualizationBillboardTint();
 }

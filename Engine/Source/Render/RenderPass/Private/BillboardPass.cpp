@@ -10,7 +10,7 @@ FBillboardPass::FBillboardPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBu
 {
     ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
     BillboardMaterialConstants.MaterialFlags |= HAS_DIFFUSE_MAP;
-    BillboardMaterialConstants.Kd = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+    BillboardMaterialConstants.Kd = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 void FBillboardPass::Execute(FRenderingContext& Context)
@@ -55,7 +55,15 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     for (const auto& SortedItem : SortedBillboards)
     {
         UBillBoardComponent* BillBoardComp = SortedItem.BillBoard;
-        
+
+        const FVector4 Tint = BillBoardComp->GetSpriteTint();
+        BillboardMaterialConstants.Ka = Tint;
+        BillboardMaterialConstants.Kd = Tint;
+        UE_LOG("%f %f %f %f", Tint.X,Tint.Y,Tint.Z,Tint.W);
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
+        Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+
+
         FMatrix WorldMatrix;
         if (BillBoardComp->IsScreenSizeScaled())
         {
@@ -69,13 +77,13 @@ void FBillboardPass::Execute(FRenderingContext& Context)
 
         Pipeline->SetVertexBuffer(BillBoardComp->GetVertexBuffer(), sizeof(FNormalVertex));
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
-       
+
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
         Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 
         Pipeline->SetTexture(0, false, BillBoardComp->GetSprite()->GetTextureSRV());
         Pipeline->SetSamplerState(0, false, BillBoardComp->GetSprite()->GetTextureSampler());
-        
+
         Pipeline->DrawIndexed(BillBoardComp->GetNumIndices(), 0, 0);
     }
 
