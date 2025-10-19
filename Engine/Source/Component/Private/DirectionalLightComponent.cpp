@@ -80,11 +80,7 @@ void UDirectionalLightComponent::EnsureVisualizationBillboard()
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
-
-    if (!bInIsLoading)
-    {
-        EnsureVisualizationBillboard();
-    }
+    
 }
 
 UObject* UDirectionalLightComponent::Duplicate()
