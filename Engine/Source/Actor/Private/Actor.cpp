@@ -114,6 +114,14 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                 }
             }
 
+        	for (UActorComponent* Component : OwnedComponents)
+        	{
+        		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
+        		{
+        			LightComponent->RefreshVisualizationBillboardBinding();
+        		}
+        	}
+
         	if (RootComponent)
         	{
     			FVector Location, RotationEuler, Scale;

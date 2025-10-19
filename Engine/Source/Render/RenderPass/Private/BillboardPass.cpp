@@ -59,7 +59,7 @@ void FBillboardPass::Execute(FRenderingContext& Context)
         const FVector4 Tint = BillBoardComp->GetSpriteTint();
         BillboardMaterialConstants.Ka = Tint;
         BillboardMaterialConstants.Kd = Tint;
-        UE_LOG("%f %f %f %f", Tint.X,Tint.Y,Tint.Z,Tint.W);
+        //UE_LOG("%f %f %f %f", Tint.X,Tint.Y,Tint.Z,Tint.W);
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
 

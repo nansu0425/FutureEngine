@@ -1,54 +1,98 @@
 {
   "Actors" : {
-    "113" : {
+    "111" : {
       "Components" : [{
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.401426,
+          "AttenuationRadius" : 10.000000,
+          "DistanceFalloffExponent" : 5.200000,
+          "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [-7.605518, -3.140660, -3.040559],
-          "Name" : "USceneComponent_0",
+          "LightColor" : [0.919831, 0.000000, 0.000000],
+          "Location" : [-9.730969, -24.838631, 12.235617],
+          "Name" : "USpotLightComponent_0",
           "ParentName" : "",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [1.513062, 1.513062, 1.513062],
-          "Type" : "USceneComponent"
+          "Rotation" : [-8.136743, -0.000002, 95.038383],
+          "Scale" : [1.489486, 1.489486, 1.489486],
+          "Type" : "USpotLightComponent"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.png",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_1",
+          "ParentName" : "USpotLightComponent_0",
+          "Rotation" : [-31.258129, 7.937365, 6.695134],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent"
         }, {
           "IsEditorOnly" : "true",
           "IsVisualizationComponent" : "false",
           "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UUUIDTextComponent_0",
-          "ParentName" : "USceneComponent_0",
+          "Name" : "UUUIDTextComponent_2",
+          "ParentName" : "USpotLightComponent_0",
           "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UUUIDTextComponent"
-        }, {
-          "FogCutoffDistance" : "50000.000000",
-          "FogDensity" : "0.050000",
-          "FogHeightFalloff" : "0.010000",
-          "FogInScatteringColor" : [0.501961, 0.501961, 0.501961],
-          "FogMaxOpacity" : "0.980000",
-          "IsEditorOnly" : "false",
-          "IsVisualizationComponent" : "false",
-          "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UHeightFogComponent_0",
-          "ParentName" : "USceneComponent_0",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [1.000000, 1.000000, 1.000000],
-          "StartDistance" : "1.500000",
-          "Type" : "UHeightFogComponent"
         }],
-      "Location" : [-7.605518, -3.140660, -3.040559],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [1.513062, 1.513062, 1.513062],
-      "Type" : "AActor",
+      "Location" : [-9.730969, -24.838631, 12.235617],
+      "Rotation" : [-8.136743, -0.000002, 95.038383],
+      "Scale" : [1.489486, 1.489486, 1.489486],
+      "Type" : "ASpotLight",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "117" : {
+    "86" : {
+      "Components" : [{
+          "Intensity" : 3.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 1.000000, 1.000000],
+          "Location" : [0.000000, 0.000000, 14.786230],
+          "Name" : "UDirectionalLightComponent_0",
+          "ParentName" : "",
+          "Rotation" : [17.108570, 0.000000, 0.000000],
+          "Scale" : [1.128071, 1.128071, 1.128071],
+          "Type" : "UDirectionalLightComponent"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightDirectional.png",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_0",
+          "ParentName" : "UDirectionalLightComponent_0",
+          "Rotation" : [-44.676670, 8.668591, 80.955193],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UUUIDTextComponent_2",
+          "ParentName" : "UDirectionalLightComponent_0",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [0.300000, 0.300000, 0.300000],
+          "Type" : "UUUIDTextComponent"
+        }],
+      "Location" : [0.000000, 0.000000, 14.786230],
+      "Rotation" : [17.108570, 0.000000, 0.000000],
+      "Scale" : [1.128071, 1.128071, 1.128071],
+      "Type" : "ADirectionalLight",
+      "bCanEverTick" : "false",
+      "bTickInEditor" : "false"
+    },
+    "90" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [0.000000, 0.000000, 0.098140],
+          "Location" : [0.000000, 0.000000, 1.015100],
           "Name" : "UStaticMeshComponent_0",
-          "ObjStaticMeshAsset" : "Data/Alley/Alley.obj",
+          "ObjStaticMeshAsset" : "Data/Alley.obj",
           "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.756325, 1.756325, 1.756325],
@@ -63,7 +107,7 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent"
         }],
-      "Location" : [0.000000, 0.000000, 0.098140],
+      "Location" : [0.000000, 0.000000, 1.015100],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.756325, 1.756325, 1.756325],
       "Type" : "ACubeActor",
@@ -96,9 +140,9 @@
     }, {
       "FOV" : [90.000000],
       "FarClip" : [1000.000000],
-      "Location" : [19.334011, 30.114664, 17.478107],
+      "Location" : [1.991864, -8.860127, 20.998053],
       "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 22.299843, -122.152023],
+      "Rotation" : [0.000000, 40.249668, -103.701622],
       "ViewportCameraType" : 0
     }]
 }

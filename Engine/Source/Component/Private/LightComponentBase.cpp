@@ -10,8 +10,13 @@ void ULightComponentBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     Super::Serialize(bInIsLoading, InOutHandle);
     if (bInIsLoading)
     {
-        FJsonSerializer::ReadFloat(InOutHandle, "Intensity", Intensity);
-        FJsonSerializer::ReadVector(InOutHandle, "LightColor", LightColor);
+        float LoadedIntensity = Intensity;
+        FVector LoadedColor = LightColor;
+        FJsonSerializer::ReadFloat(InOutHandle, "Intensity", LoadedIntensity);
+        FJsonSerializer::ReadVector(InOutHandle, "LightColor", LoadedColor);
+
+        SetIntensity(LoadedIntensity);
+        SetLightColor(LoadedColor);
     }
     else
     {

@@ -80,6 +80,9 @@ public:
     {
         VisualizationBillboard = InBillBoardComponent;
     }
+
+    void RefreshVisualizationBillboardBinding();
+
     
 protected:
     void UpdateVisualizationBillboardTint();

@@ -3,13 +3,16 @@
 #include "Component/Public/LightComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 
+#include "Component/Public/BillBoardComponent.h"
+#include "Actor/Public/Actor.h"
+
 #include <algorithm>
 
 IMPLEMENT_ABSTRACT_CLASS(ULightComponent, ULightComponentBase)
 
 void ULightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
-
+    Super::Serialize(bInIsLoading, InOutHandle);
 }
 
 UObject* ULightComponent::Duplicate()
@@ -50,12 +53,53 @@ void ULightComponent::UpdateVisualizationBillboardTint()
     ClampedColor.Z = std::clamp(ClampedColor.Z, 0.0f, 1.0f);
 
     float NormalizedIntensity = std::clamp(GetIntensity(), 0.0f, 20.0f) / 20.0f;
-
-    //FVector4 Tint(ClampedColor.X, ClampedColor.Y, ClampedColor.Z, 1.0f);
-    //Tint.W = std::max(NormalizedIntensity, 0.05f);
-
-    FVector4 Tint(ClampedColor.X, ClampedColor.Y, ClampedColor.Z, 0.5f);
-    
-    
+    FVector4 Tint(ClampedColor.X, ClampedColor.Y, ClampedColor.Z, 1.0f);
     VisualizationBillboard->SetSpriteTint(Tint);
+}
+
+void ULightComponent::RefreshVisualizationBillboardBinding()
+{
+    AActor* OwnerActor = GetOwner();
+    if (!OwnerActor)
+    {
+        return;
+    }
+
+    UBillBoardComponent* BoundBillboard = VisualizationBillboard;
+    const bool bNeedsLookup = !BoundBillboard || !BoundBillboard->IsVisualizationComponent() || BoundBillboard->GetAttachParent() != this;
+
+    if (bNeedsLookup)
+    {
+        BoundBillboard = nullptr;
+        for (UActorComponent* Component : OwnerActor->GetOwnedComponents())
+        {
+            if (UBillBoardComponent* Candidate = Cast<UBillBoardComponent>(Component))
+            {
+                if (!Candidate->IsVisualizationComponent())
+                {
+                    continue;
+                }
+
+                if (Candidate->GetAttachParent() != this)
+                {
+                    continue;
+                }
+
+                BoundBillboard = Candidate;
+                break;
+            }
+        }
+
+        VisualizationBillboard = BoundBillboard;
+    }
+
+    if (VisualizationBillboard)
+    {
+        if (VisualizationBillboard->GetAttachParent() != this)
+        {
+            VisualizationBillboard->AttachToComponent(this);
+        }
+
+        UpdateVisualizationBillboardTint();
+    }
 }
