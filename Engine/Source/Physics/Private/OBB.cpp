@@ -41,7 +41,7 @@ bool FOBB::Intersects(const FOBB& Other) const
     {
         for (size_t j = 0; j < 3; ++j)
         {
-            TestAxis[Count] = AxisLhs[i].Cross(AxisRhs[j]);
+            TestAxis[Count] = AxisRhs[j].Cross(AxisLhs[i]);
             if (TestAxis[Count].LengthSquared() > DBL_EPSILON)
             {
                 ++Count;

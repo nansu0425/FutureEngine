@@ -84,8 +84,8 @@ static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32
 		}
 
 		FVector Bitangent = AccumulatedBitangent[V];
-		// Cross가 LH용 이므로 인수를 반대로
-		float Handedness = (Dot(Cross(Tangent, Normal), Bitangent) < 0.0f) ? -1.0f : 1.0f;
+
+		float Handedness = (Dot(Cross(Normal, Tangent), Bitangent) < 0.0f) ? -1.0f : 1.0f;
 
 		Vertices[V].Tangent = FVector4(Tangent.X, Tangent.Y, Tangent.Z, Handedness);
 	}
