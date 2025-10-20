@@ -3,6 +3,7 @@
 #include "Render/UI/Window/public/MainMenuWindow.h"
 #include "Render/UI/Widget/public/LevelTabBarWidget.h"
 #include "Render/UI/Widget/Public/ViewportControlWidget.h"
+#include "Core/Public/NewObject.h"
 
 IMPLEMENT_SINGLETON_CLASS(ULevelTabBarWindow,UUIWindow)
 
@@ -19,7 +20,7 @@ ULevelTabBarWindow::~ULevelTabBarWindow()
 void ULevelTabBarWindow::Initialize()
 {
 
-    LevelTabBarWidget = new ULevelTabBarWidget;
+    LevelTabBarWidget = NewObject<ULevelTabBarWidget>(this);
     if (LevelTabBarWidget)
     {
         LevelTabBarWidget->Initialize();

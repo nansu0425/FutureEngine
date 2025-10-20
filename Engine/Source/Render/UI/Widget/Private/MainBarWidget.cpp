@@ -576,47 +576,60 @@ path UMainBarWidget::OpenLoadFileDialog()
 {
 	path ResultPath = L"";
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-	if (SUCCEEDED(hr))
+	
+	// COM 초기화 실패 시 early return
+	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 	{
-		IFileOpenDialog* pFileOpen = nullptr;
-		hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
-			IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+		return ResultPath;
+	}
+	
+	// COM이 이미 초기화되어 있는지 확인 (S_FALSE 또는 RPC_E_CHANGED_MODE)
+	bool bNeedUninitialize = (hr == S_OK);
+	
+	IFileOpenDialog* pFileOpen = nullptr;
+	hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
+		IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+	
+	if (SUCCEEDED(hr) && pFileOpen)
+	{
+		COMDLG_FILTERSPEC fileTypes[] = {
+			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"All Files (*.*)", L"*.*"}
+		};
+		pFileOpen->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+		pFileOpen->SetFileTypeIndex(1);
+		pFileOpen->SetTitle(L"Load Level");
 		
+		DWORD dwFlags;
+		pFileOpen->GetOptions(&dwFlags);
+		pFileOpen->SetOptions(dwFlags | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
+		
+		hr = pFileOpen->Show(GetActiveWindow());
 		if (SUCCEEDED(hr))
 		{
-			COMDLG_FILTERSPEC fileTypes[] = {
-				{L"Scene Files (*.Scene)", L"*.Scene"},
-				{L"All Files (*.*)", L"*.*"}
-			};
-			pFileOpen->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
-			pFileOpen->SetFileTypeIndex(1);
-			pFileOpen->SetTitle(L"Load Level");
-			
-			DWORD dwFlags;
-			pFileOpen->GetOptions(&dwFlags);
-			pFileOpen->SetOptions(dwFlags | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
-			
-			hr = pFileOpen->Show(GetActiveWindow());
-			if (SUCCEEDED(hr))
+			IShellItem* pItem = nullptr;
+			hr = pFileOpen->GetResult(&pItem);
+			if (SUCCEEDED(hr) && pItem)
 			{
-				IShellItem* pItem;
-				hr = pFileOpen->GetResult(&pItem);
-				if (SUCCEEDED(hr))
+				PWSTR pszFilePath = nullptr;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+				if (SUCCEEDED(hr) && pszFilePath)
 				{
-					PWSTR pszFilePath;
-					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-					if (SUCCEEDED(hr))
-					{
-						ResultPath = path(pszFilePath);
-						CoTaskMemFree(pszFilePath);
-					}
-					pItem->Release();
+					ResultPath = path(pszFilePath);
+					CoTaskMemFree(pszFilePath);
 				}
+				pItem->Release();
 			}
-			pFileOpen->Release();
 		}
+		pFileOpen->Release();
+	}
+	
+	// COM을 우리가 초기화한 경우에만 Uninitialize
+	if (bNeedUninitialize)
+	{
 		CoUninitialize();
 	}
+	
 	return ResultPath;
 }
 
@@ -627,47 +640,60 @@ path UMainBarWidget::OpenSaveFileDialog()
 {
 	path ResultPath = L"";
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-	if (SUCCEEDED(hr))
+	
+	// COM 초기화 실패 시 early return
+	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 	{
-		IFileSaveDialog* pFileSave = nullptr;
-		hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL,
-			IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+		return ResultPath;
+	}
+	
+	// COM이 이미 초기화되어 있는지 확인 (S_FALSE 또는 RPC_E_CHANGED_MODE)
+	bool bNeedUninitialize = (hr == S_OK);
+	
+	IFileSaveDialog* pFileSave = nullptr;
+	hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL,
+		IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+	
+	if (SUCCEEDED(hr) && pFileSave)
+	{
+		COMDLG_FILTERSPEC fileTypes[] = {
+			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"All Files (*.*)", L"*.*"}
+		};
+		pFileSave->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+		pFileSave->SetFileTypeIndex(1);
+		pFileSave->SetDefaultExtension(L"Scene");
+		pFileSave->SetTitle(L"Save Level");
 		
+		DWORD dwFlags;
+		pFileSave->GetOptions(&dwFlags);
+		pFileSave->SetOptions(dwFlags | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
+		
+		hr = pFileSave->Show(GetActiveWindow());
 		if (SUCCEEDED(hr))
 		{
-			COMDLG_FILTERSPEC fileTypes[] = {
-				{L"Scene Files (*.Scene)", L"*.Scene"},
-				{L"All Files (*.*)", L"*.*"}
-			};
-			pFileSave->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
-			pFileSave->SetFileTypeIndex(1);
-			pFileSave->SetDefaultExtension(L"Scene");
-			pFileSave->SetTitle(L"Save Level");
-			
-			DWORD dwFlags;
-			pFileSave->GetOptions(&dwFlags);
-			pFileSave->SetOptions(dwFlags | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
-			
-			hr = pFileSave->Show(GetActiveWindow());
-			if (SUCCEEDED(hr))
+			IShellItem* pItem = nullptr;
+			hr = pFileSave->GetResult(&pItem);
+			if (SUCCEEDED(hr) && pItem)
 			{
-				IShellItem* pItem;
-				hr = pFileSave->GetResult(&pItem);
-				if (SUCCEEDED(hr))
+				PWSTR pszFilePath = nullptr;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+				if (SUCCEEDED(hr) && pszFilePath)
 				{
-					PWSTR pszFilePath;
-					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-					if (SUCCEEDED(hr))
-					{
-						ResultPath = path(pszFilePath);
-						CoTaskMemFree(pszFilePath);
-					}
-					pItem->Release();
+					ResultPath = path(pszFilePath);
+					CoTaskMemFree(pszFilePath);
 				}
+				pItem->Release();
 			}
-			pFileSave->Release();
 		}
+		pFileSave->Release();
+	}
+	
+	// COM을 우리가 초기화한 경우에만 Uninitialize
+	if (bNeedUninitialize)
+	{
 		CoUninitialize();
 	}
+	
 	return ResultPath;
 }

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
-
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Core/Public/NewObject.h"
 
 IMPLEMENT_SINGLETON_CLASS(UMainMenuWindow, UUIWindow)
 
@@ -16,7 +16,7 @@ UMainMenuWindow::~UMainMenuWindow() = default;
 void UMainMenuWindow::Initialize()
 {
 	// MainBarWidget 생성 및 초기화
-	MainBarWidget = new UMainBarWidget;
+	MainBarWidget = NewObject<UMainBarWidget>(this);
 	if (MainBarWidget)
 	{
 		MainBarWidget->Initialize();
