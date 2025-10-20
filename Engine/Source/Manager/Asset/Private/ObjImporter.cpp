@@ -535,7 +535,7 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 				return false;
 			}
 		}
-		else if (Prefix == "map_bump" || Prefix == "bump")
+		else if (Prefix == "map_Bump" || Prefix == "bump")
 		{
 			if (!OptMaterialInfo)
 			{
@@ -543,11 +543,81 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 				return false;
 			}
 
-			if (!(Tokenizer >> OptMaterialInfo->BumpMap))
+			FString Token;
+			FString BumpPath;
+			float BumpScaleValue = 1.0f;
+
+			while (Tokenizer >> Token)
 			{
-				UE_LOG_ERROR("map_bump(범프 텍스처) 속성 형식이 잘못되었습니다");
+				if (Token == "-bm")
+				{
+					FString ScaleString;
+					if (!(Tokenizer >> ScaleString))
+					{
+						UE_LOG_ERROR("map_Bump -bm 옵션 값이 없습니다");
+						return false;
+					}
+					try
+					{
+						BumpScaleValue = std::stof(ScaleString);
+					}
+					catch ([[maybe_unused]] const std::invalid_argument& Exception)
+					{
+						UE_LOG_ERROR("map_Bump -bm 옵션 값 형식이 잘못되었습니다");
+						return false;
+					}
+					continue;
+				}
+
+				if (!Token.empty() && Token[0] == '-')
+				{
+					// 다른 옵션들은 현재 무시
+					continue;
+				}
+
+				BumpPath = Token;
+				break;
+			}
+
+			if (BumpPath.empty())
+			{
+				UE_LOG_ERROR("map_Bump(범프 텍스처) 경로가 없습니다");
 				return false;
 			}
+
+			OptMaterialInfo->BumpMap = BumpPath;
+
+			// TODO(선택): -bm을 저장하려면 ObjImporter.h에 BumpScale 필드를 추가하고 아래 대입을 활성화
+			// 노멀맵만 사용한다면 굳이 필요 없음!
+			// OptMaterialInfo->BumpScale = BumpScaleValue;
+			/*
+				 선택 사항 1: Bump 슬롯(t5)도 실제로 바인딩하려면
+					  - 파일: Engine/Source/Render/RenderPass/Private/StaticMeshPass.cpp:214 다음에 추가
+						코드(추가)
+						if (UTexture* BumpTexture = Material->GetBumpTexture())
+						{
+						Pipeline->SetTexture(5, false, BumpTexture->GetTextureSRV());
+						// Pipeline->SetSamplerState(5, false, BumpTexture->GetTextureSampler()); // 필요 시
+						}
+
+				  선택 사항 2: -bm 스케일까지 실제 반영하려면
+				  - 저장 경로 추가
+					  - 파일: Engine/Source/Manager/Asset/Public/ObjImporter.h:126 다음 줄에 필드 추가
+						코드(추가)
+						float BumpScale = 1.0f;
+					  - 파일: Engine/Source/Manager/Asset/Public/ObjImporter.h:145 다음 줄에 직렬화 항목 추가
+						코드(추가)
+						Ar << ObjectMaterialInfo.BumpScale;
+					  - 필요 시 Engine/Source/Texture/Public/Material.h에도 FMaterial과 UMaterial에 BumpScale 필드/Getter/Setter 추가
+				  - 상수 버퍼 전달
+					  - 파일: Engine/Source/Global/CoreTypes.h:38의 struct FMaterialConstants에 float BumpScale; 추가(정렬 맞추기 위해
+						패딩 조정 필요할 수 있음)
+					  - 셰이더 상수 버퍼(Engine/Asset/Shader/*hlsl의 cbuffer MaterialConstants)에도 float BumpScale; 추가
+					  - 파일: Engine/Source/Render/RenderPass/Private/StaticMeshPass.cpp에서 MaterialConstants.BumpScale =
+						Material->GetBumpScale(); 설정
+					  - HLSL에서 노말 강도 조절(예: 노말맵 사용 시 normal.xy *= BumpScale; normal = normalize(normal);) 또는 높이맵 미분
+						계산 시 스케일 반영
+			*/
 		}
 	}
 

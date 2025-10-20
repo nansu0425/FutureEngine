@@ -8,6 +8,99 @@
 #include "Texture/Public/Texture.h"
 #include <filesystem>
 
+// N과 직교하는 안전한 탄젠트 생성 (폴백용)
+static FORCEINLINE FVector MakeFallbackTangent(const FVector& N)
+{
+	// N과 덜 평행한 기준축 선택
+	const FVector Pick = (abs(N.Z) < 0.999f) ? FVector(0.f, 0.f, 1.f) : FVector(0.f, 1.f, 0.f);
+	FVector T = Cross(Pick, N);
+	T.Normalize();
+	return T;
+}
+static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32>& Indices)
+{
+	TArray<FVector> AccumulatedBitangent;
+	AccumulatedBitangent.resize(Vertices.size());
+	for (size_t I = 0; I < AccumulatedBitangent.size(); ++I)
+	{
+		AccumulatedBitangent[I] = FVector(0.0f, 0.0f, 0.0f);
+		Vertices[I].Tangent = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	size_t IndexCount = Indices.size();
+	for (size_t I = 0; I + 2 < IndexCount; I += 3)
+	{
+		uint32 I0 = Indices[I + 0];
+		uint32 I1 = Indices[I + 1];
+		uint32 I2 = Indices[I + 2];
+
+		const FVector& P0 = Vertices[I0].Position;
+		const FVector& P1 = Vertices[I1].Position;
+		const FVector& P2 = Vertices[I2].Position;
+
+		const FVector2& Uv0 = Vertices[I0].TexCoord;
+		const FVector2& Uv1 = Vertices[I1].TexCoord;
+		const FVector2& Uv2 = Vertices[I2].TexCoord;
+
+		FVector Edge1 = P1 - P0;
+		FVector Edge2 = P2 - P0;
+
+		float DeltaU1 = Uv1.X - Uv0.X;
+		float DeltaV1 = Uv1.Y - Uv0.Y;
+		float DeltaU2 = Uv2.X - Uv0.X;
+		float DeltaV2 = Uv2.Y - Uv0.Y;
+
+		float Denominator = (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
+		if (fabsf(Denominator) < 1e-8f)
+		{
+			continue;
+		}
+		float Reciprocal = 1.0f / Denominator;
+
+		FVector FaceTangent = (Edge1 * DeltaV2 - Edge2 * DeltaV1) * Reciprocal;
+		FVector FaceBitangent = (Edge2 * DeltaU1 - Edge1 * DeltaU2) * Reciprocal;
+
+		Vertices[I0].Tangent.X += FaceTangent.X;
+		Vertices[I0].Tangent.Y += FaceTangent.Y;
+		Vertices[I0].Tangent.Z += FaceTangent.Z;
+		AccumulatedBitangent[I0] = AccumulatedBitangent[I0] + FaceBitangent;
+
+		Vertices[I1].Tangent.X += FaceTangent.X;
+		Vertices[I1].Tangent.Y += FaceTangent.Y;
+		Vertices[I1].Tangent.Z += FaceTangent.Z;
+		AccumulatedBitangent[I1] = AccumulatedBitangent[I1] + FaceBitangent;
+
+		Vertices[I2].Tangent.X += FaceTangent.X;
+		Vertices[I2].Tangent.Y += FaceTangent.Y;
+		Vertices[I2].Tangent.Z += FaceTangent.Z;
+		AccumulatedBitangent[I2] = AccumulatedBitangent[I2] + FaceBitangent;
+	}
+
+	for (size_t V = 0; V < Vertices.size(); ++V)
+	{
+		FVector Normal = Vertices[V].Normal;
+		FVector Tangent = FVector(Vertices[V].Tangent.X, Vertices[V].Tangent.Y, Vertices[V].Tangent.Z);
+
+		Tangent = Tangent - Normal * Dot(Normal, Tangent);
+		float TangentLength = sqrtf(Tangent.X * Tangent.X + Tangent.Y * Tangent.Y + Tangent.Z * Tangent.Z);
+		if (TangentLength > 1e-8f)
+		{
+			Tangent = Tangent * (1.0f / TangentLength);
+		}
+		else
+		{
+			Tangent = MakeFallbackTangent(Normal);
+		}
+
+		FVector Bitangent = AccumulatedBitangent[V];
+
+		float Handedness = (Dot(Cross(Normal, Tangent), Bitangent) < 0.0f) ? -1.0f : 1.0f;
+
+		Vertices[V].Tangent = FVector4(Tangent.X, Tangent.Y, Tangent.Z, Handedness);
+	}
+
+}
+
 // static 멤버 변수의 실체를 정의(메모리 할당)합니다.
 TMap<FName, std::unique_ptr<FStaticMesh>> FObjManager::ObjFStaticMeshMap;
 
@@ -106,7 +199,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 			StaticMesh->Indices.push_back(It->second);
 		}
 	}
-
+	ComputeTangents(StaticMesh->Vertices, StaticMesh->Indices);
 	/** #3. 오브젝트가 사용하는 머티리얼의 목록을 저장 */
 	TSet<FName> UniqueMaterialNames;
 	for (const auto& MaterialName : ObjectInfo.MaterialNameList)
@@ -278,7 +371,25 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 				}
 			}
 		}
+		// Normal(=map_Bump) 텍스처 로드
+		if (!MaterialInfo.BumpMap.empty())
+		{
+			FString TexturePathStr = (ObjDirectory / MaterialInfo.BumpMap).generic_string();
+			if (std::filesystem::exists(TexturePathStr))
+			{
+				UTexture* NormalMapTexture = AssetManager.LoadTexture(TexturePathStr);
+				if (NormalMapTexture)
+				{
+					// 프로젝트 정책에 따라 Bump를 Normal로 사용
+					Material->SetNormalTexture(NormalMapTexture);
 
+					// 필요 시 bump 슬롯도 함께 사용하려면 아래 활성화
+					// 하지만 지금은 필요없음
+					// Material->SetBumpTexture(NormalMapTexture);
+				}
+			}
+
+		}
 		StaticMesh->SetMaterial(static_cast<int32>(i), Material);
 	}
 }

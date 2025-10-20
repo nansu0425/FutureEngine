@@ -216,7 +216,12 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				{
 					Pipeline->SetTexture(4, false, AlphaTexture->GetTextureSRV());
 				}
-				
+				if (UTexture* BumpTexture = Material->GetBumpTexture()) 
+				{ // 범프 텍스처 추가 그러나 범프 텍스처 사용하지 않아서 없을 것임. 무시 ㄱㄱ
+					Pipeline->SetTexture(5, false, BumpTexture->GetTextureSRV());
+					// 필요한 경우 샘플러 지정
+					// Pipeline->SetSamplerState(5, false, BumpTexture->GetTextureSampler());
+				}
 				CurrentMaterial = Material;
 			}
 			Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);

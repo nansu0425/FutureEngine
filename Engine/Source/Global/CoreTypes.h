@@ -59,6 +59,7 @@ struct FNormalVertex
 	FVector Normal;
 	FVector4 Color;
 	FVector2 TexCoord;
+	FVector4 Tangent;  // XYZ: Tangent, W: Handedness(+1/-1)
 };
 
 struct FRay

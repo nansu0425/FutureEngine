@@ -259,7 +259,8 @@ void URenderer::CreateStaticMeshShader()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Tangent),  D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	
 	// Compile Lambert variant (default)
@@ -286,6 +287,12 @@ void URenderer::CreateStaticMeshShader()
 		{ nullptr, nullptr }
 	};
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
+
+	TArray<D3D_SHADER_MACRO> WorldNormalViewMacros = {
+		{ "LIGHTING_MODEL_NORMAL", "1" },
+		{ nullptr, nullptr }
+	};
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
 }
 
 
@@ -295,6 +302,7 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(UberLitPixelShader);
 	SafeRelease(UberLitPixelShaderGouraud);
 	SafeRelease(UberLitPixelShaderBlinnPhong);
+	SafeRelease(UberLitPixelShaderWorldNormal);
 	SafeRelease(UberLitVertexShader);
 	SafeRelease(UberLitVertexShaderGouraud);
 	
@@ -612,7 +620,9 @@ ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) con
 	{
 		return UberLitVertexShaderGouraud;
 	}
-	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert || ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
+	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert
+		|| ViewModeIndex == EViewModeIndex::VMI_BlinnPhong
+		|| ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
 	{
 		return UberLitVertexShader;
 	}
@@ -639,6 +649,10 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	else if (ViewModeIndex == EViewModeIndex::VMI_Unlit || ViewModeIndex == EViewModeIndex::VMI_SceneDepth)
 	{
 		return TexturePixelShader;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
+	{
+		return UberLitPixelShaderWorldNormal;
 	}
 }
 
