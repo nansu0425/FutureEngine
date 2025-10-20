@@ -189,7 +189,7 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * step(0.0, dot(WorldNormal, LightDir));
+    Result.Specular = Info.Color * Info.Intensity * Spec * NdotL;
 #endif
     
     return Result;
@@ -222,7 +222,7 @@ FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, floa
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * step(0.0, dot(WorldNormal, LightDir));
+    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * NdotL;
 #endif
     
     return Result;
@@ -273,7 +273,7 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * step(0.0, dot(WorldNormal, LightDir));
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * NdotL;
 #endif
     
     return Result;
