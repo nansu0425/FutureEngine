@@ -278,7 +278,25 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 				}
 			}
 		}
+		// Normal(=map_bump) 텍스처 로드
+		if (!MaterialInfo.BumpMap.empty())
+		{
+			FString TexturePathStr = (ObjDirectory / MaterialInfo.BumpMap).generic_string();
+			if (std::filesystem::exists(TexturePathStr))
+			{
+				UTexture* NormalMapTexture = AssetManager.LoadTexture(TexturePathStr);
+				if (NormalMapTexture)
+				{
+					// 프로젝트 정책에 따라 Bump를 Normal로 사용
+					Material->SetNormalTexture(NormalMapTexture);
 
+					// 필요 시 bump 슬롯도 함께 사용하려면 아래 활성화
+					// 하지만 지금은 필요없음
+					// Material->SetBumpTexture(NormalMapTexture);
+				}
+			}
+
+		}
 		StaticMesh->SetMaterial(static_cast<int32>(i), Material);
 	}
 }
