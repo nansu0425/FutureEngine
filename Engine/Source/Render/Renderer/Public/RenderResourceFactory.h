@@ -28,7 +28,7 @@ public:
 	static ID3D11Buffer* CreateConstantBuffer()
 	{
 		D3D11_BUFFER_DESC Desc = {};
-		Desc.ByteWidth = sizeof(T) + 0xf & 0xfffffff0;
+		Desc.ByteWidth = (sizeof(T) + 0xf) & 0xfffffff0;
 		Desc.Usage = D3D11_USAGE_DYNAMIC;
 		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -46,6 +46,14 @@ public:
 		memcpy(MappedResource.pData, &Data, sizeof(T));
 		URenderer::GetInstance().GetDeviceContext()->Unmap(Buffer, 0);
 	}
+	template<typename T>
+	static void UpdateStructuredBuffer(ID3D11Buffer* Buffer, const TArray<T>& Datas)
+	{
+		D3D11_MAPPED_SUBRESOURCE MappedResource = {};
+		URenderer::GetInstance().GetDeviceContext()->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+		memcpy(MappedResource.pData, Datas.data(), sizeof(T) * Datas.size());
+		URenderer::GetInstance().GetDeviceContext()->Unmap(Buffer, 0);
+	}
 
 	template<typename T>
 	static void UpdateVertexBufferData(ID3D11Buffer* InVertexBuffer, const TArray<T>& InVertices)
@@ -58,6 +66,43 @@ public:
 		memcpy(MappedResource.pData, InVertices.data(), sizeof(T) * InVertices.size());
 		URenderer::GetInstance().GetDeviceContext()->Unmap(InVertexBuffer, 0);
 	}
+
+	//GPU 읽기전용 Structured Buffer
+	//16byte align 필수x
+	template<typename T>
+	static ID3D11Buffer* CreateStructuredBuffer(int Count)
+	{
+		D3D11_BUFFER_DESC Desc = {};
+		Desc.ByteWidth = sizeof(T) * Count;
+		Desc.Usage = D3D11_USAGE_DYNAMIC;
+		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		Desc.StructureByteStride = sizeof(T);
+
+		ID3D11Buffer* Buffer = nullptr;
+		URenderer::GetInstance().GetDevice()->CreateBuffer(&Desc, nullptr, &Buffer);
+		return Buffer;
+	}
+
+	//ComputeShader 읽기 쓰기 다 가능한 RWStructuredBuffer
+	template<typename T>
+	static ID3D11Buffer* CreateRWStructuredBuffer(int Count)
+	{
+
+		D3D11_BUFFER_DESC Desc = {};
+		Desc.ByteWidth = sizeof(T) * Count;
+		Desc.Usage = D3D11_USAGE_DEFAULT;
+		Desc.CPUAccessFlags = 0;
+		Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		Desc.StructureByteStride = sizeof(T);
+
+		ID3D11Buffer* Buffer = nullptr;
+		URenderer::GetInstance().GetDevice()->CreateBuffer(&Desc, nullptr, &Buffer);
+		return Buffer;
+	}
+
 
 private:
 	struct FRasterKey

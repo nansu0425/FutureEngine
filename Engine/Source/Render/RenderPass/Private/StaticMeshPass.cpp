@@ -1,19 +1,13 @@
 ﻿#include "pch.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
-#include "Component/Public/AmbientLightComponent.h"
-#include "component/Public/DirectionalLightComponent.h"
-#include "component/Public/PointLightComponent.h"
-#include "Component/Public/SpotLightComponent.h"
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
-	ID3D11Buffer* InConstantBufferLighting,
 	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
-	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS),
-	ConstantBufferLighting(InConstantBufferLighting)
+	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
 }
@@ -43,73 +37,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 	Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
 	Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);
-
-	// Setup lighting constant buffer from scene lights
-	FLightingConstants LightingData = {};
-	
-	// 수정 필요: Context에서 가져오기
-	if (!Context.AmbientLights.empty()) {
-		UAmbientLightComponent* AmbLight = Context.AmbientLights[0];
-		FVector color = AmbLight->GetLightColor();
-		LightingData.Ambient.Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.Ambient.Intensity = AmbLight->GetIntensity();
-
-		//UE_LOG("Ambient: intensity = %f", AmbLight->GetIntensity());
-	}
-
-	if (!Context.DirectionalLights.empty()) {
-		UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
-		FVector color = DirLight->GetLightColor();
-		FVector dir = DirLight->GetForwardVector();  // 방향 가져오기
-		LightingData.Directional.Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.Directional.Direction = FVector(dir.X, dir.Y, dir.Z);
-		LightingData.Directional.Intensity = DirLight->GetIntensity();
-	}
-	
-	// Fill point lights from scene
-	int32 PointLightCount = std::min((int32)Context.PointLights.size(), NUM_POINT_LIGHT);
-	for (int32 i = 0; i < PointLightCount; ++i)
-	{
-		UPointLightComponent* Light = Context.PointLights[i];
-		if (!Light || !Light->GetVisible()) continue;
-		
-		FVector LightColor = Light->GetLightColor();
-		FVector LightPos = Light->GetWorldLocation();
-		
-		LightingData.PointLights[i].Color = FVector4(LightColor.X, LightColor.Y, LightColor.Z, 1.0f);
-		LightingData.PointLights[i].Position = FVector(LightPos.X, LightPos.Y, LightPos.Z);
-		LightingData.PointLights[i].Intensity = Light->GetIntensity();
-		LightingData.PointLights[i].Range = Light->GetAttenuationRadius();
-		LightingData.PointLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
-	}
-	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
-	int32 SpotLightCount = std::min((int32)Context.SpotLights.size(), NUM_SPOT_LIGHT);
-	for (int32 i = 0; i < SpotLightCount; ++i)
-	{
-		USpotLightComponent* Light = Context.SpotLights[i];
-		if (!Light->GetVisible()) continue;
-    
-		FVector color = Light->GetLightColor();
-		FVector pos = Light->GetWorldLocation();
-		FVector dir = Light->GetForwardVector();
-    
-		LightingData.SpotLights[i].Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.SpotLights[i].Position = FVector(pos.X, pos.Y, pos.Z);
-		LightingData.SpotLights[i].Intensity = Light->GetIntensity();
-		LightingData.SpotLights[i].Range = Light->GetAttenuationRadius();
-		LightingData.SpotLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
-		LightingData.SpotLights[i].InnerConeAngle = Light->GetInnerConeAngle();
-		LightingData.SpotLights[i].OuterConeAngle = Light->GetOuterConeAngle();
-		LightingData.SpotLights[i].AngleFalloffExponent = Light->GetAngleFalloffExponent();
-		LightingData.SpotLights[i].Direction = FVector(dir.X, dir.Y, dir.Z);
-	}
-
-	LightingData.NumPointLights = PointLightCount;
-	LightingData.NumSpotLights = SpotLightCount;
-	
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferLighting, LightingData);
-	Pipeline->SetConstantBuffer(3, true, ConstantBufferLighting);
-	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);
 	
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;

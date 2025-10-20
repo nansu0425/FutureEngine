@@ -63,6 +63,11 @@ void USpotLightComponent::SetInnerAngle(float const InAttenuationAngleRad)
 void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 {
 }
+FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
+{
+    return FSpotLightInfo{ FVector4(LightColor, 1), GetWorldLocation(), Intensity, AttenuationRadius, DistanceFalloffExponent,
+    InnerConeAngleRad, OuterConeAngleRad, AngleFalloffExponent, GetForwardVector() };
+}
 
 void USpotLightComponent::EnsureVisualizationBillboard()
 {

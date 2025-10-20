@@ -425,6 +425,7 @@
     <ClInclude Include="Source\Render\Renderer\Public\RenderResourceFactory.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\BillboardPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\LightPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\PointLightPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\FogPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\FXAAPass.h" />
@@ -599,6 +600,7 @@
     <ClCompile Include="Source\Render\Renderer\Private\RenderResourceFactory.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\BillboardPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\LightPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\PointLightPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\FXAAPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\FogPass.cpp" />

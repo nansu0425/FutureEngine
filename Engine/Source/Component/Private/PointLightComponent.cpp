@@ -77,3 +77,7 @@ void UPointLightComponent::EnsureVisualizationBillboard()
 	VisualizationBillboard = Billboard;
 	UpdateVisualizationBillboardTint();
 }
+FPointLightInfo UPointLightComponent::GetPointlightInfo() const
+{
+	return FPointLightInfo{ FVector4(LightColor, 1.0f), GetWorldLocation(), Intensity, AttenuationRadius, DistanceFalloffExponent };
+}

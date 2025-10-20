@@ -101,7 +101,6 @@ private:
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
-	ID3D11Buffer* ConstantBufferLighting = nullptr;
 	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
 	// Default Shaders

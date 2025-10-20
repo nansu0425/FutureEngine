@@ -117,10 +117,6 @@ struct FRect
 	float GetBottom() const { return Top + Height; }
 };
 
-
-#define NUM_POINT_LIGHT 16
-#define NUM_SPOT_LIGHT 16
-
 struct FAmbientLightInfo
 {
 	FVector4 Color;
@@ -135,6 +131,7 @@ struct FDirectionalLightInfo
 	float Intensity;
 };
 
+//StructuredBuffer padding 없어도됨
 struct FPointLightInfo
 {
 	FVector4 Color;
@@ -142,9 +139,9 @@ struct FPointLightInfo
 	float Intensity;
 	float Range;
 	float DistanceFalloffExponent;
-	FVector2 Padding;
 };
 
+//StructuredBuffer padding 없어도됨
 struct FSpotLightInfo
 {
 	// Point Light와 공유하는 속성 (필드 순서 맞춤)
@@ -161,13 +158,8 @@ struct FSpotLightInfo
 	FVector Direction;
 };
 
-struct FLightingConstants
+struct FGlobalLightConstant
 {
 	FAmbientLightInfo Ambient;
 	FDirectionalLightInfo Directional;
-	FPointLightInfo PointLights[NUM_POINT_LIGHT];
-	FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
-	uint32 NumPointLights;
-	uint32 NumSpotLights;
-	FVector2 PaddingLighting;
 };

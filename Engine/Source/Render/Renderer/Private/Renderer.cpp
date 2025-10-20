@@ -22,7 +22,7 @@
 #include "Render/RenderPass/Public/FogPass.h"
 #include "Render/RenderPass/Public/PointLightPass.h"
 #include "Render/RenderPass/Public/RenderPass.h"
-#include "Render/RenderPass/Public/RenderPass.h"
+#include "Render/RenderPass/Public/LightPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
@@ -60,8 +60,11 @@ void URenderer::Init(HWND InWindowHandle)
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
+	FLightPass* LightPass = new FLightPass(Pipeline, ConstantBufferViewProj);
+	RenderPasses.push_back(LightPass);
+
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-	ConstantBufferLighting, UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
+	UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
@@ -641,7 +644,6 @@ void URenderer::CreateConstantBuffers()
 	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
-	ConstantBufferLighting = FRenderResourceFactory::CreateConstantBuffer<FLightingConstants>();
 }
 
 
@@ -650,5 +652,4 @@ void URenderer::ReleaseConstantBuffers()
 	SafeRelease(ConstantBufferModels);
 	SafeRelease(ConstantBufferColor);
 	SafeRelease(ConstantBufferViewProj);
-	SafeRelease(ConstantBufferLighting);
 }

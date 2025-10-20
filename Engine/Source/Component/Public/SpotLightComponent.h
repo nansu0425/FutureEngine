@@ -65,6 +65,8 @@ public:
 
     void RenderLightDirectionGizmo(UCamera* InCamera);
 
+    FSpotLightInfo GetSpotLightInfo() const;
+
 private:
     void EnsureVisualizationBillboard()override;
     

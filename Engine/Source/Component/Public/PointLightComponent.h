@@ -56,6 +56,8 @@ public:
     
     void SetAttenuationRadius(float InAttenuationRadius) { AttenuationRadius = InAttenuationRadius; }
 
+    FPointLightInfo GetPointlightInfo() const;
+
 private:
     void EnsureVisualizationBillboard()override;
     

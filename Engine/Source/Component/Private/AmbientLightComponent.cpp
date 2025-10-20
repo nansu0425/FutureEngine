@@ -62,3 +62,8 @@ void UAmbientLightComponent::EnsureVisualizationBillboard()
 	VisualizationBillboard = Billboard;
 	UpdateVisualizationBillboardTint();
 }
+
+FAmbientLightInfo UAmbientLightComponent::GetAmbientLightInfo() const
+{
+	return FAmbientLightInfo{ FVector4(LightColor, 1), Intensity };
+}
