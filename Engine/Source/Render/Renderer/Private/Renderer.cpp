@@ -286,6 +286,12 @@ void URenderer::CreateStaticMeshShader()
 		{ nullptr, nullptr }
 	};
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
+
+	TArray<D3D_SHADER_MACRO> WorldNormalViewMacros = {
+		{ "LIGHTING_MODEL_NORMAL", "1" },
+		{ nullptr, nullptr }
+	};
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
 }
 
 
@@ -295,6 +301,7 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(UberLitPixelShader);
 	SafeRelease(UberLitPixelShaderGouraud);
 	SafeRelease(UberLitPixelShaderBlinnPhong);
+	SafeRelease(UberLitPixelShaderWorldNormal);
 	SafeRelease(UberLitVertexShader);
 	SafeRelease(UberLitVertexShaderGouraud);
 	
@@ -639,14 +646,7 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	}
 	else if (ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
 	{
-		// ==============================================
-		//
-		// PlaceHolder for WorldNormal Pixel Shader
-		// 임시로 UberLitPixelShader 사용
-		// LIGHTING_MODEL_WORLD_NORMAL 쉐이더 매크로를 추가하여 월드 노멀 셰이더 따로 컴파일 해야 함
-		// 
-		// ==============================================
-		return UberLitPixelShader;
+		return UberLitPixelShaderWorldNormal;
 	}
 }
 

@@ -121,6 +121,7 @@ private:
 	ID3D11PixelShader* UberLitPixelShader = nullptr;
 	ID3D11PixelShader* UberLitPixelShaderGouraud = nullptr;
 	ID3D11PixelShader* UberLitPixelShaderBlinnPhong = nullptr;
+	ID3D11PixelShader* UberLitPixelShaderWorldNormal = nullptr;
 	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
 	// Texture Shaders
