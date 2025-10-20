@@ -188,6 +188,10 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				if (Material->GetAmbientTexture())  { MaterialConstants.MaterialFlags |= HAS_AMBIENT_MAP; }
 				if (Material->GetSpecularTexture()) { MaterialConstants.MaterialFlags |= HAS_SPECULAR_MAP; }
 				if (Material->GetNormalTexture())   { MaterialConstants.MaterialFlags |= HAS_NORMAL_MAP; }
+				if (Material->GetNormalTexture())
+				{
+					UE_LOG("NormalMap OK: Material=%s", Material->GetName().ToString().c_str());
+				}
 				if (Material->GetAlphaTexture())    { MaterialConstants.MaterialFlags |= HAS_ALPHA_MAP; }
 				if (Material->GetBumpTexture())     { MaterialConstants.MaterialFlags |= HAS_BUMP_MAP; }
 				MaterialConstants.Time = MeshComp->GetElapsedTime();
@@ -211,6 +215,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				if (UTexture* NormalTexture = Material->GetNormalTexture())
 				{
 					Pipeline->SetTexture(3, false, NormalTexture->GetTextureSRV());
+					UE_LOG("NormalMap Bound: Slot=3, Material=%s", Material->GetName().ToString().c_str());
 				}
 				if (UTexture* AlphaTexture = Material->GetAlphaTexture())
 				{

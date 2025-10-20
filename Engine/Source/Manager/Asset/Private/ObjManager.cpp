@@ -362,7 +362,7 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 				}
 			}
 		}
-		// Normal(=map_bump) 텍스처 로드
+		// Normal(=map_Bump) 텍스처 로드
 		if (!MaterialInfo.BumpMap.empty())
 		{
 			FString TexturePathStr = (ObjDirectory / MaterialInfo.BumpMap).generic_string();

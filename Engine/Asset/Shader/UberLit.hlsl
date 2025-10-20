@@ -112,7 +112,7 @@ SamplerState SamplerWrap : register(s0);
 #define HAS_SPECULAR_MAP (1 << 2) // map_Ks
 #define HAS_NORMAL_MAP   (1 << 3) // map_normal
 #define HAS_ALPHA_MAP    (1 << 4) // map_d
-#define HAS_BUMP_MAP     (1 << 5) // map_bump
+#define HAS_BUMP_MAP     (1 << 5) // map_Bump
 
 // Vertex Shader Input/Output
 struct VS_INPUT
@@ -389,7 +389,6 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
             ShadedWorldNormal = SafeNormalize3(mul(TangentSpaceNormal, TBN));
         }
         // else: Tangent가 유효하지 않으면 N_Base 유지
-
     }
     // Sample textures
     float4 ambientColor = Ka;
