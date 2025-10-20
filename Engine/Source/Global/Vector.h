@@ -183,7 +183,14 @@ struct FVector
 	[[nodiscard]] static FVector UnitY() { return YAxisVector(); }
 	[[nodiscard]] static FVector UnitZ() { return ZAxisVector(); }
 };
-
+inline float Dot(const FVector& A, const FVector& B)
+{
+	return A.Dot(B);
+}
+inline FVector Cross(const FVector& A, const FVector& B)
+{
+	return A.Cross(B);
+}
 FArchive& operator<<(FArchive& Ar, FVector& Vector);
 
 struct FVector2
