@@ -460,8 +460,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
                     + Illumination.Specular.rgb * specularColor.rgb;
     
 #elif LIGHTING_MODEL_NORMAL
-    float3 WorldNormal = SafeNormalize3(Input.WorldNormal);
-    float3 EncodedWorldNormal = WorldNormal * 0.5f + 0.5f;
+    float3 EncodedWorldNormal = ShadedWorldNormal * 0.5f + 0.5f;
     finalPixel.rgb = EncodedWorldNormal;
     
 #else
