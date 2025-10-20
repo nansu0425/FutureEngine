@@ -607,7 +607,9 @@ ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) con
 	{
 		return UberLitVertexShaderGouraud;
 	}
-	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert || ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
+	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert
+		|| ViewModeIndex == EViewModeIndex::VMI_BlinnPhong
+		|| ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
 	{
 		return UberLitVertexShader;
 	}
@@ -634,6 +636,17 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	else if (ViewModeIndex == EViewModeIndex::VMI_Unlit || ViewModeIndex == EViewModeIndex::VMI_SceneDepth)
 	{
 		return TexturePixelShader;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
+	{
+		// ==============================================
+		//
+		// PlaceHolder for WorldNormal Pixel Shader
+		// 임시로 UberLitPixelShader 사용
+		// LIGHTING_MODEL_WORLD_NORMAL 쉐이더 매크로를 추가하여 월드 노멀 셰이더 따로 컴파일 해야 함
+		// 
+		// ==============================================
+		return UberLitPixelShader;
 	}
 }
 
