@@ -5,14 +5,22 @@
 #include "component/Public/DirectionalLightComponent.h"
 #include "component/Public/PointLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
+#include "Source/Editor/Public/Camera.h"
 
 FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera) :
 	FRenderPass(InPipeline, InConstantBufferCamera, nullptr)
 {
+	ViewClusterInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<ViewClusterInfo>();
 	GlobalLightConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FGlobalLightConstant>();
 	PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
 	SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FSpotLightInfo>(SpotLightBufferCount);
-	ClusterAABB = FRenderResourceFactory::CreateRWStructuredBuffer<FAABB>(GetClusterCount());
+	ClusterAABBRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(24, GetClusterCount());
+	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ViewClusterCS.hlsl", &ViewClusterCS);
+
+	FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightStructuredBuffer, &PointLightStructuredBufferSRV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferSRV);
+	FRenderResourceFactory::CreateUnorderedAccessView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferUAV);
 }
 void FLightPass::Execute(FRenderingContext& Context)
 {
@@ -77,10 +85,17 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
 
-	
+	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
 
-	/*Pipeline->SetConstantBuffer(3, true, ConstantBufferLighting);
-	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);*/
+	FMatrix ProjectionInv = Context.CurrentCamera->GetFViewProjConstantsInverse().Projection;
+	float CamNear = Context.CurrentCamera->GetNearZ();
+	float CamFar = Context.CurrentCamera->GetFarZ();
+	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
+		ViewClusterInfo{ ProjectionInv, CamNear,CamFar, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum });
+	Pipeline->SetUnorderedAccessView(0, ClusterAABBRWStructuredBufferUAV);
+
+	Pipeline->DispatchCS(ViewClusterCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+
 }
 
 

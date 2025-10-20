@@ -4,6 +4,10 @@
 class FRenderResourceFactory
 {
 public:
+
+	static void CreateStructuredShaderResourceView(ID3D11Buffer* Buffer, ID3D11ShaderResourceView** OutSRV);
+	static void CreateUnorderedAccessView(ID3D11Buffer* Buffer, ID3D11UnorderedAccessView** OutUAV);
+
 	static void CreateVertexShaderAndInputLayout(const wstring& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescriptions,
 												 ID3D11VertexShader** OutVertexShader, ID3D11InputLayout** OutInputLayout);
 	static void CreateVertexShaderAndInputLayout(const wstring& InFilePath, const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescriptions,
@@ -15,10 +19,12 @@ public:
 	static void CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** InPixelShader);
 	static void CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** InPixelShader,
 							  const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros = nullptr);
+	static void CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader, const char* InEntryPoint = "main");
 	static ID3D11SamplerState* CreateSamplerState(D3D11_FILTER InFilter, D3D11_TEXTURE_ADDRESS_MODE InAddressMode);
 	static ID3D11SamplerState* CreateFXAASamplerState();
 	static ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
 	static void ReleaseRasterizerState();
+
 
 	// Helper function
 	static D3D11_CULL_MODE ToD3D11(ECullMode InCull);
@@ -92,6 +98,8 @@ public:
 
 		D3D11_BUFFER_DESC Desc = {};
 		Desc.ByteWidth = sizeof(T) * Count;
+		int size = sizeof(T);
+
 		Desc.Usage = D3D11_USAGE_DEFAULT;
 		Desc.CPUAccessFlags = 0;
 		Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -102,7 +110,22 @@ public:
 		URenderer::GetInstance().GetDevice()->CreateBuffer(&Desc, nullptr, &Buffer);
 		return Buffer;
 	}
+	static ID3D11Buffer* CreateRWStructuredBuffer(uint32 Size, uint32 Count)
+	{
 
+		D3D11_BUFFER_DESC Desc = {};
+		Desc.ByteWidth = Size * Count;
+
+		Desc.Usage = D3D11_USAGE_DEFAULT;
+		Desc.CPUAccessFlags = 0;
+		Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		Desc.StructureByteStride = Size;
+
+		ID3D11Buffer* Buffer = nullptr;
+		URenderer::GetInstance().GetDevice()->CreateBuffer(&Desc, nullptr, &Buffer);
+		return Buffer;
+	}
 
 private:
 	struct FRasterKey

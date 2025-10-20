@@ -80,11 +80,11 @@ void UPipeline::SetConstantBuffer(uint32 Slot, EShaderType ShaderType, ID3D11Buf
 	}
 	if (ContainShaderType(ShaderType, EShaderType::PS))
 	{
-		DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+		DeviceContext->PSSetConstantBuffers(Slot, 1, &ConstantBuffer);
 	}
 	if (ContainShaderType(ShaderType, EShaderType::CS))
 	{
-		DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+		DeviceContext->CSSetConstantBuffers(Slot, 1, &ConstantBuffer);
 	}
 }
 
@@ -108,8 +108,7 @@ void UPipeline::SetShaderResourceView(uint32 Slot, EShaderType ShaderType, ID3D1
 //Only CS Possible
 void UPipeline::SetUnorderedAccessView(uint32 Slot, ID3D11UnorderedAccessView* UAV)
 {
-	DeviceContext->CSGetUnorderedAccessViews(Slot, 1, &UAV);
-
+	DeviceContext->CSSetUnorderedAccessViews(Slot, 1, &UAV, nullptr);
 }
 
 /// @brief 샘플러 상태를 설정
@@ -148,7 +147,7 @@ void UPipeline::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 
 	DeviceContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
 }
 
-void UPipeline::DispatchCS(ID3D11ComputeShader* CS, uint32 x, uint32 y = 1, uint32 z = 1)
+void UPipeline::DispatchCS(ID3D11ComputeShader* CS, uint32 x, uint32 y, uint32 z)
 {
 	DeviceContext->CSSetShader(CS, nullptr, 0);
 	DeviceContext->Dispatch(x, y, z);

@@ -151,7 +151,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				}
 				CurrentMaterial = Material;
 			}
-			Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);
+				Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);
 		}
 	}
 	Pipeline->SetConstantBuffer(2, EShaderType::PS, nullptr);

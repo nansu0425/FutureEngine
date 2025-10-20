@@ -1,10 +1,13 @@
-float ZNear;
-float ZFar;
 
-uint2 ScreenSlideNum;
-uint ZSlideNum;
-
-float4x4 PorjectionInv;
+cbuffer ViewClusterInfo : register(b0)
+{
+    float4x4 ProjectionInv;
+    float ZNear;
+    float ZFar;
+    uint2 ScreenSlideNum;
+    uint ZSlideNum;
+    uint3 padding;
+};
 
 struct FAABB
 {
@@ -20,7 +23,7 @@ float GetZ(uint ZIdx)
 }
 float3 NDCToView(float3 NDC)
 {
-    float4 View = mul(float4(NDC, 1), PorjectionInv);
+    float4 View = mul(float4(NDC, 1), ProjectionInv);
     return View.xyz / View.w;
 }
 
