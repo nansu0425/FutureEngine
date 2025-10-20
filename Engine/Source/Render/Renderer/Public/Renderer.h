@@ -40,7 +40,8 @@ public:
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
 	void CreateStaticMeshShader();
-	
+	void CreateGizmoShader();
+
 	// Release
 	void ReleaseConstantBuffers();
 	void ReleaseDefaultShader();
@@ -122,6 +123,11 @@ private:
 	ID3D11PixelShader* UberLitPixelShaderBlinnPhong = nullptr;
 	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
+	//Gizmo Shaders
+	ID3D11InputLayout* GizmoInputLayout = nullptr;
+	ID3D11VertexShader* GizmoVS = nullptr;
+	ID3D11PixelShader* GizmoPS = nullptr;
+
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;
 	ID3D11PixelShader* TexturePixelShader = nullptr;

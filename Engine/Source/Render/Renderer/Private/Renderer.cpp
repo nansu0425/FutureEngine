@@ -57,10 +57,11 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateConstantBuffers();
 	CreateFXAAShader();
 	CreateStaticMeshShader();
+	CreateGizmoShader();
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
-	FLightPass* LightPass = new FLightPass(Pipeline, ConstantBufferViewProj);
+	FLightPass* LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
 	RenderPasses.push_back(LightPass);
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
@@ -290,6 +291,19 @@ void URenderer::CreateStaticMeshShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
 }
 
+void URenderer::CreateGizmoShader()
+{
+	// Create shaders
+	TArray<D3D11_INPUT_ELEMENT_DESC> LayoutDesc =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ClusterGizmoSetCS.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ClusterGizmoSetCS.hlsl", &GizmoPS);
+}
+
 
 void URenderer::ReleaseDefaultShader()
 {
@@ -323,6 +337,10 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(FXAAVertexShader);
 	SafeRelease(FXAAPixelShader);
 	SafeRelease(FXAAInputLayout);
+
+	SafeRelease(GizmoVS);
+	SafeRelease(GizmoPS);
+	SafeRelease(GizmoInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()

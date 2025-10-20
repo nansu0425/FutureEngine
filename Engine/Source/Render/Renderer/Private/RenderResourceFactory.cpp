@@ -25,6 +25,7 @@ void FRenderResourceFactory::CreateUnorderedAccessView(ID3D11Buffer* Buffer, ID3
 	Desc.Buffer.NumElements = BufDesc.ByteWidth / BufDesc.StructureByteStride;
 	URenderer::GetInstance().GetDevice()->CreateUnorderedAccessView(Buffer, &Desc, OutUAV);
 }
+
 void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
                                                               const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescs, ID3D11VertexShader** OutVertexShader, ID3D11InputLayout** OutInputLayout)
 {

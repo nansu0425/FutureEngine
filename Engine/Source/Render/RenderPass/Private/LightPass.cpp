@@ -6,21 +6,42 @@
 #include "component/Public/PointLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
 #include "Source/Editor/Public/Camera.h"
-
-FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera) :
+FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, 
+	ID3D11InputLayout* InGizmoInputLayout, ID3D11VertexShader* InGizmoVS, ID3D11PixelShader* InGizmoPS,
+	ID3D11DepthStencilState* InGizmoDSS) :
 	FRenderPass(InPipeline, InConstantBufferCamera, nullptr)
 {
-	ViewClusterInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<ViewClusterInfo>();
+	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ViewClusterCS.hlsl", &ViewClusterCS);
+	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ClusteredLightCullingCS.hlsl", &ClusteredLightCullingCS);
+	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ClusterGizmoSetCS.hlsl", &ClusterGizmoSetCS);
+
+	ViewClusterInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FViewClusterInfo>();
+	LightCountInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FLightCountInfo>();
 	GlobalLightConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FGlobalLightConstant>();
 	PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
 	SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FSpotLightInfo>(SpotLightBufferCount);
 	ClusterAABBRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(24, GetClusterCount());
-	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ViewClusterCS.hlsl", &ViewClusterCS);
+	LightIndicesRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(4, GetClusterCount() * LightMaxCountPerCluster);
 
 	FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightStructuredBuffer, &PointLightStructuredBufferSRV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferSRV);
-	FRenderResourceFactory::CreateUnorderedAccessView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferUAV);
+	FRenderResourceFactory::CreateUnorderedAccessView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferUAV);	
+	FRenderResourceFactory::CreateStructuredShaderResourceView(LightIndicesRWStructuredBuffer, &LightIndicesRWStructuredBufferSRV);
+	FRenderResourceFactory::CreateUnorderedAccessView(LightIndicesRWStructuredBuffer, &LightIndicesRWStructuredBufferUAV);
+
+	//Cluster Gizmo (Pos, Color) = 28
+	//Cube = 24 Vertex
+	ClusterGizmoVertex = FRenderResourceFactory::CreateRWStructuredBuffer(28, GetClusterCount() * 24);
+	FRenderResourceFactory::CreateUnorderedAccessView(ClusterGizmoVertex,  &ClusterGizmoVertexUAV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterGizmoVertex,  &ClusterGizmoVertexSRV);
+
+	GizmoInputLayout = InGizmoInputLayout;
+	GizmoVS = InGizmoVS;
+	GizmoPS = InGizmoPS;
+	GizmoDSS = InGizmoDSS;
+	CameraConstantBuffer = InConstantBufferCamera;
+
 }
 void FLightPass::Execute(FRenderingContext& Context)
 {
@@ -59,8 +80,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 		SpotLightDatas.push_back(Light->GetSpotLightInfo());
 	}
 
-	int PointLightCount = PointLightDatas.size();
-	int SpotLightCount = SpotLightDatas.size();
+	uint32 PointLightCount = PointLightDatas.size();
+	uint32 SpotLightCount = SpotLightDatas.size();
 	//최대갯수 재할당
 	if (PointLightBufferCount < PointLightCount)
 	{
@@ -85,16 +106,62 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
 
-	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
-
-	FMatrix ProjectionInv = Context.CurrentCamera->GetFViewProjConstantsInverse().Projection;
+	//Cluster AABB Set
+	FCameraConstants Inv = Context.CurrentCamera->GetFViewProjConstantsInverse();
+	FMatrix ProjectionInv = Inv.Projection;
+	FMatrix ViewInv = Inv.View;
+	FMatrix ViewMatrix = Context.CurrentCamera->GetFViewProjConstants().View;
 	float CamNear = Context.CurrentCamera->GetNearZ();
 	float CamFar = Context.CurrentCamera->GetFarZ();
 	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
-		ViewClusterInfo{ ProjectionInv, CamNear,CamFar, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum });
+		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum, LightMaxCountPerCluster });
+	FRenderResourceFactory::UpdateConstantBufferData(LightCountInfoConstantBuffer,
+		FLightCountInfo{ PointLightCount, SpotLightCount });
+	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
+	Pipeline->SetConstantBuffer(1, EShaderType::CS, LightCountInfoConstantBuffer);
 	Pipeline->SetUnorderedAccessView(0, ClusterAABBRWStructuredBufferUAV);
-
 	Pipeline->DispatchCS(ViewClusterCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+
+	//Light 분류
+	Pipeline->SetUnorderedAccessView(0, LightIndicesRWStructuredBufferUAV);
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
+	Pipeline->DispatchCS(ClusteredLightCullingCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+
+	//클러스터 기즈모 제작
+	Pipeline->SetUnorderedAccessView(0, ClusterGizmoVertexUAV);
+	Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
+	Pipeline->DispatchCS(ClusterGizmoSetCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+	
+	//클러스터 기즈모 출력
+	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
+	FPipelineInfo PipelineInfo = { nullptr, GizmoVS, RS, GizmoDSS, GizmoPS, nullptr, D3D11_PRIMITIVE_TOPOLOGY_LINELIST };
+	Pipeline->UpdatePipeline(PipelineInfo);
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
+
+	uint32 Stride = sizeof(FGizmoVertex);
+	uint32 Offset = 0;
+	Pipeline->SetVertexBuffer(ClusterGizmoVertex, Stride);
+
+	URenderer& Renderer = URenderer::GetInstance();
+	const auto& DeviceResources = Renderer.GetDeviceResources();
+	ID3D11RenderTargetView* RTV = nullptr;
+	if (Renderer.GetFXAA())
+	{
+		RTV = DeviceResources->GetSceneColorRenderTargetView();
+	}
+	else
+	{
+		RTV = DeviceResources->GetRenderTargetView();
+	}
+	ID3D11RenderTargetView* RTVs[2] = { RTV, DeviceResources->GetNormalRenderTargetView() };
+	ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
+	//Pipeline->SetRenderTargets(2, RTVs, DSV);
+	//Pipeline->Draw(GetClusterCount() * 24, 0);
+
+
+
 
 }
 

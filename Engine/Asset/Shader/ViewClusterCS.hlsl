@@ -2,11 +2,14 @@
 cbuffer ViewClusterInfo : register(b0)
 {
     float4x4 ProjectionInv;
+    float4x4 ViewInv;
+    float4x4 ViewMatrix;
     float ZNear;
     float ZFar;
     uint2 ScreenSlideNum;
     uint ZSlideNum;
-    uint3 padding;
+    uint LightMaxCountPerCluster;
+    float2 padding;
 };
 
 struct FAABB
