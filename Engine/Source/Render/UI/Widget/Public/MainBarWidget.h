@@ -5,7 +5,7 @@ class UUIManager;
 
 /**
  * @brief ImGui 메인 메뉴바를 관리하는 위젯 클래스
- * 화면 상단에 메인 메뉴바를 표시하고 다른 윈도우들의 토글 기능을 제공
+ * FutureEngine 스타일: 보기, 표시옵션, 창, 도움말 메뉴만 제공
  */
 UCLASS()
 class UMainBarWidget : public UWidget
@@ -29,19 +29,10 @@ private:
 	float MenuBarHeight = 0.0f;
 	UUIManager* UIManager = nullptr;
 
+	// FutureEngine 스타일: 필수 메뉴만 유지
 	void RenderWindowsMenu() const;
-
-	static void RenderFileMenu();
 	static void RenderViewMenu();
 	static void RenderShowFlagsMenu();
 	static void RenderHelpMenu();
-	static void RenderPlayControls();
-
-	static void SaveCurrentLevel();
-	static void LoadLevel();
-	static void CreateNewLevel();
-
-	static path OpenSaveFileDialog();
-	static path OpenLoadFileDialog();
 
 };
