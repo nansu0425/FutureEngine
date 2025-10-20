@@ -8,12 +8,12 @@ UOutlinerWindow::UOutlinerWindow()
 {
 	FUIWindowConfig Config;
 	Config.WindowTitle = "Outliner";
-	Config.DefaultSize = ImVec2(330, 550);
-	Config.DefaultPosition = ImVec2(1565, 33); // 메뉴바만큼 하향 이동
-	Config.MinSize = ImVec2(270, 50);
+	Config.DefaultSize = ImVec2(340, 520);
+	Config.DefaultPosition = ImVec2(1565, 91); // 메뉴바 + 레벨바 아래
+	Config.MinSize = ImVec2(200, 50);
 	Config.bResizable = true;
-	Config.bMovable = true;
-	Config.bCollapsible = true;
+	Config.bMovable = false; // FutureEngine 철학: 오른쪽 패널 고정
+	Config.bCollapsible = false;
 	Config.DockDirection = EUIDockDirection::Center;
 
 	Config.UpdateWindowFlags();

@@ -132,6 +132,10 @@ void FClientApp::UpdateSystem() const
 		InputManager.Update(Window);
 	}
 	{
+		TIME_PROFILE(ViewportManager)
+		UViewportManager::GetInstance().Update();
+	}
+	{
 		TIME_PROFILE(UIManager)
 		UIManager.Update();
 	}	

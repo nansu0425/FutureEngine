@@ -125,6 +125,9 @@ void UUIManager::Update()
 
 	// 포커스 상태 업데이트
 	UpdateFocusState();
+
+	// FutureEngine 철학: 오른쪽 패널 레이아웃 자동 정리
+	ArrangeRightPanels();
 }
 
 /**
@@ -787,9 +790,9 @@ void UUIManager::ArrangeRightPanels()
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
 	
-	// FutureEngine: ViewportManager 초기화 여부 확인
+	// FutureEngine 철학: ViewportManager의 Root Rect에서 메뉴바+레벨바 높이 가져오기
 	SWindow* Root = UViewportManager::GetInstance().GetRoot();
-	const float MenuBarHeight = Root ? Root->GetRect().Top : 0.0f;
+	const float MenuBarHeight = Root ? static_cast<float>(Root->GetRect().Top) : 0.0f;
 	const float AvailableHeight = ScreenHeight - MenuBarHeight;
 
 	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
