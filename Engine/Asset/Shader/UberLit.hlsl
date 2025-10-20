@@ -301,19 +301,24 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     float4 ambientColor = Ka;
     if (MaterialFlags & HAS_AMBIENT_MAP)
     {
-        ambientColor = AmbientTexture.Sample(SamplerWrap, UV);
+        ambientColor *= AmbientTexture.Sample(SamplerWrap, UV);
+    }
+    else if(MaterialFlags & HAS_DIFFUSE_MAP)
+    {
+        // If no ambient map, but diffuse map exists, use diffuse map for ambient color
+        ambientColor *= DiffuseTexture.Sample(SamplerWrap, UV);
     }
     
     float4 diffuseColor = Kd;
     if (MaterialFlags & HAS_DIFFUSE_MAP)
     {
-        diffuseColor = DiffuseTexture.Sample(SamplerWrap, UV);
+        diffuseColor *= DiffuseTexture.Sample(SamplerWrap, UV);
     }
     
     float4 specularColor = Ks;
     if (MaterialFlags & HAS_SPECULAR_MAP)
     {
-        specularColor = SpecularTexture.Sample(SamplerWrap, UV);
+        specularColor *= SpecularTexture.Sample(SamplerWrap, UV);
     }
     
     
