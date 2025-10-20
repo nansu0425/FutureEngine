@@ -339,6 +339,7 @@
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalSpotLightComponent.h" />
     <ClInclude Include="Source\Component\Public\DirectionalLightComponent.h" />
+    <ClInclude Include="Source\Component\Public\LightComponentBase.h" />
     <ClInclude Include="Source\Component\Public\PointLightComponent.h" />
     <ClInclude Include="Source\Component\Public\MovementComponent.h" />
     <ClInclude Include="Source\Component\Public\ProjectileMovementComponent.h" />
