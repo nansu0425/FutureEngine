@@ -163,6 +163,41 @@ float4 SafeNormalize4(float4 v)
     return Len2 > 1e-12f ? v / sqrt(Len2) : float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+float GetDeterminant3x3(float3x3 M)
+{
+    return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
+         - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0])
+         + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+}
+
+// 3x3 Matrix Inverse
+// Returns identity matrix if determinant is near zero
+float3x3 Inverse3x3(float3x3 M)
+{
+    float det = GetDeterminant3x3(M);
+    
+    // Singular matrix guard
+    if (abs(det) < 1e-8)
+        return float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1); // Identity matrix
+    
+    float invDet = 1.0f / det;
+    
+    float3x3 inv;
+    inv[0][0] = (M[1][1] * M[2][2] - M[1][2] * M[2][1]) * invDet;
+    inv[0][1] = (M[0][2] * M[2][1] - M[0][1] * M[2][2]) * invDet;
+    inv[0][2] = (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet;
+    
+    inv[1][0] = (M[1][2] * M[2][0] - M[1][0] * M[2][2]) * invDet;
+    inv[1][1] = (M[0][0] * M[2][2] - M[0][2] * M[2][0]) * invDet;
+    inv[1][2] = (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet;
+    
+    inv[2][0] = (M[1][0] * M[2][1] - M[1][1] * M[2][0]) * invDet;
+    inv[2][1] = (M[0][1] * M[2][0] - M[0][0] * M[2][1]) * invDet;
+    inv[2][2] = (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet;
+    
+    return inv;
+}
+
 // Lighting Calculation Functions
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
@@ -288,7 +323,8 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     
     Output.WorldPosition = mul(float4(Input.Position, 1.0f), World).xyz;
     Output.Position = mul(mul(mul(float4(Input.Position, 1.0f), World), View), Projection);
-    Output.WorldNormal = SafeNormalize3(mul(Input.Normal, (float3x3) World));
+    float3x3 World3x3 = (float3x3) World;
+    Output.WorldNormal = SafeNormalize3(mul(Input.Normal, transpose(Inverse3x3(World3x3))));
     float3 WorldTangent = SafeNormalize3(mul(Input.Tangent.xyz, (float3x3) World));
     Output.WorldTangent = float4(WorldTangent, Input.Tangent.w);
     Output.Tex = Input.Tex;
