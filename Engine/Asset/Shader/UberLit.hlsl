@@ -316,6 +316,29 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     return Result;
 }
 
+
+float3 ComputeNormalMappedWorldNormal(float2 UV, float3 WorldNormal, float4 WorldTangent)
+{
+    float3 BaseNormal = SafeNormalize3(WorldNormal);
+
+      // Tangent가 비정상(0 길이)이면 메시 노말 사용
+    float TangentLen2 = dot(WorldTangent.xyz, WorldTangent.xyz);
+    if (TangentLen2 <= 1e-8f)
+    {
+        return BaseNormal;
+    }
+
+    float3 Encoded = NormalTexture.Sample(SamplerWrap, UV).xyz;
+    float3 TangentSpaceNormal = SafeNormalize3(Encoded * 2.0f - 1.0f);
+
+    float3 T = WorldTangent.xyz / sqrt(TangentLen2);
+    float Handedness = WorldTangent.w;
+    float3 B = SafeNormalize3(cross(BaseNormal, T) * Handedness);
+
+    float3x3 TBN = float3x3(T, B, BaseNormal);
+    return SafeNormalize3(mul(TangentSpaceNormal, TBN));
+
+}
 // Vertex Shader
 PS_INPUT Uber_VS(VS_INPUT Input)
 {
@@ -373,22 +396,8 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     float3 ShadedWorldNormal = SafeNormalize3(Input.WorldNormal);
     if (MaterialFlags & HAS_NORMAL_MAP)
     {
-        float3 Encoded = NormalTexture.Sample(SamplerWrap, UV).xyz;
-        float3 TangentSpaceNormal = SafeNormalize3(Encoded * 2.0f - 1.0f);
-
-        float3 N_Base = SafeNormalize3(Input.WorldNormal);
-        float3 T_Raw = Input.WorldTangent.xyz;
-        float T_Len2 = dot(T_Raw, T_Raw);
-        if (T_Len2 > 1e-8f)
-        {
-            float3 T = T_Raw / sqrt(T_Len2);
-            float Handedness = Input.WorldTangent.w;
-            // 여기선 cross가 RH 기준이므로 인수 순서가 이게 맞음
-            float3 B = SafeNormalize3(cross(N_Base, T) * Handedness);
-            float3x3 TBN = float3x3(T, B, N_Base);
-            ShadedWorldNormal = SafeNormalize3(mul(TangentSpaceNormal, TBN));
-        }
-        // else: Tangent가 유효하지 않으면 N_Base 유지
+        ShadedWorldNormal = ComputeNormalMappedWorldNormal(UV, Input.WorldNormal, Input.WorldTangent);
+        // else: Tangent가 유효하지 않으면 NormalBase 유지
     }
     // Sample textures
     float4 ambientColor = Ka;
