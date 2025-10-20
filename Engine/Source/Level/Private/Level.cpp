@@ -156,15 +156,18 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			LightComponents.push_back(PointLightComponent);
+			if (auto SpotLightComponent = Cast<USpotLightComponent>(PointLightComponent))
+			{
+				LightComponents.push_back(SpotLightComponent);
+			}
+			else
+			{
+				LightComponents.push_back(PointLightComponent);
+			}
 		}
 		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 		{
 			LightComponents.push_back(DirectionalLightComponent);
-		}
-		if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-		{
-			LightComponents.push_back(SpotLightComponent);
 		}
 		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
 		{
@@ -223,7 +226,14 @@ void ULevel::AddLevelComponent(AActor* Actor)
 		{
 			if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 			{
-				LightComponents.push_back(PointLightComponent);
+				if (auto SpotLightComponent = Cast<USpotLightComponent>(PointLightComponent))
+				{
+					LightComponents.push_back(SpotLightComponent);
+				}
+				else
+				{
+					LightComponents.push_back(PointLightComponent);
+				}
 			}
 			if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 			{
@@ -233,10 +243,7 @@ void ULevel::AddLevelComponent(AActor* Actor)
 			{
 				LightComponents.push_back(AmbientLightComponent);
 			}
-			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-			{
-				LightComponents.push_back(SpotLightComponent);
-			}
+			
 		}
 	}
 }

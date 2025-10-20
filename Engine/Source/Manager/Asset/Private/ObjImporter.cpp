@@ -535,7 +535,7 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 				return false;
 			}
 		}
-		else if (Prefix == "map_bump" || Prefix == "bump")
+		else if (Prefix == "map_Bump" || Prefix == "bump")
 		{
 			if (!OptMaterialInfo)
 			{
@@ -554,7 +554,7 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 					FString ScaleString;
 					if (!(Tokenizer >> ScaleString))
 					{
-						UE_LOG_ERROR("map_bump -bm 옵션 값이 없습니다");
+						UE_LOG_ERROR("map_Bump -bm 옵션 값이 없습니다");
 						return false;
 					}
 					try
@@ -563,7 +563,7 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 					}
 					catch ([[maybe_unused]] const std::invalid_argument& Exception)
 					{
-						UE_LOG_ERROR("map_bump -bm 옵션 값 형식이 잘못되었습니다");
+						UE_LOG_ERROR("map_Bump -bm 옵션 값 형식이 잘못되었습니다");
 						return false;
 					}
 					continue;
@@ -581,7 +581,7 @@ bool FObjImporter::LoadMaterial(const std::filesystem::path& FilePath, FObjInfo*
 
 			if (BumpPath.empty())
 			{
-				UE_LOG_ERROR("map_bump(범프 텍스처) 경로가 없습니다");
+				UE_LOG_ERROR("map_Bump(범프 텍스처) 경로가 없습니다");
 				return false;
 			}
 
