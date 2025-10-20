@@ -459,12 +459,19 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
                     + Illumination.Diffuse.rgb * diffuseColor.rgb
                     + Illumination.Specular.rgb * specularColor.rgb;
     
+#elif LIGHTING_MODEL_NORMAL
+    float3 EncodedWorldNormal = ShadedWorldNormal * 0.5f + 0.5f;
+    finalPixel.rgb = EncodedWorldNormal;
+    
 #else
     // Fallback: simple textured rendering (like current TexturePS.hlsl)
     finalPixel.rgb = diffuseColor.rgb + ambientColor.rgb;
 #endif
     
     // Alpha handling
+#if LIGHTING_MODEL_NORMAL
+    finalPixel.a = 1.0f;
+#else
     // 1. Diffuse Map 있으면 그 alpha 사용, 없으면 1.0
     float alpha = (MaterialFlags & HAS_DIFFUSE_MAP) ? diffuseColor.a : 1.0f;
     
@@ -476,6 +483,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     
     // 3. D 곱해서 최종 alpha 결정
     finalPixel.a = D * alpha;
+#endif
     Output.SceneColor = finalPixel;
     
     // Encode normal for deferred rendering
