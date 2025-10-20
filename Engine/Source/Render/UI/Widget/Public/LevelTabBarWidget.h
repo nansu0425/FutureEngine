@@ -35,6 +35,8 @@ private:
 
     // pie 모드 진입용
     void StartPIE();
+    void PausePIE();
+    void ResumePIE();
     void EndPIE();
 
     static path OpenSaveFileDialog();
@@ -56,8 +58,9 @@ private:
     // CreateActor
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CreateActorIconSRV;
 
-    // Play Stop
+    // Play Pause Stop
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> PlayPIEIconSRV;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> PausePIEIconSRV;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> StopPIEIconSRV;
 
     // pie

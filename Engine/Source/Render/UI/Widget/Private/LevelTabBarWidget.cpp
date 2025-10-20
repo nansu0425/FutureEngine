@@ -10,6 +10,7 @@
 #include "Level/Public/World.h"
 #include "Editor/Public/EditorEngine.h"
 #include "Actor/Public/StaticMeshActor.h"
+#include "Level/Public/Level.h"
 
 IMPLEMENT_CLASS(ULevelTabBarWidget, UWidget)
 
@@ -37,6 +38,7 @@ ULevelTabBarWidget::ULevelTabBarWidget()
 
 
 	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Play.png", nullptr, PlayPIEIconSRV.GetAddressOf());
+	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Pause.png", nullptr, PausePIEIconSRV.GetAddressOf());
 	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Stop.png", nullptr, StopPIEIconSRV.GetAddressOf());
 
 }
@@ -122,7 +124,22 @@ void ULevelTabBarWidget::RenderWidget()
 			ImGuiTabBarFlags_FittingPolicyScroll |
 			ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
 		{
-			if (ImGui::BeginTabItem("CurrentLevel")) { ImGui::EndTabItem(); }
+			// 현재 레벨 이름 가져오기
+			FString LevelName = "New Level";
+			if (GEditor && GEditor->GetEditorWorldContext().World())
+			{
+				ULevel* CurrentLevel = GEditor->GetEditorWorldContext().World()->GetLevel();
+				if (CurrentLevel)
+				{
+					FName LevelFName = CurrentLevel->GetName();
+					if (!LevelFName.IsNone())
+					{
+						LevelName = LevelFName.ToString();
+					}
+				}
+			}
+			
+			if (ImGui::BeginTabItem(LevelName.c_str())) { ImGui::EndTabItem(); }
 			// ... 더 많은 탭 ...
 			ImGui::EndTabBar();
 		}
@@ -289,6 +306,27 @@ void ULevelTabBarWidget::RenderWidget()
 			StartPIE();
 		}
 		ImGui::SameLine(0.0f, 10.0f);
+		
+		// Pause/Resume 버튼: PIE가 실행 중일 때만 표시
+		if (GEditor && GEditor->IsPIESessionActive())
+		{
+			// PIE 상태에 따라 Pause 또는 Resume 버튼 표시
+			if (GEditor->GetPIEState() == EPIEState::Playing)
+			{
+				if (IconButton("##btn_PausePIE", PausePIEIconSRV.Get(), "Pause PIE"))
+				{
+					PausePIE();
+				}
+			}
+			else if (GEditor->GetPIEState() == EPIEState::Paused)
+			{
+				if (IconButton("##btn_ResumePIE", PlayPIEIconSRV.Get(), "Resume PIE"))
+				{
+					ResumePIE();
+				}
+			}
+			ImGui::SameLine(0.0f, 10.0f);
+		}
 
 		if (IconButton("##btn_StopPIE", StopPIEIconSRV.Get(), "Stop PIE"))
 		{
@@ -456,6 +494,30 @@ void ULevelTabBarWidget::StartPIE()
 	GEditor->StartPIE();
 
 	//UUIManager::GetInstance().SetSelectedActor(nullptr);
+}
+
+void ULevelTabBarWidget::PausePIE()
+{
+	// FutureEngine 철학: GEditor가 PIE 라이프사이클 관리
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("GEditor not initialized!");
+		return;
+	}
+
+	GEditor->PausePIE();
+}
+
+void ULevelTabBarWidget::ResumePIE()
+{
+	// FutureEngine 철학: GEditor가 PIE 라이프사이클 관리
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("GEditor not initialized!");
+		return;
+	}
+
+	GEditor->ResumePIE();
 }
 
 void ULevelTabBarWidget::EndPIE()
