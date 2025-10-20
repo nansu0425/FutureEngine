@@ -73,7 +73,7 @@ private:
      * 거리 감쇠 지수는 부모(UPointLightComponent)가 관리하며,
      * 각도 감쇠 지수는 이 값을 통해 제어합니다.
      */
-    float AngleFalloffExponent = 64.0f; // clamp(cos(theta) ^ (AngleFalloffExponent), 0, 1)
+    float AngleFalloffExponent = 2.0f;
 
     /** Angle of light source shape. */
     float OuterConeAngleRad = PI / 4.0f;

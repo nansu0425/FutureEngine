@@ -65,7 +65,7 @@ public:
 
 protected:
     /** Total energy that the light emits. */
-    float Intensity = 50.0f;
+    float Intensity = 1.0f;
 
     /**
      * Filter color of the light.

@@ -9,7 +9,7 @@ class UPointLightComponent : public ULightComponent
     DECLARE_CLASS(UPointLightComponent, ULightComponent)
 
 public:
-    UPointLightComponent() = default;
+    UPointLightComponent() { Intensity = 3.0f; }
 
     virtual ~UPointLightComponent() = default;
     
