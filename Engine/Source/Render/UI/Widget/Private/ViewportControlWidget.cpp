@@ -195,7 +195,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			if (FUEImgui::ToolbarIconButton("LayoutQuad", EUEViewportIcon::Quad, CurrentLayout == ELayout::Quad))
 			{
 				CurrentLayout = ELayout::Quad;
-				//ViewportManager.SetViewportLayout(EViewportLayout::Quad);
+				ViewportManager.SetViewportLayout(EViewportLayout::Quad);
 
 				ViewportManager.StartLayoutAnimation(true, ViewportIndex);
 			}
@@ -206,7 +206,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			if (FUEImgui::ToolbarIconButton("LayoutSingle", EUEViewportIcon::Single, CurrentLayout == ELayout::Single))
 			{
 				CurrentLayout = ELayout::Single;
-				//ViewportManager.SetViewportLayout(EViewportLayout::Single);
+				ViewportManager.SetViewportLayout(EViewportLayout::Single);
 
 				// 스플리터 비율을 저장하고 애니메이션 시작: Quad → Single
 				ViewportManager.PersistSplitterRatios();

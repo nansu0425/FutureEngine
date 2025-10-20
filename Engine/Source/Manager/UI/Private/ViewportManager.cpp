@@ -467,14 +467,10 @@ void UViewportManager::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIn
 		SplitterValueV = ViewportAnimation.StartVRatio;
 		SplitterValueH = ViewportAnimation.StartHRatio;
 
-		// 애니 시작 시점에 쿼드 레이아웃으로 전환(그리기/입력 활성)
-		ViewportLayout = EViewportLayout::Quad;
-
-		// 루트 전환 (애니 동안 쿼드 트리를 사용)
+		// 루트 백업
 		ViewportAnimation.BackupRoot = Root;
-		Root = QuadRoot;
 
-		// 실제 스플리터에 시작값을 반영하고 배치
+		// 실제 스플리터에 시작값을 반영하고 배치 (루트 전환 전에 먼저 수행)
 		if (auto* RootSplit = Cast(QuadRoot))
 		{
 			RootSplit->SetEffectiveRatio(SplitterValueV);
@@ -482,7 +478,13 @@ void UViewportManager::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIn
 			if (auto* HRight = Cast(RootSplit->SideRB)) HRight->SetEffectiveRatio(SplitterValueH);
 			RootSplit->OnResize(ActiveViewportRect);
 		}
+
+		// 뷰포트 동기화 (렌더링 전 정확한 상태 설정)
 		SyncRectsToViewports();
+
+		// 애니 시작 시점에 쿼드 레이아웃으로 전환 (렌더링 직전에 수행)
+		ViewportLayout = EViewportLayout::Quad;
+		Root = QuadRoot;
 	}
 }
 

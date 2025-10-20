@@ -11,6 +11,12 @@
 #include "Editor/Public/EditorEngine.h"
 #include "Actor/Public/StaticMeshActor.h"
 #include "Level/Public/Level.h"
+#include "Actor/Public/AmbientLight.h"
+#include "Actor/Public/DirectionalLight.h"
+#include "Actor/Public/PointLight.h"
+#include "Actor/Public/SpotLight.h"
+#include "Actor/Public/DecalActor.h"
+#include "Actor/Public/DecalSpotLightActor.h"
 
 IMPLEMENT_CLASS(ULevelTabBarWidget, UWidget)
 
@@ -246,57 +252,95 @@ void ULevelTabBarWidget::RenderWidget()
 			ImGui::OpenPopup("CreateActorMenu"); // ← 팝업 열기
 		}
 
-		// 팝업 메뉴: 여기서 MenuItem들을 사용
-		// 팝업 메뉴: 여기서 MenuItem들을 사용
+		// 팝업 메뉴: 계층적 액터 생성 메뉴
 		if (ImGui::BeginPopup("CreateActorMenu"))
 		{
-			// FutureEngine 철학: GEditor -> EditorWorld -> SpawnActor
-			if (ImGui::MenuItem("Actor"))
+			if (!GEditor)
 			{
-				if (GEditor)
+				ImGui::EndPopup();
+			}
+			else
+			{
+				UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+				if (!EditorWorld)
 				{
-					UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-					if (EditorWorld)
+					ImGui::EndPopup();
+				}
+				else
+				{
+					// Lights 서브메뉴
+					if (ImGui::BeginMenu("Lights"))
 					{
-						EditorWorld->SpawnActor(AActor::StaticClass());
+						if (ImGui::MenuItem("Ambient Light"))
+						{
+							EditorWorld->SpawnActor(AAmbientLight::StaticClass());
+						}
+						if (ImGui::MenuItem("Directional Light"))
+						{
+							EditorWorld->SpawnActor(ADirectionalLight::StaticClass());
+						}
+						if (ImGui::MenuItem("Point Light"))
+						{
+							EditorWorld->SpawnActor(APointLight::StaticClass());
+						}
+						if (ImGui::MenuItem("Spot Light"))
+						{
+							EditorWorld->SpawnActor(ASpotLight::StaticClass());
+						}
+						ImGui::EndMenu();
 					}
+
+					// Decals 서브메뉴
+					if (ImGui::BeginMenu("Decals"))
+					{
+						if (ImGui::MenuItem("Decal Actor"))
+						{
+							EditorWorld->SpawnActor(ADecalActor::StaticClass());
+						}
+						if (ImGui::MenuItem("Decal Spot Light Actor"))
+						{
+							EditorWorld->SpawnActor(ADecalSpotLightActor::StaticClass());
+						}
+						ImGui::EndMenu();
+					}
+
+					ImGui::Separator();
+
+					// 기타 모든 Actor 타입 (동적으로 로드)
+					if (ImGui::BeginMenu("Other Actors"))
+					{
+						// FutureEngine 철학: UClass::FindClasses로 모든 Actor 타입 검색
+						TArray<UClass*> AllActorClasses = UClass::FindClasses(AActor::StaticClass());
+
+						// 이미 카테고리화된 클래스 제외
+						for (UClass* ActorClass : AllActorClasses)
+						{
+							// Light 계열 제외
+							if (ActorClass->IsChildOf(ALight::StaticClass()))
+								continue;
+
+							// Decal 계열 제외
+							if (ActorClass == ADecalActor::StaticClass() || ActorClass == ADecalSpotLightActor::StaticClass())
+								continue;
+
+							FString ClassName = ActorClass->GetName().ToString();
+							// 'A' 접두사 제거
+							if (ClassName.size() > 0 && ClassName[0] == 'A')
+							{
+								ClassName = ClassName.substr(1);
+							}
+
+							if (ImGui::MenuItem(ClassName.c_str()))
+							{
+								EditorWorld->SpawnActor(ActorClass);
+							}
+						}
+						ImGui::EndMenu();
+					}
+
+					ImGui::EndPopup();
 				}
 			}
-			if (ImGui::MenuItem("Static Mesh Actor"))
-			{
-				if (GEditor)
-				{
-					UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-					if (EditorWorld)
-					{
-						EditorWorld->SpawnActor(AStaticMeshActor::StaticClass());
-					}
-				}
-			}
-
-			// 추후에 다른 액터 추가용 코드 
-			//ImGui::Separator();
-			//
-			//if (ImGui::BeginMenu("Lights"))
-			//{
-			//	if (ImGui::MenuItem("Point Light")) {  }
-			//	if (ImGui::MenuItem("Directional Light")) { }
-			//	if (ImGui::MenuItem("Spot Light")) {  }
-			//	ImGui::EndMenu();
-			//}
-			//
-			//ImGui::Separator();
-			//
-			//if (ImGui::BeginMenu("Shapes"))
-			//{
-			//	if (ImGui::MenuItem("Cube")) { }
-			//	if (ImGui::MenuItem("Sphere")) { }
-			//	if (ImGui::MenuItem("Plane")) {  }
-			//	if (ImGui::MenuItem("Cylinder")) { }
-			//	ImGui::EndMenu();
-			//}
-
-			ImGui::EndPopup();
 		}
 
 		ToolbarVSeparator(10.0f, 6.0f, 6.0f, 1.0f, separatorColor, 5.0f);
