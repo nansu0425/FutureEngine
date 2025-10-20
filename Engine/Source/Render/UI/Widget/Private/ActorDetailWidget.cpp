@@ -57,8 +57,19 @@ void UActorDetailWidget::RenderWidget()
 	
 	    ImGui::Separator();
 	
+	    // CollapsingHeader 검은색 스타일 적용
+	    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	    
 	    if (ImGui::CollapsingHeader("Tick Settings"))
 	    {
+	        // 체크박스 검은색 스타일 적용
+	        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+	        
 	        bool bCanEverTick = SelectedActor->CanTick();
 	        if (ImGui::Checkbox("Enable Tick", &bCanEverTick))
 	        {
@@ -70,7 +81,11 @@ void UActorDetailWidget::RenderWidget()
 	        {
 	            SelectedActor->SetTickInEditor(bTickInEditor);
 	        }
+	        
+	        ImGui::PopStyleColor(4);
 	    }
+	    
+	    ImGui::PopStyleColor(3);
 	ImGui::Separator();
 
 	// 컴포넌트 트리 렌더링

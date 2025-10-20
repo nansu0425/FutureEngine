@@ -83,6 +83,7 @@ void UMainBarWidget::RenderWidget()
 			ImGui::SameLine(0.0f, 0.0f);
 
 			// 메뉴 Listing - FutureEngine 스타일
+			RenderFileMenu();
 			RenderViewMenu();
 			RenderShowFlagsMenu();
 			RenderWindowsMenu();
@@ -187,6 +188,51 @@ void UMainBarWidget::RenderWindowsMenu() const
 	}
 }
 
+/**
+ * @brief File 메뉴를 렌더링합니다
+ */
+void UMainBarWidget::RenderFileMenu()
+{
+	if (ImGui::BeginMenu("파일"))
+	{
+		// 레벨 관련 메뉴
+		if (ImGui::MenuItem("새 레벨", "Ctrl+N"))
+		{
+			CreateNewLevel();
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("레벨 열기", "Ctrl+O"))
+		{
+			LoadLevel();
+		}
+
+		if (ImGui::MenuItem("레벨 저장", "Ctrl+S"))
+		{
+			SaveCurrentLevel();
+		}
+
+		ImGui::Separator();
+
+		// 일반 파일 작업
+		if (ImGui::MenuItem("일반 파일 열기"))
+		{
+			UE_LOG("MainBarWidget: 일반 파일 열기 메뉴 선택됨");
+			// TODO(KHJ): 일반 파일 열기 로직 구현
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("종료", "Alt+F4"))
+		{
+			UE_LOG("MainBarWidget: 프로그램 종료 메뉴 선택됨");
+			// TODO(KHJ): 프로그램 종료 로직 구현
+		}
+
+		ImGui::EndMenu();
+	}
+}
 /**
  * @brief View 메뉴를 렌더링하는 함수
  * ViewMode 선택 기능 (Lit, Unlit, Wireframe)
@@ -433,5 +479,188 @@ void UMainBarWidget::RenderHelpMenu()
 	}
 }
 
+/**
+ * @brief 새 레벨 생성
+ */
+void UMainBarWidget::CreateNewLevel()
+{
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
+	}
+	
+	// TODO: 레벨 이름 입력 다이얼로그 추가 가능
+	FString LevelName = "NewLevel";
+	
+	bool bSuccess = GEditor->CreateNewLevel(LevelName);
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 새 레벨 '%s' 생성 성공", LevelName.c_str());
+	}
+	else
+	{
+		UE_LOG_ERROR("MainBarWidget: 새 레벨 생성 실패");
+	}
+}
 
+/**
+ * @brief 레벨 열기
+ */
+void UMainBarWidget::LoadLevel()
+{
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
+	}
+	
+	path FilePath = OpenLoadFileDialog();
+	if (FilePath.empty())
+	{
+		UE_LOG("MainBarWidget: 레벨 열기 취소됨");
+		return;
+	}
+	
+	bool bSuccess = GEditor->LoadLevel(FilePath.string());
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 레벨 로드 성공: %s", FilePath.string().c_str());
+	}
+	else
+	{
+		UE_LOG_ERROR("MainBarWidget: 레벨 로드 실패: %s", FilePath.string().c_str());
+	}
+}
 
+/**
+ * @brief 현재 레벨 저장
+ */
+void UMainBarWidget::SaveCurrentLevel()
+{
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
+	}
+	
+	path FilePath = OpenSaveFileDialog();
+	if (FilePath.empty())
+	{
+		UE_LOG("MainBarWidget: 레벨 저장 취소됨");
+		return;
+	}
+	
+	bool bSuccess = GEditor->SaveCurrentLevel(FilePath.string());
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 레벨 저장 성공: %s", FilePath.string().c_str());
+	}
+	else
+	{
+		UE_LOG_ERROR("MainBarWidget: 레벨 저장 실패: %s", FilePath.string().c_str());
+	}
+}
+
+/**
+ * @brief 파일 열기 다이얼로그
+ */
+path UMainBarWidget::OpenLoadFileDialog()
+{
+	path ResultPath = L"";
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (SUCCEEDED(hr))
+	{
+		IFileOpenDialog* pFileOpen = nullptr;
+		hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
+			IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+		
+		if (SUCCEEDED(hr))
+		{
+			COMDLG_FILTERSPEC fileTypes[] = {
+				{L"Scene Files (*.Scene)", L"*.Scene"},
+				{L"All Files (*.*)", L"*.*"}
+			};
+			pFileOpen->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+			pFileOpen->SetFileTypeIndex(1);
+			pFileOpen->SetTitle(L"Load Level");
+			
+			DWORD dwFlags;
+			pFileOpen->GetOptions(&dwFlags);
+			pFileOpen->SetOptions(dwFlags | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
+			
+			hr = pFileOpen->Show(GetActiveWindow());
+			if (SUCCEEDED(hr))
+			{
+				IShellItem* pItem;
+				hr = pFileOpen->GetResult(&pItem);
+				if (SUCCEEDED(hr))
+				{
+					PWSTR pszFilePath;
+					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+					if (SUCCEEDED(hr))
+					{
+						ResultPath = path(pszFilePath);
+						CoTaskMemFree(pszFilePath);
+					}
+					pItem->Release();
+				}
+			}
+			pFileOpen->Release();
+		}
+		CoUninitialize();
+	}
+	return ResultPath;
+}
+
+/**
+ * @brief 파일 저장 다이얼로그
+ */
+path UMainBarWidget::OpenSaveFileDialog()
+{
+	path ResultPath = L"";
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (SUCCEEDED(hr))
+	{
+		IFileSaveDialog* pFileSave = nullptr;
+		hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL,
+			IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+		
+		if (SUCCEEDED(hr))
+		{
+			COMDLG_FILTERSPEC fileTypes[] = {
+				{L"Scene Files (*.Scene)", L"*.Scene"},
+				{L"All Files (*.*)", L"*.*"}
+			};
+			pFileSave->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+			pFileSave->SetFileTypeIndex(1);
+			pFileSave->SetDefaultExtension(L"Scene");
+			pFileSave->SetTitle(L"Save Level");
+			
+			DWORD dwFlags;
+			pFileSave->GetOptions(&dwFlags);
+			pFileSave->SetOptions(dwFlags | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
+			
+			hr = pFileSave->Show(GetActiveWindow());
+			if (SUCCEEDED(hr))
+			{
+				IShellItem* pItem;
+				hr = pFileSave->GetResult(&pItem);
+				if (SUCCEEDED(hr))
+				{
+					PWSTR pszFilePath;
+					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+					if (SUCCEEDED(hr))
+					{
+						ResultPath = path(pszFilePath);
+						CoTaskMemFree(pszFilePath);
+					}
+					pItem->Release();
+				}
+			}
+			pFileSave->Release();
+		}
+		CoUninitialize();
+	}
+	return ResultPath;
+}

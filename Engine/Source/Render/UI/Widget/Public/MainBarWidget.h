@@ -31,8 +31,16 @@ private:
 
 	// FutureEngine 스타일: 필수 메뉴만 유지
 	void RenderWindowsMenu() const;
+	static void RenderFileMenu();
 	static void RenderViewMenu();
 	static void RenderShowFlagsMenu();
 	static void RenderHelpMenu();
+	
+	// 파일 메뉴 기능
+	static void CreateNewLevel();
+	static void LoadLevel();
+	static void SaveCurrentLevel();
+	static path OpenLoadFileDialog();
+	static path OpenSaveFileDialog();
 
 };
