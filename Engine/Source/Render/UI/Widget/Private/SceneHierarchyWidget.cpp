@@ -212,11 +212,18 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 	// 이름 변경 모드인지 확인
 	if (RenamingActor == InActor)
 	{
+		// 입력 필드 색상을 검은색으로 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		
 		// 이름 변경 입력창
 		ImGui::PushItemWidth(-1.0f);
 		bool bEnterPressed = ImGui::InputText("##Rename", RenameBuffer, sizeof(RenameBuffer),
 		                                      ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
 		ImGui::PopItemWidth();
+		
+		ImGui::PopStyleColor(3);
 
 		// Enter 키로 확인
 		if (bEnterPressed)
@@ -460,9 +467,17 @@ void USceneHierarchyWidget::RenderSearchBar()
 
 	// 검색창
 	ImGui::SameLine();
+	
+	// 입력 필드 색상을 검은색으로 설정
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	
 	ImGui::PushItemWidth(-1.0f); // 나머지 너비 모두 사용
 	bool bTextChanged = ImGui::InputTextWithHint("##Search", "검색...", SearchBuffer, sizeof(SearchBuffer));
 	ImGui::PopItemWidth();
+	
+	ImGui::PopStyleColor(3);
 
 	// 검색어가 변경되면 필터 업데이트 플래그 설정
 	if (bTextChanged)

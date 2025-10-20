@@ -122,6 +122,13 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		EViewModeIndex CurrentMode = GEditor->GetEditorModule()->GetViewMode();
 		int32 CurrentModeIndex = static_cast<int32>(CurrentMode);
 
+		// 콤보박스 색상을 검은색으로 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));          // 배경
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));  // 호버
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f)); // 액티브
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));          // 버튼
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));   // 버튼 호버
+		
 		ImGui::SetNextItemWidth(140.0f);
 		if (ImGui::Combo("##ViewMode", &CurrentModeIndex, ViewModeLabels, IM_ARRAYSIZE(ViewModeLabels)))
 		{
@@ -130,6 +137,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 				GEditor->GetEditorModule()->SetViewMode(static_cast<EViewModeIndex>(CurrentModeIndex));
 			}
 		}
+		
+		ImGui::PopStyleColor(5);
 
 		// 구분자
 		ImGui::SameLine(0.0f, 10.0f);
@@ -140,6 +149,13 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		EViewType CurType = Clients[ViewportIndex]->GetViewType();
 		int32 CurrentIdx = static_cast<int32>(CurType);
 
+		// 콤보박스 색상을 검은색으로 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));          // 배경
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));  // 호버
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f)); // 액티브
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));          // 버튼
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));   // 버튼 호버
+		
 		ImGui::SetNextItemWidth(140.0f);
 		if (ImGui::Combo("##ViewType", &CurrentIdx, ViewTypeLabels, IM_ARRAYSIZE(ViewTypeLabels)))
 		{
@@ -158,6 +174,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 				}
 			}
 		}
+		
+		ImGui::PopStyleColor(5);
 
 		// 구분자
 		ImGui::SameLine(0.0f, 10.0f);

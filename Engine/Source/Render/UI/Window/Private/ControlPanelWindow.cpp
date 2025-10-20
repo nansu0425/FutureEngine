@@ -21,9 +21,13 @@ UControlPanelWindow::UControlPanelWindow()
 	Config.bResizable = true;
 	Config.bMovable = true;
 	Config.bCollapsible = true;
+	Config.InitialState = EUIWindowState::Hidden; // 기본적으로 숨김
 
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
+	
+	// FutureEngine 철학: InitialState를 명시적으로 설정한 후 현재 상태도 동기화
+	SetWindowState(EUIWindowState::Hidden);
 
 	UWidget* FPSWidget = NewObject<UFPSWidget>();
 	FPSWidget->Initialize();

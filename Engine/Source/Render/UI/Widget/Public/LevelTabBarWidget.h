@@ -46,6 +46,7 @@ private:
 
 private:
     UUIManager* UIManager = nullptr;
+    UBatchLines* BatchLine = nullptr;
 
     // 에디터 좌상단 언리얼 마크
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LeftIconSRV;
@@ -76,5 +77,7 @@ private:
     const float LevelBarHeight = 35.0f;
     const float TotalLevelBarHeight = TabStripHeight + LevelBarHeight;
 
+    // Grid Spacing
+    float GridCellSize = 1.0f;
 };
 
