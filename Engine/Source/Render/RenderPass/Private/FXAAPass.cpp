@@ -53,14 +53,14 @@ void FFXAAPass::Execute(FRenderingContext& Context)
     Pipeline->SetVertexBuffer(FullscreenVB, FullscreenStride);
     Pipeline->SetIndexBuffer(FullscreenIB, 0);
 
-    Pipeline->SetConstantBuffer(0, false, FXAAConstantBuffer);
-    Pipeline->SetTexture(0, false, SceneSRV);
-    Pipeline->SetSamplerState(0, false, SamplerState);
+    Pipeline->SetConstantBuffer(0, EShaderType::PS, FXAAConstantBuffer);
+    Pipeline->SetShaderResourceView(0, EShaderType::PS, SceneSRV);
+    Pipeline->SetSamplerState(0, EShaderType::PS, SamplerState);
 
     Pipeline->DrawIndexed(FullscreenIndexCount, 0, 0);
 
     // 정리
-    Pipeline->SetTexture(0, false, nullptr);
+    Pipeline->SetShaderResourceView(0, EShaderType::PS, nullptr);
 }
 
 void FFXAAPass::Release()

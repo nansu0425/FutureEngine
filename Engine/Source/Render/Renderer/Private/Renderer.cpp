@@ -371,7 +371,7 @@ void URenderer::Update()
         UCamera* CurrentCamera = &ViewportClient.Camera;
         CurrentCamera->Update(ViewportClient.GetViewportInfo());
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
-        Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+        Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
         {
             TIME_PROFILE(RenderLevel)
             RenderLevel(ViewportClient);
@@ -546,12 +546,12 @@ void URenderer::RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const
     // Update constant buffers
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModels,
 		FMatrix::GetModelMatrix(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale));
-	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModels);
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
 	
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferColor, InPrimitive.Color);
-	Pipeline->SetConstantBuffer(2, false, ConstantBufferColor);
-	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferColor);
+	Pipeline->SetConstantBuffer(2, EShaderType::VS, ConstantBufferColor);
 	
     Pipeline->SetVertexBuffer(InPrimitive.VertexBuffer, FinalStride);
 

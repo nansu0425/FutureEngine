@@ -32,11 +32,11 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	Pipeline->UpdatePipeline(PipelineInfo);
 
 	// Set a default sampler to slot 0 to ensure one is always bound
-	Pipeline->SetSamplerState(0, false, URenderer::GetInstance().GetDefaultSampler());
+	Pipeline->SetSamplerState(0, EShaderType::PS, URenderer::GetInstance().GetDefaultSampler());
 
-	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
-	Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
-	Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
+	Pipeline->SetConstantBuffer(1, EShaderType::PS, ConstantBufferCamera);
 	
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
@@ -86,7 +86,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		}
 		
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, MeshComp->GetWorldTransformMatrix());
-		Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+		Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 
 		if (MeshAsset->MaterialInfo.empty() || MeshComp->GetStaticMesh()->GetNumMaterials() == 0) 
 		{
@@ -120,32 +120,32 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				MaterialConstants.Time = MeshComp->GetElapsedTime();
 
 				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, MaterialConstants);
-				Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+				Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferMaterial);
 
 				if (UTexture* DiffuseTexture = Material->GetDiffuseTexture())
 				{
-					Pipeline->SetTexture(0, false, DiffuseTexture->GetTextureSRV());
-					Pipeline->SetSamplerState(0, false, DiffuseTexture->GetTextureSampler());
+					Pipeline->SetShaderResourceView(0, EShaderType::PS, DiffuseTexture->GetTextureSRV());
+					Pipeline->SetSamplerState(0, EShaderType::PS, DiffuseTexture->GetTextureSampler());
 				}
 				if (UTexture* AmbientTexture = Material->GetAmbientTexture())
 				{
-					Pipeline->SetTexture(1, false, AmbientTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(1, EShaderType::PS, AmbientTexture->GetTextureSRV());
 				}
 				if (UTexture* SpecularTexture = Material->GetSpecularTexture())
 				{
-					Pipeline->SetTexture(2, false, SpecularTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(2, EShaderType::PS, SpecularTexture->GetTextureSRV());
 				}
 				if (UTexture* NormalTexture = Material->GetNormalTexture())
 				{
-					Pipeline->SetTexture(3, false, NormalTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(3, EShaderType::PS, NormalTexture->GetTextureSRV());
 				}
 				if (UTexture* AlphaTexture = Material->GetAlphaTexture())
 				{
-					Pipeline->SetTexture(4, false, AlphaTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(4, EShaderType::PS, AlphaTexture->GetTextureSRV());
 				}
 				if (UTexture* BumpTexture = Material->GetBumpTexture()) 
 				{ // 범프 텍스처 추가 그러나 범프 텍스처 사용하지 않아서 없을 것임. 무시 ㄱㄱ
-					Pipeline->SetTexture(5, false, BumpTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(5, EShaderType::PS, BumpTexture->GetTextureSRV());
 					// 필요한 경우 샘플러 지정
 					// Pipeline->SetSamplerState(5, false, BumpTexture->GetTextureSampler());
 				}
@@ -154,7 +154,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 			Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);
 		}
 	}
-	Pipeline->SetConstantBuffer(2, false, nullptr);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, nullptr);
 
 	
 	// --- RTVs Reset ---

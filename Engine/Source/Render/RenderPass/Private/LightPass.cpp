@@ -77,6 +77,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
 
+	
+
 	/*Pipeline->SetConstantBuffer(3, true, ConstantBufferLighting);
 	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);*/
 }

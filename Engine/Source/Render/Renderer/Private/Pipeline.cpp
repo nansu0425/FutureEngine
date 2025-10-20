@@ -1,6 +1,19 @@
 #include "pch.h"
 #include "Render/Renderer/Public/Pipeline.h"
 
+
+//if (ContainShaderType(ShaderType, EShaderType::VS))
+//{
+//	DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+//}
+//if (ContainShaderType(ShaderType, EShaderType::PS))
+//{
+//	DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+//}
+//if (ContainShaderType(ShaderType, EShaderType::CS))
+//{
+//	DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+//}
 /// @brief 그래픽 파이프라인을 관리하는 클래스
 UPipeline::UPipeline(ID3D11DeviceContext* InDeviceContext)
 	: DeviceContext(InDeviceContext)
@@ -59,30 +72,61 @@ void UPipeline::SetVertexBuffer(ID3D11Buffer* VertexBuffer, uint32 Stride)
 }
 
 /// @brief 상수 버퍼를 설정
-void UPipeline::SetConstantBuffer(uint32 Slot, bool bIsVS, ID3D11Buffer* ConstantBuffer)
+void UPipeline::SetConstantBuffer(uint32 Slot, EShaderType ShaderType, ID3D11Buffer* ConstantBuffer)
 {
-	if (bIsVS)
+	if (ContainShaderType(ShaderType, EShaderType::VS))
+	{
 		DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
-	else
-		DeviceContext->PSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+	}
+	if (ContainShaderType(ShaderType, EShaderType::PS))
+	{
+		DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+	}
+	if (ContainShaderType(ShaderType, EShaderType::CS))
+	{
+		DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+	}
 }
 
 /// @brief 텍스처를 설정
-void UPipeline::SetTexture(uint32 Slot, bool bIsVS, ID3D11ShaderResourceView* Srv)
+void UPipeline::SetShaderResourceView(uint32 Slot, EShaderType ShaderType, ID3D11ShaderResourceView* Srv)
 {
-	if (bIsVS)
+	if (ContainShaderType(ShaderType, EShaderType::VS))
+	{
 		DeviceContext->VSSetShaderResources(Slot, 1, &Srv);
-	else
+	}
+	if (ContainShaderType(ShaderType, EShaderType::PS))
+	{
 		DeviceContext->PSSetShaderResources(Slot, 1, &Srv);
+	}
+	if (ContainShaderType(ShaderType, EShaderType::CS))
+	{
+		DeviceContext->CSSetShaderResources(Slot, 1, &Srv);
+	}
+}
+
+//Only CS Possible
+void UPipeline::SetUnorderedAccessView(uint32 Slot, ID3D11UnorderedAccessView* UAV)
+{
+	DeviceContext->CSGetUnorderedAccessViews(Slot, 1, &UAV);
+
 }
 
 /// @brief 샘플러 상태를 설정
-void UPipeline::SetSamplerState(uint32 Slot, bool bIsVS, ID3D11SamplerState* SamplerState)
+void UPipeline::SetSamplerState(uint32 Slot, EShaderType ShaderType, ID3D11SamplerState* SamplerState)
 {
-	if (bIsVS)
+	if (ContainShaderType(ShaderType, EShaderType::VS))
+	{
 		DeviceContext->VSSetSamplers(Slot, 1, &SamplerState);
-	else
+	}
+	if (ContainShaderType(ShaderType, EShaderType::PS))
+	{
 		DeviceContext->PSSetSamplers(Slot, 1, &SamplerState);
+	}
+	if (ContainShaderType(ShaderType, EShaderType::CS))
+	{
+		DeviceContext->CSSetSamplers(Slot, 1, &SamplerState);
+	}
 }
 
 
@@ -102,4 +146,10 @@ void UPipeline::Draw(uint32 VertexCount, uint32 StartLocation)
 void UPipeline::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 BaseVertexLocation)
 {
 	DeviceContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
+}
+
+void UPipeline::DispatchCS(ID3D11ComputeShader* CS, uint32 x, uint32 y = 1, uint32 z = 1)
+{
+	DeviceContext->CSSetShader(CS, nullptr, 0);
+	DeviceContext->Dispatch(x, y, z);
 }
