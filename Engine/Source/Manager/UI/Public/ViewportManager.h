@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Public/Object.h"
+#include "Global/Enum.h"
 
 class SWindow;
 class SSplitter;
@@ -43,7 +44,10 @@ public:
 	bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
-	TArray<FViewportClient*>& GetClients() { return Clients; }
+	EViewModeIndex GetViewportViewMode(int32 Index) const;
+	void SetViewportViewMode(int32 Index, EViewModeIndex InMode);
+	EViewModeIndex GetActiveViewportViewMode() const { return GetViewportViewMode(ActiveIndex); }
+	void SetActiveViewportViewMode(EViewModeIndex InMode) { SetViewportViewMode(ActiveIndex, InMode); }
 
 	// 카메라 배열 접근자
 	const TArray<UCamera*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
@@ -93,6 +97,11 @@ public:
 		ActiveViewportRect = InActiveViewportRect;
 	}
 
+
+	TArray<FViewportClient*>& GetClients()
+	{
+		return Clients;
+	}
 
 private:
 	// 내부 유틸

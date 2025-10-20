@@ -118,8 +118,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 	ImGui::PushID(ViewportIndex);
 	if (ImGui::Begin(WinName, nullptr, flags))
 	{
-		// ViewMode 콤보박스 - KTLWeek07의 EViewModeIndex 사용
-		EViewModeIndex CurrentMode = GEditor->GetEditorModule()->GetViewMode();
+		// ViewMode 콤보박스 - 현재 뷰포트의 ViewMode 사용
+		EViewModeIndex CurrentMode = Clients[ViewportIndex]->GetViewMode();
 		int32 CurrentModeIndex = static_cast<int32>(CurrentMode);
 
 		// 콤보박스 색상을 검은색으로 설정
@@ -134,7 +134,10 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		{
 			if (CurrentModeIndex >= 0 && CurrentModeIndex < IM_ARRAYSIZE(ViewModeLabels))
 			{
-				GEditor->GetEditorModule()->SetViewMode(static_cast<EViewModeIndex>(CurrentModeIndex));
+				// 현재 뷰포트에만 ViewMode 설정
+				Clients[ViewportIndex]->SetViewMode(static_cast<EViewModeIndex>(CurrentModeIndex));
+				UE_LOG("ViewportControlWidget: Viewport[%d]의 ViewMode를 %s로 변경", 
+					ViewportIndex, ViewModeLabels[CurrentModeIndex]);
 			}
 		}
 		

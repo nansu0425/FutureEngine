@@ -467,7 +467,7 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	FRenderingContext RenderingContext(
 		&ViewProj,
 		InViewport->GetViewportClient()->GetCamera(),
-		GEditor->GetEditorModule()->GetViewMode(),
+		InViewport->GetViewportClient()->GetViewMode(),
 		CurrentLevel->GetShowFlags(),
 		InViewport->GetRenderRect(),
 		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}

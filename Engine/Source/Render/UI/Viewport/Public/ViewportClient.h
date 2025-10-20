@@ -19,8 +19,8 @@ public:
     void        SetViewType(EViewType InType) { ViewType = InType; }
     EViewType   GetViewType() const { return ViewType; }
 
-    void        SetViewMode(EViewMode InMode) { ViewMode = InMode; }
-    EViewMode   GetViewMode() const { return ViewMode; }
+    void        SetViewMode(EViewModeIndex InMode) { ViewMode = InMode; }
+    EViewModeIndex GetViewMode() const { return ViewMode; }
 
 
     bool        IsOrtho() const { return ViewType != EViewType::Perspective; }
@@ -54,8 +54,8 @@ public:
 
 private:
     // 상태
-    EViewType   ViewType = EViewType::Perspective;
-    EViewMode   ViewMode = EViewMode::Lit;
+    EViewType       ViewType = EViewType::Perspective;
+    EViewModeIndex  ViewMode = EViewModeIndex::VMI_Gouraud;
 
     UCamera* ViewportCamera = nullptr;
     FViewport* OwningViewport = nullptr;  // FutureEngine: 소속 Viewport 참조

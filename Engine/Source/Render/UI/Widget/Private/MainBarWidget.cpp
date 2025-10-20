@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "Level/Public/Level.h"
 #include <shobjidl.h>
@@ -241,16 +242,9 @@ void UMainBarWidget::RenderViewMenu()
 {
 	if (ImGui::BeginMenu("보기"))
 	{
-		// GEditor에서 EditorModule 가져오기
-		UEditor* EditorInstance = GEditor->GetEditorModule();
-		if (!EditorInstance)
-		{
-			ImGui::Text("에디터를 사용할 수 없습니다");
-			ImGui::EndMenu();
-			return;
-		}
-
-		EViewModeIndex CurrentMode = EditorInstance->GetViewMode();
+		// ViewportManager에서 현재 활성 뷰포트의 ViewMode 가져오기
+		UViewportManager& ViewportMgr = UViewportManager::GetInstance();
+		EViewModeIndex CurrentMode = ViewportMgr.GetActiveViewportViewMode();
 
 		// ViewMode 메뉴 아이템
 		bool bIsGroraud = (CurrentMode == EViewModeIndex::VMI_Gouraud);
@@ -266,43 +260,43 @@ void UMainBarWidget::RenderViewMenu()
 		//	EditorInstance->SetViewMode(EViewModeIndex::VMI_Lit);
 		//	UE_LOG("MainBarWidget: ViewMode를 Lit으로 변경");
 		//}
-		if (ImGui::MenuItem("고로 셰이딩 적용(Gouraud)", nullptr, bIsGroraud) && !bIsGroraud)
+		if (ImGui::MenuItem("고로 셸이딩 적용(Gouraud)", nullptr, bIsGroraud) && !bIsGroraud)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Gouraud);
-			UE_LOG("MainBarWidget: ViewMode를 고로 셰이딩으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Gouraud);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 고로 셸이딩으로 변경");
 		}
-		if (ImGui::MenuItem("램버트 셰이딩 적용(Lambert)", nullptr, bIsLambert) && !bIsLambert)
+		if (ImGui::MenuItem("램버트 셸이딩 적용(Lambert)", nullptr, bIsLambert) && !bIsLambert)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Lambert);
-			UE_LOG("MainBarWidget: ViewMode를 램버트 셰이딩로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Lambert);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 램버트 셸이딩로 변경");
 		}
-		if (ImGui::MenuItem("블린-퐁 셰이딩 적용(Blinn-Phong)", nullptr, bIsBlinnPhong) && !bIsBlinnPhong)
+		if (ImGui::MenuItem("블린-펑 셸이딩 적용(Blinn-Phong)", nullptr, bIsBlinnPhong) && !bIsBlinnPhong)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
-			UE_LOG("MainBarWidget: ViewMode를 블린-퐁 셰이딩으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_BlinnPhong);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 블린-펑 셸이딩으로 변경");
 		}
 		if (ImGui::MenuItem("조명 비적용(Unlit)", nullptr, bIsUnlit) && !bIsUnlit)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Unlit);
-			UE_LOG("MainBarWidget: ViewMode를 Unlit으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Unlit);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 Unlit으로 변경");
 		}
 
 		if (ImGui::MenuItem("와이어프레임(Wireframe)", nullptr, bIsWireframe) && !bIsWireframe)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Wireframe);
-			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Wireframe);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 Wireframe으로 변경");
 		}
 
-		if (ImGui::MenuItem("씬 뎁스(SceneDepth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
+		if (ImGui::MenuItem("씬 듅스(SceneDepth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_SceneDepth);
-			UE_LOG("MainBarWidget: ViewMode를 SceneDepth으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_SceneDepth);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 SceneDepth으로 변경");
 		}
 
 		if (ImGui::MenuItem("월드 노멀(WorldNormal)", nullptr, bIsWorldNormal) && !bIsWorldNormal)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_WorldNormal);
-			UE_LOG("MainBarWidget: ViewMode를 WorldNormal으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_WorldNormal);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 WorldNormal으로 변경");
 		}
 
 		ImGui::EndMenu();

@@ -10,6 +10,7 @@
 #include "Render/UI/Layout/Public/SplitterH.h"
 #include "Render/UI/Window/Public/LevelTabBarWindow.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
+#include "Editor/Public/Editor.h"
 #include "Manager/Input/Public/InputManager.h"
 
 namespace
@@ -18,6 +19,14 @@ namespace
 	constexpr T Lerp(const T& A, const T& B, const T& Alpha)
 	{
 		return A + (B - A) * Alpha;
+	}
+
+	void SyncEditorViewMode(EViewModeIndex InMode)
+	{
+		if (UEditor* Editor = GEditor->GetEditorModule())
+		{
+			Editor->SetViewMode(InMode);
+		}
 	}
 }
 
@@ -410,6 +419,47 @@ bool UViewportManager::ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, f
     return false;
 }
 
+EViewModeIndex UViewportManager::GetViewportViewMode(int32 Index) const
+{
+	// 범위 체크
+	if (Index < 0 || Index >= static_cast<int32>(Clients.size()))
+	{
+		UE_LOG_WARNING("ViewportManager::GetViewportViewMode - Invalid Index: %d", Index);
+		return EViewModeIndex::VMI_Gouraud; // 기본값 반환
+	}
+	
+	// FViewportClient에서 ViewMode 가져오기
+	if (Clients[Index])
+	{
+		return Clients[Index]->GetViewMode();
+	}
+	
+	UE_LOG_WARNING("ViewportManager::GetViewportViewMode - Clients[%d] is null", Index);
+	return EViewModeIndex::VMI_Gouraud; // 기본값 반환
+}
+
+void UViewportManager::SetViewportViewMode(int32 Index, EViewModeIndex InMode)
+{
+	// 범위 체크
+	if (Index < 0 || Index >= static_cast<int32>(Clients.size()))
+	{
+		UE_LOG_WARNING("ViewportManager::SetViewportViewMode - Invalid Index: %d", Index);
+		return;
+	}
+	
+	// FViewportClient에 ViewMode 설정
+	if (Clients[Index])
+	{
+		Clients[Index]->SetViewMode(InMode);
+		UE_LOG("ViewportManager: Viewport[%d]의 ViewMode를 %d로 변경", Index, static_cast<int32>(InMode));
+	}
+	else
+	{
+		UE_LOG_WARNING("ViewportManager::SetViewportViewMode - Clients[%d] is null", Index);
+	}
+}
+
+
 void UViewportManager::PersistSplitterRatios()
 {
 	// 세로(Vertical) 비율은 QuadRoot(= SplitterV)에서 읽는다
@@ -625,16 +675,16 @@ void UViewportManager::InitializeViewportAndClient()
 	}
 	// 이 값들은 조절가능 일단 기본으로 셋
 	Clients[0]->SetViewType(EViewType::Perspective);
-	Clients[0]->SetViewMode(EViewMode::Unlit);
+	Clients[0]->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
 
-	Clients[1]->SetViewType(EViewType::OrthoLeft);
-	Clients[1]->SetViewMode(EViewMode::WireFrame);
+	Clients[1]->SetViewType(EViewType::Perspective);
+	Clients[1]->SetViewMode(EViewModeIndex::VMI_Lambert);
 
-	Clients[2]->SetViewType(EViewType::OrthoTop);
-	Clients[2]->SetViewMode(EViewMode::WireFrame);
+	Clients[2]->SetViewType(EViewType::Perspective);
+	Clients[2]->SetViewMode(EViewModeIndex::VMI_Gouraud);
 
-	Clients[3]->SetViewType(EViewType::OrthoRight);
-	Clients[3]->SetViewMode(EViewMode::WireFrame);
+	Clients[3]->SetViewType(EViewType::Perspective);
+	Clients[3]->SetViewMode(EViewModeIndex::VMI_Unlit);
 	UE_LOG("ViewportManager: 총 %zu개 Viewport, %zu개 Client 생성", Viewports.size(), Clients.size());
 }
 
