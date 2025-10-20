@@ -295,7 +295,10 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
         return false;
     }
 
-    
+	if (ULightComponent* LightComponent = Cast<ULightComponent>(InComponentToDelete))
+	{
+		GWorld->GetLevel()->UnregisterComponent(LightComponent);
+	}
     if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
     {
          GWorld->GetLevel()->UnregisterComponent(PrimitiveComponent);
