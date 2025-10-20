@@ -8,6 +8,15 @@
 #include "Texture/Public/Texture.h"
 #include <filesystem>
 
+// N과 직교하는 안전한 탄젠트 생성 (폴백용)
+static FORCEINLINE FVector MakeFallbackTangent(const FVector& N)
+{
+	// N과 덜 평행한 기준축 선택
+	const FVector Pick = (abs(N.Z) < 0.999f) ? FVector(0.f, 0.f, 1.f) : FVector(0.f, 1.f, 0.f);
+	FVector T = Cross(Pick, N);
+	T.Normalize();
+	return T;
+}
 static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32>& Indices)
 {
 	TArray<FVector> AccumulatedBitangent;
@@ -80,7 +89,7 @@ static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32
 		}
 		else
 		{
-			Tangent = FVector(1.0f, 0.0f, 0.0f);
+			Tangent = MakeFallbackTangent(Normal);
 		}
 
 		FVector Bitangent = AccumulatedBitangent[V];
