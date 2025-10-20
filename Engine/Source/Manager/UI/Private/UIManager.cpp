@@ -166,6 +166,9 @@ void UUIManager::Render()
 		}
 	}
 
+	// FutureEngine 철학: 스플리터 오버레이 렌더링 (Quad 모드에서 호버링 효과)
+	UViewportManager::GetInstance().RenderOverlay();
+
 	// ImGui 프레임 종료
 	ImGuiHelper->EndFrame();
 }

@@ -250,13 +250,20 @@ void SSplitter::OnPaint()
 		}
 	}
 
+	// FutureEngine 철학: 호버링 시 마우스 커서 변경
+	if (hovered)
+	{
+		if (Orientation == EOrientation::Vertical)
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+		}
+		else
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+		}
+	}
+
 	ImDrawList* dl = ImGui::GetBackgroundDrawList();
-
-
-	//UE_LOG("splitter rect=(%d,%d %dx%d) handle=(%d,%d %dx%d) mouse=(%d,%d) hovered=%d vp=(%.1f,%.1f)", Rect.X,
-	//	Rect.Y, Rect.W, Rect.H, h.X, h.Y, h.W, h.H, (int)P.X, (int)P.Y, hovered ? 1 : 0, ImGui::GetMainViewport()->Pos.x,
-	//	ImGui::GetMainViewport()->Pos.y);
-
 
 	// Only highlight the splitter handle, not the full rect
 	ImVec2 p0{ (float)h.Left, (float)h.Top };

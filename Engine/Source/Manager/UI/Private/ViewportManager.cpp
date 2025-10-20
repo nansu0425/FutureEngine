@@ -197,6 +197,7 @@ void UViewportManager::Update()
 
 void UViewportManager::RenderOverlay()
 {
+	// FutureEngine 철학: Quad 모드나 애니메이션 중에만 스플리터 렌더링
 	if (!(ViewportLayout == EViewportLayout::Quad || ViewportAnimation.bIsAnimating))
 		return;
 
