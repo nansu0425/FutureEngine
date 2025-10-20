@@ -178,3 +178,28 @@ inline uint64 operator&(uint64 lhs, EEngineShowFlags rhs)
 {
 	return lhs & static_cast<uint64>(rhs);
 }
+
+// Viewport layout modes
+enum class EViewportLayout : uint8
+{
+	Single = 0,
+	Quad = 1
+};
+
+enum class EViewMode : uint8
+{
+	Lit,
+	Unlit,
+	WireFrame
+};
+
+enum class EViewType : uint8
+{
+	Perspective,
+	OrthoTop,
+	OrthoBottom,
+	OrthoLeft,
+	OrthoRight,
+	OrthoFront,
+	OrthoBack
+};

@@ -11,8 +11,8 @@
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Viewport.h"
-#include "Editor/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 #include "Level/Public/Level.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Optimization/Public/OcclusionCuller.h"
@@ -30,6 +30,7 @@
 
 #include "Render/RenderPass/Public/SceneDepthPass.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
@@ -58,7 +59,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateFXAAShader();
 	CreateStaticMeshShader();
 
-	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
+	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 	ConstantBufferLighting, UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
@@ -359,19 +360,22 @@ void URenderer::Update()
 
     RenderBegin();
 
-    for (FViewportClient& ViewportClient : ViewportClient->GetViewports())
+    for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
     {
-        if (ViewportClient.GetViewportInfo().Width < 1.0f || ViewportClient.GetViewportInfo().Height < 1.0f) { continue; }
+        if (Viewport->GetRect().Width < 1.0f || Viewport->GetRect().Height < 1.0f) { continue; }
 
-        ViewportClient.Apply(GetDeviceContext());
-
-        UCamera* CurrentCamera = &ViewportClient.Camera;
-        CurrentCamera->Update(ViewportClient.GetViewportInfo());
+    	FRect SingleWindowRect = Viewport->GetRect();
+    	const int32 ViewportToolBarHeight = 32;
+    	D3D11_VIEWPORT LocalViewport = { (float)SingleWindowRect.Left,(float)SingleWindowRect.Top + ViewportToolBarHeight, (float)SingleWindowRect.Width, (float)SingleWindowRect.Height - ViewportToolBarHeight, 0.0f, 1.0f };
+    	GetDeviceContext()->RSSetViewports(1, &LocalViewport);
+		Viewport->SetRenderRect(LocalViewport);
+        UCamera* CurrentCamera = Viewport->GetViewportClient()->GetCamera();
+        CurrentCamera->Update(LocalViewport);
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
         Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
         {
             TIME_PROFILE(RenderLevel)
-            RenderLevel(ViewportClient);
+            RenderLevel(Viewport);
         }
 		{
 			TIME_PROFILE(RenderEditor)
@@ -442,20 +446,20 @@ void URenderer::RenderBegin() const
     DeviceResources->UpdateViewport();
 }
 
-void URenderer::RenderLevel(FViewportClient& InViewportClient)
+void URenderer::RenderLevel(FViewport* InViewport)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
 
-	const FCameraConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
+	const FCameraConstants& ViewProj = InViewport->GetViewportClient()->GetCamera()->GetFViewProjConstants();
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
 
 	FRenderingContext RenderingContext(
 		&ViewProj,
-		&InViewportClient.Camera,
+		InViewport->GetViewportClient()->GetCamera(),
 		GEditor->GetEditorModule()->GetViewMode(),
 		CurrentLevel->GetShowFlags(),
-		InViewportClient.ViewportInfo,
+		InViewport->GetRenderRect(),
 		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
 		);
 	// 1. Sort visible primitive components

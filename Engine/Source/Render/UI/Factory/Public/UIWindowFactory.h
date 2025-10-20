@@ -10,7 +10,7 @@ class UDetailWindow;
 class UMainMenuWindow;
 class UEditorWindow;
 class UViewportClientWindow;
-
+class ULevelTabBarWindow;
 /**
  * @brief UI 윈도우 도킹 방향
  */
@@ -35,6 +35,7 @@ public:
 	static UConsoleWindow* CreateConsoleWindow(EUIDockDirection InDockDirection = EUIDockDirection::Bottom);
 	static UControlPanelWindow* CreateControlPanelWindow(EUIDockDirection InDockDirection = EUIDockDirection::Left);
 	static UOutlinerWindow* CreateOutlinerWindow(EUIDockDirection InDockDirection = EUIDockDirection::Center);
+	static ULevelTabBarWindow* CreateLevelTabBarWindow();
 	static UDetailWindow* CreateDetailWindow(EUIDockDirection InDockDirection = EUIDockDirection::Right);
 	static UExperimentalFeatureWindow*
 		CreateExperimentalFeatureWindow(EUIDockDirection InDockDirection = EUIDockDirection::Right);

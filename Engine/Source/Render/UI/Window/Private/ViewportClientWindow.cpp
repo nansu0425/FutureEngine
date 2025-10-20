@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/ViewportClientWindow.h"
-#include "Render/UI/Widget/Public/ViewportMenuBarWidget.h"
+#include "Render/UI/Widget/Public/ViewportControlWidget.h"
 #include "Render/Renderer/Public/Renderer.h" 
-#include "Editor/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 
 IMPLEMENT_CLASS(UViewportClientWindow, UUIWindow)
 
@@ -10,21 +10,17 @@ UViewportClientWindow::UViewportClientWindow()
 {
 	SetupConfig();
 
-	// 위젯 생성 및 초기화
-	if (UViewportMenuBarWidget* MenuBarWidget = NewObject<UViewportMenuBarWidget>())
+	// 위젯 생성 및 초기화 - ViewportControlWidget 사용
+	if (UViewportControlWidget* ControlWidget = NewObject<UViewportControlWidget>())
 	{
-		ViewportMenuBarWidget = MenuBarWidget;
-		if (FViewport* ViewportClient = URenderer::GetInstance().GetViewportClient())
-		{
-			ViewportMenuBarWidget->SetViewportClient(ViewportClient);
-			ViewportMenuBarWidget->Initialize();
-			AddWidget(ViewportMenuBarWidget);
-			UE_LOG("ViewportClientWindow: ViewportMenuBarWidget이 생성되고 초기화되었습니다");
-		}
+		ViewportControlWidget = ControlWidget;
+		ViewportControlWidget->Initialize();
+		AddWidget(ViewportControlWidget);
+		UE_LOG("ViewportClientWindow: ViewportControlWidget이 생성되고 초기화되었습니다");
 	}
 	else
 	{
-		UE_LOG("ViewportClientWindow: Error: ViewportMenuBarWidget 생성에 실패했습니다!");
+		UE_LOG("ViewportClientWindow: Error: ViewportControlWidget 생성에 실패했습니다!");
 		return;
 	}
 

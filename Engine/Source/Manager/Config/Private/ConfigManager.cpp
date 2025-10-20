@@ -66,59 +66,16 @@ void UConfigManager::SaveEditorSetting()
 	}
 }
 
+// FutureEngine 철학: 카메라 설정은 ViewportManager를 통해 각 ViewportClient의 Camera에서 관리
+// ConfigManager는 더 이상 카메라 설정을 직접 관리하지 않음
 JSON UConfigManager::GetCameraSettingsAsJson()
 {
-	JSON cameraArray = json::Array(); // 반환할 JSON 배열 생성
-
-	// 4개의 뷰포트 카메라 설정을 모두 순회
-	for (int i = 0; i < 4; ++i)
-	{
-		JSON cameraObject = json::Object();
-		const auto& data = ViewportCameraSettings[i];
-
-		// 각 카메라의 데이터를 JSON 객체에 저장
-		cameraObject["Location"] = FJsonSerializer::VectorToJson(data.Location);
-		cameraObject["Rotation"] = FJsonSerializer::VectorToJson(data.Rotation);
-		cameraObject["FarClip"] = FJsonSerializer::FloatToArrayJson(data.FarClip);
-		cameraObject["NearClip"] = FJsonSerializer::FloatToArrayJson(data.NearClip);
-		cameraObject["FOV"] = FJsonSerializer::FloatToArrayJson(data.FovY);
-		cameraObject["ViewportCameraType"] = static_cast<int>(data.ViewportCameraType);
-
-		// 완성된 객체를 배열에 추가
-		cameraArray.append(cameraObject);
-	}
-	return cameraArray;
+	// 빈 배열 반환 (하위 호환성을 위해 함수는 유지)
+	return json::Array();
 }
 
 void UConfigManager::SetCameraSettingsFromJson(const JSON& InData)
 {
-	if (InData.JSONType() != JSON::Class::Array || InData.size() != 4)
-	{
-		return;
-	}
-
-	int i = 0;
-	for (const JSON& cameraObject : InData.ArrayRange())
-	{
-		if (i >= 4) break; // 안전장치
-		if (cameraObject.JSONType() != JSON::Class::Object) continue;
-
-		FJsonSerializer::ReadVector(cameraObject, "Location", ViewportCameraSettings[i].Location);
-		FJsonSerializer::ReadVector(cameraObject, "Rotation", ViewportCameraSettings[i].Rotation);
-		FJsonSerializer::ReadArrayFloat(cameraObject, "FOV", ViewportCameraSettings[i].FovY);
-		FJsonSerializer::ReadArrayFloat(cameraObject, "FarClip", ViewportCameraSettings[i].FarClip);
-		FJsonSerializer::ReadArrayFloat(cameraObject, "NearClip", ViewportCameraSettings[i].NearClip);
-		
-		// ReadInt32 대신 더 안전한 방식으로 enum 값을 읽어옵니다.
-		if (cameraObject.hasKey("ViewportCameraType") && cameraObject.at("ViewportCameraType").JSONType() == JSON::Class::Integral)
-		{
-			ViewportCameraSettings[i].ViewportCameraType = static_cast<EViewportCameraType>(cameraObject.at("ViewportCameraType").ToInt());
-		}
-		else
-		{
-			ViewportCameraSettings[i].ViewportCameraType = EViewportCameraType::Perspective;
-		}
-
-		i++;
-	}
+	// 카메라 설정은 ViewportManager를 통해 처리되어야 함
+	// 이 함수는 하위 호환성을 위해 유지되지만 아무 작업도 수행하지 않음
 }

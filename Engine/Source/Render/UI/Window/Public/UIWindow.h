@@ -157,6 +157,9 @@ protected:
 	void RenderWidget();
 	void Update() const;
 
+protected:
+	float WindowHeight = 0;
+
 private:
 	void ProcessDeleteWidgets();
 	

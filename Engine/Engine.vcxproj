@@ -358,9 +358,6 @@
     <ClInclude Include="Source\Core\Public\WindowsBinReader.h" />
     <ClInclude Include="Source\Core\Public\WindowsBinWriter.h" />
     <ClInclude Include="Source\Editor\Public\EditorEngine.h" />
-    <ClInclude Include="Source\Editor\Public\SplitterWindow.h" />
-    <ClInclude Include="Source\Editor\Public\ViewportClient.h" />
-    <ClInclude Include="Source\Editor\Public\Viewport.h" />
     <ClInclude Include="Source\Global\BVH.h" />
     <ClInclude Include="Source\Global\Octree.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
@@ -372,6 +369,7 @@
       <DeploymentContent>false</DeploymentContent>
     </ClInclude>
     <ClInclude Include="Source\Manager\Asset\Public\TextureManager.h" />
+    <ClInclude Include="Source\Manager\UI\Public\ViewportManager.h" />
     <ClInclude Include="Source\Optimization\Public\OcclusionCuller.h" />
     <ClInclude Include="Source\Optimization\Public\ViewVolumeCuller.h" />
     <ClInclude Include="Source\Physics\Public\AABB.h" />
@@ -435,16 +433,22 @@
     <ClInclude Include="Source\Render\RenderPass\Public\TextPass.h" />
     <ClInclude Include="Source\Render\UI\Factory\Public\UIWindowFactory.h" />
     <ClInclude Include="Source\Render\UI\ImGui\Public\ImGuiHelper.h" />
+    <ClInclude Include="Source\Render\UI\Layout\Public\Splitter.h" />
+    <ClInclude Include="Source\Render\UI\Layout\Public\SplitterH.h" />
+    <ClInclude Include="Source\Render\UI\Layout\Public\SplitterV.h" />
     <ClInclude Include="Source\Render\UI\Overlay\Public\StatOverlay.h" />
+    <ClInclude Include="Source\Render\UI\Viewport\Public\Viewport.h" />
+    <ClInclude Include="Source\Render\UI\Viewport\Public\ViewportClient.h" />
+    <ClInclude Include="Source\Render\UI\Viewport\Public\Window.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorDetailWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorTerminationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\AmbientLightComponentWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\CameraControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\DecalTextureSelectionWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\LevelTabBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ActorSpawnWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\DirectionalLightComponentWidget.h" />
@@ -454,16 +458,17 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneIOWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SetTextComponentWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\SplitterDebugWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SpotLightComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SpriteSelectionWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\StaticMeshComponentWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\ViewportControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportMenuBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\Widget.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ConsoleWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ControlPanelWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\EditorWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ExperimentalFeatureWindow.h" />
+    <ClInclude Include="Source\Render\UI\Window\Public\LevelTabBarWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\MainMenuWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\OutlinerWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\DetailWindow.h" />
@@ -544,9 +549,6 @@
     <ClCompile Include="Source\Core\Public\WindowsBinReader.cpp" />
     <ClCompile Include="Source\Editor\Private\EditorEngine.cpp">
     </ClCompile>
-    <ClCompile Include="Source\Editor\Private\SplitterWindow.cpp" />
-    <ClCompile Include="Source\Editor\Private\ViewportClient.cpp" />
-    <ClCompile Include="Source\Editor\Private\Viewport.cpp" />
     <ClCompile Include="Source\Global\BVH.cpp" />
     <ClCompile Include="Source\Global\Octree.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
@@ -559,6 +561,7 @@
       <DeploymentContent>false</DeploymentContent>
     </ClCompile>
     <ClCompile Include="Source\Manager\Asset\Private\TextureManager.cpp" />
+    <ClCompile Include="Source\Manager\UI\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Optimization\Private\OcclusionCuller.cpp" />
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
@@ -608,16 +611,20 @@
     <ClCompile Include="Source\Render\RenderPass\Private\TextPass.cpp" />
     <ClCompile Include="Source\Render\UI\Factory\Private\UIWindowFactory.cpp" />
     <ClCompile Include="Source\Render\UI\ImGui\Private\ImGuiHelper.cpp" />
+    <ClCompile Include="Source\Render\UI\Layout\Private\Splitter.cpp" />
     <ClCompile Include="Source\Render\UI\Overlay\Private\StatOverlay.cpp" />
+    <ClCompile Include="Source\Render\UI\Viewport\Private\Viewport.cpp" />
+    <ClCompile Include="Source\Render\UI\Viewport\Private\ViewportClient.cpp" />
+    <ClCompile Include="Source\Render\UI\Viewport\Private\Window.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorDetailWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorTerminationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\AmbientLightComponentWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\CameraControlWIdget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\DecalTextureSelectionWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\LevelTabBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ActorSpawnWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\DirectionalLightComponentWidget.cpp" />
@@ -627,16 +634,92 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneIOWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SetTextComponentWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\SplitterDebugWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SpotLightComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SpriteSelectionWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\StaticMeshComponentWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\ViewportControlWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportMenuBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\Widget.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ConsoleWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ControlPanelWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\EditorWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ExperimentalFeatureWindow.cpp" />
+    <ClCompile Include="Source\Render\UI\Window\Private\LevelTabBarWindow.cpp">
+      <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <SupportJustMyCode>true</SupportJustMyCode>
+      <AssemblerOutput>NoListing</AssemblerOutput>
+      <AssemblerListingLocation>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</AssemblerListingLocation>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <BrowseInformation>false</BrowseInformation>
+      <BrowseInformationFile>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</BrowseInformationFile>
+      <CompileAs>Default</CompileAs>
+      <ConformanceMode>true</ConformanceMode>
+      <DiagnosticsFormat>Column</DiagnosticsFormat>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <ErrorReporting>Prompt</ErrorReporting>
+      <ExpandAttributedSource>false</ExpandAttributedSource>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <EnableASAN>false</EnableASAN>
+      <EnableFuzzer>false</EnableFuzzer>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+      <GenerateModuleDependencies>false</GenerateModuleDependencies>
+      <GenerateSourceDependencies>false</GenerateSourceDependencies>
+      <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <MinimalRebuild>false</MinimalRebuild>
+      <ModuleDependenciesFile>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</ModuleDependenciesFile>
+      <ModuleOutputFile>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</ModuleOutputFile>
+      <OmitDefaultLibName>false</OmitDefaultLibName>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ObjectFileName>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</ObjectFileName>
+      <CallingConvention>Cdecl</CallingConvention>
+      <ProgramDataBaseFileName>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\vc143.pdb</ProgramDataBaseFileName>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\Engine.pch</PrecompiledHeaderOutputFile>
+      <PreprocessToFile>false</PreprocessToFile>
+      <PreprocessKeepComments>false</PreprocessKeepComments>
+      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+      <ShowIncludes>false</ShowIncludes>
+      <SourceDependenciesFile>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</SourceDependenciesFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
+      <SpectreMitigation>false</SpectreMitigation>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <TrackerLogDirectory>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\Engine.tlog\</TrackerLogDirectory>
+      <TranslateIncludes>false</TranslateIncludes>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <UseFullPaths>true</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <XMLDocumentationFileName>C:\Users\Jungle\Desktop\KTLWeek07\Build\Debug\Intermediate\</XMLDocumentationFileName>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <IntelJCCErratum>false</IntelJCCErratum>
+      <BuildStlModules>false</BuildStlModules>
+      <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+      <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+      <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_DEVELOP=1;_UNICODE;UNICODE;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\Jungle\Desktop\KTLWeek07\Engine\Source;C:\Users\Jungle\Desktop\KTLWeek07\External\Include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 </AdditionalOptions>
+      <LinkCompiled>true</LinkCompiled>
+    </ClCompile>
     <ClCompile Include="Source\Render\UI\Window\Private\MainMenuWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\OutlinerWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\DetailWindow.cpp" />
@@ -728,5 +811,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Engine.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Source\Manager\UI\Layout\Private\" />
+    <Folder Include="Source\Manager\UI\Layout\Public\" />
   </ItemGroup>
 </Project>

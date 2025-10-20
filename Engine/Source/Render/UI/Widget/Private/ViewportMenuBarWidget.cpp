@@ -1,8 +1,9 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ViewportMenuBarWidget.h"
-#include "Editor/Public/Viewport.h"
-#include "Editor/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 #include "Editor/Public/Editor.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 /* *
 * @brief UI에 적용할 색상을 정의합니다.
@@ -34,12 +35,14 @@ void UViewportMenuBarWidget::RenderWidget()
 {
 	if (!Viewport) { return; }
 
-	TArray<FViewportClient>& ViewportClients = Viewport->GetViewports();
-
-	for (int Index = 0; Index < ViewportClients.size(); ++Index)
+	//TArray<FViewportClient>& ViewportClients = UViewportManager::GetInstance().GetViewportClient();
+	auto& ViewportManager = UViewportManager::GetInstance();
+	for (int Index = 0; Index < ViewportManager.GetViewports().size(); ++Index)
 	{
-		FViewportClient& ViewportClient = ViewportClients[Index];
-		const D3D11_VIEWPORT& ViewportInfo = ViewportClient.GetViewportInfo();
+		// FutureEngine 철학: Viewport가 Client를 소유, Client가 Camera를 관리
+		FViewport* CurrentViewport = ViewportManager.GetViewports()[Index];
+		FViewportClient* ViewportClient = CurrentViewport->GetViewportClient();
+		const D3D11_VIEWPORT& ViewportInfo = CurrentViewport->GetRenderRect();
 
 		// 뷰포트 영역이 너무 작으면 렌더링하지 않음
 		if (ViewportInfo.Width < 1.0f || ViewportInfo.Height < 1.0f) { continue; }
@@ -85,22 +88,27 @@ void UViewportMenuBarWidget::RenderWidget()
 		if (ImGui::BeginMenuBar())
 		{
 			// 3. 기존의 뷰포트 타입 메뉴 (Perspective, Ortho 등)
-			if (ImGui::BeginMenu(ClientCameraTypeToString(ViewportClient.GetCameraType())))
+			// KTLWeek07: ViewportClient가 EViewType을 관리
+			EViewType CurrentViewType = ViewportClient->GetViewType();
+			const char* ViewTypeNames[] = { "Perspective", "OrthoTop", "OrthoBottom", "OrthoLeft", "OrthoRight", "OrthoFront", "OrthoBack" };
+			const char* CurrentViewTypeName = (CurrentViewType < EViewType::OrthoBack) ? ViewTypeNames[(int)CurrentViewType] : "Unknown";
+
+			if (ImGui::BeginMenu(CurrentViewTypeName))
 			{
 				if (ImGui::MenuItem("Perspective"))
 				{
-					ViewportClient.SetCameraType(EViewportCameraType::Perspective);
-					Viewport->UpdateAllViewportClientCameras();
+					ViewportClient->SetViewType(EViewType::Perspective);
+					if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Perspective); }
 				}
 
 				if (ImGui::BeginMenu("Orthographic"))
 				{
-					if (ImGui::MenuItem("Top")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Top);    Viewport->UpdateAllViewportClientCameras(); }
-					if (ImGui::MenuItem("Bottom")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Bottom); Viewport->UpdateAllViewportClientCameras(); }
-					if (ImGui::MenuItem("Left")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Left);   Viewport->UpdateAllViewportClientCameras(); }
-					if (ImGui::MenuItem("Right")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Right);  Viewport->UpdateAllViewportClientCameras(); }
-					if (ImGui::MenuItem("Front")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Front);  Viewport->UpdateAllViewportClientCameras(); }
-					if (ImGui::MenuItem("Back")) { ViewportClient.SetCameraType(EViewportCameraType::Ortho_Back);   Viewport->UpdateAllViewportClientCameras(); }
+					if (ImGui::MenuItem("Top")) { ViewportClient->SetViewType(EViewType::OrthoTop); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Bottom")) { ViewportClient->SetViewType(EViewType::OrthoBottom); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Left")) { ViewportClient->SetViewType(EViewType::OrthoLeft); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Right")) { ViewportClient->SetViewType(EViewType::OrthoRight); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Front")) { ViewportClient->SetViewType(EViewType::OrthoFront); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Back")) { ViewportClient->SetViewType(EViewType::OrthoBack); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenu();
@@ -115,7 +123,11 @@ void UViewportMenuBarWidget::RenderWidget()
 			}
 			if (ImGui::BeginPopup("CameraSettingsPopup"))
 			{
-				RenderCameraControls(ViewportClient.Camera);
+				// FutureEngine 철학: ViewportClient->GetCamera()로 접근
+				if (UCamera* Camera = ViewportClient->GetCamera())
+				{
+					RenderCameraControls(*Camera);
+				}
 				ImGui::EndPopup();
 			}
 
@@ -131,26 +143,18 @@ void UViewportMenuBarWidget::RenderWidget()
 
 				if (ImGui::Button(LayoutIcon, ImVec2(ButtonWidth, 0)))
 				{
-					if (Editor)
+					// FutureEngine 철학: ViewportManager로 레이아웃 제어
+					bIsSingleViewportClient = !bIsSingleViewportClient;
+					if (bIsSingleViewportClient)
 					{
-						bIsSingleViewportClient = !bIsSingleViewportClient;
-						if (bIsSingleViewportClient)
-						{
-							FViewportClient* ActiveClient = Viewport->GetActiveViewportClient();
-							int ActiveIndex = Index;
-							if (ActiveClient)
-							{
-								for (int i = 0; i < ViewportClients.size(); ++i)
-								{
-									if (&ViewportClients[i] == ActiveClient) { ActiveIndex = i; break; }
-								}
-							}
-							Editor->SetSingleViewportLayout(ActiveIndex);
-						}
-						else
-						{
-							Editor->RestoreMultiViewportLayout();
-						}
+						// Single 모드로 전환
+						ViewportManager.PersistSplitterRatios();
+						ViewportManager.StartLayoutAnimation(false, Index);
+					}
+					else
+					{
+						// Quad 모드로 전환
+						ViewportManager.StartLayoutAnimation(true, Index);
 					}
 				}
 

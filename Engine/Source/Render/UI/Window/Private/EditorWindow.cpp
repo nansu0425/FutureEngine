@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/EditorWindow.h"
-#include "Render/UI/Widget/Public/SplitterDebugWidget.h" 
 
 IMPLEMENT_CLASS(UEditorWindow, UUIWindow)
 
@@ -27,18 +26,8 @@ UEditorWindow::UEditorWindow()
 
 	SetConfig(Config);
 
-	// 위젯 생성 및 초기화
-	if (SplitterDebugWidget = NewObject<USplitterDebugWidget>())
-	{
-		SplitterDebugWidget->Initialize();
-		AddWidget(SplitterDebugWidget);
-		UE_LOG("EditorWindow: SplitterDebugWidget이 생성되고 초기화되었습니다");
-	}
-	else
-	{
-		UE_LOG("EditorWindow: Error: SplitterDebugWidget 생성에 실패했습니다!");
-		return;
-	}
+	// FutureEngine 철학: Splitter는 ViewportManager가 관리하며,
+	// Splitter 자체의 OnPaint()에서 hover 상태를 시각화함
 
 	UE_LOG("EditorWindow: 메인 메뉴 윈도우가 초기화되었습니다");
 }

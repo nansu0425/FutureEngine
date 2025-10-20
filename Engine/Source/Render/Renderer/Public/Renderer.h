@@ -51,7 +51,7 @@ public:
 	// Render
 	void Update();
 	void RenderBegin() const;
-	void RenderLevel(FViewportClient& InViewportClient);
+	void RenderLevel(FViewport* InViewport);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 

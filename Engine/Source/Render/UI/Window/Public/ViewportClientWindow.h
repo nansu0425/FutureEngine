@@ -1,7 +1,7 @@
 #pragma once
 #include "Render/UI/Window/Public/UIWindow.h"
 
-class UViewportMenuBarWidget;
+class UViewportControlWidget;
 
 /**
  * @brief 다중 뷰포트의 속성을 제어할 수 있는 UI를 담당하는 Window
@@ -18,6 +18,6 @@ public:
 private:
 	void SetupConfig();
 
-	UViewportMenuBarWidget* ViewportMenuBarWidget = nullptr;
+	UViewportControlWidget* ViewportControlWidget = nullptr;
 };
 

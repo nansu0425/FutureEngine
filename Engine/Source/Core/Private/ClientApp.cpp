@@ -15,6 +15,7 @@
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/ScopeCycleCounter.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 #ifdef IS_OBJ_VIEWER
 #include "Utility/Public/FileDialog.h"
@@ -94,8 +95,12 @@ int FClientApp::InitializeSystem() const
 	// StatOverlay Initialize
 	auto& StatOverlay = UStatOverlay::GetInstance();
 	StatOverlay.Initialize();
-	
-	GEditor = NewObject<UEditorEngine>();
+
+	// ViewportManager Initialize - FutureEngine: Initialize()를 먼저 호출해야 함!
+	auto& ViewportManager = UViewportManager::GetInstance();
+	ViewportManager.Initialize(Window);  // 중요: Viewports/Clients 벡터 초기화
+
+	GEditor = NewObject<UEditorEngine>();  // UEditor 생성자가 ViewportManager::GetClients()를 사용
 	
 	// UIManager Initialize
 	auto& UIManager = UUIManager::GetInstance();

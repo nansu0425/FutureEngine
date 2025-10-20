@@ -8,6 +8,7 @@
 #include "Render/UI/Window/Public/OutlinerWindow.h"
 #include "Render/UI/Window/Public/DetailWindow.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
+#include "Render/UI/Window/Public/LevelTabBarWindow.h"
 #include "Render/UI/Window/Public/EditorWindow.h"
 #include "Render/UI/Window/Public/ViewportClientWindow.h"
 
@@ -15,6 +16,12 @@ UMainMenuWindow& UUIWindowFactory::CreateMainMenuWindow()
 {
 	UMainMenuWindow& Instance = UMainMenuWindow::GetInstance();
 	return Instance;
+}
+
+ULevelTabBarWindow* UUIWindowFactory::CreateLevelTabBarWindow()
+{
+	ULevelTabBarWindow& Instance = ULevelTabBarWindow::GetInstance();
+	return &Instance;
 }
 
 UConsoleWindow* UUIWindowFactory::CreateConsoleWindow(EUIDockDirection InDockDirection)
@@ -76,6 +83,11 @@ void UUIWindowFactory::CreateDefaultUILayout()
 	UIManager.RegisterUIWindow(&MainMenu);
 	UIManager.RegisterMainMenuWindow(&MainMenu);
 
+	// 레벨 탭바 생성
+	auto* LevelTabBar = CreateLevelTabBarWindow();
+	UIManager.RegisterUIWindow(LevelTabBar);
+	UIManager.RegisterLevelTabBarWindow(LevelTabBar);
+	
 	// 기본 레이아웃 생성
 	UIManager.RegisterUIWindow(CreateConsoleWindow(EUIDockDirection::Bottom));
 	UIManager.RegisterUIWindow(CreateControlPanelWindow(EUIDockDirection::Left));
