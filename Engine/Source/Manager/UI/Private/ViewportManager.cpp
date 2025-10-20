@@ -27,19 +27,12 @@ IMPLEMENT_SINGLETON_CLASS(UViewportManager,UObject)
 UViewportManager::UViewportManager() = default;
 UViewportManager::~UViewportManager()
 {
-	SafeDelete(SplitterV);
-
-	SafeDelete(LeftSplitterH);
-	SafeDelete(RightSplitterH);
-
-	SafeDelete(LeftTopWindow);
-	SafeDelete(LeftBottomWindow);
-	SafeDelete(RightTopWindow);
-	SafeDelete(RightBottomWindow);
+	Release();
 }
 
 void UViewportManager::Initialize(FAppWindow* InWindow)
 {
+	Release();
 	// 밖에서 윈도우를 가져와 크기를 가져온다
 	int32 Width = 0, Height = 0;
 	if (InWindow)
@@ -205,6 +198,80 @@ void UViewportManager::RenderOverlay()
 
 void UViewportManager::Release()
 {
+	for (size_t Index = 0; Index < Viewports.size(); ++Index)
+	{
+		FViewport*& Viewport = Viewports[Index];
+		if (!Viewport) { continue; }
+
+		if (Index < Clients.size())
+		{
+			FViewportClient*& ClientRef = Clients[Index];
+			if (ClientRef)
+			{
+				ClientRef->SetOwningViewport(nullptr);
+			}
+			Viewport->SetViewportClient(nullptr);
+		}
+
+		SafeDelete(Viewport);
+	}
+	Viewports.clear();
+
+	for (FViewportClient*& Client : Clients)
+	{
+		SafeDelete(Client);
+	}
+	Clients.clear();
+
+	for (UCamera*& Camera : OrthoGraphicCameras)
+	{
+		SafeDelete(Camera);
+	}
+	OrthoGraphicCameras.clear();
+
+	for (UCamera*& Camera : PerspectiveCameras)
+	{
+		SafeDelete(Camera);
+	}
+	PerspectiveCameras.clear();
+
+	InitialOffsets.clear();
+	ActiveRmbViewportIdx = -1;
+	ActiveIndex = 0;
+
+	SafeDelete(LeftTopWindow);
+	SafeDelete(LeftBottomWindow);
+	SafeDelete(RightTopWindow);
+	SafeDelete(RightBottomWindow);
+	LeftTopWindow = LeftBottomWindow = RightTopWindow = RightBottomWindow = nullptr;
+
+	for (auto& Leaf : Leaves)
+	{
+		Leaf = nullptr;
+	}
+
+	SafeDelete(LeftSplitterH);
+	SafeDelete(RightSplitterH);
+	SafeDelete(SplitterV);
+	LeftSplitterH = RightSplitterH = SplitterV = nullptr;
+
+	Root = nullptr;
+	QuadRoot = nullptr;
+	Capture = nullptr;
+
+	ActiveViewportRect = {};
+	ViewportLayout = EViewportLayout::Single;
+	SplitterValueV = 0.5f;
+	SplitterValueH = 0.5f;
+	IniSaveSharedV = 0.5f;
+	IniSaveSharedH = 0.5f;
+	SharedFovY = 150.0f;
+	SharedY = 0.5f;
+	LastPromotedIdx = -1;
+	ViewLayoutChangeSplitterH = 0.5f;
+	ViewLayoutChangeSplitterV = 0.5f;
+	ViewportAnimation = {};
+	AppWindow = nullptr;
 }
 
 void UViewportManager::TickInput()
