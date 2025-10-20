@@ -37,6 +37,7 @@ UEditor::~UEditor()
 void UEditor::Update()
 {
 	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+	const UInputManager& Input = UInputManager::GetInstance();
 
 	// 활성 카메라 업데이트
 	int32 ActiveIndex = ViewportManager.GetActiveIndex();
@@ -46,8 +47,34 @@ void UEditor::Update()
 		Camera = ViewportManager.GetClients()[ActiveIndex]->GetCamera();
 	}
 
-	// KTLWeek07: 카메라 입력 업데이트 (레거시)
-	// Camera는 Renderer::Update()에서 각 뷰포트별로 업데이트됨
+	// KTLWeek07: 각 뷰포트에서 마우스 우클릭 시 해당 카메라만 입력 활성화
+	int32 HoveredViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	bool bIsRightMouseDown = Input.IsKeyDown(EKeyInput::MouseRight);
+	
+	if (ViewportManager.GetViewportLayout() == EViewportLayout::Quad)
+	{
+		// Quad 모드: 마우스 우클릭 중이고 해당 뷰포트 위에 있을 때만 그 카메라 입력 활성화
+		
+		for (int32 i = 0; i < 4; ++i)
+		{
+			if (ViewportManager.GetClients()[i] && ViewportManager.GetClients()[i]->GetCamera())
+			{
+				UCamera* Cam = ViewportManager.GetClients()[i]->GetCamera();
+				// 마우스 우클릭 중이고 해당 뷰포트 위에 마우스가 있으면 카메라 입력 활성화
+				bool bEnableInput = (HoveredViewportIndex == i && bIsRightMouseDown);
+				Cam->SetInputEnabled(bEnableInput);
+			}
+		}
+	}
+	else
+	{
+		// 싱글 모드: 뷰포트 위에서 마우스 우클릭 시 카메라 입력 활성화
+		if (Camera)
+		{
+			bool bEnableInput = (HoveredViewportIndex == 0 && bIsRightMouseDown);
+			Camera->SetInputEnabled(bEnableInput);
+		}
+	}
 
 	UpdateBatchLines();
 	BatchLines.UpdateVertexBuffer();

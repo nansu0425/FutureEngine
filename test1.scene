@@ -1,16 +1,16 @@
 {
   "Actors" : {
-    "111" : {
+    "89" : {
       "Components" : [{
           "AngleFalloffExponent" : 1.000000,
           "AttenuationAngle" : 0.401426,
-          "AttenuationRadius" : 10.000000,
+          "AttenuationRadius" : 24.700001,
           "DistanceFalloffExponent" : 5.200000,
           "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [0.919831, 0.000000, 0.000000],
-          "Location" : [-9.730969, -24.838631, 12.235617],
+          "Location" : [-9.730969, -20.866751, 12.235617],
           "Name" : "USpotLightComponent_0",
           "ParentName" : "",
           "Rotation" : [-8.136743, -0.000002, 95.038383],
@@ -25,7 +25,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "USpotLightComponent_0",
-          "Rotation" : [-31.258129, 7.937365, 6.695134],
+          "Rotation" : [-35.126152, 35.257938, 33.743904],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent"
         }, {
@@ -38,14 +38,14 @@
           "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UUUIDTextComponent"
         }],
-      "Location" : [-9.730969, -24.838631, 12.235617],
+      "Location" : [-9.730969, -20.866751, 12.235617],
       "Rotation" : [-8.136743, -0.000002, 95.038383],
       "Scale" : [1.489486, 1.489486, 1.489486],
       "Type" : "ASpotLight",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "86" : {
+    "93" : {
       "Components" : [{
           "Intensity" : 3.000000,
           "IsEditorOnly" : "false",
@@ -66,7 +66,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_0",
           "ParentName" : "UDirectionalLightComponent_0",
-          "Rotation" : [-44.676670, 8.668591, 80.955193],
+          "Rotation" : [-28.321093, 52.845036, 134.793060],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent"
         }, {
@@ -86,7 +86,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "90" : {
+    "97" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -115,34 +115,5 @@
       "bTickInEditor" : "false"
     }
   },
-  "NextUUID" : 0,
-  "PerspectiveCamera" : [{
-      "FOV" : [90.000000],
-      "FarClip" : [1000.000000],
-      "Location" : [-15.000000, 0.000000, 10.000000],
-      "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "ViewportCameraType" : 0
-    }, {
-      "FOV" : [90.000000],
-      "FarClip" : [1000.000000],
-      "Location" : [-15.000000, 0.000000, 10.000000],
-      "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "ViewportCameraType" : 0
-    }, {
-      "FOV" : [90.000000],
-      "FarClip" : [1000.000000],
-      "Location" : [-15.000000, 0.000000, 10.000000],
-      "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "ViewportCameraType" : 0
-    }, {
-      "FOV" : [90.000000],
-      "FarClip" : [1000.000000],
-      "Location" : [1.991864, -8.860127, 20.998053],
-      "NearClip" : [0.100000],
-      "Rotation" : [0.000000, 40.249668, -103.701622],
-      "ViewportCameraType" : 0
-    }]
+  "NextUUID" : 0
 }

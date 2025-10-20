@@ -151,6 +151,7 @@ void ULevelTabBarWidget::RenderWidget()
 	// ─────────────────────────────────────                                  // 요청한 높이
 	const ImVec4 toolBg = ImVec4(0.06f, 0.06f, 0.07f, 1.0f);      // TabUnfocused와 동일 톤
 
+	// FutureEngine 철학: 1픽셀 겹치게 해서 간격 없이 배치
 	ImGui::SetNextWindowPos(ImVec2(0.0f, mainBarH + LevelBarHeight));
 	ImGui::SetNextWindowSize(ImVec2(screenSize.x, LevelBarHeight));
 

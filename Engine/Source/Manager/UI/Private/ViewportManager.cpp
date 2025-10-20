@@ -56,8 +56,6 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 
 	float MenuAndLevelBarHeight = ULevelTabBarWindow::GetInstance().GetLevelBarHeight() + UMainMenuWindow::GetInstance().GetMenuBarHeight();
 
-	//ActiveViewportRect = { 0, (LONG)MenuAndLevelBarHeight, Width, Height - (LONG)MenuAndLevelBarHeight };
-
 	// 뷰포트 슬롯 최대치까진 준비(포인터만). 아직 RT/DSV 없음.
 	// 4개의 뷰포트, 클라이언트, 카메라 를 할당받습니다.
 	InitializeViewportAndClient();
@@ -128,7 +126,7 @@ void UViewportManager::Update()
 	}
 
 	// 91px height
-	const int MenuAndLevelHeight = UMainMenuWindow::GetInstance().GetMenuBarHeight() + ULevelTabBarWindow::GetInstance().GetLevelBarHeight();
+	const int MenuAndLevelHeight = UMainMenuWindow::GetInstance().GetMenuBarHeight() + ULevelTabBarWindow::GetInstance().GetLevelBarHeight() - 12;
 
 	// ActiveViewportRect는 실제로 렌더링이 될 영역의 뷰포트 입니다
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());

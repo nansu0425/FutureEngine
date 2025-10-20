@@ -84,6 +84,13 @@ FVector UCamera::UpdateInput()
 
 void UCamera::Update(const D3D11_VIEWPORT& InViewport)
 {
+	// 입력이 활성화되어 있으면 입력 처리
+	
+	if (bInputEnabled)
+	{
+		UpdateInput();
+	}
+	
 	const FMatrix RotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
 	const FVector4 Forward4 = FVector4::ForwardVector() * RotationMatrix;
 	const FVector4 WorldUp4 = FVector4::UpVector() * RotationMatrix;

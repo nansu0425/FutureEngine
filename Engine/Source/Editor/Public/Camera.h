@@ -67,7 +67,10 @@ public:
 	ECameraType GetCameraType() const { return CameraType; }
 	ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
 
-
+	// Input enable for main editor camera (disable when hovering other viewports)
+	void SetInputEnabled(bool b) { bInputEnabled = b; }
+	bool GetInputEnabled() const { return bInputEnabled; }
+	
 	// Camera Movement Speed Control
 	float GetMoveSpeed() const { return CurrentMoveSpeed; }
 	void SetMoveSpeed(float InSpeed)
@@ -108,6 +111,10 @@ private:
 	// 절두체 컬링을 이용한 최적화
 	ViewVolumeCuller ViewVolumeCuller;
 
+	// Whether this camera consumes input (movement/rotation). Only used by editor main camera.
+	bool bInputEnabled = true;
+	bool bIsMainDrraging = false;
+	
 	// Dynamic Movement Speed
 	float CurrentMoveSpeed = DEFAULT_SPEED;
 };

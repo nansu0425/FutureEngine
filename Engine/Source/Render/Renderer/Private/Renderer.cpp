@@ -370,7 +370,9 @@ void URenderer::Update()
     	GetDeviceContext()->RSSetViewports(1, &LocalViewport);
 		Viewport->SetRenderRect(LocalViewport);
         UCamera* CurrentCamera = Viewport->GetViewportClient()->GetCamera();
+    	
         CurrentCamera->Update(LocalViewport);
+    	
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
         Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
         {
