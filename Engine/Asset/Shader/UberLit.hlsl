@@ -3,6 +3,7 @@
 
 #define NUM_POINT_LIGHT 16
 #define NUM_SPOT_LIGHT 16
+#define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
 // Light Structure Definitions
 struct FAmbientLightInfo
@@ -40,6 +41,15 @@ struct FSpotLightInfo
     float OuterConeAngle;
     float AngleFalloffExponent;
     float3 Direction;
+};
+
+// reflectance와 곱해지기 전
+// 표면에 도달한 빛의 조명 기여량
+struct FIllumination
+{
+    float4 Ambient;
+    float4 Diffuse;
+    float4 Specular;
 };
 
 // Constant Buffers
@@ -94,7 +104,7 @@ SamplerState SamplerWrap : register(s0);
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
 #define HAS_AMBIENT_MAP  (1 << 1) // map_Ka
 #define HAS_SPECULAR_MAP (1 << 2) // map_Ks
-#define HAS_NORMAL_MAP   (1 << 3) // map_Ns
+#define HAS_NORMAL_MAP   (1 << 3) // map_normal
 #define HAS_ALPHA_MAP    (1 << 4) // map_d
 #define HAS_BUMP_MAP     (1 << 5) // map_bump
 
@@ -114,7 +124,9 @@ struct PS_INPUT
     float3 WorldNormal : TEXCOORD1;
     float2 Tex : TEXCOORD2;
 #if LIGHTING_MODEL_GOURAUD
-    float4 LightColor : COLOR0;
+    float4 AmbientLight : COLOR0;
+    float4 DiffuseLight : COLOR1;
+    float4 SpecularLight : COLOR2;
 #endif
 };
 
@@ -130,70 +142,69 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
     return info.Color * info.Intensity;
 }
 
-float4 CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
+FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
+    FIllumination Result = (FIllumination)0;
+    
     float3 LightDir = normalize(-Info.Direction);
     float NdotL = saturate(dot(WorldNormal, LightDir));
     
-    float4 diffuse = Info.Color * Info.Intensity * NdotL;
+    // diffuse illumination
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL;
     
-#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
+#if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
     float3 WorldToLightVector = LightDir;
     
     float3 H = normalize(WorldToLightVector + WorldToCameraVector);
-    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
-    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
-    float3 Specular = SpecularColor * Spec  * 0.5f;
-    float4 SpecularLight = float4(Specular, 0.0f);
-    return diffuse + Ks * SpecularLight * Info.Intensity;
-    
+    float Spec = pow(saturate(dot(WorldNormal, H)), Ns);
+    Result.Specular = Info.Color * Info.Intensity * Spec * step(0.0, NdotL);
 #endif
     
-    return diffuse;
+    return Result;
 }
 
-float4 CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
+FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
+    FIllumination Result = (FIllumination)0;
+    
     float3 LightDir = Info.Position - WorldPos;
     float Distance = length(LightDir);
     
-    if (Distance > Info.Range)
-        return float4(0, 0, 0, 0);
+    if (Info.Range < 1e-4 || Distance > Info.Range)
+        return Result;
     
     LightDir = normalize(LightDir);
     float NdotL = saturate(dot(WorldNormal, LightDir));
+    // attenuation based on distance: (1 - d / R)^n
+    float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
     
-    float R = Distance / Info.Range;
-    float Attenuation = saturate(1.0f - pow(R, Info.DistanceFalloffExponent));
+    // diffuse illumination
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
     
-    float4 Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
-    
-#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
+#if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
-    float3 WorldToLightVector = normalize(Info.Position - WorldPos);
+    float3 WorldToLightVector = LightDir;
     
     float3 H = normalize(WorldToLightVector + WorldToCameraVector);
-    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
-    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
-    float3 Specular = SpecularColor * Spec  * 0.5f;
-    float4 SpecularLight = float4(Specular, 0.0f);
-    return Diffuse + Ks * SpecularLight * Info.Intensity;
-    
+    float Spec = pow(saturate(dot(WorldNormal, H)), Ns);
+    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * step(0.0, NdotL);
 #endif
     
-    return Diffuse;
+    return Result;
 }
 
-float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
+FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
+    FIllumination Result = (FIllumination)0;
+    
     float3 LightDir = Info.Position - WorldPos;
     float Distance = length(LightDir);
     
-    if (Distance > Info.Range)
-        return float4(0, 0, 0, 0);
+    if (Info.Range < 1e-4 || Distance > Info.Range)
+        return Result;
     
     LightDir = normalize(LightDir);
     float3 SpotDir = normalize(Info.Direction);
@@ -202,12 +213,12 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
     float CosOuter = cos(Info.OuterConeAngle);
     float CosInner = cos(Info.InnerConeAngle);
     if (CosAngle < CosOuter)
-        return float4(0, 0, 0, 0);
+        return Result;
     
     float NdotL = saturate(dot(WorldNormal, LightDir));
-    
-    float AttenuationDistance = 1.0f - saturate(Distance / Info.Range);
-    AttenuationDistance *= AttenuationDistance;
+
+    // attenuation based on distance: (1 - d / R)^n
+    float AttenuationDistance = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
     
     float AttenuationAngle = 0.0f;
     if (CosAngle >= CosInner || CosInner - CosOuter <= 1e-4)
@@ -219,23 +230,19 @@ float4 CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldP
         AttenuationAngle = pow(saturate((CosAngle - CosOuter) / (CosInner - CosOuter)), Info.AngleFalloffExponent);
     }
     
-    float4 Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle;
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle;
     
-#if LIGHTING_MODEL_BlinnPHONG || LIGHTING_MODEL_GOURAUD
+#if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = normalize(ViewPos - WorldPos);
-    float3 WorldToLightVector = normalize(Info.Position - WorldPos);
+    float3 WorldToLightVector = LightDir;
     
     float3 H = normalize(WorldToLightVector + WorldToCameraVector);
-    float Spec = pow(saturate(dot(WorldNormal, H)), 64.0f);
-    float3 SpecularColor = float3(1.0f, 0.9f, 0.8f);
-    float3 Specular = SpecularColor * Spec  * 0.5f;
-    float4 SpecularLight = float4(Specular, 0.0f);
-    return Diffuse + Ks * SpecularLight * Info.Intensity * AttenuationDistance * AttenuationAngle;
-    
+    float Spec = pow(saturate(dot(WorldNormal, H)), Ns);
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * step(0.0, NdotL);
 #endif
     
-    return Diffuse;
+    return Result;
 }
 
 // Vertex Shader
@@ -251,21 +258,32 @@ PS_INPUT Uber_VS(VS_INPUT Input)
 #if LIGHTING_MODEL_GOURAUD
     // Calculate lighting in vertex shader (Gouraud)
     // Accumulate light only; material and textures are applied in pixel stage
-    Output.LightColor = CalculateAmbientLight(Ambient);
-    Output.LightColor += CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition,
-    ViewWorldLocation);
+    FIllumination Illumination = (FIllumination)0;
+    
+    // 1. Ambient Light
+    Illumination.Ambient = CalculateAmbientLight(Ambient);
+    
+    // 2. Directional Light
+    ADD_ILLUM(Illumination, CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation))
 
+    // 3. Point Lights
     [unroll]
     for (int i = 0; i < NumPointLights && i < NUM_POINT_LIGHT; i++)
     {
-        Output.LightColor += CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
 
+    // 4.Spot Lights 
     [unroll]
     for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
-        Output.LightColor += CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation);
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
+    
+    // Assign to output
+    Output.AmbientLight = Illumination.Ambient;
+    Output.DiffuseLight = Illumination.Diffuse;
+    Output.SpecularLight = Illumination.Specular;
 #endif
     
     return Output;
@@ -280,41 +298,58 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     float2 UV = Input.Tex;
     
     // Sample textures
-    float4 diffuseColor = Kd;
-    if (MaterialFlags & HAS_DIFFUSE_MAP)
-    {
-        diffuseColor *= DiffuseTexture.Sample(SamplerWrap, UV);
-        finalPixel.a = diffuseColor.a;
-    }
-    
     float4 ambientColor = Ka;
     if (MaterialFlags & HAS_AMBIENT_MAP)
     {
-        ambientColor *= AmbientTexture.Sample(SamplerWrap, UV);
+        ambientColor = AmbientTexture.Sample(SamplerWrap, UV);
     }
+    
+    float4 diffuseColor = Kd;
+    if (MaterialFlags & HAS_DIFFUSE_MAP)
+    {
+        diffuseColor = DiffuseTexture.Sample(SamplerWrap, UV);
+    }
+    
+    float4 specularColor = Ks;
+    if (MaterialFlags & HAS_SPECULAR_MAP)
+    {
+        specularColor = SpecularTexture.Sample(SamplerWrap, UV);
+    }
+    
     
 #if LIGHTING_MODEL_GOURAUD
     // Use pre-calculated vertex lighting; apply diffuse material/texture per-pixel
-    finalPixel.rgb = Input.LightColor.rgb * diffuseColor.rgb;
+    finalPixel.rgb = Input.AmbientLight.rgb * ambientColor.rgb
+                    + Input.DiffuseLight.rgb * diffuseColor.rgb
+                    + Input.SpecularLight.rgb * specularColor.rgb;
     
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BLINNPHONG
     // Calculate lighting in pixel shader
-    float4 lighting = CalculateAmbientLight(Ambient) * ambientColor;
-    lighting += CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
+    FIllumination Illumination = (FIllumination)0;
     
+    // 1. Ambient Light
+    Illumination.Ambient = CalculateAmbientLight(Ambient);
+    
+    // 2. Directional Light
+    ADD_ILLUM(Illumination, CalculateDirectionalLight(Directional, normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation));
+    
+    // 3. Point Lights
     [unroll]
     for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
     {
-        lighting += CalculatePointLight(PointLights[i], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLights[i], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation));
     }
     
+    // 4. Spot Lights
     [unroll]
     for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
     {
-        lighting += CalculateSpotLight(SpotLights[j], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation) * diffuseColor;
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], normalize(Input.WorldNormal), Input.WorldPosition, ViewWorldLocation));
     }
     
-    finalPixel.rgb = lighting.rgb;
+    finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb
+                    + Illumination.Diffuse.rgb * diffuseColor.rgb
+                    + Illumination.Specular.rgb * specularColor.rgb;
     
 #else
     // Fallback: simple textured rendering (like current TexturePS.hlsl)
@@ -322,12 +357,17 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
 #endif
     
     // Alpha handling
+    // 1. Diffuse Map 있으면 그 alpha 사용, 없으면 1.0
+    float alpha = (MaterialFlags & HAS_DIFFUSE_MAP) ? diffuseColor.a : 1.0f;
+    
+    // 2. Alpha Map 따로 있으면 곱해줌.
     if (MaterialFlags & HAS_ALPHA_MAP)
     {
-        float alpha = AlphaTexture.Sample(SamplerWrap, UV).r;
-        finalPixel.a = D * alpha;
+        alpha *= AlphaTexture.Sample(SamplerWrap, UV).r;
     }
     
+    // 3. D 곱해서 최종 alpha 결정
+    finalPixel.a = D * alpha;
     Output.SceneColor = finalPixel;
     
     // Encode normal for deferred rendering
