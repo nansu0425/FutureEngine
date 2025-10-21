@@ -538,7 +538,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
      for (uint j = 0; j < SpotLightCount ; j++)
     {
-        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + i);
+        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
         ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, N, Input.WorldPosition, ViewWorldLocation));
     }
     
