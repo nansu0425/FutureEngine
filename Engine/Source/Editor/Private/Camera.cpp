@@ -36,12 +36,12 @@ FVector UCamera::UpdateInput()
 		 */
 		FVector Direction = FVector::Zero();
 
-		if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right; }
-		if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right; }
-		if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward; }
-		if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward; }
-		if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up; }
-		if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up; }
+		if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right * 2; }
+		if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right * 2; }
+		if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward * 2; }
+		if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward * 2; }
+		if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up * 2; }
+		if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up * 2; }
 		if (Direction.LengthSquared() > MATH_EPSILON)
 		{
 			Direction.Normalize();
@@ -64,8 +64,8 @@ FVector UCamera::UpdateInput()
 		if (CameraType == ECameraType::ECT_Perspective)
 		{
 			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-			RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel;
-			RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel;
+			RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel * 2;
+			RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel * 2;
 			MovementDelta = FVector::Zero(); // 원근 투영 모드는 반환할 필요가 없음
 		}
 
