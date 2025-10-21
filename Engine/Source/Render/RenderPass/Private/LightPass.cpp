@@ -214,5 +214,30 @@ void FLightPass::Execute(FRenderingContext& Context)
 
 void FLightPass::Release()
 {
+	SafeRelease(ViewClusterCS);
+	SafeRelease(ClusteredLightCullingCS);
+	SafeRelease(ClusterGizmoSetCS);
 
+	SafeRelease(ViewClusterInfoConstantBuffer);
+	SafeRelease(ClusterSliceInfoConstantBuffer);
+	SafeRelease(LightCountInfoConstantBuffer);
+	SafeRelease(GlobalLightConstantBuffer);
+	SafeRelease(PointLightStructuredBuffer);
+	SafeRelease(SpotLightStructuredBuffer);
+	SafeRelease(ClusterAABBRWStructuredBuffer);
+	SafeRelease(PointLightIndicesRWStructuredBuffer);
+	SafeRelease(SpotLightIndicesRWStructuredBuffer);
+
+	SafeRelease(PointLightStructuredBufferSRV);
+	SafeRelease(SpotLightStructuredBufferSRV);
+	SafeRelease(ClusterAABBRWStructuredBufferSRV);
+	SafeRelease( ClusterAABBRWStructuredBufferUAV);
+	SafeRelease(PointLightIndicesRWStructuredBufferSRV);
+	SafeRelease( PointLightIndicesRWStructuredBufferUAV);
+	SafeRelease(SpotLightIndicesRWStructuredBufferSRV);
+	SafeRelease( SpotLightIndicesRWStructuredBufferUAV);
+
+	SafeRelease(ClusterGizmoVertexRWStructuredBuffer);
+	SafeRelease(ClusterGizmoVertexRWStructuredBufferUAV);
+	SafeRelease(ClusterGizmoVertexRWStructuredBufferSRV);
 }
