@@ -36,6 +36,7 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 
 	//Cluster Gizmo (Pos, Color) = 28
 	//Cube = 8 Vertex, 24 Index
+	//0~7은 절두체 그리는 용도로 사용 (절두체로 인해 +1 있음)
 	ClusterGizmoVertexRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(28, (GetClusterCount() + 1) * 8);
 	FRenderResourceFactory::CreateUnorderedAccessView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferUAV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferSRV);
@@ -49,7 +50,6 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 }
 void FLightPass::Execute(FRenderingContext& Context)
 {
-
 	Pipeline->SetConstantBuffer(3, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, nullptr);
@@ -171,6 +171,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(3, EShaderType::CS, nullptr);
+	Pipeline->SetShaderResourceView(4, EShaderType::CS, nullptr);
 	
 	if (bRenderClusterGizmo) 
 	{
