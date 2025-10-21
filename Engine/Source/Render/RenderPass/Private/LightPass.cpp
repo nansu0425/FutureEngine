@@ -16,6 +16,7 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 	FRenderResourceFactory::CreateComputeShader(L"Asset/Shader/ClusterGizmoSetCS.hlsl", &ClusterGizmoSetCS);
 
 	ViewClusterInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FViewClusterInfo>();
+	ClusterSliceInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FClusterSliceInfo>();
 	LightCountInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FLightCountInfo>();
 	GlobalLightConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FGlobalLightConstant>();
 	PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
@@ -45,6 +46,16 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 }
 void FLightPass::Execute(FRenderingContext& Context)
 {
+
+	Pipeline->SetConstantBuffer(3, EShaderType::VS | EShaderType::PS, nullptr);
+	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, nullptr);
+	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, nullptr);
+
+	Pipeline->SetShaderResourceView(6, EShaderType::VS | EShaderType::PS, nullptr);
+	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, nullptr);
+	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, nullptr);
+
+
 	// Setup lighting constant buffer from scene lights
 	FGlobalLightConstant GlobalLightData = {};
 	TArray<FPointLightInfo> PointLightDatas;
@@ -116,21 +127,24 @@ void FLightPass::Execute(FRenderingContext& Context)
 	float Aspect = Context.CurrentCamera->GetAspect();
 	float fov = Context.CurrentCamera->GetFovY();
 	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
-		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar,Aspect,fov, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum, LightMaxCountPerCluster });
+		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar,Aspect,fov});
+	FRenderResourceFactory::UpdateConstantBufferData(ClusterSliceInfoConstantBuffer,
+		FClusterSliceInfo{ ClusterSliceNumX, ClusterSliceNumY,ClusterSliceNumZ,LightMaxCountPerCluster });
 	FRenderResourceFactory::UpdateConstantBufferData(LightCountInfoConstantBuffer,
 		FLightCountInfo{ PointLightCount, SpotLightCount });
 	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
-	Pipeline->SetConstantBuffer(1, EShaderType::CS, LightCountInfoConstantBuffer);
+	Pipeline->SetConstantBuffer(1, EShaderType::CS, ClusterSliceInfoConstantBuffer);
+	Pipeline->SetConstantBuffer(2, EShaderType::CS, LightCountInfoConstantBuffer);
+
 	Pipeline->SetUnorderedAccessView(0, ClusterAABBRWStructuredBufferUAV);
-	Pipeline->DispatchCS(ViewClusterCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+	Pipeline->DispatchCS(ViewClusterCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
 
 	//Light 분류
 	Pipeline->SetUnorderedAccessView(0, LightIndicesRWStructuredBufferUAV);
 	Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
-	Pipeline->DispatchCS(ClusteredLightCullingCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
-
+	Pipeline->DispatchCS(ClusteredLightCullingCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
 
 
 	//클러스터 기즈모 제작
@@ -142,9 +156,13 @@ void FLightPass::Execute(FRenderingContext& Context)
 		Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
-		Pipeline->DispatchCS(ClusterGizmoSetCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+		Pipeline->DispatchCS(ClusterGizmoSetCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
 	}
-	
+	Pipeline->SetUnorderedAccessView(0, nullptr);
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, nullptr);
+	Pipeline->SetShaderResourceView(1, EShaderType::CS, nullptr);
+	Pipeline->SetShaderResourceView(2, EShaderType::CS, nullptr);
+	Pipeline->SetShaderResourceView(3, EShaderType::CS, nullptr);
 	
 	//클러스터 기즈모 출력
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
@@ -171,8 +189,14 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->Draw((GetClusterCount() + 1) * 24, 0);
 
 
+	//다음 메쉬 드로우를 위한 빛 관련 정보 업로드
+	Pipeline->SetConstantBuffer(3, EShaderType::VS | EShaderType::PS, GlobalLightConstantBuffer);
+	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, ClusterSliceInfoConstantBuffer);
+	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, LightCountInfoConstantBuffer);
 
-
+	Pipeline->SetShaderResourceView(6, EShaderType::VS | EShaderType::PS, LightIndicesRWStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, PointLightStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, SpotLightStructuredBufferSRV);
 }
 
 

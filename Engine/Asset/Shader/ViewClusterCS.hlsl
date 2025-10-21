@@ -8,11 +8,20 @@ cbuffer ViewClusterInfo : register(b0)
     float ZFar;
     float Aspect;
     float fov;
-    uint2 ScreenSlideNum;
-    uint ZSlideNum;
+};
+cbuffer ClusterSliceInfo : register(b1)
+{
+    uint ClusterSliceNumX;
+    uint ClusterSliceNumY;
+    uint ClusterSliceNumZ;
     uint LightMaxCountPerCluster;
 };
-
+cbuffer LightCountInfo : register(b2)
+{
+    uint PointLightCount;
+    uint SpotLightCount;
+    uint2 padding;
+}
 struct FAABB
 {
     float3 Min;
@@ -23,7 +32,7 @@ RWStructuredBuffer<FAABB> ClusterAABB : register(u0);
 
 float GetZ(uint ZIdx)
 {
-    return ZNear * pow((ZFar / ZNear), (float)ZIdx / ZSlideNum);
+    return ZNear * pow((ZFar / ZNear), (float) ZIdx / ClusterSliceNumZ);
 }
 float3 NDCToView(float3 NDC)
 {
@@ -42,7 +51,7 @@ float3 LinearIntersectionToZPlane(float3 dir, float zDis)
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint2 ScreenIdx = DTid.xy;
-    float2 ScreenSlideNumRCP = (float)1 / ScreenSlideNum;
+    float2 ScreenSlideNumRCP = (float) 1 / uint2(ClusterSliceNumX, ClusterSliceNumY);
     float2 ScreenMin = ScreenIdx * ScreenSlideNumRCP;
     float2 ScreenMax = (ScreenIdx + int2(1, 1)) * ScreenSlideNumRCP;
     float2 NearNDCMin = ScreenMin * 2 - float2(1, 1);
@@ -63,7 +72,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float3 AABBMin = min(min(NearViewMin, NearViewMax), min(FarViewMin, FarViewMax));
     float3 AABBMax = max(max(NearViewMin, NearViewMax), max(FarViewMin, FarViewMax));
     
-    uint ClusterIdx = DTid.x + DTid.y * ScreenSlideNum.x + DTid.z * ScreenSlideNum.x * ScreenSlideNum.y;
+    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
     ClusterAABB[ClusterIdx].Min = AABBMin;
     ClusterAABB[ClusterIdx].Max = AABBMax;
 }

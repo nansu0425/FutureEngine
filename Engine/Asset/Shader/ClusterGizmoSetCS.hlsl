@@ -24,7 +24,7 @@ struct FSpotLightInfo
     float AngleFalloffExponent;
     float3 Direction;
 };
-cbuffer FViewClusterInfo : register(b0)
+cbuffer ViewClusterInfo : register(b0)
 {
     row_major float4x4 ProjectionInv;
     row_major float4x4 ViewInv;
@@ -33,17 +33,20 @@ cbuffer FViewClusterInfo : register(b0)
     float ZFar;
     float Aspect;
     float fov;
-    uint2 ScreenSlideNum;
-    uint ZSlideNum;
+};
+cbuffer ClusterSliceInfo : register(b1)
+{
+    uint ClusterSliceNumX;
+    uint ClusterSliceNumY;
+    uint ClusterSliceNumZ;
     uint LightMaxCountPerCluster;
 };
-cbuffer FLightCountInfo : register(b1)
+cbuffer LightCountInfo : register(b2)
 {
     uint PointLightCount;
     uint SpotLightCount;
-    float2 Padding;
-};
-
+    uint2 padding;
+}
 struct FGizmoVertex
 {
     float3 Pos;
@@ -65,7 +68,7 @@ StructuredBuffer<int> LightIndices : register(t3);
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-    uint ClusterIdx = DTid.x + DTid.y * ScreenSlideNum.x + DTid.z * ScreenSlideNum.x * ScreenSlideNum.y;
+    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
     float4 Color = float4(0, 0, 0, 0);
     uint LightIndicesOffset = ClusterIdx * LightMaxCountPerCluster;
     for (int i = 0; i < LightMaxCountPerCluster;i++)

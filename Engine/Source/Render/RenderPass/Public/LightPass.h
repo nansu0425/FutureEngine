@@ -11,9 +11,12 @@ struct FViewClusterInfo
 	float ZFar;
 	float Aspect;
 	float fov;
-	uint32 ScreenSlideNumX;
-	uint32 ScreenSlideNumY;
-	uint32 ZSlideNum;
+};
+struct FClusterSliceInfo
+{
+	uint32 ClusterSliceNumX;
+	uint32 ClusterSliceNumY;
+	uint32 ClusterSliceNumZ;
 	uint32 LightMaxCountPerCluster;
 };
 struct FLightCountInfo
@@ -43,7 +46,7 @@ public:
 	}
 
 private:
-	uint32 GetClusterCount() const { return ScreenXSlideNum * ScreenYSlideNum * ZSlideNum; }
+	uint32 GetClusterCount() const { return ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ; }
 public:
 private:
 	ID3D11ComputeShader* ViewClusterCS = nullptr;
@@ -51,6 +54,7 @@ private:
 	ID3D11ComputeShader* ClusterGizmoSetCS = nullptr;
 
 	ID3D11Buffer* ViewClusterInfoConstantBuffer = nullptr;
+	ID3D11Buffer* ClusterSliceInfoConstantBuffer = nullptr;
 	ID3D11Buffer* LightCountInfoConstantBuffer = nullptr;
 	ID3D11Buffer* GlobalLightConstantBuffer = nullptr;
 	ID3D11Buffer* PointLightStructuredBuffer = nullptr;
@@ -67,9 +71,9 @@ private:
 	
 	uint32 PointLightBufferCount = 256;
 	uint32 SpotLightBufferCount = 256;
-	uint32 ScreenXSlideNum = 24;
-	uint32 ScreenYSlideNum = 16;
-	uint32 ZSlideNum = 32;
+	uint32 ClusterSliceNumX = 24;
+	uint32 ClusterSliceNumY = 16;
+	uint32 ClusterSliceNumZ = 32;
 	uint32 LightMaxCountPerCluster = 8;
 
 

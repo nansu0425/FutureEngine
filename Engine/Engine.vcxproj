@@ -801,4 +801,7 @@
     <Folder Include="Source\Manager\UI\Layout\Private\" />
     <Folder Include="Source\Manager\UI\Layout\Public\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Asset\Shader\ClusteredRendering.hlsli" />
+  </ItemGroup>
 </Project>

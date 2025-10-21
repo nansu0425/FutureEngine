@@ -7,8 +7,9 @@
 // normalize에는 영벡터 입력시 NaN이 발생할 수 있습니다. (div by zero 가드가 없음)
 // =============================================================================
 
-#define NUM_POINT_LIGHT 16
-#define NUM_SPOT_LIGHT 16
+
+#define NUM_POINT_LIGHT 8
+#define NUM_SPOT_LIGHT 8
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
 // Light Structure Definitions
@@ -58,6 +59,7 @@ struct FIllumination
     float4 Specular;
 };
 
+
 // Constant Buffers
 cbuffer Model : register(b0)
 {
@@ -73,6 +75,76 @@ cbuffer Camera : register(b1)
     float FarClip;
 }
 
+cbuffer GlobalLightConstant : register(b3)
+{
+    FAmbientLightInfo Ambient;
+    FDirectionalLightInfo Directional;
+};
+cbuffer ClusterSliceInfo : register(b4)
+{
+    uint ClusterSliceNumX;
+    uint ClusterSliceNumY;
+    uint ClusterSliceNumZ;
+    uint LightMaxCountPerCluster;
+};
+cbuffer LightCountInfo : register(b5)
+{
+    uint PointLightCount;
+    uint SpotLightCount;
+    float2 Padding;
+};
+
+
+StructuredBuffer<int> LightIndices : register(t6);
+StructuredBuffer<FPointLightInfo> PointLightInfos : register(t7);
+StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t8);
+
+
+uint GetDepthSliceIdx(float ViewZ)
+{
+    float BottomValue = 1 / log(FarClip / NearClip);
+    ViewZ = clamp(ViewZ, NearClip, FarClip);
+    return uint(floor(log(ViewZ) * ClusterSliceNumZ * BottomValue - ClusterSliceNumZ * log(NearClip) * BottomValue));
+}
+
+uint GetLightIndicesOffset(float3 WorldPos)
+{
+    float4 ViewPos = mul(float4(WorldPos, 1), View);
+    float4 NDC = mul(ViewPos, Projection);
+    NDC.xy /= NDC.w;
+    //-1 ~ 1 =>0 ~ ScreenXSlideNum
+    //-1 ~ 1 =>0 ~ ScreenYSlideNum
+    //Near ~ Far => 0 ~ ZSlideNum
+    float2 ScreenNorm = saturate(NDC.xy * 0.5f + 0.5f);
+    uint2 ClusterXY = uint2(floor(ScreenNorm * float2(ClusterSliceNumX, ClusterSliceNumY)));
+    uint ClusterZ = GetDepthSliceIdx(ViewPos.z);
+    
+    uint ClusterIdx = ClusterXY.x + ClusterXY.y * ClusterSliceNumX + ClusterSliceNumX * ClusterSliceNumY * ClusterZ;
+    
+    return LightMaxCountPerCluster * ClusterIdx;
+}
+
+
+uint GetPointLightCount(uint LightIndicesOffset)
+{
+    uint Count = 0;
+    for (uint i = 0; i < LightMaxCountPerCluster; i++)
+    {
+        if (LightIndices[LightIndicesOffset + i] >= 0)
+        {
+            Count++;
+        }
+    }
+    return Count;
+}
+
+FPointLightInfo GetPointLight(uint LightIdx)
+{
+    uint LightInfoIdx = LightIndices[LightIdx];
+    return PointLightInfos[LightInfoIdx];
+}
+
+
 cbuffer MaterialConstants : register(b2)
 {
     float4 Ka; // Ambient color
@@ -85,16 +157,6 @@ cbuffer MaterialConstants : register(b2)
     float Time;
 }
 
-cbuffer Lighting : register(b3)
-{
-    FAmbientLightInfo Ambient;
-    FDirectionalLightInfo Directional;
-    FPointLightInfo PointLights[NUM_POINT_LIGHT];
-    FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
-    uint NumPointLights;
-    uint NumSpotLights;
-    float2 PaddingLighting;
-}
 
 // Textures
 Texture2D DiffuseTexture : register(t0);
@@ -368,18 +430,20 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     ADD_ILLUM(Illumination, CalculateDirectionalLight(Directional, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation))
 
     // 3. Point Lights
-    [unroll]
-    for (int i = 0; i < NumPointLights && i < NUM_POINT_LIGHT; i++)
-    {
-        ADD_ILLUM(Illumination, CalculatePointLight(PointLights[i], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
+    uint LightIndicesOffset = GetLightIndicesOffset(Output.WorldPosition);
+    uint PointLightCount = GetPointLightCount(LightIndicesOffset);
+    for (uint i = 0; i < PointLightCount; i++)
+    {        
+        FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
 
     // 4.Spot Lights 
-    [unroll]
-    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
-    {
-        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
-    }
+    //[unroll]
+    //for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
+    //{
+    //    ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
+    //}
     
     // Assign to output
     Output.AmbientLight = Illumination.Ambient;
@@ -394,7 +458,6 @@ PS_INPUT Uber_VS(VS_INPUT Input)
 PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
 {
     PS_OUTPUT Output;
-    
     float4 finalPixel = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float2 UV = Input.Tex;
     float3 ShadedWorldNormal = SafeNormalize3(Input.WorldNormal);
@@ -444,18 +507,20 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     ADD_ILLUM(Illumination, CalculateDirectionalLight(Directional, N, Input.WorldPosition, ViewWorldLocation));
     
     // 3. Point Lights
-    [unroll]
-    for (int i = 0; i < NumPointLights  && i < NUM_POINT_LIGHT; i++)
+    uint LightIndicesOffset = GetLightIndicesOffset(Input.WorldPosition);
+    uint PointLightCount = GetPointLightCount(LightIndicesOffset);
+    for (uint i = 0; i < PointLightCount ; i++)
     {
-        ADD_ILLUM(Illumination, CalculatePointLight(PointLights[i], N, Input.WorldPosition, ViewWorldLocation));
+        FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, N, Input.WorldPosition, ViewWorldLocation));
     }
     
     // 4. Spot Lights
-    [unroll]
-    for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
-    {
-        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], N, Input.WorldPosition, ViewWorldLocation));
-    }
+    //[unroll]
+    //for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
+    //{
+    //    ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], N, Input.WorldPosition, ViewWorldLocation));
+    //}
     
     finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb + Illumination.Diffuse.rgb * diffuseColor.rgb + Illumination.Specular.rgb * specularColor.rgb;
     

@@ -40,16 +40,20 @@ cbuffer ViewClusterInfo : register(b0)
     float ZFar;
     float Aspect;
     float fov;
-    uint2 ScreenSlideNum;
-    uint ZSlideNum;
+};
+cbuffer ClusterSliceInfo : register(b1)
+{
+    uint ClusterSliceNumX;
+    uint ClusterSliceNumY;
+    uint ClusterSliceNumZ;
     uint LightMaxCountPerCluster;
 };
-cbuffer LightCountInfo : register(b1)
+cbuffer LightCountInfo : register(b2)
 {
     uint PointLightCount;
     uint SpotLightCount;
-    float2 Padding;
-};
+    uint2 padding;
+}
 
 RWStructuredBuffer<int> LightIndices : register(u0);
 StructuredBuffer<FAABB> ClusterAABB : register(t0);
@@ -90,11 +94,11 @@ bool IntersectAABBSphere(float3 AABBMin, float3 AABBMax, float3 SphereCenter, fl
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-    uint ClusterIdx = DTid.x + DTid.y * ScreenSlideNum.x + DTid.z * ScreenSlideNum.x * ScreenSlideNum.y;
+    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
     FAABB CurAABB = ClusterAABB[ClusterIdx];
     
     int LightIndicesOffset = LightMaxCountPerCluster * ClusterIdx;
-    int IncludeLightCount = 0;
+    uint IncludeLightCount = 0;
     for (int i = 0; (i < PointLightCount)  && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {
         FPointLightInfo PointLightInfo = PointLightInfos[i];
@@ -106,7 +110,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
         }
     }    
     
-    for (int i = IncludeLightCount; i < LightMaxCountPerCluster;i++)
+    for (uint i = IncludeLightCount; i < LightMaxCountPerCluster;i++)
     {
         LightIndices[LightIndicesOffset + i] = -1;
 
