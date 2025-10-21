@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/UI/Window/Public/UIWindow.h"
+#include <cstdint>
 
 class UConsoleWidget;
 
@@ -15,6 +16,9 @@ class UConsoleWindow : public UUIWindow
 	DECLARE_SINGLETON_CLASS(UConsoleWindow, UUIWindow)
 
 public:
+	void ToggleConsoleVisibility();
+	bool IsConsoleVisible() const;
+
 	void AddLog(const char* fmt, ...) const;
 	void AddLog(ELogType InType, const char* fmt, ...) const;
 	void AddSystemLog(const char* InText, bool bInIsError = false) const;
@@ -26,7 +30,28 @@ public:
 
 	bool IsSingleton() override { return true; }
 
+protected:
+	void OnPreRenderWindow(float MenuBarOffset) override;
+
 private:
 	// Console Widget
 	UConsoleWidget* ConsoleWidget;
+
+	enum class EConsoleAnimationState : uint8_t
+	{
+		Hidden,
+		Showing,
+		Visible,
+		Hiding
+	};
+
+	void StartShowAnimation();
+	void StartHideAnimation();
+	void UpdateAnimation(float DeltaTime);
+	void ApplyAnimatedLayout(float MenuBarOffset);
+
+	EConsoleAnimationState AnimationState;
+	float AnimationProgress;
+	float AnimationDuration;
+	float BottomMargin;
 };

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Manager/Input/Public/InputManager.h"
 #include "Core/Public/AppWindow.h"
+#include "Render/UI/Window/Public/ConsoleWindow.h"
 
 IMPLEMENT_SINGLETON_CLASS(UInputManager, UObject)
 
@@ -58,6 +59,7 @@ void UInputManager::InitializeKeyMapping()
 	VirtualKeyMap[VK_MBUTTON] = EKeyInput::MouseMiddle;
 
 	// 기타 키 매핑
+	VirtualKeyMap[VK_OEM_3] = EKeyInput::Backtick;
 	VirtualKeyMap[VK_F1] = EKeyInput::F1;
 	VirtualKeyMap[VK_F2] = EKeyInput::F2;
 	VirtualKeyMap[VK_F3] = EKeyInput::F3;
@@ -144,6 +146,8 @@ void UInputManager::Update(const FAppWindow* InWindow)
 		bool IsKeyDown = (GetAsyncKeyState(VirtualKey) & 0x8000) != 0;
 		CurrentKeyState[KeyInput] = IsKeyDown;
 	}
+
+	HandleConsoleShortcut();
 }
 
 void UInputManager::UpdateMousePosition(const FAppWindow* InWindow)
@@ -454,6 +458,21 @@ void UInputManager::UpdateDoubleClickDetection()
 	}
 }
 
+void UInputManager::HandleConsoleShortcut()
+{
+	if (IsKeyPressed(EKeyInput::Backtick) && IsKeyDown(EKeyInput::Alt))
+	{
+		try
+		{
+			UConsoleWindow::GetInstance().ToggleConsoleVisibility();
+		}
+		catch (...)
+		{
+			// 콘솔 윈도우 초기화 이전 상태 등 예외 상황 무시
+		}
+	}
+}
+
 /**
  * @brief 마우스 더블클릭 감지
  * @param InMouseButton 확인할 마우스 버튼
@@ -468,3 +487,4 @@ bool UInputManager::IsMouseDoubleClicked(EKeyInput InMouseButton) const
 	}
 	return false;
 }
+

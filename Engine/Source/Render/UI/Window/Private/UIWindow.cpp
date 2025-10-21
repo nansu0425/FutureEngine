@@ -224,6 +224,8 @@ void UUIWindow::RenderWindow()
 		ImGui::SetNextWindowSize(Config.DefaultSize, ImGuiCond_FirstUseEver);
 	}
 
+	OnPreRenderWindow(MenuBarOffset);
+
 	bool bIsOpen = bIsWindowOpen;
 
 	if (ImGui::Begin(Config.WindowTitle.ToString().data(), &bIsOpen, Config.WindowFlags))
@@ -404,6 +406,12 @@ void UUIWindow::ApplyDockingSettings() const
 		break;
 	}
 }
+
+void UUIWindow::OnPreRenderWindow(float MenuBarOffset)
+{
+	// Default implementation does nothing. Derived windows may override.
+}
+
 
 /**
  * @brief ImGui 컨텍스트에서 현재 윈도우 정보 업데이트

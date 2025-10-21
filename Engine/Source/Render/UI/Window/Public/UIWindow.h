@@ -150,6 +150,7 @@ public:
 
 protected:
 	void ApplyDockingSettings() const;
+	virtual void OnPreRenderWindow(float MenuBarOffset);
 	void UpdateWindowInfo();
 
 	// Render
@@ -159,13 +160,12 @@ protected:
 
 protected:
 	float WindowHeight = 0;
-
+	FUIWindowConfig Config;
 private:
 	void ProcessDeleteWidgets();
 	
 	static int32 IssuedWindowID;
-
-	FUIWindowConfig Config;
+	
 	EUIWindowState CurrentState;
 	uint32 WindowID;
 

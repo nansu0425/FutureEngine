@@ -46,6 +46,7 @@ enum class EKeyInput : uint8
 	MouseMiddle,
 
 	// 기타
+	Backtick,
 	F1,
 	F2,
 	F3,
