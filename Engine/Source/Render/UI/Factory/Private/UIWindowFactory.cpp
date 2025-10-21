@@ -90,7 +90,7 @@ void UUIWindowFactory::CreateDefaultUILayout()
 	UIManager.RegisterLevelTabBarWindow(LevelTabBar);
 	
 	// 기본 레이아웃 생성
-	UIManager.RegisterUIWindow(CreateConsoleWindow(EUIDockDirection::Bottom));
+	UIManager.RegisterUIWindow(CreateConsoleWindow(EUIDockDirection::BottomLeft));
 	UIManager.RegisterUIWindow(CreateControlPanelWindow(EUIDockDirection::Left));
 	UIManager.RegisterUIWindow(CreateOutlinerWindow(EUIDockDirection::Center));
 	UIManager.RegisterUIWindow(CreateDetailWindow(EUIDockDirection::Right));

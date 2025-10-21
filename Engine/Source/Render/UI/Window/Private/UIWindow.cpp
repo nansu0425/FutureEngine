@@ -374,6 +374,19 @@ void UUIWindow::ApplyDockingSettings() const
 		ImGui::SetNextWindowSize(ImVec2(ScreenWidth, Config.DefaultSize.y), ImGuiCond_FirstUseEver);
 		break;
 
+	case EUIDockDirection::BottomLeft:
+	{
+		const ImGuiViewport* Viewport = ImGui::GetMainViewport();
+		const float Margin = 10.0f;
+		ImVec2 WorkPos = Viewport ? Viewport->WorkPos : ImVec2(0.0f, 0.0f);
+		ImVec2 WorkSize = Viewport ? Viewport->WorkSize : ImVec2(ScreenWidth, ScreenHeight);
+		ImVec2 TargetPos(WorkPos.x + Margin, WorkPos.y + WorkSize.y - Config.DefaultSize.y - Margin);
+		TargetPos.y = max(TargetPos.y, menuBarOffset);
+		ImGui::SetNextWindowPos(TargetPos, ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(Config.DefaultSize, ImGuiCond_FirstUseEver);
+	}
+		break;
+
 	case EUIDockDirection::Center:
 		{
 			ImVec2 Center = ImVec2(ScreenWidth * 0.5f, (ScreenHeight + menuBarOffset) * 0.5f);

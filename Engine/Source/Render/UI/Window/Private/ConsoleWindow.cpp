@@ -23,9 +23,10 @@ UConsoleWindow::UConsoleWindow()
 	Config.DefaultPosition = ImVec2(10, 770);
 	Config.MinSize = ImVec2(1000, 260);
 	Config.bResizable = true;
-	Config.bMovable = true;
+	Config.bMovable = false;
 	Config.bCollapsible = true;
-	Config.DockDirection = EUIDockDirection::Bottom; // 바텀업 도킹 설정
+	Config.DockDirection = EUIDockDirection::BottomLeft; // 왼쪽 하단 도킹
+	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
 	ConsoleWidget = &UConsoleWidget::GetInstance();
