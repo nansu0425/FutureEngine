@@ -34,6 +34,11 @@ void UHeightFogComponentWidget::RenderWidget()
 
     ImGui::Separator();
     ImGui::PushItemWidth(150.0f);
+    
+    // 입력 필드 배경색을 검은색으로 설정
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 
     // FogDensity
     float density = FogComponent->GetFogDensity();
@@ -77,7 +82,8 @@ void UHeightFogComponentWidget::RenderWidget()
     {
         FogComponent->SetFogInscatteringColor(FVector(colorArr[0], colorArr[1], colorArr[2]));
     }
-
+    
+    ImGui::PopStyleColor(3);
     ImGui::PopItemWidth();
     ImGui::Separator();
 }
