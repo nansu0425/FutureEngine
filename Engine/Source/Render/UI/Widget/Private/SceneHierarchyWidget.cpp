@@ -12,6 +12,7 @@
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Quaternion.h"
 #include "Component/Public/LightComponentBase.h"
+#include "Component/Public/HeightFogComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
 #include "Manager/Path/Public/PathManager.h"
@@ -163,6 +164,7 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 	// Actor의 PrimitiveComponent들의 Visibility 체크
 	bool bHasPrimitive = false;
 	bool bHasLight = false;
+	bool bHasFog = false;
 	bool bAllVisible = true;
 	UPrimitiveComponent* FirstPrimitive = nullptr;
 
@@ -191,13 +193,21 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				bAllVisible = false;
 			}
 		}
+		if (UHeightFogComponent* FogComponent = Cast<UHeightFogComponent>(Component))
+		{
+			bHasFog = true;
+			if (!FogComponent->GetVisible())
+			{
+				bAllVisible = false;
+			}
+		}
 	}
 
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-	// PrimitiveComponent나 light가 있는 경우에만 Visibility 버튼 표시
-	if (bHasPrimitive || bHasLight)
+	// PrimitiveComponent나 light, fog가 있는 경우에만 Visibility 버튼 표시
+	if (bHasPrimitive || bHasLight || bHasFog)
 	{
 		if (ImGui::SmallButton(bAllVisible ? "[O]" : "[X]"))
 		{
@@ -212,6 +222,10 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				if (ULightComponentBase* LightComp = Cast<ULightComponentBase>(Component))
 				{
 					LightComp->SetVisible(bNewVisibility);
+				}
+				if (UHeightFogComponent* FogComp = Cast<UHeightFogComponent>(Component))
+				{
+					FogComp->SetVisible(bNewVisibility);
 				}
 			}
 			UE_LOG_INFO("SceneHierarchy: %s의 가시성이 %s로 변경되었습니다",
