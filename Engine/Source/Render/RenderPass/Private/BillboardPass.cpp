@@ -27,7 +27,7 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) { return; }
 
     FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
-    Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+    Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferMaterial);
 
     // Billboard Sort
     struct FDistanceSortedBillboard
@@ -61,7 +61,7 @@ void FBillboardPass::Execute(FRenderingContext& Context)
         BillboardMaterialConstants.Kd = Tint;
         //UE_LOG("%f %f %f %f", Tint.X,Tint.Y,Tint.Z,Tint.W);
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, BillboardMaterialConstants);
-        Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+        Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferMaterial);
 
 
         FMatrix WorldMatrix;
@@ -79,10 +79,10 @@ void FBillboardPass::Execute(FRenderingContext& Context)
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
-        Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+        Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 
-        Pipeline->SetTexture(0, false, BillBoardComp->GetSprite()->GetTextureSRV());
-        Pipeline->SetSamplerState(0, false, BillBoardComp->GetSprite()->GetTextureSampler());
+        Pipeline->SetShaderResourceView(0, EShaderType::PS, BillBoardComp->GetSprite()->GetTextureSRV());
+        Pipeline->SetSamplerState(0, EShaderType::PS, BillBoardComp->GetSprite()->GetTextureSampler());
 
         Pipeline->DrawIndexed(BillBoardComp->GetNumIndices(), 0, 0);
     }

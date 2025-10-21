@@ -2,6 +2,30 @@
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+void FRenderResourceFactory::CreateStructuredShaderResourceView(ID3D11Buffer* Buffer, ID3D11ShaderResourceView** OutSRV)
+{
+	D3D11_BUFFER_DESC BufDesc = {};
+	Buffer->GetDesc(&BufDesc);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC Desc = {};
+	Desc.Format = DXGI_FORMAT_UNKNOWN; // StructuredBuffer는 Format 없음
+	Desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	Desc.Buffer.NumElements = BufDesc.ByteWidth / BufDesc.StructureByteStride;
+	HRESULT hr = URenderer::GetInstance().GetDevice()->CreateShaderResourceView(Buffer, &Desc, OutSRV);
+
+}
+void FRenderResourceFactory::CreateUnorderedAccessView(ID3D11Buffer* Buffer, ID3D11UnorderedAccessView** OutUAV)
+{
+	D3D11_BUFFER_DESC BufDesc = {};
+	Buffer->GetDesc(&BufDesc);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC Desc = {};
+	Desc.Format = DXGI_FORMAT_UNKNOWN;
+	Desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	Desc.Buffer.NumElements = BufDesc.ByteWidth / BufDesc.StructureByteStride;
+	URenderer::GetInstance().GetDevice()->CreateUnorderedAccessView(Buffer, &Desc, OutUAV);
+}
+
 void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
                                                               const TArray<D3D11_INPUT_ELEMENT_DESC>& InInputLayoutDescs, ID3D11VertexShader** OutVertexShader, ID3D11InputLayout** OutInputLayout)
 {
@@ -21,6 +45,7 @@ void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InF
 		URenderer::GetInstance().GetDevice()->CreateInputLayout(InInputLayoutDescs.data(), static_cast<uint32>(InInputLayoutDescs.size()), VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), OutInputLayout);
 	
 	SafeRelease(VertexShaderBlob);
+	SafeRelease(ErrorBlob);
 }
 
 void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InFilePath,
@@ -46,6 +71,7 @@ void FRenderResourceFactory::CreateVertexShaderAndInputLayout(const wstring& InF
 		URenderer::GetInstance().GetDevice()->CreateInputLayout(InInputLayoutDescs.data(), static_cast<uint32>(InInputLayoutDescs.size()), VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), OutInputLayout);
 	
 	SafeRelease(VertexShaderBlob);
+	SafeRelease(ErrorBlob);
 }
 
 ID3D11Buffer* FRenderResourceFactory::CreateVertexBuffer(FNormalVertex* InVertices, uint32 InByteWidth)
@@ -99,6 +125,7 @@ void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11
 
 	URenderer::GetInstance().GetDevice()->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
 	SafeRelease(PixelShaderBlob);
+	SafeRelease(ErrorBlob);
 }
 
 void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** OutPixelShader,
@@ -121,6 +148,28 @@ void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11
 
 	URenderer::GetInstance().GetDevice()->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), nullptr, OutPixelShader);
 	SafeRelease(PixelShaderBlob);
+	SafeRelease(ErrorBlob);
+}
+
+void FRenderResourceFactory::CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader, const char* InEntryPoint)
+{
+	ID3DBlob* ShaderBlob = nullptr;
+	ID3DBlob* ErrorBlob = nullptr;
+	UINT Flag = 0;
+#ifdef _DEBUG
+	Flag = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+	HRESULT Result = D3DCompileFromFile(InFilePath.data(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "cs_5_0", Flag, 0, &ShaderBlob, &ErrorBlob);
+	if (FAILED(Result))
+	{
+		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }
+		SafeRelease(ShaderBlob);
+		return;
+	}
+
+	URenderer::GetInstance().GetDevice()->CreateComputeShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, OutComputeShader);
+	SafeRelease(ShaderBlob);
+	SafeRelease(ErrorBlob);
 }
 
 ID3D11SamplerState* FRenderResourceFactory::CreateSamplerState(D3D11_FILTER InFilter, D3D11_TEXTURE_ADDRESS_MODE InAddressMode)

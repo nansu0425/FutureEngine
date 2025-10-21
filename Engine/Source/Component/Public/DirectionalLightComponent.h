@@ -50,6 +50,7 @@ public:
 public:
     FVector GetForwardVector() const;
     void RenderLightDirectionGizmo(UCamera* InCamera);
+    FDirectionalLightInfo GetDirectionalLightInfo() const;
 
 private:
     void EnsureVisualizationBillboard()override;

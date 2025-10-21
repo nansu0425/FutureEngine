@@ -148,7 +148,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
     Pipeline->UpdatePipeline(PipelineInfo);
-    Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
+    Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
 
     // --- Decals Stats ---
     uint32 RenderedDecal = 0;
@@ -179,19 +179,19 @@ void FDecalPass::Execute(FRenderingContext& Context)
         DecalConstants.FadeProgress = Decal->GetFadeProgress();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
-        Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
+        Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferDecal);
 
         // --- Bind Decal Texture ---
         if (UTexture* DecalTexture = Decal->GetTexture())
         {
-            Pipeline->SetTexture(0, false, DecalTexture->GetTextureSRV());
-            Pipeline->SetSamplerState(0, false, DecalTexture->GetTextureSampler());
+            Pipeline->SetShaderResourceView(0, EShaderType::PS, DecalTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(0, EShaderType::PS, DecalTexture->GetTextureSampler());
         }
 
         if (UTexture* FadeTexture = Decal->GetFadeTexture())
         {
-            Pipeline->SetTexture(1, false, FadeTexture->GetTextureSRV());
-            Pipeline->SetSamplerState(1, false, FadeTexture->GetTextureSampler());
+            Pipeline->SetShaderResourceView(1, EShaderType::PS, FadeTexture->GetTextureSRV());
+            Pipeline->SetSamplerState(1, EShaderType::PS, FadeTexture->GetTextureSampler());
         }
 
         TArray<UPrimitiveComponent*> Primitives;
@@ -224,7 +224,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
             FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
-            Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
+            Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferPrim);
 
             Pipeline->SetVertexBuffer(Prim->GetVertexBuffer(), sizeof(FNormalVertex));
             if (Prim->GetIndexBuffer() && Prim->GetIndicesData())

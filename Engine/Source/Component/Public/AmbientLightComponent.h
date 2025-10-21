@@ -43,10 +43,12 @@ public:
      -----------------------------------------------------------------------------*/
 public:
     virtual ELightComponentType GetLightType() const override { return ELightComponentType::LightType_Ambient; }
-
     /*-----------------------------------------------------------------------------
-        UDirectionalLightComponent Features
+        UAmbientLightComponent Features
      -----------------------------------------------------------------------------*/
+
+    FAmbientLightInfo GetAmbientLightInfo() const;
+
 private:
     void EnsureVisualizationBillboard()override;
 };

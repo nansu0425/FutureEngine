@@ -135,3 +135,7 @@ void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
     URenderer::GetInstance().RenderEditorPrimitive(LightDirectionArrow, RenderState);
 }
 
+FDirectionalLightInfo UDirectionalLightComponent::GetDirectionalLightInfo() const
+{
+    return FDirectionalLightInfo{ FVector4(LightColor, 1), GetForwardVector(), Intensity };
+}
