@@ -24,5 +24,13 @@ UOutlinerWindow::UOutlinerWindow()
 
 void UOutlinerWindow::Initialize()
 {
+	// Widget 초기화
+	for (UWidget* Widget : GetWidgets())
+	{
+		if (Widget)
+		{
+			Widget->Initialize();
+		}
+	}
 	UE_LOG("OutlinerWindow: Window가 성공적으로 생성되었습니다");
 }
