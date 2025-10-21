@@ -66,14 +66,17 @@ private:
 	ID3D11Buffer* PointLightStructuredBuffer = nullptr;
 	ID3D11Buffer* SpotLightStructuredBuffer = nullptr;
 	ID3D11Buffer* ClusterAABBRWStructuredBuffer = nullptr;
-	ID3D11Buffer* LightIndicesRWStructuredBuffer = nullptr;
+	ID3D11Buffer* PointLightIndicesRWStructuredBuffer = nullptr;
+	ID3D11Buffer* SpotLightIndicesRWStructuredBuffer = nullptr;
 
 	ID3D11ShaderResourceView* PointLightStructuredBufferSRV = nullptr;
 	ID3D11ShaderResourceView* SpotLightStructuredBufferSRV = nullptr;
 	ID3D11ShaderResourceView* ClusterAABBRWStructuredBufferSRV = nullptr;
 	ID3D11UnorderedAccessView* ClusterAABBRWStructuredBufferUAV = nullptr;
-	ID3D11ShaderResourceView* LightIndicesRWStructuredBufferSRV = nullptr;
-	ID3D11UnorderedAccessView* LightIndicesRWStructuredBufferUAV = nullptr;
+	ID3D11ShaderResourceView* PointLightIndicesRWStructuredBufferSRV = nullptr;
+	ID3D11UnorderedAccessView* PointLightIndicesRWStructuredBufferUAV = nullptr;
+	ID3D11ShaderResourceView* SpotLightIndicesRWStructuredBufferSRV = nullptr;
+	ID3D11UnorderedAccessView* SpotLightIndicesRWStructuredBufferUAV = nullptr;
 	
 	uint32 PointLightBufferCount = 256;
 	uint32 SpotLightBufferCount = 256;

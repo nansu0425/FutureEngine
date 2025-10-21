@@ -95,9 +95,10 @@ cbuffer LightCountInfo : register(b5)
 };
 
 
-StructuredBuffer<int> LightIndices : register(t6);
-StructuredBuffer<FPointLightInfo> PointLightInfos : register(t7);
-StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t8);
+StructuredBuffer<int> PointLightIndices : register(t6);
+StructuredBuffer<int> SpotLightIndices : register(t7);
+StructuredBuffer<FPointLightInfo> PointLightInfos : register(t8);
+StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t9);
 
 
 uint GetDepthSliceIdx(float ViewZ)
@@ -130,7 +131,7 @@ uint GetPointLightCount(uint LightIndicesOffset)
     uint Count = 0;
     for (uint i = 0; i < LightMaxCountPerCluster; i++)
     {
-        if (LightIndices[LightIndicesOffset + i] >= 0)
+        if (PointLightIndices[LightIndicesOffset + i] >= 0)
         {
             Count++;
         }
@@ -140,10 +141,27 @@ uint GetPointLightCount(uint LightIndicesOffset)
 
 FPointLightInfo GetPointLight(uint LightIdx)
 {
-    uint LightInfoIdx = LightIndices[LightIdx];
+    uint LightInfoIdx = PointLightIndices[LightIdx];
     return PointLightInfos[LightInfoIdx];
 }
 
+uint GetSpotLightCount(uint LightIndicesOffset)
+{
+    uint Count = 0;
+    for (uint i = 0; i < LightMaxCountPerCluster; i++)
+    {
+        if (SpotLightIndices[LightIndicesOffset + i] >= 0)
+        {
+            Count++;
+        }
+    }
+    return Count;
+}
+FSpotLightInfo GetSpotLight(uint LightIdx)
+{
+    uint LightInfoIdx = SpotLightIndices[LightIdx];
+    return SpotLightInfos[LightInfoIdx];
+}
 
 cbuffer MaterialConstants : register(b2)
 {
@@ -439,11 +457,12 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     }
 
     // 4.Spot Lights 
-    //[unroll]
-    //for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
-    //{
-    //    ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
-    //}
+    uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
+     for (uint j = 0; j < SpotLightCount; j++)
+    {        
+        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
+    }
     
     // Assign to output
     Output.AmbientLight = Illumination.Ambient;
@@ -516,11 +535,12 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     }
     
     // 4. Spot Lights
-    //[unroll]
-    //for (int j = 0; j < NumSpotLights && j < NUM_SPOT_LIGHT; j++)
-    //{
-    //    ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], N, Input.WorldPosition, ViewWorldLocation));
-    //}
+    uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
+     for (uint j = 0; j < SpotLightCount ; j++)
+    {
+        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + i);
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, N, Input.WorldPosition, ViewWorldLocation));
+    }
     
     finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb + Illumination.Diffuse.rgb * diffuseColor.rgb + Illumination.Specular.rgb * specularColor.rgb;
     

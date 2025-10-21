@@ -62,7 +62,8 @@ RWStructuredBuffer<FGizmoVertex> ClusterGizmoVertex : register(u0);
 StructuredBuffer<FAABB> ClusterAABB : register(t0);
 StructuredBuffer<FPointLightInfo> PointLightInfos : register(t1);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
-StructuredBuffer<int> LightIndices : register(t3);
+StructuredBuffer<int> PointLightIndices : register(t3);
+StructuredBuffer<int> SpotLightIndices : register(t4);
 
 
 [numthreads(1, 1, 1)]
@@ -73,10 +74,18 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint LightIndicesOffset = ClusterIdx * LightMaxCountPerCluster;
     for (int i = 0; i < LightMaxCountPerCluster;i++)
     {
-        uint LightIdx = LightIndices[LightIndicesOffset + i];
+        uint LightIdx = PointLightIndices[LightIndicesOffset + i];
         if (LightIdx >= 0)
         {
             Color += PointLightInfos[LightIdx].Color;
+        }
+    }
+    for (int i = 0; i < LightMaxCountPerCluster; i++)
+    {
+        uint LightIdx = SpotLightIndices[LightIndicesOffset + i];
+        if (LightIdx >= 0)
+        {
+            Color += SpotLightInfos[LightIdx].Color;
         }
     }
     

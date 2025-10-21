@@ -22,14 +22,17 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 	PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
 	SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FSpotLightInfo>(SpotLightBufferCount);
 	ClusterAABBRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(24, GetClusterCount());
-	LightIndicesRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(4, GetClusterCount() * LightMaxCountPerCluster);
+	PointLightIndicesRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(4, GetClusterCount() * LightMaxCountPerCluster);
+	SpotLightIndicesRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(4, GetClusterCount() * LightMaxCountPerCluster);
 
 	FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightStructuredBuffer, &PointLightStructuredBufferSRV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferSRV);
 	FRenderResourceFactory::CreateUnorderedAccessView(ClusterAABBRWStructuredBuffer, &ClusterAABBRWStructuredBufferUAV);	
-	FRenderResourceFactory::CreateStructuredShaderResourceView(LightIndicesRWStructuredBuffer, &LightIndicesRWStructuredBufferSRV);
-	FRenderResourceFactory::CreateUnorderedAccessView(LightIndicesRWStructuredBuffer, &LightIndicesRWStructuredBufferUAV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightIndicesRWStructuredBuffer, &PointLightIndicesRWStructuredBufferSRV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightIndicesRWStructuredBuffer, &SpotLightIndicesRWStructuredBufferSRV);
+	FRenderResourceFactory::CreateUnorderedAccessView(PointLightIndicesRWStructuredBuffer, &PointLightIndicesRWStructuredBufferUAV);
+	FRenderResourceFactory::CreateUnorderedAccessView(SpotLightIndicesRWStructuredBuffer, &SpotLightIndicesRWStructuredBufferUAV);
 
 	//Cluster Gizmo (Pos, Color) = 28
 	//Cube = 8 Vertex, 24 Index
@@ -54,6 +57,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(6, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, nullptr);
+	Pipeline->SetShaderResourceView(9, EShaderType::VS | EShaderType::PS, nullptr);
 
 
 	// Setup lighting constant buffer from scene lights
@@ -140,11 +144,14 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->DispatchCS(ViewClusterCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
 
 	//Light 분류
-	Pipeline->SetUnorderedAccessView(0, LightIndicesRWStructuredBufferUAV);
+	Pipeline->SetUnorderedAccessView(0, PointLightIndicesRWStructuredBufferUAV);
+	Pipeline->SetUnorderedAccessView(1, SpotLightIndicesRWStructuredBufferUAV);
 	Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
 	Pipeline->DispatchCS(ClusteredLightCullingCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
+	Pipeline->SetUnorderedAccessView(0, nullptr);
+	Pipeline->SetUnorderedAccessView(1, nullptr);
 
 
 	//클러스터 기즈모 제작
@@ -155,7 +162,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 		Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
-		Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
+		Pipeline->SetShaderResourceView(3, EShaderType::CS, PointLightIndicesRWStructuredBufferSRV);
+		Pipeline->SetShaderResourceView(4, EShaderType::CS, SpotLightIndicesRWStructuredBufferSRV);
 		Pipeline->DispatchCS(ClusterGizmoSetCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
 	}
 	Pipeline->SetUnorderedAccessView(0, nullptr);
@@ -197,9 +205,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, ClusterSliceInfoConstantBuffer);
 	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, LightCountInfoConstantBuffer);
 
-	Pipeline->SetShaderResourceView(6, EShaderType::VS | EShaderType::PS, LightIndicesRWStructuredBufferSRV);
-	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, PointLightStructuredBufferSRV);
-	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, SpotLightStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(6, EShaderType::VS | EShaderType::PS, PointLightIndicesRWStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, SpotLightIndicesRWStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, PointLightStructuredBufferSRV);
+	Pipeline->SetShaderResourceView(9, EShaderType::VS | EShaderType::PS, SpotLightStructuredBufferSRV);
 }
 
 

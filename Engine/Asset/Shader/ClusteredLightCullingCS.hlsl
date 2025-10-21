@@ -55,7 +55,8 @@ cbuffer LightCountInfo : register(b2)
     uint2 padding;
 }
 
-RWStructuredBuffer<int> LightIndices : register(u0);
+RWStructuredBuffer<int> PointLightIndices : register(u0);
+RWStructuredBuffer<int> SpotLightIndices : register(u1);
 StructuredBuffer<FAABB> ClusterAABB : register(t0);
 StructuredBuffer<FPointLightInfo> PointLightInfos : register(t1);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
@@ -105,15 +106,29 @@ void main( uint3 DTid : SV_DispatchThreadID )
         float4 LightViewPos = mul(float4(PointLightInfo.Position, 1), ViewMatrix);
         if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, PointLightInfo.Range))
         {
-            LightIndices[LightIndicesOffset + IncludeLightCount] = i;
+            PointLightIndices[LightIndicesOffset + IncludeLightCount] = i;
             IncludeLightCount++;
         }
     }    
-    
-    for (uint i = IncludeLightCount; i < LightMaxCountPerCluster;i++)
+    for (uint i = IncludeLightCount; i < LightMaxCountPerCluster; i++)
     {
-        LightIndices[LightIndicesOffset + i] = -1;
-
+        PointLightIndices[LightIndicesOffset + i] = -1;
+    }
+    IncludeLightCount = 0;
+    for (int i = 0; (i < SpotLightCount) && (IncludeLightCount < LightMaxCountPerCluster); i++)
+    {
+        FSpotLightInfo SpotLightInfo = SpotLightInfos[i];
+        float4 LightViewPos = mul(float4(SpotLightInfo.Position, 1), ViewMatrix);
+        if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, SpotLightInfo.Range))
+        {
+            SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;
+            IncludeLightCount++;
+        }
+    }
+    
+    for (uint i = IncludeLightCount; i < LightMaxCountPerCluster; i++)
+    {
+        SpotLightIndices[LightIndicesOffset + i] = -1;
     }
     
     
