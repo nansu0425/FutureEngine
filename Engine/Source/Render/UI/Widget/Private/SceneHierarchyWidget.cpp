@@ -14,6 +14,7 @@
 #include "Component/Public/LightComponentBase.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
+#include "Manager/Path/Public/PathManager.h"
 
 IMPLEMENT_CLASS(USceneHierarchyWidget, UWidget)
 USceneHierarchyWidget::USceneHierarchyWidget()
@@ -646,7 +647,8 @@ void USceneHierarchyWidget::LoadActorIcons()
 {
 	UE_LOG("SceneHierarchy: 아이콘 로드 시작...");
 	UAssetManager& AssetManager = UAssetManager::GetInstance();
-	const FString IconBasePath = "C:\\Users\\Jungle\\Desktop\\KTLWeek07\\Engine\\Asset\\Icon\\";
+	UPathManager& PathManager = UPathManager::GetInstance();
+	FString IconBasePath = PathManager.GetAssetPath().string() + "\\Icon\\";
 
 	// 로드할 아이콘 목록 (클래스 이름 -> 파일명)
 	TArray<FString> IconFiles = {
