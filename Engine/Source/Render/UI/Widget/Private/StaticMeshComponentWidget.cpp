@@ -106,15 +106,42 @@ void UStaticMeshComponentWidget::RenderMaterialSections()
 		// 현재 할당된 Material 가져오기 (OverrideMaterials 우선)
 		UMaterial* CurrentMaterial = StaticMeshComponent->GetMaterial(SlotIndex);
 		FString PreviewName = CurrentMaterial ? GetMaterialDisplayName(CurrentMaterial) : "None";
-
 		// Material 정보 표시
 		ImGui::PushID(SlotIndex);
 
 		std::string Label = "Element " + std::to_string(SlotIndex);
-		if (ImGui::BeginCombo(Label.c_str(), PreviewName.c_str()))
+		// “Element N”을 먼저 한 줄로 출력
+		ImGui::TextUnformatted(Label.c_str());
+
+		// 현재 슬롯의 머티리얼 썸네일(이전 단계에서 추가했던 코드 그대로 사용)
+		const float PreviewSize = 64.0f;
+		UTexture* MaterialPreviewTexture = GetPreviewTextureForMaterial(CurrentMaterial);
+		ID3D11ShaderResourceView* ShaderResourceView = nullptr;
+		if (MaterialPreviewTexture != nullptr)
+		{
+			ShaderResourceView = MaterialPreviewTexture->GetTextureSRV();
+		}
+
+		if (ShaderResourceView != nullptr)
+		{
+			ImGui::Image((ImTextureID)ShaderResourceView, ImVec2(PreviewSize, PreviewSize), ImVec2(0, 0), ImVec2(1, 1));
+		}
+		else
+		{
+			ImGui::Dummy(ImVec2(PreviewSize, PreviewSize));
+		}
+
+		// 썸네일과 콤보를 같은 라인에 유지
+		ImGui::SameLine();
+
+		// 콤보 폭을 남은 가로 영역으로
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+		// 보이는 라벨은 숨기고(“##”) 슬롯마다 고유 ID를 부여
+		std::string ComboId = "##MaterialSlotCombo_" + std::to_string(SlotIndex);
+		if (ImGui::BeginCombo(ComboId.c_str(), PreviewName.c_str()))
 		{
 			RenderAvailableMaterials(SlotIndex);
-
 			ImGui::EndCombo();
 		}
 		FVector Ambient = CurrentMaterial->GetAmbientColor();
@@ -149,6 +176,25 @@ void UStaticMeshComponentWidget::RenderAvailableMaterials(int32 TargetSlotIndex)
 
 		FString MatName = GetMaterialDisplayName(Mat);
 		bool bIsSelected = (StaticMeshComponent->GetMaterial(TargetSlotIndex) == Mat);
+		// 콤보 항목의 머티리얼 썸네일(작게)
+		const float RowPreviewSize = 20.0f;
+		UTexture* RowPreviewTexture = GetPreviewTextureForMaterial(Mat);
+		ID3D11ShaderResourceView* RowShaderResourceView = nullptr;
+		if (RowPreviewTexture != nullptr)
+		{
+			RowShaderResourceView = RowPreviewTexture->GetTextureSRV();
+		}
+
+		if (RowShaderResourceView != nullptr)
+		{
+			ImGui::Image((ImTextureID)RowShaderResourceView, 
+				ImVec2(RowPreviewSize, RowPreviewSize), ImVec2(0, 0), ImVec2(1, 1));
+		}
+		else
+		{
+			ImGui::Dummy(ImVec2(RowPreviewSize, RowPreviewSize));
+		}
+		ImGui::SameLine();
 
 		if (ImGui::Selectable(MatName.c_str(), bIsSelected))
 		{
@@ -263,4 +309,32 @@ FString UStaticMeshComponentWidget::GetMaterialDisplayName(UMaterial* Material) 
 
 	// 4순위: UUID 기반 이름 사용
 	return "Material_" + std::to_string(Material->GetUUID());
+}
+UTexture* UStaticMeshComponentWidget::GetPreviewTextureForMaterial(UMaterial* Material) const
+{
+	if (Material == nullptr)
+	{
+		return nullptr;
+	}
+
+	UTexture* PreviewTexture = nullptr;
+
+	PreviewTexture = Material->GetDiffuseTexture();
+	if (PreviewTexture != nullptr) { return PreviewTexture; }
+
+	PreviewTexture = Material->GetAmbientTexture();
+	if (PreviewTexture != nullptr) { return PreviewTexture; }
+
+	PreviewTexture = Material->GetSpecularTexture();
+	if (PreviewTexture != nullptr) { return PreviewTexture; }
+
+	PreviewTexture = Material->GetNormalTexture();
+	if (PreviewTexture != nullptr) { return PreviewTexture; }
+
+	PreviewTexture = Material->GetAlphaTexture();
+	if (PreviewTexture != nullptr) { return PreviewTexture; }
+
+	PreviewTexture = Material->GetBumpTexture();
+	return PreviewTexture;
+
 }

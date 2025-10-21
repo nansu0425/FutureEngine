@@ -26,4 +26,5 @@ private:
 
 	// Material utility functions
 	FString GetMaterialDisplayName(UMaterial* Material) const;
+	UTexture* GetPreviewTextureForMaterial(UMaterial* Material) const;
 };
