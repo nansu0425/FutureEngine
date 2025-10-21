@@ -9,11 +9,12 @@ struct FViewClusterInfo
 	FMatrix ViewMat;
 	float ZNear;
 	float ZFar;
+	float Aspect;
+	float fov;
 	uint32 ScreenSlideNumX;
 	uint32 ScreenSlideNumY;
 	uint32 ZSlideNum;
 	uint32 LightMaxCountPerCluster;
-	FVector2 padding;
 };
 struct FLightCountInfo
 {
@@ -68,9 +69,10 @@ private:
 	uint32 LightMaxCountPerCluster = 8;
 
 
-	ID3D11Buffer* ClusterGizmoVertex = nullptr;
-	ID3D11UnorderedAccessView* ClusterGizmoVertexUAV = nullptr;
-	ID3D11ShaderResourceView* ClusterGizmoVertexSRV = nullptr;
+	ID3D11Buffer* ClusterGizmoVertexRWStructuredBuffer = nullptr;
+	ID3D11UnorderedAccessView* ClusterGizmoVertexRWStructuredBufferUAV = nullptr;
+	ID3D11ShaderResourceView* ClusterGizmoVertexRWStructuredBufferSRV = nullptr;
+
 	//해제 X
 	ID3D11Buffer* CameraConstantBuffer = nullptr;
 	ID3D11InputLayout* GizmoInputLayout = nullptr;

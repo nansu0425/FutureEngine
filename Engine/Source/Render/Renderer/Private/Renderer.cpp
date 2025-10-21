@@ -300,8 +300,8 @@ void URenderer::CreateGizmoShader()
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ClusterGizmoSetCS.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ClusterGizmoSetCS.hlsl", &GizmoPS);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/GizmoLine.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/GizmoLine.hlsl", &GizmoPS);
 }
 
 

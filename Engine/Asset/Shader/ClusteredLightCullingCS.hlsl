@@ -32,15 +32,16 @@ struct FAABB
 };
 cbuffer ViewClusterInfo : register(b0)
 {
-    float4x4 ProjectionInv;
-    float4x4 ViewInv;
-    float4x4 ViewMatrix;
+    row_major float4x4 ProjectionInv;
+    row_major float4x4 ViewInv;
+    row_major float4x4 ViewMatrix;
     float ZNear;
     float ZFar;
+    float Aspect;
+    float fov;
     uint2 ScreenSlideNum;
     uint ZSlideNum;
     uint LightMaxCountPerCluster;
-    float2 padding;
 };
 cbuffer LightCountInfo : register(b1)
 {
@@ -60,7 +61,7 @@ bool IntersectAABBSphere(float3 AABBMin, float3 AABBMax, float3 SphereCenter, fl
     float3 BoxHalfSize = (AABBMax - AABBMin) * 0.5f;
     float3 ExtensionSize = BoxHalfSize + float3(SphereRadius, SphereRadius, SphereRadius);
     float3 B2L = SphereCenter - BoxCenter; //Box To  Light
-    float3 AbsB2L = abs(BoxHalfSize);
+    float3 AbsB2L = abs(B2L);
     if(AbsB2L.x > ExtensionSize.x || AbsB2L.y > ExtensionSize.y || AbsB2L.z > ExtensionSize.z)
     {
         return false;

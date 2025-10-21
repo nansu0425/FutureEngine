@@ -31,10 +31,10 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 	FRenderResourceFactory::CreateUnorderedAccessView(LightIndicesRWStructuredBuffer, &LightIndicesRWStructuredBufferUAV);
 
 	//Cluster Gizmo (Pos, Color) = 28
-	//Cube = 24 Vertex
-	ClusterGizmoVertex = FRenderResourceFactory::CreateRWStructuredBuffer(28, GetClusterCount() * 24);
-	FRenderResourceFactory::CreateUnorderedAccessView(ClusterGizmoVertex,  &ClusterGizmoVertexUAV);
-	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterGizmoVertex,  &ClusterGizmoVertexSRV);
+	//Cube = 8 Vertex, 24 Index
+	ClusterGizmoVertexRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(28, (GetClusterCount() + 1) * 8);
+	FRenderResourceFactory::CreateUnorderedAccessView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferUAV);
+	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferSRV);
 
 	GizmoInputLayout = InGizmoInputLayout;
 	GizmoVS = InGizmoVS;
@@ -113,8 +113,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FMatrix ViewMatrix = Context.CurrentCamera->GetFViewProjConstants().View;
 	float CamNear = Context.CurrentCamera->GetNearZ();
 	float CamFar = Context.CurrentCamera->GetFarZ();
+	float Aspect = Context.CurrentCamera->GetAspect();
+	float fov = Context.CurrentCamera->GetFovY();
 	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
-		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum, LightMaxCountPerCluster });
+		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar,Aspect,fov, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum, LightMaxCountPerCluster });
 	FRenderResourceFactory::UpdateConstantBufferData(LightCountInfoConstantBuffer,
 		FLightCountInfo{ PointLightCount, SpotLightCount });
 	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
@@ -129,10 +131,18 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
 	Pipeline->DispatchCS(ClusteredLightCullingCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
 
-	//클러스터 기즈모 제작
-	Pipeline->SetUnorderedAccessView(0, ClusterGizmoVertexUAV);
-	Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
-	Pipeline->DispatchCS(ClusterGizmoSetCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+	static bool IsInit = false;
+	if (IsInit == false) 
+	{
+		IsInit = true;
+		//클러스터 기즈모 제작
+		Pipeline->SetUnorderedAccessView(0, ClusterGizmoVertexRWStructuredBufferUAV);
+		Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
+		Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
+		Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
+		Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
+		Pipeline->DispatchCS(ClusterGizmoSetCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
+	}
 	
 	//클러스터 기즈모 출력
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
@@ -140,9 +150,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->UpdatePipeline(PipelineInfo);
 	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
 
-	uint32 Stride = sizeof(FGizmoVertex);
-	uint32 Offset = 0;
-	Pipeline->SetVertexBuffer(ClusterGizmoVertex, Stride);
+	Pipeline->SetShaderResourceView(0, EShaderType::VS, ClusterGizmoVertexRWStructuredBufferSRV);
 
 	URenderer& Renderer = URenderer::GetInstance();
 	const auto& DeviceResources = Renderer.GetDeviceResources();
@@ -155,10 +163,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 	{
 		RTV = DeviceResources->GetRenderTargetView();
 	}
-	ID3D11RenderTargetView* RTVs[2] = { RTV, DeviceResources->GetNormalRenderTargetView() };
+	ID3D11RenderTargetView* RTVs[] = { RTV};
 	ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
-	//Pipeline->SetRenderTargets(2, RTVs, DSV);
-	//Pipeline->Draw(GetClusterCount() * 24, 0);
+	Pipeline->SetRenderTargets(1, RTVs, DSV);
+	Pipeline->Draw((GetClusterCount() + 1) * 24, 0);
 
 
 

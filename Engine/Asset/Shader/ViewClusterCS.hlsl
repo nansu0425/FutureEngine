@@ -1,15 +1,16 @@
 
 cbuffer ViewClusterInfo : register(b0)
 {
-    float4x4 ProjectionInv;
-    float4x4 ViewInv;
-    float4x4 ViewMatrix;
+    row_major float4x4 ProjectionInv;
+    row_major float4x4 ViewInv;
+    row_major float4x4 ViewMatrix;
     float ZNear;
     float ZFar;
+    float Aspect;
+    float fov;
     uint2 ScreenSlideNum;
     uint ZSlideNum;
     uint LightMaxCountPerCluster;
-    float2 padding;
 };
 
 struct FAABB
@@ -45,7 +46,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float2 ScreenMin = ScreenIdx * ScreenSlideNumRCP;
     float2 ScreenMax = (ScreenIdx + int2(1, 1)) * ScreenSlideNumRCP;
     float2 NearNDCMin = ScreenMin * 2 - float2(1, 1);
-    float2 NearNDCMax = ScreenMax * 2 + float2(1, 1);
+    float2 NearNDCMax = ScreenMax * 2 - float2(1, 1);
     
     //NearPlane In NDC = 0
     float3 ViewMin = NDCToView(float3(NearNDCMin, 0));

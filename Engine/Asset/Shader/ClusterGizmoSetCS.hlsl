@@ -25,15 +25,16 @@ struct FSpotLightInfo
 };
 cbuffer FViewClusterInfo : register(b0)
 {
-    float4x4 ProjectionInv;
-    float4x4 ViewInv;
-    float4x4 ViewMatrix;
+    row_major float4x4 ProjectionInv;
+    row_major float4x4 ViewInv;
+    row_major float4x4 ViewMatrix;
     float ZNear;
     float ZFar;
+    float Aspect;
+    float fov;
     uint2 ScreenSlideNum;
     uint ZSlideNum;
     uint LightMaxCountPerCluster;
-    float2 padding;
 };
 cbuffer FLightCountInfo : register(b1)
 {
@@ -65,10 +66,11 @@ void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint ClusterIdx = DTid.x + DTid.y * ScreenSlideNum.x + DTid.z * ScreenSlideNum.x * ScreenSlideNum.y;
     float4 Color = float4(0, 0, 0, 0);
+    uint LightIndicesOffset = ClusterIdx * LightMaxCountPerCluster;
     for (int i = 0; i < LightMaxCountPerCluster;i++)
     {
-        uint LightIdx = LightIndices[i];
-        if (LightIdx > 0)
+        uint LightIdx = LightIndices[LightIndicesOffset + i];
+        if (LightIdx >= 0)
         {
             Color += PointLightInfos[LightIdx].Color;
         }
@@ -78,45 +80,42 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float4 WorldMin = mul(float4(CurAABB.Min, 1), ViewInv);
     float4 WorldMax = mul(float4(CurAABB.Max, 1), ViewInv);
     
-    uint VertexOffset = 24 * ClusterIdx;
-    float3 VertexWorld[8];
-    VertexWorld[0] = float3(WorldMin.x, WorldMin.y, WorldMin.z);
-    VertexWorld[1] = float3(WorldMin.x, WorldMax.y, WorldMin.z);
-    VertexWorld[2] = float3(WorldMax.x, WorldMax.y, WorldMin.z);
-    VertexWorld[3] = float3(WorldMax.x, WorldMin.y, WorldMin.z);
-    VertexWorld[4] = float3(WorldMin.x, WorldMin.y, WorldMax.z);
-    VertexWorld[5] = float3(WorldMin.x, WorldMax.y, WorldMax.z);
-    VertexWorld[6] = float3(WorldMax.x, WorldMax.y, WorldMax.z);
-    VertexWorld[7] = float3(WorldMax.x, WorldMin.y, WorldMax.z);
-    
-    ClusterGizmoVertex[0].Pos = VertexWorld[0];
-    ClusterGizmoVertex[1].Pos = VertexWorld[1];
-    ClusterGizmoVertex[2].Pos = VertexWorld[1];
-    ClusterGizmoVertex[3].Pos = VertexWorld[2];
-    ClusterGizmoVertex[4].Pos = VertexWorld[2];
-    ClusterGizmoVertex[5].Pos = VertexWorld[3];
-    ClusterGizmoVertex[6].Pos = VertexWorld[3];
-    ClusterGizmoVertex[7].Pos = VertexWorld[0];
-    ClusterGizmoVertex[8].Pos = VertexWorld[0];
-    ClusterGizmoVertex[9].Pos = VertexWorld[4];
-    ClusterGizmoVertex[10].Pos = VertexWorld[1];
-    ClusterGizmoVertex[11].Pos = VertexWorld[5];
-    ClusterGizmoVertex[12].Pos = VertexWorld[2];
-    ClusterGizmoVertex[13].Pos = VertexWorld[6];
-    ClusterGizmoVertex[14].Pos = VertexWorld[3];
-    ClusterGizmoVertex[15].Pos = VertexWorld[7];
-    ClusterGizmoVertex[16].Pos = VertexWorld[4];
-    ClusterGizmoVertex[17].Pos = VertexWorld[5];
-    ClusterGizmoVertex[18].Pos = VertexWorld[5];
-    ClusterGizmoVertex[19].Pos = VertexWorld[6];
-    ClusterGizmoVertex[20].Pos = VertexWorld[6];
-    ClusterGizmoVertex[21].Pos = VertexWorld[7];
-    ClusterGizmoVertex[22].Pos = VertexWorld[7];
-    ClusterGizmoVertex[23].Pos = VertexWorld[4];
     Color.w = 1;
-    for (int i = 0; i < 24;i++)
+    uint VertexOffset = 8 * ClusterIdx + 8;
+    ClusterGizmoVertex[0 + VertexOffset].Pos = float3(WorldMin.x, WorldMin.y, WorldMin.z);
+    ClusterGizmoVertex[1 + VertexOffset].Pos = float3(WorldMin.x, WorldMax.y, WorldMin.z);
+    ClusterGizmoVertex[2 + VertexOffset].Pos = float3(WorldMax.x, WorldMax.y, WorldMin.z);
+    ClusterGizmoVertex[3 + VertexOffset].Pos = float3(WorldMax.x, WorldMin.y, WorldMin.z);
+    ClusterGizmoVertex[4 + VertexOffset].Pos = float3(WorldMin.x, WorldMin.y, WorldMax.z);
+    ClusterGizmoVertex[5 + VertexOffset].Pos = float3(WorldMin.x, WorldMax.y, WorldMax.z);
+    ClusterGizmoVertex[6 + VertexOffset].Pos = float3(WorldMax.x, WorldMax.y, WorldMax.z);
+    ClusterGizmoVertex[7 + VertexOffset].Pos = float3(WorldMax.x, WorldMin.y, WorldMax.z);
+    ClusterGizmoVertex[0 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[1 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[2 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[3 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[4 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[5 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[6 + VertexOffset].Color = Color;
+    ClusterGizmoVertex[7 + VertexOffset].Color = Color;
+    if(ClusterIdx == 0)
     {
-        ClusterGizmoVertex[i].Color = Color;
+        float tanhalffov = tan(fov * 0.5f * 3.141592f / 180.0f);
+        float3 ViewFrustumPos[8];
+        ViewFrustumPos[0] = float3(-tanhalffov * ZNear * Aspect, -tanhalffov * ZNear, ZNear);
+        ViewFrustumPos[1] = float3(tanhalffov * ZNear * Aspect, -tanhalffov * ZNear, ZNear);
+        ViewFrustumPos[2] = float3(tanhalffov * ZNear * Aspect, tanhalffov * ZNear, ZNear);
+        ViewFrustumPos[3] = float3(-tanhalffov * ZNear * Aspect, tanhalffov * ZNear, ZNear);
+        ViewFrustumPos[4] = float3(-tanhalffov * ZFar * Aspect, -tanhalffov * ZFar, ZFar);
+        ViewFrustumPos[5] = float3(tanhalffov * ZFar * Aspect, -tanhalffov * ZFar, ZFar);
+        ViewFrustumPos[6] = float3(tanhalffov * ZFar * Aspect, tanhalffov * ZFar, ZFar);
+        ViewFrustumPos[7] = float3(-tanhalffov * ZFar * Aspect, tanhalffov * ZFar, ZFar);
+        for (int i = 0; i < 8;i++)
+        {
+            ClusterGizmoVertex[i].Pos = mul(float4(ViewFrustumPos[i], 1), ViewInv);
+            ClusterGizmoVertex[i].Color = float4(1, 1, 1, 1);
+        }
+      
     }
 
 }
