@@ -4,6 +4,7 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Physics/Public/AABB.h"
 #include "Physics/Public/OBB.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_ABSTRACT_CLASS(UPrimitiveComponent, USceneComponent)
 
@@ -174,5 +175,21 @@ UObject* UPrimitiveComponent::Duplicate()
 void UPrimitiveComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
+
+}
+void UPrimitiveComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		FString VisibleString;
+		FJsonSerializer::ReadString(InOutHandle, "bVisible", VisibleString, "true");
+		SetVisibility(VisibleString == "true");
+	}
+	else
+	{
+		InOutHandle["bVisible"] = bVisible ? "true" : "false";
+	}
 
 }
