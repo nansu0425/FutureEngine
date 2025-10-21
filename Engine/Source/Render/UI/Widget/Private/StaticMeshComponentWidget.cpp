@@ -178,6 +178,18 @@ void UStaticMeshComponentWidget::RenderOptions()
 			StaticMeshComponent->DisableScroll();
 		}
 	}
+	bool IsNormalMapEnabledLocal = StaticMeshComponent->IsNormalMapEnabled();
+	if (ImGui::Checkbox("Enable Normal Map", &IsNormalMapEnabledLocal))
+	{
+		if (IsNormalMapEnabledLocal)
+		{
+			StaticMeshComponent->EnableNormalMap();
+		}
+		else
+		{
+			StaticMeshComponent->DisableNormalMap();
+		}
+	}
 }
 
 FString UStaticMeshComponentWidget::GetMaterialDisplayName(UMaterial* Material) const

@@ -18,6 +18,7 @@ UStaticMeshComponent::UStaticMeshComponent()
 {
 	FName DefaultObjPath = "Data/Shapes/Cube.obj";
 	SetStaticMesh(DefaultObjPath);
+	NormalMapEnabled = true;
 }
 
 UStaticMeshComponent::~UStaticMeshComponent()
@@ -152,6 +153,7 @@ UObject* UStaticMeshComponent::Duplicate()
 	StaticMeshComponent->ElapsedTime = ElapsedTime;
 	StaticMeshComponent->StaticMesh = StaticMesh;
 	StaticMeshComponent->OverrideMaterials = OverrideMaterials;
+	StaticMeshComponent->NormalMapEnabled = NormalMapEnabled;
 	return StaticMeshComponent;
 }
 
