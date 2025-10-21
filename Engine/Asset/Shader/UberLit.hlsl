@@ -321,21 +321,25 @@ float3 ComputeNormalMappedWorldNormal(float2 UV, float3 WorldNormal, float4 Worl
 {
     float3 BaseNormal = SafeNormalize3(WorldNormal);
 
-      // Tangent가 비정상(0 길이)이면 메시 노말 사용
+    // Tangent가 비정상(0 길이)이면 노말 맵 적용 포기하고 메시 노말 사용
     float TangentLen2 = dot(WorldTangent.xyz, WorldTangent.xyz);
     if (TangentLen2 <= 1e-8f)
     {
         return BaseNormal;
     }
-
+    // 노말 맵 텍셀 샘플링 [0,1]
     float3 Encoded = NormalTexture.Sample(SamplerWrap, UV).xyz;
+    // [0,1] -> [-1,1]로 매핑해서 탄젠트 공간 노말을 복원한다.
     float3 TangentSpaceNormal = SafeNormalize3(Encoded * 2.0f - 1.0f);
 
+    // VS로 넘어온 월드 탄젠트를 정규화
     float3 T = WorldTangent.xyz / sqrt(TangentLen2);
+    // TBN이 올바른 방향이 되도록 저장해둔 좌우손성으로 B 복원
     float Handedness = WorldTangent.w;
     float3 B = SafeNormalize3(cross(BaseNormal, T) * Handedness);
 
     float3x3 TBN = float3x3(T, B, BaseNormal);
+    // 로컬 공간의 탄젠트를 월드 공간으로 보냄
     return SafeNormalize3(mul(TangentSpaceNormal, TBN));
 
 }
