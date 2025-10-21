@@ -103,6 +103,7 @@ static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32
 
 // static 멤버 변수의 실체를 정의(메모리 할당)합니다.
 TMap<FName, std::unique_ptr<FStaticMesh>> FObjManager::ObjFStaticMeshMap;
+UMaterial* FObjManager::CachedDefaultMaterial = nullptr;
 
 /** @brief: Vertex Key for creating index buffer */
 using VertexKey = std::tuple<size_t, size_t, size_t>;
@@ -307,8 +308,6 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 	std::filesystem::path ObjDirectory = std::filesystem::path(ObjFilePath.ToString()).parent_path();
 
 	UAssetManager& AssetManager = UAssetManager::GetInstance();
-
-	static UMaterial* CachedDefaultMaterial = nullptr;
 	
 	size_t MaterialCount = StaticMeshAsset->MaterialInfo.size();
 	for (size_t i = 0; i < MaterialCount; ++i)
@@ -444,4 +443,14 @@ UStaticMesh* FObjManager::LoadObjStaticMesh(const FName& PathFileName, const FOb
 	}
 
 	return nullptr;
+}
+
+void FObjManager::Release()
+{
+	// Clean up the cached default material to prevent memory leak
+	if (CachedDefaultMaterial)
+	{
+		delete CachedDefaultMaterial;
+		CachedDefaultMaterial = nullptr;
+	}
 }

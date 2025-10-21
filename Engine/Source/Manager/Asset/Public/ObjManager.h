@@ -11,9 +11,11 @@ public:
 	static FStaticMesh* LoadObjStaticMeshAsset(const FName& PathFileName, const FObjImporter::Configuration& Config = {});
 	static UStaticMesh* LoadObjStaticMesh(const FName& PathFileName, const FObjImporter::Configuration& Config = {});
 	static void CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* StaticMeshAsset, const FName& ObjFilePath);
+	static void Release();
 
 	static constexpr size_t INVALID_INDEX = SIZE_MAX;
 	
 private:
 	static TMap<FName, std::unique_ptr<FStaticMesh>> ObjFStaticMeshMap;
+	static UMaterial* CachedDefaultMaterial;
 };

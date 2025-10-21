@@ -6,6 +6,7 @@
 #include "Manager/Input/Public/InputManager.h"
 
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/Asset/Public/ObjManager.h"
 #include "Manager/Time/Public/TimeManager.h"
 
 #include "Manager/UI/Public/UIManager.h"
@@ -204,5 +205,6 @@ void FClientApp::ShutdownSystem() const
 	UStatOverlay::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
 	UAssetManager::GetInstance().Release();
+	FObjManager::Release();
 	URenderer::GetInstance().Release();
 }
