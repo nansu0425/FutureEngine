@@ -42,7 +42,7 @@ public:
 	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
 
 	virtual void MarkAsDirty() override;
-
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	// 데칼에 덮일 수 있는가
 	bool bReceivesDecals = true;
 

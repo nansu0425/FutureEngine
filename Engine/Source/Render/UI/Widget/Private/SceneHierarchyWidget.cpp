@@ -189,6 +189,9 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 		}
 	}
 
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 	// PrimitiveComponent나 light가 있는 경우에만 Visibility 버튼 표시
 	if (bHasPrimitive || bHasLight)
 	{
@@ -219,7 +222,7 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 		ImGui::SmallButton("[-]");
 		ImGui::PopStyleVar();
 	}
-
+	ImGui::PopStyleColor(3);
 	// 이름 클릭 감지 (오른쪽)
 	ImGui::SameLine();
 
