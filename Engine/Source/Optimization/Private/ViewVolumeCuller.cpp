@@ -49,7 +49,9 @@ void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>&
 
 	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
 	{
-		if (Primitive && CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
+		if (Primitive != nullptr
+			&& Primitive->IsVisible()
+			&& CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
 		{
 			RenderableObjects.push_back(Primitive);
 		}
@@ -60,7 +62,13 @@ const TArray<UPrimitiveComponent*>& ViewVolumeCuller::GetRenderableObjects()
 {
 	// Octree에 없는 DynamicPrimitives들 추가
 	TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
-	RenderableObjects.insert(RenderableObjects.end(), DynamicPrimitives.begin(), DynamicPrimitives.end());
+	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
+	{
+		if (Primitive != nullptr && Primitive->IsVisible())
+		{
+			RenderableObjects.push_back(Primitive);
+		}
+	}
 	return RenderableObjects;
 }
 
@@ -90,7 +98,13 @@ void ViewVolumeCuller::CullOctree(FOctree* Octree)
 		{
 			TArray<UPrimitiveComponent*> Primitives;
 			CurrentNode->GetAllPrimitives(Primitives);
-			RenderableObjects.insert(RenderableObjects.end(), Primitives.begin(), Primitives.end());
+			for (UPrimitiveComponent* Primitive : Primitives)
+			{
+				if (Primitive != nullptr && Primitive->IsVisible())
+				{
+					RenderableObjects.push_back(Primitive);
+				}
+			}
 			continue;
 		}
 		// Case 3. 노드가 절두체와 부분적으로 겹쳐진다면, 개별 검사를 합니다.
@@ -99,8 +113,9 @@ void ViewVolumeCuller::CullOctree(FOctree* Octree)
 			// 노드가 겹치면, 현재 노드에 있는 프리미티브들만 개별적으로 검사합니다.
 			for (UPrimitiveComponent* Primitive : CurrentNode->GetPrimitives())
 			{
-				if (Primitive && 
-					CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
+				if (Primitive != nullptr
+					&& Primitive->IsVisible()
+					&& CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
 				{
 					RenderableObjects.push_back(Primitive);
 				}

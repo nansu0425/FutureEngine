@@ -36,6 +36,7 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 
 	//Cluster Gizmo (Pos, Color) = 28
 	//Cube = 8 Vertex, 24 Index
+	//0~7은 절두체 그리는 용도로 사용 (절두체로 인해 +1 있음)
 	ClusterGizmoVertexRWStructuredBuffer = FRenderResourceFactory::CreateRWStructuredBuffer(28, (GetClusterCount() + 1) * 8);
 	FRenderResourceFactory::CreateUnorderedAccessView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferUAV);
 	FRenderResourceFactory::CreateStructuredShaderResourceView(ClusterGizmoVertexRWStructuredBuffer,  &ClusterGizmoVertexRWStructuredBufferSRV);
@@ -49,7 +50,6 @@ FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCame
 }
 void FLightPass::Execute(FRenderingContext& Context)
 {
-
 	Pipeline->SetConstantBuffer(3, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, nullptr);
 	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, nullptr);
@@ -65,14 +65,38 @@ void FLightPass::Execute(FRenderingContext& Context)
 	TArray<FPointLightInfo> PointLightDatas;
 	TArray<FSpotLightInfo> SpotLightDatas;
 	// 수정 필요: Context에서 가져오기
-	if (!Context.AmbientLights.empty()) {
-		UAmbientLightComponent* AmbLight = Context.AmbientLights[0];
-		GlobalLightData.Ambient = AmbLight->GetAmbientLightInfo();
+	if (!Context.AmbientLights.empty())
+	{
+		UAmbientLightComponent* VisibleAmbient = nullptr;
+		for (UAmbientLightComponent* Ambient : Context.AmbientLights)
+		{
+			if (Ambient != nullptr && Ambient->GetVisible())
+			{
+				VisibleAmbient = Ambient;
+				break;
+			}
+		}
+		if (VisibleAmbient != nullptr)
+		{
+			GlobalLightData.Ambient = VisibleAmbient->GetAmbientLightInfo();
+		}
 	}
 
-	if (!Context.DirectionalLights.empty()) {
-		UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
-		GlobalLightData.Directional = DirLight->GetDirectionalLightInfo();
+	if (!Context.DirectionalLights.empty())
+	{
+		UDirectionalLightComponent* VisibleDirectional = nullptr;
+		for (UDirectionalLightComponent* Directional : Context.DirectionalLights)
+		{
+			if (Directional != nullptr && Directional->GetVisible())
+			{
+				VisibleDirectional = Directional;
+				break;
+			}
+		}
+		if (VisibleDirectional != nullptr)
+		{
+			GlobalLightData.Directional = VisibleDirectional->GetDirectionalLightInfo();
+		}
 	}
 
 	// Fill point lights from scene
@@ -104,8 +128,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 		{
 			PointLightBufferCount = PointLightBufferCount << 1;
 		}
-		PointLightStructuredBuffer->Release();
+		SafeRelease(PointLightStructuredBuffer);
 		PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
+		SafeRelease(PointLightStructuredBufferSRV);
+		FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightStructuredBuffer, &PointLightStructuredBufferSRV);
 	}
 	if (SpotLightBufferCount < SpotLightCount)
 	{
@@ -113,8 +139,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 		{
 			SpotLightBufferCount = SpotLightBufferCount << 1;
 		}
-		SpotLightStructuredBuffer->Release();
-		SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(SpotLightBufferCount);
+		SafeRelease(SpotLightStructuredBuffer);
+		SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FSpotLightInfo>(SpotLightBufferCount);
+		SafeRelease(SpotLightStructuredBufferSRV);
+		FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
 	}
 
 	FRenderResourceFactory::UpdateConstantBufferData(GlobalLightConstantBuffer, GlobalLightData);
@@ -171,6 +199,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(3, EShaderType::CS, nullptr);
+	Pipeline->SetShaderResourceView(4, EShaderType::CS, nullptr);
 	
 	if (bRenderClusterGizmo) 
 	{

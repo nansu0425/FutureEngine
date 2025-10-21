@@ -11,6 +11,7 @@
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Quaternion.h"
+#include "Component/Public/LightComponentBase.h"
 
 IMPLEMENT_CLASS(USceneHierarchyWidget, UWidget)
 USceneHierarchyWidget::USceneHierarchyWidget()
@@ -157,6 +158,7 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 
 	// Actor의 PrimitiveComponent들의 Visibility 체크
 	bool bHasPrimitive = false;
+	bool bHasLight = false;
 	bool bAllVisible = true;
 	UPrimitiveComponent* FirstPrimitive = nullptr;
 
@@ -177,10 +179,18 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				bAllVisible = false;
 			}
 		}
+		if (ULightComponentBase* LightComponent = Cast<ULightComponentBase>(Component))
+		{
+			bHasLight = true;
+			if (!LightComponent->GetVisible())
+			{
+				bAllVisible = false;
+			}
+		}
 	}
 
-	// PrimitiveComponent가 있는 경우에만 Visibility 버튼 표시
-	if (bHasPrimitive)
+	// PrimitiveComponent나 light가 있는 경우에만 Visibility 버튼 표시
+	if (bHasPrimitive || bHasLight)
 	{
 		if (ImGui::SmallButton(bAllVisible ? "[O]" : "[X]"))
 		{
@@ -191,6 +201,10 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
 				{
 					PrimComp->SetVisibility(bNewVisibility);
+				}
+				if (ULightComponentBase* LightComp = Cast<ULightComponentBase>(Component))
+				{
+					LightComp->SetVisible(bNewVisibility);
 				}
 			}
 			UE_LOG_INFO("SceneHierarchy: %s의 가시성이 %s로 변경되었습니다",

@@ -19,6 +19,8 @@ UPipeline::UPipeline(ID3D11DeviceContext* InDeviceContext)
 	: DeviceContext(InDeviceContext)
 {
 	LastPipelineInfo = {};
+	//첫 프레임 메쉬 그릴때 기본으로 TriangleList topology 라서 Set안불리는 버그 수정용
+	LastPipelineInfo.Topology = D3D11_PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST; 
 }
 
 UPipeline::~UPipeline()

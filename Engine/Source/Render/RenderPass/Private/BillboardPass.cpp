@@ -55,7 +55,7 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     for (const auto& SortedItem : SortedBillboards)
     {
         UBillBoardComponent* BillBoardComp = SortedItem.BillBoard;
-
+        if (!BillBoardComp->IsVisible()) { continue; }
         const FVector4 Tint = BillBoardComp->GetSpriteTint();
         BillboardMaterialConstants.Ka = Tint;
         BillboardMaterialConstants.Kd = Tint;
