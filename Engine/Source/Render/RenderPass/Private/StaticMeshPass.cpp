@@ -194,6 +194,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, MaterialConstants);
 				Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
+				Pipeline->SetConstantBuffer(2, true, ConstantBufferMaterial);
 
 				if (UTexture* DiffuseTexture = Material->GetDiffuseTexture())
 				{
