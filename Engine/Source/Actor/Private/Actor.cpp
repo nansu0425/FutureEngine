@@ -267,6 +267,14 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 	}
 
 	NewComponent->BeginPlay();
+
+	// LightComponent인 경우 빌보드 생성
+	if (ULightComponent* LightComp = Cast<ULightComponent>(NewComponent))
+	{
+		LightComp->EnsureVisualizationBillboard();
+	}
+
+	
 	return NewComponent;
 }
 

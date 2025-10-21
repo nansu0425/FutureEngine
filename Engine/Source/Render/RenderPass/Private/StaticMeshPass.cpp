@@ -14,6 +14,7 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
 {
+
 	const auto& Renderer = URenderer::GetInstance();
 	FRenderState RenderState = UStaticMeshComponent::GetClassDefaultRenderState();
 	if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)

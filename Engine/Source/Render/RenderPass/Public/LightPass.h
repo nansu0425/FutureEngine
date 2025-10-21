@@ -96,8 +96,8 @@ private:
 	ID3D11VertexShader* GizmoVS = nullptr;
 	ID3D11PixelShader* GizmoPS = nullptr;
 	ID3D11DepthStencilState* GizmoDSS = nullptr;
-	bool bRenderClusterGizmo = false;
 
+	bool bRenderClusterGizmo = false;
 	bool bClusterGizmoSet = false;
 
 
