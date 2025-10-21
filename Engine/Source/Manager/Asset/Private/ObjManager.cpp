@@ -240,10 +240,15 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 		}
 	}
 	if (StaticMesh->MaterialInfo.empty())
-	{ // TODO - 아마도 이것 때문에 드롭다운에서 DefaultMaterial 이 3개나 생기는 것 같음 추후에 수정해줄 것.
+	{
+		// Use a shared default material name to prevent duplicates
 		StaticMesh->MaterialInfo.resize(1);
 		StaticMesh->MaterialInfo[0].Name = "DefaultMaterial";
-		StaticMesh->MaterialInfo[0].Kd = FVector(0.9f, 0.9f, 0.9f); // 이걸 바꾼다고 기본 프리미티브 색상이 바뀌진않음
+		StaticMesh->MaterialInfo[0].Kd = FVector(0.9f, 0.9f, 0.9f);
+		StaticMesh->MaterialInfo[0].Ka = FVector(0.2f, 0.2f, 0.2f);
+		StaticMesh->MaterialInfo[0].Ks = FVector(0.5f, 0.5f, 0.5f);
+		StaticMesh->MaterialInfo[0].Ns = 32.0f;
+		StaticMesh->MaterialInfo[0].D = 1.0f;
 	}
 	
 	/** #4. 오브젝트의 서브메쉬 정보를 저장 */
@@ -303,13 +308,31 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 
 	UAssetManager& AssetManager = UAssetManager::GetInstance();
 
+	static UMaterial* CachedDefaultMaterial = nullptr;
+	
 	size_t MaterialCount = StaticMeshAsset->MaterialInfo.size();
 	for (size_t i = 0; i < MaterialCount; ++i)
 	{
 		const FMaterial& MaterialInfo = StaticMeshAsset->MaterialInfo[i];
-		auto* Material = NewObject<UMaterial>();
-		Material->SetName(MaterialInfo.Name);
-		Material->SetMaterialData(MaterialInfo);
+		
+		// Reuse cached DefaultMaterial to prevent duplicates
+		UMaterial* Material = nullptr;
+		if (MaterialInfo.Name == "DefaultMaterial")
+		{
+			if (!CachedDefaultMaterial)
+			{
+				CachedDefaultMaterial = NewObject<UMaterial>();
+				CachedDefaultMaterial->SetName(MaterialInfo.Name);
+				CachedDefaultMaterial->SetMaterialData(MaterialInfo);
+			}
+			Material = CachedDefaultMaterial;
+		}
+		else
+		{
+			Material = NewObject<UMaterial>();
+			Material->SetName(MaterialInfo.Name);
+			Material->SetMaterialData(MaterialInfo);
+		}
 
 		// Diffuse 텍스처 로드 (map_Kd)
 		if (!MaterialInfo.KdMap.empty())
