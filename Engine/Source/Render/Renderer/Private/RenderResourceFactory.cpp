@@ -106,8 +106,12 @@ void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11
 {
 	ID3DBlob* PixelShaderBlob = nullptr;
 	ID3DBlob* ErrorBlob = nullptr;
+	UINT Flag = 0;
+#ifdef _DEBUG
+	Flag = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
 
-	HRESULT Result = D3DCompileFromFile(InFilePath.data(), InMacros, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "ps_5_0", 0, 0, &PixelShaderBlob, &ErrorBlob);
+	HRESULT Result = D3DCompileFromFile(InFilePath.data(), InMacros, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "ps_5_0", Flag, 0, &PixelShaderBlob, &ErrorBlob);
 	if (FAILED(Result))
 	{
 		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }

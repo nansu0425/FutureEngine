@@ -430,9 +430,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     
 #if LIGHTING_MODEL_GOURAUD
     // Use pre-calculated vertex lighting; apply diffuse material/texture per-pixel
-    finalPixel.rgb = Input.AmbientLight.rgb * ambientColor.rgb
-                    + Input.DiffuseLight.rgb * diffuseColor.rgb
-                    + Input.SpecularLight.rgb * specularColor.rgb;
+    finalPixel.rgb = Input.AmbientLight.rgb * ambientColor.rgb + Input.DiffuseLight.rgb * diffuseColor.rgb + Input.SpecularLight.rgb * specularColor.rgb;
     
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BLINNPHONG
     // Calculate lighting in pixel shader
@@ -459,9 +457,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
         ADD_ILLUM(Illumination, CalculateSpotLight(SpotLights[j], N, Input.WorldPosition, ViewWorldLocation));
     }
     
-    finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb
-                    + Illumination.Diffuse.rgb * diffuseColor.rgb
-                    + Illumination.Specular.rgb * specularColor.rgb;
+    finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb + Illumination.Diffuse.rgb * diffuseColor.rgb + Illumination.Specular.rgb * specularColor.rgb;
     
 #elif LIGHTING_MODEL_NORMAL
     float3 EncodedWorldNormal = ShadedWorldNormal * 0.5f + 0.5f;
