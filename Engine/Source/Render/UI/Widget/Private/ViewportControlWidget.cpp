@@ -7,7 +7,7 @@
 
 // 정적 멤버 정의 - KTLWeek07의 뷰 모드 기능 사용
 const char* UViewportControlWidget::ViewModeLabels[] = {
-	"Gouraud", "Lambert", "BlinnPhong", "Unlit", "Wireframe", "SceneDepth"
+	"Gouraud", "Lambert", "BlinnPhong", "Unlit", "Wireframe", "SceneDepth", "WorldNormal"
 };
 
 const char* UViewportControlWidget::ViewTypeLabels[] = {
