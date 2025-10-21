@@ -34,11 +34,19 @@ void UAmbientLightComponentWidget::RenderWidget()
 	{
 		AmbientLightComponent->SetLightColor(LightColor);
 	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("환경광의 색상입니다.\n씬 전체에 균일한 기본 조명을 제공합니다.");
+	}
 
 	float Intensity = AmbientLightComponent->GetIntensity();
 	if (ImGui::DragFloat("Intensity", &Intensity, 0.1f, 0.0f, 20.0f))
 	{
 		AmbientLightComponent->SetIntensity(Intensity);
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("환경광 밝기\n범위: 0.0(꺼짐) ~ 20.0(최대)");
 	}
 	
 	ImGui::PopStyleColor(3);

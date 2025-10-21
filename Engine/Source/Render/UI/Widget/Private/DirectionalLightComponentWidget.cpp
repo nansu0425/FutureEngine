@@ -44,11 +44,19 @@ void UDirectionalLightComponentWidget::RenderWidget()
     {
         DirectionalLightComponent->SetLightColor(LightColor);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("라이트 필터 색입니다.\n이 색을 조절하면 실제 라이트의 강도가 조절되는 것과 같은 효과가 생기게 됩니다.");
+    }
 
     float Intensity = DirectionalLightComponent->GetIntensity();
     if (ImGui::DragFloat("Intensity", &Intensity, 0.1f, 0.0f, 20.0f))
     {
         DirectionalLightComponent->SetIntensity(Intensity);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("디렉셔널 라이트 밝기\n범위: 0.0(꺼짐) ~ 20.0(최대)");
     }
     
     ImGui::PopStyleColor(3);

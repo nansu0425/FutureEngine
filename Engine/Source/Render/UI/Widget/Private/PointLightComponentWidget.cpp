@@ -45,12 +45,20 @@ void UPointLightComponentWidget::RenderWidget()
     {
         PointLightComponent->SetLightColor(LightColor);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("라이트 필터 색입니다.\n이 색을 조절하면 실제 라이트의 강도가 조절되는 것과 같은 효과가 생기게 됩니다.");
+    }
 
     // Intensity
     float Intensity = PointLightComponent->GetIntensity();
     if (ImGui::DragFloat("Intensity", &Intensity, 0.1f, 0.0f, 20.0f))
     {
         PointLightComponent->SetIntensity(Intensity);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("포인트 라이트 밝기\n범위: 0.0(꺼짐) ~ 20.0(최대)");
     }
 
     // Attenuation Radius
@@ -59,12 +67,20 @@ void UPointLightComponentWidget::RenderWidget()
     {
         PointLightComponent->SetAttenuationRadius(AttenuationRadius);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("빛이 닿는 최대 거리입니다.\n이 반경에서 밝기는 0으로 떨어집니다.");
+    }
 
     // Light Falloff Extent
     float DistanceFalloffExponent = PointLightComponent->GetDistanceFalloffExponent();
     if (ImGui::DragFloat("Distance Falloff Exponent", &DistanceFalloffExponent, 0.1f, 0.0f, 16.0f))
     {
         PointLightComponent->SetDistanceFalloffExponent(DistanceFalloffExponent);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("거리에 따라 밝기가 줄어드는 속도를 조절합니다.\n값이 클수록 감소가 더 급격합니다.");
     }
     
     ImGui::PopStyleColor(3);

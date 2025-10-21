@@ -45,12 +45,20 @@ void USpotLightComponentWidget::RenderWidget()
     {
         SpotLightComponent->SetLightColor(LightColor);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("라이트 필터 색입니다.\n이 색을 조절하면 실제 라이트의 강도가 조절되는 것과 같은 효과가 생기게 됩니다.");
+    }
 
     // Intensity
     float Intensity = SpotLightComponent->GetIntensity();
     if (ImGui::DragFloat("Intensity", &Intensity, 0.1f, 0.0f, 20.0f))
     {
         SpotLightComponent->SetIntensity(Intensity);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("스포트라이트 밝기\n범위: 0.0(꺼짐) ~ 20.0(최대)");
     }
 
     // Distance Falloff Exponent
@@ -59,12 +67,20 @@ void USpotLightComponentWidget::RenderWidget()
     {
         SpotLightComponent->SetDistanceFalloffExponent(DistanceFalloffExponent);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("거리에 따라 밝기가 줄어드는 속도를 조절합니다.\n값이 클수록 감소가 더 급격합니다.");
+    }
 
     // Angle Falloff Exponent
     float AngleFalloffExponent = SpotLightComponent->GetAngleFalloffExponent();
     if (ImGui::DragFloat("Angle Falloff Exponent", &AngleFalloffExponent, 0.5f, 1.0f, 128.0f))
     {
         SpotLightComponent->SetAngleFalloffExponent(AngleFalloffExponent);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("내부 원뿔에서 외부 원뿔로 밝기가 바뀌는 부드러움을 조절합니다.\n값이 클수록 가장자리가 더 또렷해집니다.");
     }
 
     // Attenuation Radius
@@ -73,6 +89,10 @@ void USpotLightComponentWidget::RenderWidget()
     {
         SpotLightComponent->SetAttenuationRadius(AttenuationRadius);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("빛이 닿는 최대 거리입니다.\n이 반경에서 밝기는 0으로 떨어집니다.");
+    }
 
     // Outer Cone Angle
     float OuterAngleDegrees = SpotLightComponent->GetOuterConeAngle() * ToDeg;
@@ -80,12 +100,20 @@ void USpotLightComponentWidget::RenderWidget()
     {
         SpotLightComponent->SetOuterAngle(OuterAngleDegrees * ToRad);
     }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("스포트라이트 원뿔의 바깥쪽 가장자리 각도입니다.\n이 각도 바깥은 완전히 어둡습니다.");
+    }
 
     // Inner Cone Angle
     float InnerAngleDegrees = SpotLightComponent->GetInnerConeAngle() * ToDeg;
     if (ImGui::DragFloat("Inner Cone Angle (deg)", &InnerAngleDegrees, 1.0f, 0.0f, OuterAngleDegrees))
     {
         SpotLightComponent->SetInnerAngle(InnerAngleDegrees * ToRad);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("스포트라이트 원뿔의 안쪽 가장자리 각도입니다.\n이 각도 안쪽은 최대 밝기입니다.");
     }
     
     ImGui::PopStyleColor(3);
