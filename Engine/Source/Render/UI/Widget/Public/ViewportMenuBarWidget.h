@@ -4,6 +4,16 @@
 class FViewport;
 class UEditor;
 
+/**
+ * @brief 레거시 위젯 - ViewportControlWidget으로 교체 권장
+ * @deprecated 이 위젯은 FutureEngine 철학에 맞게 수정되었지만,
+ *             ViewportControlWidget이 더 나은 디자인과 기능을 제공합니다.
+ * 
+ * FutureEngine 철학:
+ *   ViewportManager -> Viewport -> ViewportClient -> Camera
+ *   - Viewport가 ViewportClient를 소유
+ *   - ViewportClient가 Camera를 관리
+ */
 class UViewportMenuBarWidget : public UWidget
 {
 public:
@@ -14,13 +24,14 @@ public:
 	void Update() override {}
 	void RenderWidget() override;
 
+	// 레거시 호환성을 위해 유지
 	void SetViewportClient(FViewport* InViewportClient) { Viewport = InViewportClient; }
 
 private:
-	void RenderCameraControls(UCamera& InCamera); // 특정 카메라의 제어 UI를 렌더링하는 헬퍼 함수
+	void RenderCameraControls(UCamera& InCamera);
 
-	FViewport* Viewport = nullptr; // 참조할 뷰포트 클라이언트 대상
-	UEditor* Editor = nullptr;
+	FViewport* Viewport = nullptr; // 레거시 참조
+	UEditor* Editor = nullptr; // 레거시 에디터 참조
 
 	bool bIsSingleViewportClient = true;
 };

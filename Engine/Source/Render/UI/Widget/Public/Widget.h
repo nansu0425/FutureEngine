@@ -27,5 +27,10 @@ public:
 
 	// Special Member Function
 	UWidget() = default;
+
+	UWidget(const FString& InName)
+	{
+	}
+
 	~UWidget() override = default;
 };

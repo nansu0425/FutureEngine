@@ -10,7 +10,7 @@ class UDetailWindow;
 class UMainMenuWindow;
 class UEditorWindow;
 class UViewportClientWindow;
-
+class ULevelTabBarWindow;
 /**
  * @brief UI 윈도우 도킹 방향
  */
@@ -20,7 +20,8 @@ enum class EUIDockDirection : uint8_t
 	Left, // 왼쪽 도킹
 	Right, // 오른쪽 도킹
 	Top, // 상단 도킹
-	Bottom, // 하단 도킹
+	Bottom, // 하단 도킹 (전체 폭)
+	BottomLeft, // 왼쪽 하단 도킹
 	Center, // 중앙 도킹
 };
 
@@ -32,12 +33,14 @@ class UUIWindowFactory
 public:
 	static void CreateDefaultUILayout();
 	static UMainMenuWindow& CreateMainMenuWindow();
-	static UConsoleWindow* CreateConsoleWindow(EUIDockDirection InDockDirection = EUIDockDirection::Bottom);
+	static UConsoleWindow* CreateConsoleWindow(EUIDockDirection InDockDirection = EUIDockDirection::BottomLeft);
 	static UControlPanelWindow* CreateControlPanelWindow(EUIDockDirection InDockDirection = EUIDockDirection::Left);
 	static UOutlinerWindow* CreateOutlinerWindow(EUIDockDirection InDockDirection = EUIDockDirection::Center);
+	static ULevelTabBarWindow* CreateLevelTabBarWindow();
 	static UDetailWindow* CreateDetailWindow(EUIDockDirection InDockDirection = EUIDockDirection::Right);
 	static UExperimentalFeatureWindow*
 		CreateExperimentalFeatureWindow(EUIDockDirection InDockDirection = EUIDockDirection::Right);
 	static UEditorWindow* CreateEditorWindow(EUIDockDirection InDockDirection = EUIDockDirection::None);
 	static UViewportClientWindow* CreateViewportClientWindow(EUIDockDirection InDockDirection = EUIDockDirection::None);
 };
+

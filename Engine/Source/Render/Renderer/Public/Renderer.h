@@ -52,7 +52,7 @@ public:
 	// Render
 	void Update();
 	void RenderBegin() const;
-	void RenderLevel(FViewportClient& InViewportClient);
+	void RenderLevel(FViewport* InViewport);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
@@ -123,6 +123,7 @@ private:
 	ID3D11PixelShader* UberLitPixelShader = nullptr;
 	ID3D11PixelShader* UberLitPixelShaderGouraud = nullptr;
 	ID3D11PixelShader* UberLitPixelShaderBlinnPhong = nullptr;
+	ID3D11PixelShader* UberLitPixelShaderWorldNormal = nullptr;
 	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
 	//Gizmo Shaders

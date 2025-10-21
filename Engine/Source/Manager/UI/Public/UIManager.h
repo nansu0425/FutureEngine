@@ -4,7 +4,7 @@
 class UUIWindow;
 class UImGuiHelper;
 class UMainMenuWindow;
-
+class ULevelTabBarWindow;
 /**
  * @brief UI 매니저 클래스
  * 모든 UI 윈도우를 관리하는 싱글톤 클래스
@@ -53,7 +53,14 @@ public:
 	// 메인 메뉴바 관련 메서드
 	void RegisterMainMenuWindow(UMainMenuWindow* InMainMenuWindow);
 	float GetMainMenuBarHeight() const;
+	float GetRightPanelWidth() const;
+	void ArrangeRightPanels();
+	void ForceArrangeRightPanels();
+	void OnPanelVisibilityChanged();
 
+	// 레벨 바 관련 메서드
+	void RegisterLevelTabBarWindow(ULevelTabBarWindow* InLevelBarWindow);
+	
 	void OnSelectedComponentChanged(UActorComponent* InSelectedComponent) const;
 
 private:
@@ -77,9 +84,30 @@ private:
 	// ImGui Helper
 	UImGuiHelper* ImGuiHelper = nullptr;
 
+	// 레벨바 윈도우
+	ULevelTabBarWindow* LevelTabBarWindow = nullptr;
+	
 	// Main Menu Window
 	UMainMenuWindow* MainMenuWindow = nullptr;
 
 	void SortUIWindowsByPriority();
 	void UpdateFocusState();
+
+	// 오른쪽 패널 상태 추적 변수들
+	float SavedOutlinerHeightForDual = 0.0f; // 두 패널이 있을 때 Outliner 높이
+	float SavedDetailHeightForDual = 0.0f; // 두 패널이 있을 때 Detail 높이
+	float SavedPanelWidth = 0.0f; // 기억된 패널 너비
+	bool bHasSavedDualLayout = false; // 두 패널 레이아웃이 저장되어 있는지
+
+
+
+	// 오른쪽 패널 레이아웃 헬퍼 함수
+	void ArrangeRightPanelsInitial(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow,
+		float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
+		float InAvailableHeight);
+	void ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow,
+		float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
+		float InAvailableHeight, float InTargetWidth) const;
+
+	
 };

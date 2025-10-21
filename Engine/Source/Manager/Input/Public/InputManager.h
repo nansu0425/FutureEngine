@@ -75,4 +75,5 @@ private:
 	void InitializeKeyMapping();
 	void InitializeMouseClickStatus();
 	void UpdateDoubleClickDetection();
+	void HandleConsoleShortcut();
 };

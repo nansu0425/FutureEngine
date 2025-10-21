@@ -1,4 +1,4 @@
-# Blender 4.5.2 LTS MTL File: 'None'
+# Blender 4.5.3 LTS MTL File: 'None'
 # www.blender.org
 
 newmtl Material_Alley_Light
@@ -9,7 +9,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Light.jpg
+map_Kd Texture/Alley/Alley_Light.jpg
+map_Bump -bm 1.000000 Texture/Alley/Alley_Light_normal.png
 
 newmtl Material_Alley_Pipe
 Ns 250.000000
@@ -19,7 +20,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Pipe.jpg
+map_Kd Texture/Alley/Alley_Pipe.jpg
+map_Bump -bm 1.000000 Texture/Alley/Alley_Pipe_normal.png
 
 newmtl Material_Alley_Street
 Ns 250.000000
@@ -29,7 +31,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Street.png
+map_Kd Texture/Alley/Alley_Street.png
+map_Bump -bm 1.000000 Texture/Alley/Alley_Street_normal.png
 
 newmtl Material_Alley_Wall
 Ns 250.000000
@@ -39,7 +42,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Wall.jpg
+map_Kd Texture/Alley/Alley_Wall.jpg
+map_Bump -bm 1.000000 Texture/Alley/Alley_Wall_normal.png
 
 newmtl Material_Alley_Rock
 Ns 250.000000
@@ -49,4 +53,5 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Texture/Alley_Rock.jpg
+map_Kd Texture/Alley/Alley_Rock.jpg
+map_Bump -bm 1.000000 Texture/Alley/Alley_Rock_normal.png

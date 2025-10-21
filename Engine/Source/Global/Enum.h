@@ -46,6 +46,7 @@ enum class EKeyInput : uint8
 	MouseMiddle,
 
 	// 기타
+	Backtick,
 	F1,
 	F2,
 	F3,
@@ -145,7 +146,8 @@ enum class EViewModeIndex : uint32
 	VMI_BlinnPhong,
 	VMI_Unlit,
 	VMI_Wireframe,
-	VMI_SceneDepth
+	VMI_SceneDepth,
+	VMI_WorldNormal
 };
 
 /**
@@ -172,3 +174,28 @@ inline uint64 operator&(uint64 lhs, EEngineShowFlags rhs)
 {
 	return lhs & static_cast<uint64>(rhs);
 }
+
+// Viewport layout modes
+enum class EViewportLayout : uint8
+{
+	Single = 0,
+	Quad = 1
+};
+
+enum class EViewMode : uint8
+{
+	Lit,
+	Unlit,
+	WireFrame
+};
+
+enum class EViewType : uint8
+{
+	Perspective,
+	OrthoTop,
+	OrthoBottom,
+	OrthoLeft,
+	OrthoRight,
+	OrthoFront,
+	OrthoBack
+};

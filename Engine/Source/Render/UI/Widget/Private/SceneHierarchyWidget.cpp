@@ -7,8 +7,9 @@
 #include "Editor/Public/Camera.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Editor/Public/ViewportClient.h"
-#include "Editor/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Quaternion.h"
 
 IMPLEMENT_CLASS(USceneHierarchyWidget, UWidget)
@@ -211,11 +212,18 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 	// 이름 변경 모드인지 확인
 	if (RenamingActor == InActor)
 	{
+		// 입력 필드 색상을 검은색으로 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		
 		// 이름 변경 입력창
 		ImGui::PushItemWidth(-1.0f);
 		bool bEnterPressed = ImGui::InputText("##Rename", RenameBuffer, sizeof(RenameBuffer),
 		                                      ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
 		ImGui::PopItemWidth();
+		
+		ImGui::PopStyleColor(3);
 
 		// Enter 키로 확인
 		if (bEnterPressed)
@@ -310,8 +318,12 @@ void USceneHierarchyWidget::FocusOnActor(AActor* InActor)
 {
 	if (!InActor) { return; }
 
-	FViewport* Viewport = URenderer::GetInstance().GetViewportClient();
-	if (!Viewport) { return; }
+	// FutureEngine 철학: ViewportManager에서 뷰포트 배열 가져오기
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Viewports = ViewportManager.GetViewports();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (Viewports.empty() || Clients.empty()) { return; }
 
 	UPrimitiveComponent* Prim = nullptr;
 	if (InActor->GetRootComponent() && InActor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
@@ -335,7 +347,6 @@ void USceneHierarchyWidget::FocusOnActor(AActor* InActor)
 	const FVector Size = ComponentMax - ComponentMin;
 	const float BoundingRadius = Size.Length() * 0.5f;
 
-	auto& Viewports = Viewport->GetViewports();
 	const int32 ViewportCount = static_cast<int32>(Viewports.size());
 
 	CameraStartLocation.resize(ViewportCount);
@@ -343,15 +354,19 @@ void USceneHierarchyWidget::FocusOnActor(AActor* InActor)
 	CameraTargetLocation.resize(ViewportCount);
 	CameraTargetRotation.resize(ViewportCount);
 
+	// FutureEngine 철학: Viewport -> ViewportClient -> Camera
 	for (int32 i = 0; i < ViewportCount; ++i)
 	{
-		UCamera& Camera = Viewports[i].Camera;
-		CameraStartLocation[i] = Camera.GetLocation();
-		CameraStartRotation[i] = Camera.GetRotation();
+		if (!Clients[i]) continue;
+		UCamera* Camera = Clients[i]->GetCamera();
+		if (!Camera) continue;
 
-		if (Camera.GetCameraType() == ECameraType::ECT_Perspective)
+		CameraStartLocation[i] = Camera->GetLocation();
+		CameraStartRotation[i] = Camera->GetRotation();
+
+		if (Camera->GetCameraType() == ECameraType::ECT_Perspective)
 		{
-			const float FovY = Camera.GetFovY();
+			const float FovY = Camera->GetFovY();
 			const float HalfFovRadian = FVector::GetDegreeToRadian(FovY * 0.5f);
 			const float Distance = (BoundingRadius / sinf(HalfFovRadian)) * 1.2f;
 
@@ -382,8 +397,11 @@ void USceneHierarchyWidget::UpdateCameraAnimation()
 {
 	if (!bIsCameraAnimating) { return; }
 
-	FViewport* Viewport = URenderer::GetInstance().GetViewportClient();
-	if (!Viewport)
+	// FutureEngine 철학: ViewportManager에서 뷰포트 배열 가져오기
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (Clients.empty())
 	{
 		bIsCameraAnimating = false;
 		return;
@@ -409,19 +427,22 @@ void USceneHierarchyWidget::UpdateCameraAnimation()
 		SmoothProgress = 1.0f - 8.0f * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd;
 	}
 
-	auto& Viewports = Viewport->GetViewports();
-	for (int Index = 0; Index < Viewports.size(); ++Index)
+	// FutureEngine 철학: ViewportClient -> Camera
+	// 범위 검사: 카메라 애니메이션 벡터 크기 확인
+	const size_t AnimationVectorSize = CameraStartLocation.size();
+	for (int Index = 0; Index < Clients.size() && Index < AnimationVectorSize; ++Index)
 	{
-		UCamera& Camera = Viewports[Index].Camera;
+		if (!Clients[Index]) continue;
+		UCamera* Camera = Clients[Index]->GetCamera();
+		if (!Camera) continue;
 
 		FVector CurrentLocation = CameraStartLocation[Index] + (CameraTargetLocation[Index] - CameraStartLocation[Index]) * SmoothProgress;
-		Camera.SetLocation(CurrentLocation);
-		Viewport->SetFocusPoint(CurrentLocation);
+		Camera->SetLocation(CurrentLocation);
 
-		if (Camera.GetCameraType() == ECameraType::ECT_Perspective)
+		if (Camera->GetCameraType() == ECameraType::ECT_Perspective)
 		{
 			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
-			Camera.SetRotation(CurrentRotation);
+			Camera->SetRotation(CurrentRotation);
 		}
 	}
 
@@ -446,9 +467,17 @@ void USceneHierarchyWidget::RenderSearchBar()
 
 	// 검색창
 	ImGui::SameLine();
+	
+	// 입력 필드 색상을 검은색으로 설정
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	
 	ImGui::PushItemWidth(-1.0f); // 나머지 너비 모두 사용
 	bool bTextChanged = ImGui::InputTextWithHint("##Search", "검색...", SearchBuffer, sizeof(SearchBuffer));
 	ImGui::PopItemWidth();
+	
+	ImGui::PopStyleColor(3);
 
 	// 검색어가 변경되면 필터 업데이트 플래그 설정
 	if (bTextChanged)

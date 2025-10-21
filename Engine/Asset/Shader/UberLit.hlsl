@@ -112,7 +112,7 @@ SamplerState SamplerWrap : register(s0);
 #define HAS_SPECULAR_MAP (1 << 2) // map_Ks
 #define HAS_NORMAL_MAP   (1 << 3) // map_normal
 #define HAS_ALPHA_MAP    (1 << 4) // map_d
-#define HAS_BUMP_MAP     (1 << 5) // map_bump
+#define HAS_BUMP_MAP     (1 << 5) // map_Bump
 
 // Vertex Shader Input/Output
 struct VS_INPUT
@@ -121,6 +121,7 @@ struct VS_INPUT
     float3 Normal : NORMAL;
     float4 Color : COLOR;
     float2 Tex : TEXCOORD0;
+    float4 Tangent : TANGENT;
 };
 
 struct PS_INPUT
@@ -129,6 +130,7 @@ struct PS_INPUT
     float3 WorldPosition : TEXCOORD0;
     float3 WorldNormal : TEXCOORD1;
     float2 Tex : TEXCOORD2;
+    float4 WorldTangent : TEXCOORD3;
 #if LIGHTING_MODEL_GOURAUD
     float4 AmbientLight : COLOR0;
     float4 DiffuseLight : COLOR1;
@@ -159,6 +161,41 @@ float4 SafeNormalize4(float4 v)
 {
     float Len2 = dot(v, v);
     return Len2 > 1e-12f ? v / sqrt(Len2) : float4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+float GetDeterminant3x3(float3x3 M)
+{
+    return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1])
+         - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0])
+         + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+}
+
+// 3x3 Matrix Inverse
+// Returns identity matrix if determinant is near zero
+float3x3 Inverse3x3(float3x3 M)
+{
+    float det = GetDeterminant3x3(M);
+    
+    // Singular matrix guard
+    if (abs(det) < 1e-8)
+        return float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1); // Identity matrix
+    
+    float invDet = 1.0f / det;
+    
+    float3x3 inv;
+    inv[0][0] = (M[1][1] * M[2][2] - M[1][2] * M[2][1]) * invDet;
+    inv[0][1] = (M[0][2] * M[2][1] - M[0][1] * M[2][2]) * invDet;
+    inv[0][2] = (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet;
+    
+    inv[1][0] = (M[1][2] * M[2][0] - M[1][0] * M[2][2]) * invDet;
+    inv[1][1] = (M[0][0] * M[2][2] - M[0][2] * M[2][0]) * invDet;
+    inv[1][2] = (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet;
+    
+    inv[2][0] = (M[1][0] * M[2][1] - M[1][1] * M[2][0]) * invDet;
+    inv[2][1] = (M[0][1] * M[2][0] - M[0][0] * M[2][1]) * invDet;
+    inv[2][2] = (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet;
+    
+    return inv;
 }
 
 // Lighting Calculation Functions
@@ -279,6 +316,33 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     return Result;
 }
 
+
+float3 ComputeNormalMappedWorldNormal(float2 UV, float3 WorldNormal, float4 WorldTangent)
+{
+    float3 BaseNormal = SafeNormalize3(WorldNormal);
+
+    // Tangent가 비정상(0 길이)이면 노말 맵 적용 포기하고 메시 노말 사용
+    float TangentLen2 = dot(WorldTangent.xyz, WorldTangent.xyz);
+    if (TangentLen2 <= 1e-8f)
+    {
+        return BaseNormal;
+    }
+    // 노말 맵 텍셀 샘플링 [0,1]
+    float3 Encoded = NormalTexture.Sample(SamplerWrap, UV).xyz;
+    // [0,1] -> [-1,1]로 매핑해서 탄젠트 공간 노말을 복원한다.
+    float3 TangentSpaceNormal = SafeNormalize3(Encoded * 2.0f - 1.0f);
+
+    // VS로 넘어온 월드 탄젠트를 정규화
+    float3 T = WorldTangent.xyz / sqrt(TangentLen2);
+    // TBN이 올바른 방향이 되도록 저장해둔 좌우손성으로 B 복원
+    float Handedness = WorldTangent.w;
+    float3 B = SafeNormalize3(cross(BaseNormal, T) * Handedness);
+
+    float3x3 TBN = float3x3(T, B, BaseNormal);
+    // 로컬 공간의 탄젠트를 월드 공간으로 보냄
+    return SafeNormalize3(mul(TangentSpaceNormal, TBN));
+
+}
 // Vertex Shader
 PS_INPUT Uber_VS(VS_INPUT Input)
 {
@@ -286,7 +350,10 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     
     Output.WorldPosition = mul(float4(Input.Position, 1.0f), World).xyz;
     Output.Position = mul(mul(mul(float4(Input.Position, 1.0f), World), View), Projection);
-    Output.WorldNormal = SafeNormalize3(mul(Input.Normal, (float3x3) World));
+    float3x3 World3x3 = (float3x3) World;
+    Output.WorldNormal = SafeNormalize3(mul(Input.Normal, transpose(Inverse3x3(World3x3))));
+    float3 WorldTangent = SafeNormalize3(mul(Input.Tangent.xyz, (float3x3) World));
+    Output.WorldTangent = float4(WorldTangent, Input.Tangent.w);
     Output.Tex = Input.Tex;
     
 #if LIGHTING_MODEL_GOURAUD
@@ -330,7 +397,12 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     
     float4 finalPixel = float4(0.0f, 0.0f, 0.0f, 1.0f);
     float2 UV = Input.Tex;
-    
+    float3 ShadedWorldNormal = SafeNormalize3(Input.WorldNormal);
+    if (MaterialFlags & HAS_NORMAL_MAP)
+    {
+        ShadedWorldNormal = ComputeNormalMappedWorldNormal(UV, Input.WorldNormal, Input.WorldTangent);
+        // else: Tangent가 유효하지 않으면 NormalBase 유지
+    }
     // Sample textures
     float4 ambientColor = Ka;
     if (MaterialFlags & HAS_AMBIENT_MAP)
@@ -365,7 +437,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_BLINNPHONG
     // Calculate lighting in pixel shader
     FIllumination Illumination = (FIllumination)0;
-    float3 N = SafeNormalize3(Input.WorldNormal);
+    float3 N = ShadedWorldNormal;
     
     // 1. Ambient Light
     Illumination.Ambient = CalculateAmbientLight(Ambient);
@@ -391,12 +463,19 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
                     + Illumination.Diffuse.rgb * diffuseColor.rgb
                     + Illumination.Specular.rgb * specularColor.rgb;
     
+#elif LIGHTING_MODEL_NORMAL
+    float3 EncodedWorldNormal = ShadedWorldNormal * 0.5f + 0.5f;
+    finalPixel.rgb = EncodedWorldNormal;
+    
 #else
     // Fallback: simple textured rendering (like current TexturePS.hlsl)
     finalPixel.rgb = diffuseColor.rgb + ambientColor.rgb;
 #endif
     
     // Alpha handling
+#if LIGHTING_MODEL_NORMAL
+    finalPixel.a = 1.0f;
+#else
     // 1. Diffuse Map 있으면 그 alpha 사용, 없으면 1.0
     float alpha = (MaterialFlags & HAS_DIFFUSE_MAP) ? diffuseColor.a : 1.0f;
     
@@ -408,10 +487,11 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     
     // 3. D 곱해서 최종 alpha 결정
     finalPixel.a = D * alpha;
+#endif
     Output.SceneColor = finalPixel;
     
     // Encode normal for deferred rendering
-    float3 encodedNormal = SafeNormalize3(Input.WorldNormal) * 0.5f + 0.5f;
+    float3 encodedNormal = SafeNormalize3(ShadedWorldNormal) * 0.5f + 0.5f;
     Output.NormalData = float4(encodedNormal, 1.0f);
     
     return Output;

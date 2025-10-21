@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "Level/Public/Level.h"
 #include <shobjidl.h>
@@ -36,74 +37,77 @@ void UMainBarWidget::RenderWidget()
 		return;
 	}
 
-	// 메인 메뉴바 시작
-	if (ImGui::BeginMainMenuBar())
+	// FutureEngine 스타일: 메뉴바 색상 및 스타일 설정
+	const ImVec4 MenuBarBg = ImVec4(pow(0.12f, 2.2f), pow(0.12f, 2.2f), pow(0.12f, 2.2f), 1.0f);
+	const ImVec4 PopupBg = ImVec4(pow(0.09f, 2.2f), pow(0.09f, 2.2f), pow(0.09f, 2.2f), 1.0f);
+	const ImVec4 Header = ImVec4(pow(0.20f, 2.2f), pow(0.20f, 2.2f), pow(0.20f, 2.2f), 1.0f);
+	const ImVec4 HeaderHovered = ImVec4(pow(0.35f, 2.2f), pow(0.35f, 2.2f), pow(0.35f, 2.2f), 1.0f);
+	const ImVec4 HeaderActive = ImVec4(pow(0.50f, 2.2f), pow(0.50f, 2.2f), pow(0.50f, 2.2f), 1.0f);
+	const ImVec4 TextColor = ImVec4(pow(0.92f, 2.2f), pow(0.92f, 2.2f), pow(0.92f, 2.2f), 1.0f);
+
+	ImGui::PushStyleColor(ImGuiCol_MenuBarBg, MenuBarBg);
+	ImGui::PushStyleColor(ImGuiCol_PopupBg, PopupBg);
+	ImGui::PushStyleColor(ImGuiCol_Header, Header);
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, HeaderHovered);
+	ImGui::PushStyleColor(ImGuiCol_HeaderActive, HeaderActive);
+	ImGui::PushStyleColor(ImGuiCol_Text, TextColor);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 4.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 4.0f));
+
+	// FutureEngine 철학: 독립 윈도우로 메뉴바 위치 조정
+	const ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(ImVec2(screenSize.x, 20.0f));
+
+	ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_MenuBar |
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoScrollWithMouse |
+		ImGuiWindowFlags_NoBackground |
+		ImGuiWindowFlags_NoDecoration |
+		ImGuiWindowFlags_NoBringToFrontOnFocus |
+		ImGuiWindowFlags_NoSavedSettings;
+
+	if (ImGui::Begin("MainMenuBarContainer", nullptr, flags))
 	{
-		// 뷰포트 조정을 위해 메뉴바 높이 저장
-		MenuBarHeight = ImGui::GetWindowSize().y;
+		if (ImGui::BeginMenuBar())
+		{
+			MenuBarHeight = ImGui::GetWindowSize().y;
 
-		// 메뉴 Listing
-		RenderFileMenu();
-		RenderViewMenu();
-		RenderShowFlagsMenu();
-		RenderWindowsMenu();
-		RenderHelpMenu();
-		RenderPlayControls();
+			// FutureEngine 철학: 왼쪽 60px 더미 공간 (로고 자리)
+			ImGui::Dummy(ImVec2(60.0f, 0.0f));
+			ImGui::SameLine(0.0f, 0.0f);
 
-		// 메인 메뉴바 종료
-		ImGui::EndMainMenuBar();
+			// 메뉴 Listing - FutureEngine 스타일
+			RenderFileMenu();
+			RenderViewMenu();
+			RenderShowFlagsMenu();
+			RenderWindowsMenu();
+			RenderHelpMenu();
+
+			ImGui::EndMenuBar();
+		}
+		else
+		{
+			MenuBarHeight = 0.0f;
+		}
+		ImGui::End();
 	}
 	else
 	{
 		MenuBarHeight = 0.0f;
 	}
+
+	// 스타일 복원
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(6);
 }
 
-/**
- * @brief File 메뉴를 렌더링합니다
- */
-void UMainBarWidget::RenderFileMenu()
-{
-	if (ImGui::BeginMenu("파일"))
-	{
-		// 레벨 관련 메뉴
-		if (ImGui::MenuItem("새 레벨", "Ctrl+N"))
-		{
-			CreateNewLevel();
-		}
-
-		ImGui::Separator();
-
-		if (ImGui::MenuItem("레벨 열기", "Ctrl+O"))
-		{
-			LoadLevel();
-		}
-
-		if (ImGui::MenuItem("레벨 저장", "Ctrl+S"))
-		{
-			SaveCurrentLevel();
-		}
-
-		ImGui::Separator();
-
-		// 일반 파일 작업
-		if (ImGui::MenuItem("일반 파일 열기"))
-		{
-			UE_LOG("MainBarWidget: 일반 파일 열기 메뉴 선택됨");
-			// TODO(KHJ): 일반 파일 열기 로직 구현
-		}
-
-		ImGui::Separator();
-
-		if (ImGui::MenuItem("종료", "Alt+F4"))
-		{
-			UE_LOG("MainBarWidget: 프로그램 종료 메뉴 선택됨");
-			// TODO(KHJ): 프로그램 종료 로직 구현
-		}
-
-		ImGui::EndMenu();
-	}
-}
 
 /**
  * @brief Windows 토글 메뉴를 렌더링하는 함수
@@ -186,6 +190,51 @@ void UMainBarWidget::RenderWindowsMenu() const
 }
 
 /**
+ * @brief File 메뉴를 렌더링합니다
+ */
+void UMainBarWidget::RenderFileMenu()
+{
+	if (ImGui::BeginMenu("파일"))
+	{
+		// 레벨 관련 메뉴
+		if (ImGui::MenuItem("새 레벨", "Ctrl+N"))
+		{
+			CreateNewLevel();
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("레벨 열기", "Ctrl+O"))
+		{
+			LoadLevel();
+		}
+
+		if (ImGui::MenuItem("레벨 저장", "Ctrl+S"))
+		{
+			SaveCurrentLevel();
+		}
+
+		ImGui::Separator();
+
+		// 일반 파일 작업
+		if (ImGui::MenuItem("일반 파일 열기"))
+		{
+			UE_LOG("MainBarWidget: 일반 파일 열기 메뉴 선택됨");
+			// TODO(KHJ): 일반 파일 열기 로직 구현
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("종료", "Alt+F4"))
+		{
+			UE_LOG("MainBarWidget: 프로그램 종료 메뉴 선택됨");
+			// TODO(KHJ): 프로그램 종료 로직 구현
+		}
+
+		ImGui::EndMenu();
+	}
+}
+/**
  * @brief View 메뉴를 렌더링하는 함수
  * ViewMode 선택 기능 (Lit, Unlit, Wireframe)
  */
@@ -193,16 +242,9 @@ void UMainBarWidget::RenderViewMenu()
 {
 	if (ImGui::BeginMenu("보기"))
 	{
-		// GEditor에서 EditorModule 가져오기
-		UEditor* EditorInstance = GEditor->GetEditorModule();
-		if (!EditorInstance)
-		{
-			ImGui::Text("에디터를 사용할 수 없습니다");
-			ImGui::EndMenu();
-			return;
-		}
-
-		EViewModeIndex CurrentMode = EditorInstance->GetViewMode();
+		// ViewportManager에서 현재 활성 뷰포트의 ViewMode 가져오기
+		UViewportManager& ViewportMgr = UViewportManager::GetInstance();
+		EViewModeIndex CurrentMode = ViewportMgr.GetActiveViewportViewMode();
 
 		// ViewMode 메뉴 아이템
 		bool bIsGroraud = (CurrentMode == EViewModeIndex::VMI_Gouraud);
@@ -211,6 +253,7 @@ void UMainBarWidget::RenderViewMenu()
 		bool bIsUnlit = (CurrentMode == EViewModeIndex::VMI_Unlit);
 		bool bIsWireframe = (CurrentMode == EViewModeIndex::VMI_Wireframe);
 		bool bIsSceneDepth = (CurrentMode == EViewModeIndex::VMI_SceneDepth);
+		bool bIsWorldNormal = (CurrentMode == EViewModeIndex::VMI_WorldNormal);
 
 		//if (ImGui::MenuItem("조명 적용(Lit)", nullptr, bIsLit) && !bIsLit)
 		//{
@@ -219,35 +262,41 @@ void UMainBarWidget::RenderViewMenu()
 		//}
 		if (ImGui::MenuItem("고로 셰이딩 적용(Gouraud)", nullptr, bIsGroraud) && !bIsGroraud)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Gouraud);
-			UE_LOG("MainBarWidget: ViewMode를 고로 셰이딩으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Gouraud);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 고로 셸이딩으로 변경");
 		}
 		if (ImGui::MenuItem("램버트 셰이딩 적용(Lambert)", nullptr, bIsLambert) && !bIsLambert)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Lambert);
-			UE_LOG("MainBarWidget: ViewMode를 램버트 셰이딩로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Lambert);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 램버트 셸이딩로 변경");
 		}
 		if (ImGui::MenuItem("블린-퐁 셰이딩 적용(Blinn-Phong)", nullptr, bIsBlinnPhong) && !bIsBlinnPhong)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
-			UE_LOG("MainBarWidget: ViewMode를 블린-퐁 셰이딩으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_BlinnPhong);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 블린-펑 셸이딩으로 변경");
 		}
 		if (ImGui::MenuItem("조명 비적용(Unlit)", nullptr, bIsUnlit) && !bIsUnlit)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Unlit);
-			UE_LOG("MainBarWidget: ViewMode를 Unlit으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Unlit);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 Unlit으로 변경");
 		}
 
 		if (ImGui::MenuItem("와이어프레임(Wireframe)", nullptr, bIsWireframe) && !bIsWireframe)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_Wireframe);
-			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_Wireframe);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 Wireframe으로 변경");
 		}
 
 		if (ImGui::MenuItem("씬 뎁스(SceneDepth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
 		{
-			EditorInstance->SetViewMode(EViewModeIndex::VMI_SceneDepth);
-			UE_LOG("MainBarWidget: ViewMode를 SceneDepth으로 변경");
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_SceneDepth);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 SceneDepth으로 변경");
+		}
+
+		if (ImGui::MenuItem("월드 노멀(WorldNormal)", nullptr, bIsWorldNormal) && !bIsWorldNormal)
+		{
+			ViewportMgr.SetActiveViewportViewMode(EViewModeIndex::VMI_WorldNormal);
+			UE_LOG("MainBarWidget: 활성 뷰포트의 ViewMode를 WorldNormal으로 변경");
 		}
 
 		ImGui::EndMenu();
@@ -431,375 +480,214 @@ void UMainBarWidget::RenderHelpMenu()
 	}
 }
 
-void UMainBarWidget::RenderPlayControls()
-{  
-	EPIEState CurrentState = GEditor->GetPIEState();
-
-	// 위치 조정
-	float CurrentMenuEndPos = ImGui::GetCursorPosX();
-	float MainBarWidth = ImGui::GetWindowWidth();
-
-	ImVec2 ButtonPadding(8.0f, 4.0f); 
-	float ButtonFramePaddingX = ButtonPadding.x * 2.0f; 
-
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ButtonPadding);
-	float ButtonPlayWidth = ImGui::CalcTextSize("▶").x + ButtonFramePaddingX;
-	float ButtonPauseWidth = ImGui::CalcTextSize("||").x + ButtonFramePaddingX;
-	float ButtonStopWidth = ImGui::CalcTextSize("■").x + ButtonFramePaddingX;
-	ImGui::PopStyleVar(2);
-
-	float TotalSpacingWidth = ImGui::GetStyle().ItemSpacing.x * 2.0f;
-	float TotalButtonGroupWidth = ButtonPlayWidth + ButtonPauseWidth + ButtonStopWidth + TotalSpacingWidth;
-
-	float TrueCenterStart = (MainBarWidth / 2.0f) - (TotalButtonGroupWidth / 2.0f);
-	float StartPos = TrueCenterStart;
-	StartPos = std::max(CurrentMenuEndPos, StartPos);
-	ImGui::SameLine(StartPos); 
-
-    // 상태 플래그 정의
-    bool bCanStart = CurrentState == EPIEState::Stopped; 
-    bool bCanPauseOrResume = CurrentState == EPIEState::Playing || CurrentState == EPIEState::Paused;
-    bool bCanStop = CurrentState != EPIEState::Stopped; 
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ButtonPadding);
-
-    // =========================================================================
-    if (bCanStart) 
-    {
-       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.6f, 0.0f, 1.0f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.8f, 0.0f, 1.0f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.4f, 0.0f, 1.0f));
-    }
-    else 
-    {
-       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.3f, 0.1f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.3f, 0.1f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.3f, 0.1f, 0.6f));
-    }
-
-    if (ImGui::Button("▶"))
-    {
-       if (bCanStart) 
-       {
-          GEditor->StartPIE(); 
-          UE_LOG("MainBarWidget: PIE 세션 시작 요청");
-       }
-    }
-    ImGui::PopStyleColor(3);
-
-
-    ImGui::SameLine();
-
-    // =========================================================================
-    if (bCanPauseOrResume)
-    {
-        if (CurrentState == EPIEState::Paused)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.8f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.6f, 0.0f, 1.0f));
-        }
-        else
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.6f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.8f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.0f, 1.0f));
-        }
-    }
-    else
-    {
-       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.0f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.0f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.0f, 0.6f));
-    }
-   
-    if (ImGui::Button("||"))
-    {
-       if (CurrentState == EPIEState::Playing)
-       {
-          GEditor->PausePIE();
-          UE_LOG("MainBarWidget: PIE 세션 일시 정지 요청");
-       }
-       else if (CurrentState == EPIEState::Paused)
-       {
-          GEditor->ResumePIE();
-          UE_LOG("MainBarWidget: PIE 세션 재개 요청");
-       }
-    }
-    ImGui::PopStyleColor(3);
-
-    ImGui::SameLine();
-
-    // =========================================================================
-    if (bCanStop)
-    {
-       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.0f, 0.0f, 1.0f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.0f, 0.0f, 1.0f));
-    }
-    else
-    {
-       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.0f, 0.0f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.0f, 0.0f, 0.6f));
-       ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.0f, 0.0f, 0.6f));
-    }
-   
-    if (ImGui::Button("■"))
-    {
-       if (bCanStop)
-       {
-          GEditor->EndPIE();
-          UE_LOG("MainBarWidget: PIE 세션 정지 요청");
-       }
-    }
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar(2);
-}
-
 /**
- * @brief 레벨 저장 기능
- */
-void UMainBarWidget::SaveCurrentLevel()
-{
-	path FilePath = OpenSaveFileDialog();
-	if (!FilePath.empty())
-	{
-		try
-		{
-			bool bSuccess = GEditor->SaveCurrentLevel(FilePath.string());
-
-			if (bSuccess)
-			{
-				UE_LOG("MainMenuBar: SceneIO: Level Saved Successfully");
-			}
-			else
-			{
-				UE_LOG("MainMenuBar: SceneIO: Failed To Save Level");
-			}
-		}
-		catch (const exception& Exception)
-		{
-			FString StatusMessage = FString("Save Error: ") + Exception.what();
-			UE_LOG("MainMenuBar: SceneIO: Save Error: %s", Exception.what());
-		}
-	}
-}
-
-/**
- * @brief 레벨 로드 기능
- */
-void UMainBarWidget::LoadLevel()
-{
-	path FilePath = OpenLoadFileDialog();
-
-	if (!FilePath.empty())
-	{
-		try
-		{
-			bool bSuccess = GEditor->LoadLevel(FilePath.string());
-
-			if (bSuccess)
-			{
-				UE_LOG("MainMenuBar: SceneIO: 레벨 로드에 성공했습니다");
-			}
-			else
-			{
-				UE_LOG("MainMenuBar: SceneIO: 레벨 로드에 실패했습니다");
-			}
-		}
-		catch (const exception& Exception)
-		{
-			FString StatusMessage = FString("Load Error: ") + Exception.what();
-			UE_LOG("SceneIO: Load Error: %s", Exception.what());
-		}
-	}
-}
-
-/**
- * @brief 새로운 레벨 생성 기능
+ * @brief 새 레벨 생성
  */
 void UMainBarWidget::CreateNewLevel()
 {
-	if (GEditor->CreateNewLevel())
+	if (!GEditor)
 	{
-		UE_LOG("MainBarWidget: 새로운 레벨이 성공적으로 생성되었습니다");
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
+	}
+	
+	// TODO: 레벨 이름 입력 다이얼로그 추가 가능
+	FString LevelName = "NewLevel";
+	
+	bool bSuccess = GEditor->CreateNewLevel(LevelName);
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 새 레벨 '%s' 생성 성공", LevelName.c_str());
 	}
 	else
 	{
-		UE_LOG("MainBarWidget: 새로운 레벨 생성에 실패했습니다");
+		UE_LOG_ERROR("MainBarWidget: 새 레벨 생성 실패");
 	}
 }
 
 /**
- * @brief Windows API를 활용한 파일 저장 Dialog Modal을 생성하는 UI Window 기능
- * PWSTR: WideStringPointer 클래스
- * @return 선택된 파일 경로 (취소 시 빈 문자열)
+ * @brief 레벨 열기
  */
-path UMainBarWidget::OpenSaveFileDialog()
+void UMainBarWidget::LoadLevel()
 {
-	path ResultPath = L"";
-
-	// COM 라이브러리 초기화
-	HRESULT ResultHandle = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-	if (SUCCEEDED(ResultHandle))
+	if (!GEditor)
 	{
-		IFileSaveDialog* FileSaveDialogPtr = nullptr;
-
-		// 2. FileSaveDialog 인스턴스 생성
-		ResultHandle = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL,
-			IID_IFileSaveDialog, reinterpret_cast<void**>(&FileSaveDialogPtr));
-
-		if (SUCCEEDED(ResultHandle))
-		{
-			// 3. 대화상자 옵션 설정
-			// 파일 타입 필터 설정
-			COMDLG_FILTERSPEC SpecificationRange[] = {
-				{L"Scene Files (*.scene)", L"*.scene"},
-				{L"All Files (*.*)", L"*.*"}
-			};
-			FileSaveDialogPtr->SetFileTypes(ARRAYSIZE(SpecificationRange), SpecificationRange);
-
-			// 기본 필터를 "Scene Files" 로 설정
-			FileSaveDialogPtr->SetFileTypeIndex(1);
-
-			// 기본 확장자 설정
-			FileSaveDialogPtr->SetDefaultExtension(L"json");
-
-			// 대화상자 제목 설정
-			FileSaveDialogPtr->SetTitle(L"Save Level File");
-
-			// Set Flag
-			DWORD DoubleWordFlags;
-			FileSaveDialogPtr->GetOptions(&DoubleWordFlags);
-			FileSaveDialogPtr->SetOptions(DoubleWordFlags | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
-
-			// Show Modal
-			// 현재 활성 창을 부모로 가짐
-			UE_LOG("SceneIO: Save Dialog Modal Opening...");
-			ResultHandle = FileSaveDialogPtr->Show(GetActiveWindow());
-
-			// 결과 처리
-			// 사용자가 '저장' 을 눌렀을 경우
-			if (SUCCEEDED(ResultHandle))
-			{
-				UE_LOG("SceneIO: Save Dialog Modal Closed - 파일 선택됨");
-				IShellItem* ShellItemResult;
-				ResultHandle = FileSaveDialogPtr->GetResult(&ShellItemResult);
-				if (SUCCEEDED(ResultHandle))
-				{
-					// Get File Path from IShellItem
-					PWSTR FilePath = nullptr;
-					ResultHandle = ShellItemResult->GetDisplayName(SIGDN_FILESYSPATH, &FilePath);
-
-					if (SUCCEEDED(ResultHandle))
-					{
-						ResultPath = path(FilePath);
-						CoTaskMemFree(FilePath);
-					}
-
-					ShellItemResult->Release();
-				}
-			}
-			// 사용자가 '취소'를 눌렀거나 오류 발생
-			else
-			{
-				UE_LOG("SceneIO: Save Dialog Modal Closed - 취소됨");
-			}
-
-			// Release FileSaveDialog
-			FileSaveDialogPtr->Release();
-		}
-
-		// COM 라이브러리 해제
-		CoUninitialize();
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
 	}
-
-	return ResultPath;
+	
+	path FilePath = OpenLoadFileDialog();
+	if (FilePath.empty())
+	{
+		UE_LOG("MainBarWidget: 레벨 열기 취소됨");
+		return;
+	}
+	
+	bool bSuccess = GEditor->LoadLevel(FilePath.string());
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 레벨 로드 성공: %s", FilePath.string().c_str());
+	}
+	else
+	{
+		UE_LOG_ERROR("MainBarWidget: 레벨 로드 실패: %s", FilePath.string().c_str());
+	}
 }
 
 /**
- * @brief Windows API를 활용한 파일 로드 Dialog Modal을 생성하는 UI Window 기능
- * @return 선택된 파일 경로 (취소 시 빈 문자열)
+ * @brief 현재 레벨 저장
+ */
+void UMainBarWidget::SaveCurrentLevel()
+{
+	if (!GEditor)
+	{
+		UE_LOG_ERROR("MainBarWidget: GEditor가 초기화되지 않았습니다");
+		return;
+	}
+	
+	path FilePath = OpenSaveFileDialog();
+	if (FilePath.empty())
+	{
+		UE_LOG("MainBarWidget: 레벨 저장 취소됨");
+		return;
+	}
+	
+	bool bSuccess = GEditor->SaveCurrentLevel(FilePath.string());
+	if (bSuccess)
+	{
+		UE_LOG_SUCCESS("MainBarWidget: 레벨 저장 성공: %s", FilePath.string().c_str());
+	}
+	else
+	{
+		UE_LOG_ERROR("MainBarWidget: 레벨 저장 실패: %s", FilePath.string().c_str());
+	}
+}
+
+/**
+ * @brief 파일 열기 다이얼로그
  */
 path UMainBarWidget::OpenLoadFileDialog()
 {
 	path ResultPath = L"";
-
-	// COM 라이브러리 초기화
-	HRESULT ResultHandle = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-	if (SUCCEEDED(ResultHandle))
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	
+	// COM 초기화 실패 시 early return
+	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 	{
-		IFileOpenDialog* FileOpenDialog = nullptr;
-
-		// FileOpenDialog 인스턴스 생성
-		ResultHandle = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
-			IID_IFileOpenDialog, reinterpret_cast<void**>(&FileOpenDialog));
-
-		if (SUCCEEDED(ResultHandle))
+		return ResultPath;
+	}
+	
+	// COM이 이미 초기화되어 있는지 확인 (S_FALSE 또는 RPC_E_CHANGED_MODE)
+	bool bNeedUninitialize = (hr == S_OK);
+	
+	IFileOpenDialog* pFileOpen = nullptr;
+	hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL,
+		IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+	
+	if (SUCCEEDED(hr) && pFileOpen)
+	{
+		COMDLG_FILTERSPEC fileTypes[] = {
+			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"All Files (*.*)", L"*.*"}
+		};
+		pFileOpen->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+		pFileOpen->SetFileTypeIndex(1);
+		pFileOpen->SetTitle(L"Load Level");
+		
+		DWORD dwFlags;
+		pFileOpen->GetOptions(&dwFlags);
+		pFileOpen->SetOptions(dwFlags | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
+		
+		hr = pFileOpen->Show(GetActiveWindow());
+		if (SUCCEEDED(hr))
 		{
-			// 파일 타입 필터 설정
-			COMDLG_FILTERSPEC SpecificationRange[] = {
-				{L"Scene Files (*.scene)", L"*.scene"},
-				{L"All Files (*.*)", L"*.*"}
-			};
-
-			FileOpenDialog->SetFileTypes(ARRAYSIZE(SpecificationRange), SpecificationRange);
-
-			// 기본 필터를 "Scene Files" 로 설정
-			FileOpenDialog->SetFileTypeIndex(1);
-
-			// 대화상자 제목 설정
-			FileOpenDialog->SetTitle(L"Load Level File");
-
-			// Flag Setting
-			DWORD DoubleWordFlags;
-			FileOpenDialog->GetOptions(&DoubleWordFlags);
-			FileOpenDialog->SetOptions(DoubleWordFlags | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
-
-			// Open Modal
-			UE_LOG("SceneIO: Load Dialog Modal Opening...");
-			ResultHandle = FileOpenDialog->Show(GetActiveWindow()); // 현재 활성 창을 부모로
-
-			// 결과 처리
-			// 사용자가 '열기' 를 눌렀을 경우
-			if (SUCCEEDED(ResultHandle))
+			IShellItem* pItem = nullptr;
+			hr = pFileOpen->GetResult(&pItem);
+			if (SUCCEEDED(hr) && pItem)
 			{
-				UE_LOG("SceneIO: Load Dialog Modal Closed - 파일 선택됨");
-				IShellItem* ShellItemResult;
-				ResultHandle = FileOpenDialog->GetResult(&ShellItemResult);
-
-				if (SUCCEEDED(ResultHandle))
+				PWSTR pszFilePath = nullptr;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+				if (SUCCEEDED(hr) && pszFilePath)
 				{
-					// Get File Path from IShellItem
-					PWSTR ReturnFilePath = nullptr;
-					ResultHandle = ShellItemResult->GetDisplayName(SIGDN_FILESYSPATH, &ReturnFilePath);
-
-					if (SUCCEEDED(ResultHandle))
-					{
-						ResultPath = path(ReturnFilePath);
-						CoTaskMemFree(ReturnFilePath);
-					}
-
-					ShellItemResult->Release();
+					ResultPath = path(pszFilePath);
+					CoTaskMemFree(pszFilePath);
 				}
+				pItem->Release();
 			}
-			// 사용자가 '취소' 를 눌렀거나 오류 발생
-			else
-			{
-				UE_LOG("SceneIO: Load Dialog Modal Closed - 취소됨");
-			}
-
-			FileOpenDialog->Release();
 		}
-
-		// COM 라이브러리 해제
+		pFileOpen->Release();
+	}
+	
+	// COM을 우리가 초기화한 경우에만 Uninitialize
+	if (bNeedUninitialize)
+	{
 		CoUninitialize();
 	}
-
+	
 	return ResultPath;
 }
 
+/**
+ * @brief 파일 저장 다이얼로그
+ */
+path UMainBarWidget::OpenSaveFileDialog()
+{
+	path ResultPath = L"";
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	
+	// COM 초기화 실패 시 early return
+	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+	{
+		return ResultPath;
+	}
+	
+	// COM이 이미 초기화되어 있는지 확인 (S_FALSE 또는 RPC_E_CHANGED_MODE)
+	bool bNeedUninitialize = (hr == S_OK);
+	
+	IFileSaveDialog* pFileSave = nullptr;
+	hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL,
+		IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+	
+	if (SUCCEEDED(hr) && pFileSave)
+	{
+		COMDLG_FILTERSPEC fileTypes[] = {
+			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"All Files (*.*)", L"*.*"}
+		};
+		pFileSave->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
+		pFileSave->SetFileTypeIndex(1);
+		pFileSave->SetDefaultExtension(L"Scene");
+		pFileSave->SetTitle(L"Save Level");
+		
+		DWORD dwFlags;
+		pFileSave->GetOptions(&dwFlags);
+		pFileSave->SetOptions(dwFlags | FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
+		
+		hr = pFileSave->Show(GetActiveWindow());
+		if (SUCCEEDED(hr))
+		{
+			IShellItem* pItem = nullptr;
+			hr = pFileSave->GetResult(&pItem);
+			if (SUCCEEDED(hr) && pItem)
+			{
+				PWSTR pszFilePath = nullptr;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+				if (SUCCEEDED(hr) && pszFilePath)
+				{
+					ResultPath = path(pszFilePath);
+					CoTaskMemFree(pszFilePath);
+				}
+				pItem->Release();
+			}
+		}
+		pFileSave->Release();
+	}
+	
+	// COM을 우리가 초기화한 경우에만 Uninitialize
+	if (bNeedUninitialize)
+	{
+		CoUninitialize();
+	}
+	
+	return ResultPath;
+}

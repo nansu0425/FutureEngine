@@ -100,9 +100,9 @@ struct FVector
 	inline FVector Cross(const FVector& InOtherVector) const
 	{
 		return FVector(
-			Z * InOtherVector.Y - Y * InOtherVector.Z,
-			X * InOtherVector.Z - Z * InOtherVector.X,
-			Y * InOtherVector.X - X * InOtherVector.Y
+			Y * InOtherVector.Z - Z * InOtherVector.Y,
+			Z * InOtherVector.X - X * InOtherVector.Z,
+			X * InOtherVector.Y - Y * InOtherVector.X
 		);
 	}
 
@@ -183,7 +183,14 @@ struct FVector
 	[[nodiscard]] static FVector UnitY() { return YAxisVector(); }
 	[[nodiscard]] static FVector UnitZ() { return ZAxisVector(); }
 };
-
+inline float Dot(const FVector& A, const FVector& B)
+{
+	return A.Dot(B);
+}
+inline FVector Cross(const FVector& A, const FVector& B)
+{
+	return A.Cross(B);
+}
 FArchive& operator<<(FArchive& Ar, FVector& Vector);
 
 struct FVector2

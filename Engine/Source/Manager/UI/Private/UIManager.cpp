@@ -6,8 +6,16 @@
 #include "Render/UI/Widget/Public/Widget.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Manager/UI/Public/ViewportManager.h"
+#include "Render/UI/Viewport/Public/Window.h"
 
 IMPLEMENT_SINGLETON_CLASS(UUIManager, UObject)
+
+// 이전 사이즈 추적을 위한 정적 변수
+static ImVec2 LastOutlinerSize = ImVec2(0, 0);
+static ImVec2 LastDetailSize = ImVec2(0, 0);
+static bool bFirstRun = true;
+
 
 UUIManager::UUIManager()
 {
@@ -117,6 +125,9 @@ void UUIManager::Update()
 
 	// 포커스 상태 업데이트
 	UpdateFocusState();
+
+	// FutureEngine 철학: 오른쪽 패널 레이아웃 자동 정리
+	ArrangeRightPanels();
 }
 
 /**
@@ -154,6 +165,9 @@ void UUIManager::Render()
 			Window->RenderWindow();
 		}
 	}
+
+	// FutureEngine 철학: 스플리터 오버레이 렌더링 (Quad 모드에서 호버링 효과)
+	UViewportManager::GetInstance().RenderOverlay();
 
 	// ImGui 프레임 종료
 	ImGuiHelper->EndFrame();
@@ -393,6 +407,168 @@ void UUIManager::UpdateFocusState()
 	}
 }
 
+void UUIManager::ArrangeRightPanelsInitial(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow, float InScreenWidth,
+	float InScreenHeight, float InMenuBarHeight, float InAvailableHeight)
+{
+	// 너비 결정: 저장된 너비가 있으면 사용, 없으면 기본 너비 사용
+const float DefaultPanelWidth = InScreenWidth * 0.2f;
+const float ActualPanelWidth = (SavedPanelWidth > 0) ? SavedPanelWidth : DefaultPanelWidth;
+
+// 사용할 너비를 저장 (다음에 사용하기 위해)
+SavedPanelWidth = ActualPanelWidth;
+
+if (InOutlinerWindow && InDetailWindow)
+{
+	// 두 패널 모두 있는 경우: 합리적인 크기로 분할
+	const float OutlinerHeight = max(300.0f, InAvailableHeight * 0.4f); // 최소 300px 또는 40%
+	const float DetailHeight = InAvailableHeight - OutlinerHeight;
+	const float StartX = InScreenWidth - ActualPanelWidth;
+
+	// Detail이 너무 작아지지 않도록 조정
+	if (DetailHeight < 200.0f)
+	{
+		// Detail이 너무 작으면 Outliner를 줄임
+		const float AdjustedOutlinerHeight = InAvailableHeight - 200.0f;
+		const float AdjustedDetailHeight = 200.0f;
+
+		InOutlinerWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
+		InOutlinerWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, AdjustedOutlinerHeight));
+
+		InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight + AdjustedOutlinerHeight));
+		InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, AdjustedDetailHeight));
+	}
+	else
+	{
+		InOutlinerWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
+		InOutlinerWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, OutlinerHeight));
+
+		InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight + OutlinerHeight));
+		InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, DetailHeight));
+	}
+
+	UE_LOG("UIManager: 초기 레이아웃 - 두 패널 모두 설정 (%.1fx%.1f)", DefaultPanelWidth, InAvailableHeight);
+}
+// Outliner만 있는 경우: 전체 오른쪽 영역 차지
+else if (InOutlinerWindow)
+{
+	const float StartX = InScreenWidth - ActualPanelWidth;
+
+	InOutlinerWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
+	InOutlinerWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
+
+	UE_LOG("UIManager: 초기 레이아웃 - Outliner만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
+}
+// Detail만 있는 경우: 전체 오른쪽 영역 차지
+else if (InDetailWindow)
+{
+	const float StartX = InScreenWidth - ActualPanelWidth;
+
+	InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
+	InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
+
+	UE_LOG("UIManager: 초기 레이아웃 - Detail만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
+}
+}
+
+void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow, float InScreenWidth,
+	float InScreenHeight, float InMenuBarHeight, float InAvailableHeight, float InTargetWidth) const
+{
+	// 너비는 항상 사용자가 조정한 InTargetWidth 사용 (동적 레이아웃에서는 사용자 조정 존중)
+float ActualWidth = InTargetWidth;
+float NewX = InScreenWidth - ActualWidth;
+if (InOutlinerWindow && InDetailWindow)
+{
+	// 두 패널이 모두 있을 때: 사용자 조정 너비 사용
+	ActualWidth = InTargetWidth;
+}
+else
+{
+	// 단일 패널일 때: 저장된 너비 사용
+	ActualWidth = (SavedPanelWidth > 0) ? SavedPanelWidth : InTargetWidth;
+}
+
+if (InOutlinerWindow && InDetailWindow)
+{
+	// 두 패널 모두 있는 경우
+	const float CurrentOutlinerHeight = InOutlinerWindow->GetLastWindowSize().y;
+	const float CurrentDetailHeight = InDetailWindow->GetLastWindowSize().y;
+
+	// 만약 한 패널이 전체 높이를 차지하고 있다면 저장된 레이아웃 복원
+	if (CurrentOutlinerHeight >= InAvailableHeight * 0.9f || CurrentDetailHeight >= InAvailableHeight * 0.9f)
+	{
+		float OutlinerHeight, DetailHeight;
+
+		// 저장된 레이아웃이 있으면 복원, 없으면 기본 레이아웃 사용
+		if (bHasSavedDualLayout && SavedOutlinerHeightForDual > 0 && SavedDetailHeightForDual > 0)
+		{
+			OutlinerHeight = SavedOutlinerHeightForDual;
+			DetailHeight = SavedDetailHeightForDual;
+			UE_LOG("UIManager: 저장된 레이아웃 복원 (Outliner: %.1f, Detail: %.1f)", OutlinerHeight, DetailHeight);
+		}
+		else
+		{
+			// 기본 레이아웃
+			OutlinerHeight = max(300.0f, InAvailableHeight * 0.4f);
+			DetailHeight = InAvailableHeight - OutlinerHeight;
+		}
+
+		// Detail이 너무 작아지지 않도록 조정
+		if (DetailHeight < 200.0f)
+		{
+			const float AdjustedOutlinerHeight = InAvailableHeight - 200.0f;
+			const float AdjustedDetailHeight = 200.0f;
+
+			InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+			InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, AdjustedOutlinerHeight));
+
+			InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + AdjustedOutlinerHeight));
+			InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, AdjustedDetailHeight));
+		}
+		else
+		{
+			InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+			InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, OutlinerHeight));
+
+			InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + OutlinerHeight));
+			InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, DetailHeight));
+		}
+
+		UE_LOG("UIManager: 동적 레이아웃: 두 패널 초기 분할 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
+	}
+	else
+	{
+		// 기존 크기 유지하면서 너비만 조정
+		const float DetailHeight = InAvailableHeight - CurrentOutlinerHeight;
+
+		// Outliner: 상단 고정
+		InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+		InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, CurrentOutlinerHeight));
+
+		// Detail: Outliner 바로 아래, 하단까지
+		InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight + CurrentOutlinerHeight));
+		InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, DetailHeight));
+
+		UE_LOG("UIManager: 동적 레이아웃: 두 패널 업데이트 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
+	}
+}
+// Outliner만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
+else if (InOutlinerWindow)
+{
+	InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+	InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
+
+	UE_LOG("UIManager: 동적 레이아웃: Outliner만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
+}
+// Detail만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
+else if (InDetailWindow)
+{
+	InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
+	InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
+
+	UE_LOG("UIManager: 동적 레이아웃: Detail만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
+}
+}
+
 /**
  * @brief 윈도우 프로시저 핸들러
  */
@@ -560,5 +736,202 @@ void UUIManager::OnSelectedComponentChanged(UActorComponent* InSelectedComponent
 	for (UUIWindow* UIWindow : UIWindows)
 	{
 		UIWindow->OnSelectedComponentChanged(InSelectedComponent);
+	}
+}
+
+
+
+float UUIManager::GetRightPanelWidth() const
+{
+	// 화면 너비 가져오기
+	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+	if (ScreenWidth <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	// 오른쪽 패널에 있는 UI 윈도우들의 가장 왼쪽 시작점 찾기
+	float LeftmostX = ScreenWidth;
+	bool bHasRightPanel = false;
+
+	for (auto Window : UIWindows)
+	{
+		if (!Window || !Window->IsVisible())
+		{
+			continue;
+		}
+
+		// 오른쪽 패널로 간주되는 윈도우들 확인
+		const FName& Title = Window->GetWindowTitle();
+		if (Title == "Outliner" || Title == "Details")
+		{
+			// 현재 윈도우의 실제 위치 정보 가져오기
+			ImVec2 WindowPosition = Window->GetLastWindowPosition();
+
+			// 가장 왼쪽 시작점 업데이트
+			LeftmostX = min(LeftmostX, WindowPosition.x);
+			bHasRightPanel = true;
+		}
+	}
+
+	// 오른쪽 패널이 없다면 0 반환
+	if (!bHasRightPanel)
+	{
+		// UE_LOG("UIManager: 오른쪽 패널이 발견되지 않음");
+		return 0.0f;
+	}
+
+	// 오른쪽 패널이 차지하는 너비 = 화면 전체 너비 - 가장 왼쪽 시작점
+	const float RightPanelWidth = ScreenWidth - LeftmostX;
+
+	return RightPanelWidth;
+}
+
+void UUIManager::ArrangeRightPanels()
+{
+	// 화면 크기와 메뉴바 높이 가져오기
+	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
+	
+	// FutureEngine 철학: ViewportManager의 Root Rect에서 메뉴바+레벨바 높이 가져오기
+	SWindow* Root = UViewportManager::GetInstance().GetRoot();
+	const float MenuBarHeight = Root ? static_cast<float>(Root->GetRect().Top) : 0.0f;
+	const float AvailableHeight = ScreenHeight - MenuBarHeight;
+
+	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
+	{
+		return;
+	}
+
+	// Outliner와 Detail 윈도우 찾기
+	UUIWindow* OutlinerWindow = nullptr;
+	UUIWindow* DetailWindow = nullptr;
+
+	for (auto Window : UIWindows)
+	{
+		if (!Window || !Window->IsVisible())
+		{
+			continue;
+		}
+
+		const FName& Title = Window->GetWindowTitle();
+		if (Title == "Outliner")
+		{
+			OutlinerWindow = Window;
+		}
+		else if (Title == "Details")
+		{
+			DetailWindow = Window;
+		}
+	}
+
+	// 적어도 하나의 윈도우는 있어야 정리 가능
+	if (!OutlinerWindow && !DetailWindow)
+	{
+		return;
+	}
+
+	// 현재 화면에 존재하는 윈도우 사이즈 가져오기
+	ImVec2 CurrentOutlinerSize = OutlinerWindow ? OutlinerWindow->GetLastWindowSize() : ImVec2(0, 0);
+	ImVec2 CurrentDetailSize = DetailWindow ? DetailWindow->GetLastWindowSize() : ImVec2(0, 0);
+
+	// 초기 실행 처리
+	if (bFirstRun)
+	{
+		LastOutlinerSize = CurrentOutlinerSize;
+		LastDetailSize = CurrentDetailSize;
+		bFirstRun = false;
+
+		// 초기 위치 설정
+		ArrangeRightPanelsInitial(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight,
+			AvailableHeight);
+		return;
+	}
+
+	// 두 패널이 모두 있을 때 크기 저장
+	if (OutlinerWindow && DetailWindow)
+	{
+		SavedOutlinerHeightForDual = CurrentOutlinerSize.y;
+		SavedDetailHeightForDual = CurrentDetailSize.y;
+		SavedPanelWidth = max(CurrentOutlinerSize.x, CurrentDetailSize.x);
+		bHasSavedDualLayout = true;
+	}
+	else if (OutlinerWindow || DetailWindow)
+	{
+		// 한 패널만 있을 때 너비 저장
+		if (OutlinerWindow)
+		{
+			SavedPanelWidth = CurrentOutlinerSize.x;
+		}
+		else if (DetailWindow)
+		{
+			SavedPanelWidth = CurrentDetailSize.x;
+		}
+	}
+
+	// 사이즈 변경 감지
+	const float Tolerance = 1.0f;
+	bool bOutlinerSizeChanged = OutlinerWindow && (abs(CurrentOutlinerSize.x - LastOutlinerSize.x) > Tolerance ||
+		abs(CurrentOutlinerSize.y - LastOutlinerSize.y) > Tolerance);
+	bool bDetailSizeChanged = DetailWindow && (abs(CurrentDetailSize.x - LastDetailSize.x) > Tolerance ||
+		abs(CurrentDetailSize.y - LastDetailSize.y) > Tolerance);
+
+	// 사이즈 변경이 없으면 빠르게 return
+	if (!bOutlinerSizeChanged && !bDetailSizeChanged)
+	{
+		return;
+	}
+
+	// 마지막으로 변경된 윈도우의 너비를 기준으로 사용
+	float TargetWidth;
+	if (bOutlinerSizeChanged)
+	{
+		TargetWidth = CurrentOutlinerSize.x;
+		UE_LOG("UIManager: Outliner 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
+	}
+	else // bDetailSizeChanged
+	{
+		TargetWidth = CurrentDetailSize.x;
+		UE_LOG("UIManager: Detail 사이즈 변경 감지: 새 너비: %.1f", TargetWidth);
+	}
+
+	// 이전 사이즈 업데이트
+	LastOutlinerSize = CurrentOutlinerSize;
+	LastDetailSize = CurrentDetailSize;
+
+	// 동적 레이아웃 업데이트
+	ArrangeRightPanelsDynamic(OutlinerWindow, DetailWindow, ScreenWidth, ScreenHeight, MenuBarHeight, AvailableHeight,
+		TargetWidth);
+}
+
+void UUIManager::ForceArrangeRightPanels()
+{
+	// Reset layout state so the next arrange pass rebuilds from scratch.
+	bFirstRun = true;
+
+	UE_LOG("UIManager: 요청받아 오른쪽 패널 레이아웃을 재정리합니다");
+
+	// Apply the layout immediately so the change is visible this frame.
+	ArrangeRightPanels();
+}
+
+void UUIManager::OnPanelVisibilityChanged()
+{
+	UE_LOG("UIManager: 패널 가시성 변경 감지, 레이아웃 재정리 시작");
+	ForceArrangeRightPanels();
+}
+
+void UUIManager::RegisterLevelTabBarWindow(ULevelTabBarWindow* InLevelBarWindow)
+{
+	if (LevelTabBarWindow)
+	{
+		UE_LOG("UIManager: 메인 메뉴바 윈도우가 이미 등록되어 있습니다. 기존 윈도우를 교체합니다.");
+	}
+
+	LevelTabBarWindow = InLevelBarWindow;
+
+	if (LevelTabBarWindow)
+	{
+		UE_LOG("UIManager: 메인 메뉴바 윈도우가 등록되었습니다");
 	}
 }

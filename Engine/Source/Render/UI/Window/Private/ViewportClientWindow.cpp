@@ -1,34 +1,18 @@
 #include "pch.h"
 #include "Render/UI/Window/Public/ViewportClientWindow.h"
-#include "Render/UI/Widget/Public/ViewportMenuBarWidget.h"
 #include "Render/Renderer/Public/Renderer.h" 
-#include "Editor/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 
 IMPLEMENT_CLASS(UViewportClientWindow, UUIWindow)
 
 UViewportClientWindow::UViewportClientWindow()
 {
 	SetupConfig();
-
-	// 위젯 생성 및 초기화
-	if (UViewportMenuBarWidget* MenuBarWidget = NewObject<UViewportMenuBarWidget>())
-	{
-		ViewportMenuBarWidget = MenuBarWidget;
-		if (FViewport* ViewportClient = URenderer::GetInstance().GetViewportClient())
-		{
-			ViewportMenuBarWidget->SetViewportClient(ViewportClient);
-			ViewportMenuBarWidget->Initialize();
-			AddWidget(ViewportMenuBarWidget);
-			UE_LOG("ViewportClientWindow: ViewportMenuBarWidget이 생성되고 초기화되었습니다");
-		}
-	}
-	else
-	{
-		UE_LOG("ViewportClientWindow: Error: ViewportMenuBarWidget 생성에 실패했습니다!");
-		return;
-	}
-
-	UE_LOG("ViewportClientWindow: 메인 메뉴 윈도우가 초기화되었습니다");
+	
+	// FutureEngine 철학: ViewportControlWidget은 LevelTabBarWindow에서만 관리
+	// 중복 렌더링 방지를 위해 여기서는 생성하지 않음
+	
+	UE_LOG("ViewportClientWindow: 윈도우가 초기화되었습니다");
 }
 
 void UViewportClientWindow::Initialize()

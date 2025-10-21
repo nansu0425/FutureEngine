@@ -8,7 +8,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Core/Public/Object.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
 #include "Global/Octree.h"
 #include "Level/Public/Level.h"
 #include "Manager/Config/Public/ConfigManager.h"
@@ -47,12 +47,13 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		uint32 NextUUID = 0;
 		FJsonSerializer::ReadUint32(InOutHandle, "NextUUID", NextUUID);
 
-		JSON PerspectiveCameraData;
-		if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
-		{
-			UConfigManager::GetInstance().SetCameraSettingsFromJson(PerspectiveCameraData);
-			URenderer::GetInstance().GetViewportClient()->ApplyAllCameraDataToViewportClients();
-		}
+		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
+		// TODO: ViewportManager를 통한 카메라 설정 로드 기능 구현 필요
+		// JSON PerspectiveCameraData;
+		// if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
+		// {
+		// 		// ViewportManager를 통해 각 ViewportClient의 Camera에 설정 적용
+		// }
 		
 		JSON ActorsJson;
 		if (FJsonSerializer::ReadObject(InOutHandle, "Actors", ActorsJson))
@@ -76,9 +77,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// NOTE: 레벨 로드 시 NextUUID를 변경하면 UUID 충돌이 발생하므로 관련 기능 구현을 보류합니다.
 		InOutHandle["NextUUID"] = 0;
 
-		// GetCameraSetting 호출 전에 뷰포트 클라이언트의 최신 데이터를 ConfigManager로 동기화합니다.
-		URenderer::GetInstance().GetViewportClient()->UpdateCameraSettingsToConfig();
-		InOutHandle["PerspectiveCamera"] = UConfigManager::GetInstance().GetCameraSettingsAsJson();
+		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
+		// TODO: ViewportManager를 통해 모든 ViewportClient의 Camera 설정을 JSON으로 저장하는 기능 구현 필요
+		// InOutHandle["PerspectiveCamera"] = ViewportManager::GetInstance().GetAllCameraSettingsAsJson();
 
 		JSON ActorsJson = json::Object();
 		for (AActor* Actor : LevelActors)
@@ -156,15 +157,18 @@ void ULevel::RegisterComponent(UActorComponent* InComponent)
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			LightComponents.push_back(PointLightComponent);
+			if (auto SpotLightComponent = Cast<USpotLightComponent>(PointLightComponent))
+			{
+				LightComponents.push_back(SpotLightComponent);
+			}
+			else
+			{
+				LightComponents.push_back(PointLightComponent);
+			}
 		}
 		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 		{
 			LightComponents.push_back(DirectionalLightComponent);
-		}
-		if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-		{
-			LightComponents.push_back(SpotLightComponent);
 		}
 		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
 		{
@@ -223,7 +227,14 @@ void ULevel::AddLevelComponent(AActor* Actor)
 		{
 			if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 			{
-				LightComponents.push_back(PointLightComponent);
+				if (auto SpotLightComponent = Cast<USpotLightComponent>(PointLightComponent))
+				{
+					LightComponents.push_back(SpotLightComponent);
+				}
+				else
+				{
+					LightComponents.push_back(PointLightComponent);
+				}
 			}
 			if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
 			{
@@ -233,10 +244,7 @@ void ULevel::AddLevelComponent(AActor* Actor)
 			{
 				LightComponents.push_back(AmbientLightComponent);
 			}
-			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
-			{
-				LightComponents.push_back(SpotLightComponent);
-			}
+			
 		}
 	}
 }

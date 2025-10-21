@@ -5,7 +5,7 @@
 #include "Editor/public/Axis.h"
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/BatchLines.h"
-#include "Editor/Public/SplitterWindow.h"
+#include "editor/Public/Camera.h"
 
 class UPrimitiveComponent;
 class UUUIDTextComponent;
@@ -24,6 +24,7 @@ enum class EViewportLayoutState
 
 class UEditor : public UObject
 {
+	DECLARE_CLASS(UEditor, UObject)
 public:
 	UEditor();
 	~UEditor();
@@ -35,8 +36,7 @@ public:
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
 
-	void SetSingleViewportLayout(int InActiveIndex);
-	void RestoreMultiViewportLayout();
+	// 레이아웃 제어는 ViewportManager가 담당
 
 	void SelectActor(AActor* InActor);
 	AActor* GetSelectedActor() const { return SelectedActor; }
@@ -48,16 +48,12 @@ public:
 	UBatchLines* GetBatchLines() { return &BatchLines; }
 	UAxis* GetAxis() { return &Axis; }
 	UGizmo* GetGizmo() { return &Gizmo; }
-	SSplitter* GetRootSplitter() { return &RootSplitter; }
-	SSplitter* GetLeftSplitter() { return &LeftSplitter; }
-	SSplitter* GetRightSplitter() { return &RightSplitter; }
+
 	
 private:
-	void InitializeLayout();
 	void UpdateBatchLines();
 	void ProcessMouseInput();
-	void UpdateLayout();
-
+	
 	// 모든 기즈모 드래그 함수가 ActiveCamera를 받도록 통일
 	FVector GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay);
 	FVector GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay);
@@ -72,32 +68,16 @@ private:
 	AActor* SelectedActor = nullptr; // 선택된 액터
 	UActorComponent* SelectedComponent = nullptr; // 선택된 컴포넌트
 
-	const float MinScale = 0.01f;
-	float SavedRootRatio = 0.5f;
-	float SavedLeftRatio = 0.5f;
-	float SavedRightRatio = 0.5f;
+	UCamera* Camera;
 	UGizmo Gizmo;
 	UAxis Axis;
 	UBatchLines BatchLines;
-
-	SSplitterV RootSplitter;
-	SSplitterH LeftSplitter;
-	SSplitterH RightSplitter;
-	SWindow ViewportWindows[4]; // 최종 뷰포트 영역의 정보, 쉽게 참조하도록 선언했습니다.
-	SSplitter* DraggedSplitter = nullptr; // 드래그 상태를 추적하는 포인터
-	FViewportClient* InteractionViewport = nullptr; // 뷰포트의 상호작용을 고정하는 포인터
+	
+	// InteractionViewport 제거: ViewportManager가 레이아웃 관리
 
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_BlinnPhong;
 
-	// Animation
-	EViewportLayoutState ViewportLayoutState = EViewportLayoutState::Multi;
-	EViewportLayoutState TargetViewportLayoutState = EViewportLayoutState::Multi;
-	float AnimationStartTime = 0.0f;
-	float AnimationDuration = 0.2f; 
-	float SourceRootRatio = 0.5f;
-	float SourceLeftRatio = 0.5f;
-	float SourceRightRatio = 0.5f;
-	float TargetRootRatio = 0.5f;
-	float TargetLeftRatio = 0.5f;
-	float TargetRightRatio = 0.5f;
+	int32 ActiveViewportIndex = 0;
+
+	const float MinScale = 0.01f;
 };

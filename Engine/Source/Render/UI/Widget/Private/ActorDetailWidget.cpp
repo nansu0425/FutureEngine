@@ -57,8 +57,19 @@ void UActorDetailWidget::RenderWidget()
 	
 	    ImGui::Separator();
 	
+	    // CollapsingHeader 검은색 스타일 적용
+	    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	    
 	    if (ImGui::CollapsingHeader("Tick Settings"))
 	    {
+	        // 체크박스 검은색 스타일 적용
+	        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+	        
 	        bool bCanEverTick = SelectedActor->CanTick();
 	        if (ImGui::Checkbox("Enable Tick", &bCanEverTick))
 	        {
@@ -70,7 +81,11 @@ void UActorDetailWidget::RenderWidget()
 	        {
 	            SelectedActor->SetTickInEditor(bTickInEditor);
 	        }
+	        
+	        ImGui::PopStyleColor(4);
 	    }
+	    
+	    ImGui::PopStyleColor(3);
 	ImGui::Separator();
 
 	// 컴포넌트 트리 렌더링
@@ -96,12 +111,19 @@ void UActorDetailWidget::RenderActorHeader(AActor* InSelectedActor)
 	if (bIsRenamingActor)
 	{
 		// Rename 모드
+		// 입력 필드 색상을 검은색으로 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		
 		ImGui::SetKeyboardFocusHere();
 		if (ImGui::InputText("##ActorRename", ActorNameBuffer, sizeof(ActorNameBuffer),
 		                     ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
 		{
 			FinishRenamingActor(InSelectedActor);
 		}
+		
+		ImGui::PopStyleColor(3);
 
 		// ESC로 취소, InputManager보다 일단 내부 API로 입력 받는 것으로 처리
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
@@ -168,7 +190,7 @@ void UActorDetailWidget::RenderSceneComponents(USceneComponent* InSceneComponent
 	if (!InSceneComponent || InSceneComponent->IsVisualizationComponent()) { return; }
 	FString ComponentName = InSceneComponent->GetName().ToString();
 
-	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 	if (!InSceneComponent || InSceneComponent->GetChildren().empty())
 		NodeFlags |= ImGuiTreeNodeFlags_Leaf;
 	if (SelectedComponent == InSceneComponent)
@@ -339,7 +361,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 {
 	ImGui::SameLine();
 
-	const char* ButtonText = "[+]";
+	const char* ButtonText = "ADD COMPONENT";
 	float ButtonWidth = ImGui::CalcTextSize(ButtonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - ButtonWidth);
 
@@ -347,6 +369,8 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 	{
 		ImGui::OpenPopup("AddComponentPopup");
 	}
+	
+
     ImGui::SetNextWindowContentSize(ImVec2(200.0f, 0.0f)); 
 	if (ImGui::BeginPopup("AddComponentPopup"))
 	{
@@ -491,6 +515,12 @@ void UActorDetailWidget::RenderTransformEdit()
 	ImGui::Text("Component Properties");
 	ImGui::PushID(SelectedComponent);
 
+	// 체크박스 색상을 검은색으로 설정
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+	
 	// bCanEverTick 체크박스
 	bool bTickEnabled = SelectedComponent->CanEverTick();
 	if (ImGui::Checkbox("Enable Tick (bCanEverTick)", &bTickEnabled))
@@ -504,6 +534,8 @@ void UActorDetailWidget::RenderTransformEdit()
 	{
 		SelectedComponent->SetIsEditorOnly(bIsEditorOnly);
 	}
+	
+	ImGui::PopStyleColor(4);
 
 	ImGui::PopID();
 	ImGui::Separator();
@@ -515,6 +547,11 @@ void UActorDetailWidget::RenderTransformEdit()
 	ImGui::Text("Component Transform");
 	ImGui::PushID(SceneComponent);
 
+	// Drag 필드 색상을 검은색으로 설정
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	
 	// Relative Position
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
 	if (ImGui::DragFloat3("Relative Position", &ComponentPosition.X, 0.1f))
@@ -548,8 +585,19 @@ void UActorDetailWidget::RenderTransformEdit()
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
 	}
+	
+	ImGui::PopStyleColor(3);
+	
+	// Uniform Scale 체크박스 색상 설정
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+	
 	ImGui::Checkbox("Uniform Scale", &bUniformScale);
 	SceneComponent->SetUniformScale(bUniformScale);
+	
+	ImGui::PopStyleColor(4);
 	
 	ImGui::PopID();
 }

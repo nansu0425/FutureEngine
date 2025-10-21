@@ -122,7 +122,7 @@ struct FObjectMaterialInfo
 	/** Alpha texture map (map_d). */
 	FString DMap;
 
-	/** Bump map (map_bump or bump). */
+	/** Bump map (map_Bump or bump). */
 	FString BumpMap;
 };
 

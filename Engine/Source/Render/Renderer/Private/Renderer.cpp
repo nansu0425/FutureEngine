@@ -11,8 +11,8 @@
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Editor.h"
-#include "Editor/Public/Viewport.h"
-#include "Editor/Public/ViewportClient.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 #include "Level/Public/Level.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Optimization/Public/OcclusionCuller.h"
@@ -30,6 +30,7 @@
 
 #include "Render/RenderPass/Public/SceneDepthPass.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
@@ -59,7 +60,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateStaticMeshShader();
 	CreateGizmoShader();
 
-	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
+	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
 	RenderPasses.push_back(LightPass);
@@ -262,7 +263,8 @@ void URenderer::CreateStaticMeshShader()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Tangent),  D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	
 	// Compile Lambert variant (default)
@@ -289,6 +291,12 @@ void URenderer::CreateStaticMeshShader()
 		{ nullptr, nullptr }
 	};
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
+
+	TArray<D3D_SHADER_MACRO> WorldNormalViewMacros = {
+		{ "LIGHTING_MODEL_NORMAL", "1" },
+		{ nullptr, nullptr }
+	};
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
 }
 
 void URenderer::CreateGizmoShader()
@@ -311,6 +319,7 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(UberLitPixelShader);
 	SafeRelease(UberLitPixelShaderGouraud);
 	SafeRelease(UberLitPixelShaderBlinnPhong);
+	SafeRelease(UberLitPixelShaderWorldNormal);
 	SafeRelease(UberLitVertexShader);
 	SafeRelease(UberLitVertexShaderGouraud);
 	
@@ -380,19 +389,24 @@ void URenderer::Update()
 
     RenderBegin();
 
-    for (FViewportClient& ViewportClient : ViewportClient->GetViewports())
+    for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
     {
-        if (ViewportClient.GetViewportInfo().Width < 1.0f || ViewportClient.GetViewportInfo().Height < 1.0f) { continue; }
+        if (Viewport->GetRect().Width < 1.0f || Viewport->GetRect().Height < 1.0f) { continue; }
 
-        ViewportClient.Apply(GetDeviceContext());
-
-        UCamera* CurrentCamera = &ViewportClient.Camera;
-        CurrentCamera->Update(ViewportClient.GetViewportInfo());
+    	FRect SingleWindowRect = Viewport->GetRect();
+    	const int32 ViewportToolBarHeight = 32;
+    	D3D11_VIEWPORT LocalViewport = { (float)SingleWindowRect.Left,(float)SingleWindowRect.Top + ViewportToolBarHeight, (float)SingleWindowRect.Width, (float)SingleWindowRect.Height - ViewportToolBarHeight, 0.0f, 1.0f };
+    	GetDeviceContext()->RSSetViewports(1, &LocalViewport);
+		Viewport->SetRenderRect(LocalViewport);
+        UCamera* CurrentCamera = Viewport->GetViewportClient()->GetCamera();
+    	
+        CurrentCamera->Update(LocalViewport);
+    	
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
         Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
         {
             TIME_PROFILE(RenderLevel)
-            RenderLevel(ViewportClient);
+            RenderLevel(Viewport);
         }
 		{
 			TIME_PROFILE(RenderEditor)
@@ -463,20 +477,20 @@ void URenderer::RenderBegin() const
     DeviceResources->UpdateViewport();
 }
 
-void URenderer::RenderLevel(FViewportClient& InViewportClient)
+void URenderer::RenderLevel(FViewport* InViewport)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
 
-	const FCameraConstants& ViewProj = InViewportClient.Camera.GetFViewProjConstants();
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewportClient.Camera.GetViewVolumeCuller().GetRenderableObjects();
+	const FCameraConstants& ViewProj = InViewport->GetViewportClient()->GetCamera()->GetFViewProjConstants();
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
 
 	FRenderingContext RenderingContext(
 		&ViewProj,
-		&InViewportClient.Camera,
-		GEditor->GetEditorModule()->GetViewMode(),
+		InViewport->GetViewportClient()->GetCamera(),
+		InViewport->GetViewportClient()->GetViewMode(),
 		CurrentLevel->GetShowFlags(),
-		InViewportClient.ViewportInfo,
+		InViewport->GetRenderRect(),
 		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
 		);
 	// 1. Sort visible primitive components
@@ -627,7 +641,9 @@ ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) con
 	{
 		return UberLitVertexShaderGouraud;
 	}
-	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert || ViewModeIndex == EViewModeIndex::VMI_BlinnPhong)
+	else if (ViewModeIndex == EViewModeIndex::VMI_Lambert
+		|| ViewModeIndex == EViewModeIndex::VMI_BlinnPhong
+		|| ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
 	{
 		return UberLitVertexShader;
 	}
@@ -654,6 +670,10 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	else if (ViewModeIndex == EViewModeIndex::VMI_Unlit || ViewModeIndex == EViewModeIndex::VMI_SceneDepth)
 	{
 		return TexturePixelShader;
+	}
+	else if (ViewModeIndex == EViewModeIndex::VMI_WorldNormal)
+	{
+		return UberLitPixelShaderWorldNormal;
 	}
 }
 

@@ -59,6 +59,7 @@ struct FNormalVertex
 	FVector Normal;
 	FVector4 Color;
 	FVector2 TexCoord;
+	FVector4 Tangent;  // XYZ: Tangent, W: Handedness(+1/-1)
 };
 
 struct FRay
@@ -99,8 +100,11 @@ struct FTransform
  */
 struct FPoint
 {
-	float X = 0.0f;
-	float Y = 0.0f;
+	INT X = 0;
+	INT Y = 0;
+	constexpr FPoint(LONG InX, LONG InY) : X(InX), Y(InY)
+	{
+	}
 };
 
 /**
@@ -108,13 +112,13 @@ struct FPoint
  */
 struct FRect
 {
-	float Left = 0.0f;
-	float Top = 0.0f;
-	float Width = 0.0f;
-	float Height = 0.0f;
+	LONG Left = 0;
+	LONG Top = 0;
+	LONG Width = 0;
+	LONG Height = 0;
 
-	float GetRight() const { return Left + Width; }
-	float GetBottom() const { return Top + Height; }
+	LONG GetRight() const { return Left + Width; }
+	LONG GetBottom() const { return Top + Height; }
 };
 
 struct FAmbientLightInfo
