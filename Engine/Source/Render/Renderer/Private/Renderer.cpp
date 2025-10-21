@@ -22,7 +22,7 @@
 #include "Render/RenderPass/Public/FogPass.h"
 #include "Render/RenderPass/Public/PointLightPass.h"
 #include "Render/RenderPass/Public/RenderPass.h"
-#include "Render/RenderPass/Public/RenderPass.h"
+#include "Render/RenderPass/Public/LightPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
@@ -58,11 +58,15 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateConstantBuffers();
 	CreateFXAAShader();
 	CreateStaticMeshShader();
+	CreateGizmoShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
+	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
+	RenderPasses.push_back(LightPass);
+
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-	ConstantBufferLighting, UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
+	UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
@@ -295,6 +299,19 @@ void URenderer::CreateStaticMeshShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
 }
 
+void URenderer::CreateGizmoShader()
+{
+	// Create shaders
+	TArray<D3D11_INPUT_ELEMENT_DESC> LayoutDesc =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/GizmoLine.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/GizmoLine.hlsl", &GizmoPS);
+}
+
 
 void URenderer::ReleaseDefaultShader()
 {
@@ -329,6 +346,10 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(FXAAVertexShader);
 	SafeRelease(FXAAPixelShader);
 	SafeRelease(FXAAInputLayout);
+
+	SafeRelease(GizmoVS);
+	SafeRelease(GizmoPS);
+	SafeRelease(GizmoInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -382,7 +403,7 @@ void URenderer::Update()
         CurrentCamera->Update(LocalViewport);
     	
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
-        Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+        Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
         {
             TIME_PROFILE(RenderLevel)
             RenderLevel(Viewport);
@@ -557,12 +578,12 @@ void URenderer::RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const
     // Update constant buffers
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModels,
 		FMatrix::GetModelMatrix(InPrimitive.Location, InPrimitive.Rotation, InPrimitive.Scale));
-	Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
-	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModels);
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
 	
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferColor, InPrimitive.Color);
-	Pipeline->SetConstantBuffer(2, false, ConstantBufferColor);
-	Pipeline->SetConstantBuffer(2, true, ConstantBufferColor);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferColor);
+	Pipeline->SetConstantBuffer(2, EShaderType::VS, ConstantBufferColor);
 	
     Pipeline->SetVertexBuffer(InPrimitive.VertexBuffer, FinalStride);
 
@@ -661,7 +682,6 @@ void URenderer::CreateConstantBuffers()
 	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
-	ConstantBufferLighting = FRenderResourceFactory::CreateConstantBuffer<FLightingConstants>();
 }
 
 
@@ -670,5 +690,4 @@ void URenderer::ReleaseConstantBuffers()
 	SafeRelease(ConstantBufferModels);
 	SafeRelease(ConstantBufferColor);
 	SafeRelease(ConstantBufferViewProj);
-	SafeRelease(ConstantBufferLighting);
 }

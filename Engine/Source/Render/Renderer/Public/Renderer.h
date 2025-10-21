@@ -11,7 +11,7 @@ class UCamera;
 class UPipeline;
 class FViewportClient;
 class FFXAAPass;
-
+class FLightPass;
 
 
 
@@ -40,7 +40,8 @@ public:
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
 	void CreateStaticMeshShader();
-	
+	void CreateGizmoShader();
+
 	// Release
 	void ReleaseConstantBuffers();
 	void ReleaseDefaultShader();
@@ -85,6 +86,8 @@ public:
 	ID3D11VertexShader* GetVertexShader(EViewModeIndex ViewModeIndex) const;
 	ID3D11PixelShader* GetPixelShader(EViewModeIndex ViewModeIndex) const;
 
+	FLightPass* GetLightPass() { return LightPass; }
+
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -101,8 +104,7 @@ private:
 	ID3D11Buffer* ConstantBufferModels = nullptr;
 	ID3D11Buffer* ConstantBufferViewProj = nullptr;
 	ID3D11Buffer* ConstantBufferColor = nullptr;
-	ID3D11Buffer* ConstantBufferLighting = nullptr;
-	FLOAT ClearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+	FLOAT ClearColor[4] = {0.025f, 0.025f, 0.025f, 1.0f};
 
 	// Default Shaders
 	ID3D11VertexShader* DefaultVertexShader = nullptr;
@@ -124,6 +126,11 @@ private:
 	ID3D11PixelShader* UberLitPixelShaderWorldNormal = nullptr;
 	ID3D11InputLayout* UberLitInputLayout = nullptr;
 	
+	//Gizmo Shaders
+	ID3D11InputLayout* GizmoInputLayout = nullptr;
+	ID3D11VertexShader* GizmoVS = nullptr;
+	ID3D11PixelShader* GizmoPS = nullptr;
+
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;
 	ID3D11PixelShader* TexturePixelShader = nullptr;
@@ -155,4 +162,5 @@ private:
 	TArray<class FRenderPass*> RenderPasses;
 
 	FFXAAPass* FXAAPass = nullptr;
+	FLightPass* LightPass = nullptr;
 };

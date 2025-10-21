@@ -49,15 +49,15 @@ void FPointLightPass::Execute(FRenderingContext& Context)
 
     if (Renderer.GetFXAA())
     {
-        Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorShaderResourceView());
+        Pipeline->SetShaderResourceView(0, EShaderType::PS, DeviceResources->GetSceneColorShaderResourceView());
     }
     else
     {
-        Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
+        Pipeline->SetShaderResourceView(0, EShaderType::PS, DeviceResources->GetSceneColorSRV());
     }
-    Pipeline->SetTexture(1, false, DeviceResources->GetNormalSRV());
-    Pipeline->SetTexture(2, false, DeviceResources->GetDepthSRV());
-    Pipeline->SetSamplerState(0, false, PointLightSampler);
+    Pipeline->SetShaderResourceView(1, EShaderType::PS, DeviceResources->GetNormalSRV());
+    Pipeline->SetShaderResourceView(2, EShaderType::PS, DeviceResources->GetDepthSRV());
+    Pipeline->SetSamplerState(0, EShaderType::PS, PointLightSampler);
 
     for (auto PointLight : Context.PointLights)
     {
@@ -77,7 +77,7 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         PointLightPerFrame.RenderTargetSize = FVector2(Context.RenderTargetSize.X, Context.RenderTargetSize.Y);
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPerFrame, PointLightPerFrame);
-        Pipeline->SetConstantBuffer(0, false, ConstantBufferPerFrame);
+        Pipeline->SetConstantBuffer(0, EShaderType::PS, ConstantBufferPerFrame);
         
         FPointLightData PointLightData = {};
         PointLightData.LightLocation = PointLight->GetWorldLocation();
@@ -87,7 +87,7 @@ void FPointLightPass::Execute(FRenderingContext& Context)
         PointLightData.DistanceFalloffExponent = PointLight->GetDistanceFalloffExponent();
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPointLightData, PointLightData);
-        Pipeline->SetConstantBuffer(1, false, ConstantBufferPointLightData);
+        Pipeline->SetConstantBuffer(1, EShaderType::PS, ConstantBufferPointLightData);
 
         Pipeline->Draw(3, 0);
     }

@@ -146,6 +146,10 @@ FVector4::FVector4(const float InX, const float InY, const float InZ, const floa
 {
 }
 
+FVector4::FVector4(const FVector& InVt3, float InW) : X(InVt3.X), Y(InVt3.Y), Z(InVt3.Z), W(InW)
+{
+
+}
 
 	/**
 	 * @brief FVector를 Param으로 넘기는 생성자

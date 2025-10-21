@@ -52,13 +52,13 @@ void FTextPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Text)) { return; }
 
     // Set constant buffers
-    Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
+    Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
     FRenderResourceFactory::UpdateConstantBufferData(FontDataConstantBuffer, ConstantBufferData);
-    Pipeline->SetConstantBuffer(2, true, FontDataConstantBuffer);
+    Pipeline->SetConstantBuffer(2, EShaderType::VS, FontDataConstantBuffer);
 
     // Bind resources
-    Pipeline->SetTexture(0, false, FontTexture->GetTextureSRV());
-    Pipeline->SetSamplerState(0, false, FontTexture->GetTextureSampler());
+    Pipeline->SetShaderResourceView(0, EShaderType::PS, FontTexture->GetTextureSRV());
+    Pipeline->SetSamplerState(0, EShaderType::PS, FontTexture->GetTextureSampler());
 
     for (UTextComponent* Text : Context.Texts)
     {
@@ -126,7 +126,7 @@ void FTextPass::RenderTextInternal(const FString& Text, const FMatrix& WorldMatr
 
     // Update model constant buffer
     FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
-    Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+    Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 
     // Set vertex buffer
     Pipeline->SetVertexBuffer(DynamicVertexBuffer, sizeof(FFontVertex));

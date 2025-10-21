@@ -57,7 +57,7 @@ void FFogPass::Execute(FRenderingContext& Context)
         FogConstant.FogMaxOpacity = Fog->GetFogMaxOpacity();
         FogConstant.FogZ = Fog->GetWorldLocation().Z;
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, FogConstant);
-        Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
+        Pipeline->SetConstantBuffer(0, EShaderType::PS, ConstantBufferFog);
 
         // Update CameraInverse Constant Buffer (Slot 1)
         FCameraInverseConstants CameraInverseConstants;
@@ -65,21 +65,21 @@ void FFogPass::Execute(FRenderingContext& Context)
         CameraInverseConstants.ProjectionInverse =  ViewProjConstants.Projection;
         CameraInverseConstants.ViewInverse =  ViewProjConstants.View;
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferCameraInverse, CameraInverseConstants);
-        Pipeline->SetConstantBuffer(1, false, ConstantBufferCameraInverse);
+        Pipeline->SetConstantBuffer(1, EShaderType::PS, ConstantBufferCameraInverse);
 
         // Update ViewportInfo Constant Buffer (Slot 2)
         FViewportConstants ViewportConstants;
         ViewportConstants.RenderTargetSize = { Context.RenderTargetSize.X, Context.RenderTargetSize.Y };
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewportInfo, ViewportConstants);
-        Pipeline->SetConstantBuffer(2, false, ConstantBufferViewportInfo);
+        Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferViewportInfo);
 
         // Set Resources
-        Pipeline->SetTexture(0, false, Renderer.GetDepthSRV());
-        Pipeline->SetSamplerState(0, false, Renderer.GetDefaultSampler());
+        Pipeline->SetShaderResourceView(0, EShaderType::PS, Renderer.GetDepthSRV());
+        Pipeline->SetSamplerState(0, EShaderType::PS, Renderer.GetDefaultSampler());
 
         Pipeline->Draw(3,0);
     }
-    Pipeline->SetTexture(0, false, nullptr);
+    Pipeline->SetShaderResourceView(0, EShaderType::PS, nullptr);
     
     Renderer.GetDeviceContext()->OMSetRenderTargets(1, &RTV, DSV);
 }

@@ -1,19 +1,13 @@
 ﻿#include "pch.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
-#include "Component/Public/AmbientLightComponent.h"
-#include "component/Public/DirectionalLightComponent.h"
-#include "component/Public/PointLightComponent.h"
-#include "Component/Public/SpotLightComponent.h"
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
-	ID3D11Buffer* InConstantBufferLighting,
 	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
-	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS),
-	ConstantBufferLighting(InConstantBufferLighting)
+	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
 }
@@ -38,78 +32,11 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	Pipeline->UpdatePipeline(PipelineInfo);
 
 	// Set a default sampler to slot 0 to ensure one is always bound
-	Pipeline->SetSamplerState(0, false, URenderer::GetInstance().GetDefaultSampler());
+	Pipeline->SetSamplerState(0, EShaderType::PS, URenderer::GetInstance().GetDefaultSampler());
 
-	Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
-	Pipeline->SetConstantBuffer(1, true, ConstantBufferCamera);
-	Pipeline->SetConstantBuffer(1, false, ConstantBufferCamera);
-
-	// Setup lighting constant buffer from scene lights
-	FLightingConstants LightingData = {};
-	
-	// 수정 필요: Context에서 가져오기
-	if (!Context.AmbientLights.empty()) {
-		UAmbientLightComponent* AmbLight = Context.AmbientLights[0];
-		FVector color = AmbLight->GetLightColor();
-		LightingData.Ambient.Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.Ambient.Intensity = AmbLight->GetIntensity();
-
-		//UE_LOG("Ambient: intensity = %f", AmbLight->GetIntensity());
-	}
-
-	if (!Context.DirectionalLights.empty()) {
-		UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
-		FVector color = DirLight->GetLightColor();
-		FVector dir = DirLight->GetForwardVector();  // 방향 가져오기
-		LightingData.Directional.Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.Directional.Direction = FVector(dir.X, dir.Y, dir.Z);
-		LightingData.Directional.Intensity = DirLight->GetIntensity();
-	}
-	
-	// Fill point lights from scene
-	int32 PointLightCount = std::min((int32)Context.PointLights.size(), NUM_POINT_LIGHT);
-	for (int32 i = 0; i < PointLightCount; ++i)
-	{
-		UPointLightComponent* Light = Context.PointLights[i];
-		if (!Light || !Light->GetVisible()) continue;
-		
-		FVector LightColor = Light->GetLightColor();
-		FVector LightPos = Light->GetWorldLocation();
-		
-		LightingData.PointLights[i].Color = FVector4(LightColor.X, LightColor.Y, LightColor.Z, 1.0f);
-		LightingData.PointLights[i].Position = FVector(LightPos.X, LightPos.Y, LightPos.Z);
-		LightingData.PointLights[i].Intensity = Light->GetIntensity();
-		LightingData.PointLights[i].Range = Light->GetAttenuationRadius();
-		LightingData.PointLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
-	}
-	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
-	int32 SpotLightCount = std::min((int32)Context.SpotLights.size(), NUM_SPOT_LIGHT);
-	for (int32 i = 0; i < SpotLightCount; ++i)
-	{
-		USpotLightComponent* Light = Context.SpotLights[i];
-		if (!Light->GetVisible()) continue;
-    
-		FVector color = Light->GetLightColor();
-		FVector pos = Light->GetWorldLocation();
-		FVector dir = Light->GetForwardVector();
-    
-		LightingData.SpotLights[i].Color = FVector4(color.X, color.Y, color.Z, 1.0f);
-		LightingData.SpotLights[i].Position = FVector(pos.X, pos.Y, pos.Z);
-		LightingData.SpotLights[i].Intensity = Light->GetIntensity();
-		LightingData.SpotLights[i].Range = Light->GetAttenuationRadius();
-		LightingData.SpotLights[i].DistanceFalloffExponent = Light->GetDistanceFalloffExponent();
-		LightingData.SpotLights[i].InnerConeAngle = Light->GetInnerConeAngle();
-		LightingData.SpotLights[i].OuterConeAngle = Light->GetOuterConeAngle();
-		LightingData.SpotLights[i].AngleFalloffExponent = Light->GetAngleFalloffExponent();
-		LightingData.SpotLights[i].Direction = FVector(dir.X, dir.Y, dir.Z);
-	}
-
-	LightingData.NumPointLights = PointLightCount;
-	LightingData.NumSpotLights = SpotLightCount;
-	
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferLighting, LightingData);
-	Pipeline->SetConstantBuffer(3, true, ConstantBufferLighting);
-	Pipeline->SetConstantBuffer(3, false, ConstantBufferLighting);
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
+	Pipeline->SetConstantBuffer(1, EShaderType::PS, ConstantBufferCamera);
 	
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
@@ -159,7 +86,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		}
 		
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, MeshComp->GetWorldTransformMatrix());
-		Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
+		Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 
 		if (MeshAsset->MaterialInfo.empty() || MeshComp->GetStaticMesh()->GetNumMaterials() == 0) 
 		{
@@ -197,43 +124,41 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				MaterialConstants.Time = MeshComp->GetElapsedTime();
 
 				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, MaterialConstants);
-				Pipeline->SetConstantBuffer(2, false, ConstantBufferMaterial);
-				Pipeline->SetConstantBuffer(2, true, ConstantBufferMaterial);
+				Pipeline->SetConstantBuffer(2, EShaderType::VS | EShaderType::PS, ConstantBufferMaterial);
 
 				if (UTexture* DiffuseTexture = Material->GetDiffuseTexture())
 				{
-					Pipeline->SetTexture(0, false, DiffuseTexture->GetTextureSRV());
-					Pipeline->SetSamplerState(0, false, DiffuseTexture->GetTextureSampler());
+					Pipeline->SetShaderResourceView(0, EShaderType::PS, DiffuseTexture->GetTextureSRV());
+					Pipeline->SetSamplerState(0, EShaderType::PS, DiffuseTexture->GetTextureSampler());
 				}
 				if (UTexture* AmbientTexture = Material->GetAmbientTexture())
 				{
-					Pipeline->SetTexture(1, false, AmbientTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(1, EShaderType::PS, AmbientTexture->GetTextureSRV());
 				}
 				if (UTexture* SpecularTexture = Material->GetSpecularTexture())
 				{
-					Pipeline->SetTexture(2, false, SpecularTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(2, EShaderType::PS, SpecularTexture->GetTextureSRV());
 				}
 				if (Material->GetNormalTexture() && MeshComp->IsNormalMapEnabled())
 				{
-					UTexture* NormalTexture = Material->GetNormalTexture();
-					Pipeline->SetTexture(3, false, NormalTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(3, EShaderType::PS, Material->GetNormalTexture()->GetTextureSRV());
 				}
 				if (UTexture* AlphaTexture = Material->GetAlphaTexture())
 				{
-					Pipeline->SetTexture(4, false, AlphaTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(4, EShaderType::PS, AlphaTexture->GetTextureSRV());
 				}
 				if (UTexture* BumpTexture = Material->GetBumpTexture()) 
 				{ // 범프 텍스처 추가 그러나 범프 텍스처 사용하지 않아서 없을 것임. 무시 ㄱㄱ
-					Pipeline->SetTexture(5, false, BumpTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(5, EShaderType::PS, BumpTexture->GetTextureSRV());
 					// 필요한 경우 샘플러 지정
 					// Pipeline->SetSamplerState(5, false, BumpTexture->GetTextureSampler());
 				}
 				CurrentMaterial = Material;
 			}
-			Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);
+				Pipeline->DrawIndexed(Section.IndexCount, Section.StartIndex, 0);
 		}
 	}
-	Pipeline->SetConstantBuffer(2, false, nullptr);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, nullptr);
 
 	
 	// --- RTVs Reset ---
