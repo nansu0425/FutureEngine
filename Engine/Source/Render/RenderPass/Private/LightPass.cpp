@@ -164,29 +164,32 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(3, EShaderType::CS, nullptr);
 	
-	//클러스터 기즈모 출력
-	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
-	FPipelineInfo PipelineInfo = { nullptr, GizmoVS, RS, GizmoDSS, GizmoPS, nullptr, D3D11_PRIMITIVE_TOPOLOGY_LINELIST };
-	Pipeline->UpdatePipeline(PipelineInfo);
-	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
-
-	Pipeline->SetShaderResourceView(0, EShaderType::VS, ClusterGizmoVertexRWStructuredBufferSRV);
-
-	URenderer& Renderer = URenderer::GetInstance();
-	const auto& DeviceResources = Renderer.GetDeviceResources();
-	ID3D11RenderTargetView* RTV = nullptr;
-	if (Renderer.GetFXAA())
+	if (bRenderClusterGizmo) 
 	{
-		RTV = DeviceResources->GetSceneColorRenderTargetView();
+		//클러스터 기즈모 출력
+		ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
+		FPipelineInfo PipelineInfo = { nullptr, GizmoVS, RS, GizmoDSS, GizmoPS, nullptr, D3D11_PRIMITIVE_TOPOLOGY_LINELIST };
+		Pipeline->UpdatePipeline(PipelineInfo);
+		Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);
+
+		Pipeline->SetShaderResourceView(0, EShaderType::VS, ClusterGizmoVertexRWStructuredBufferSRV);
+
+		URenderer& Renderer = URenderer::GetInstance();
+		const auto& DeviceResources = Renderer.GetDeviceResources();
+		ID3D11RenderTargetView* RTV = nullptr;
+		if (Renderer.GetFXAA())
+		{
+			RTV = DeviceResources->GetSceneColorRenderTargetView();
+		}
+		else
+		{
+			RTV = DeviceResources->GetRenderTargetView();
+		}
+		ID3D11RenderTargetView* RTVs[] = { RTV };
+		ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
+		Pipeline->SetRenderTargets(1, RTVs, DSV);
+		Pipeline->Draw((GetClusterCount() + 1) * 24, 0);
 	}
-	else
-	{
-		RTV = DeviceResources->GetRenderTargetView();
-	}
-	ID3D11RenderTargetView* RTVs[] = { RTV};
-	ID3D11DepthStencilView* DSV = DeviceResources->GetDepthStencilView();
-	Pipeline->SetRenderTargets(1, RTVs, DSV);
-	Pipeline->Draw((GetClusterCount() + 1) * 24, 0);
 
 
 	//다음 메쉬 드로우를 위한 빛 관련 정보 업로드

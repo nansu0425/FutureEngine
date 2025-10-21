@@ -45,6 +45,12 @@ public:
 		bClusterGizmoSet = false;
 	}
 
+	bool GetClusterGizmoRender() const { return bRenderClusterGizmo; }
+	void SetClusterGizmoRender(bool b)
+	{
+		bRenderClusterGizmo = b;
+	}
+
 private:
 	uint32 GetClusterCount() const { return ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ; }
 public:

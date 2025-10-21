@@ -105,10 +105,15 @@ void UFPSWidget::RenderWidget()
 		BatchLine->UpdateUGridVertices(CellSize);
 	}
 
+	FLightPass* LightPass = URenderer::GetInstance().GetLightPass();
 	if (ImGui::Button("ClusterGizmoUpdate"))
 	{
-		FLightPass* LightPass = URenderer::GetInstance().GetLightPass();
 		LightPass->ClusterGizmoUpdate();
+	}
+	bool bRenderClusterGizmo = LightPass->GetClusterGizmoRender();
+	if (ImGui::Checkbox("RenderClusterGizmo", &bRenderClusterGizmo))
+	{
+		LightPass->SetClusterGizmoRender(bRenderClusterGizmo);
 	}
 
 	ImGui::Separator();
