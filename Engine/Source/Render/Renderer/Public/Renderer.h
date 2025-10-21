@@ -11,7 +11,7 @@ class UCamera;
 class UPipeline;
 class FViewportClient;
 class FFXAAPass;
-
+class FLightPass;
 
 
 
@@ -86,6 +86,8 @@ public:
 	ID3D11VertexShader* GetVertexShader(EViewModeIndex ViewModeIndex) const;
 	ID3D11PixelShader* GetPixelShader(EViewModeIndex ViewModeIndex) const;
 
+	FLightPass* GetLightPass() { return LightPass; }
+
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -159,4 +161,5 @@ private:
 	TArray<class FRenderPass*> RenderPasses;
 
 	FFXAAPass* FXAAPass = nullptr;
+	FLightPass* LightPass = nullptr;
 };

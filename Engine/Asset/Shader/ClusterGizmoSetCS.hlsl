@@ -5,6 +5,7 @@ struct FPointLightInfo
     float Intensity;
     float Range;
     float DistanceFalloffExponent;
+    float2 padding;
 };
 
 //StructuredBuffer padding 없어도됨

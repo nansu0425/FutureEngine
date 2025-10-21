@@ -37,6 +37,10 @@ public:
 	void Execute(FRenderingContext& Context) override;
 	void Release() override;
 
+	void ClusterGizmoUpdate()
+	{
+		bClusterGizmoSet = false;
+	}
 
 private:
 	uint32 GetClusterCount() const { return ScreenXSlideNum * ScreenYSlideNum * ZSlideNum; }
@@ -80,6 +84,8 @@ private:
 	ID3D11PixelShader* GizmoPS = nullptr;
 	ID3D11DepthStencilState* GizmoDSS = nullptr;
 	bool bRenderClusterGizmo = false;
+
+	bool bClusterGizmoSet = false;
 
 
 

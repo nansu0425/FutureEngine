@@ -2,6 +2,8 @@
 #include "Render/UI/Widget/Public/FPSWidget.h"
 #include "Manager/Time/Public/TimeManager.h"
 #include "Manager/Config/Public/ConfigManager.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/RenderPass/Public/LightPass.h"
 
 IMPLEMENT_CLASS(UFPSWidget, UWidget)
 constexpr float REFRESH_INTERVAL = 0.1f;
@@ -101,6 +103,12 @@ void UFPSWidget::RenderWidget()
 	if (ImGui::SliderFloat("Grid Spacing", &CellSize, 0.0f, 10.0f, "%.1f"))
 	{
 		BatchLine->UpdateUGridVertices(CellSize);
+	}
+
+	if (ImGui::Button("ClusterGizmoUpdate"))
+	{
+		FLightPass* LightPass = URenderer::GetInstance().GetLightPass();
+		LightPass->ClusterGizmoUpdate();
 	}
 
 	ImGui::Separator();

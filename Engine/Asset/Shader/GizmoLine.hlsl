@@ -62,16 +62,16 @@ PS_INPUT mainVS(uint id : SV_VertexID)
     }
         
     //24, 16, 32
-    if (ClusterIdx >= 0)
-    {
-        int ClusterX = ClusterIdx % 24;
-        int ClusterY = (ClusterIdx / 24) % 16;
-        int ClusterZ = ClusterIdx / (24 * 16);
-        if (ClusterY != 7)
-        {
-            VertexIdx = 0;
-        }
-    }
+    //if (ClusterIdx >= 0)
+    //{
+    //    int ClusterX = ClusterIdx % 24;
+    //    int ClusterY = (ClusterIdx / 24) % 16;
+    //    int ClusterZ = ClusterIdx / (24 * 16);
+    //    if (ClusterY != 7)
+    //    {
+    //        VertexIdx = 0;
+    //    }
+    //}
     
     //if(id > 20000)
     //{

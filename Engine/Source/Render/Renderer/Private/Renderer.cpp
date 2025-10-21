@@ -61,7 +61,7 @@ void URenderer::Init(HWND InWindowHandle)
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
-	FLightPass* LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
+	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
 	RenderPasses.push_back(LightPass);
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,

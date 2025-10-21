@@ -131,11 +131,12 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
 	Pipeline->DispatchCS(ClusteredLightCullingCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
 
-	static bool IsInit = false;
-	if (IsInit == false) 
+
+
+	//클러스터 기즈모 제작
+	if (bClusterGizmoSet == false) 
 	{
-		IsInit = true;
-		//클러스터 기즈모 제작
+		bClusterGizmoSet = true;
 		Pipeline->SetUnorderedAccessView(0, ClusterGizmoVertexRWStructuredBufferUAV);
 		Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
@@ -143,6 +144,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 		Pipeline->SetShaderResourceView(3, EShaderType::CS, LightIndicesRWStructuredBufferSRV);
 		Pipeline->DispatchCS(ClusterGizmoSetCS, ScreenXSlideNum, ScreenYSlideNum, ZSlideNum);
 	}
+	
 	
 	//클러스터 기즈모 출력
 	ID3D11RasterizerState* RS = FRenderResourceFactory::GetRasterizerState(FRenderState());
