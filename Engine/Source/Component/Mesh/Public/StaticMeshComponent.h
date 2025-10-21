@@ -36,6 +36,10 @@ public:
 
 	static const FRenderState& GetClassDefaultRenderState(); 
 
+	void EnableNormalMap() { NormalMapEnabled = true; }
+	void DisableNormalMap() { NormalMapEnabled = false; }
+	bool IsNormalMapEnabled() const { return NormalMapEnabled; }
+
 private:
 	UStaticMesh* StaticMesh;
 
@@ -45,6 +49,8 @@ private:
 	// Scroll
 	bool bIsScrollEnabled;
 	float ElapsedTime;
+
+	bool NormalMapEnabled = true;
 	
 public:
 	virtual UObject* Duplicate() override;

@@ -115,12 +115,16 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				if (Material->GetAmbientTexture())  { MaterialConstants.MaterialFlags |= HAS_AMBIENT_MAP; }
 				if (Material->GetSpecularTexture()) { MaterialConstants.MaterialFlags |= HAS_SPECULAR_MAP; }
 				if (Material->GetNormalTexture())   { MaterialConstants.MaterialFlags |= HAS_NORMAL_MAP; }
+				if (!MeshComp->IsNormalMapEnabled())
+				{
+					MaterialConstants.MaterialFlags &= ~HAS_NORMAL_MAP;
+				}
 				if (Material->GetAlphaTexture())    { MaterialConstants.MaterialFlags |= HAS_ALPHA_MAP; }
 				if (Material->GetBumpTexture())     { MaterialConstants.MaterialFlags |= HAS_BUMP_MAP; }
 				MaterialConstants.Time = MeshComp->GetElapsedTime();
 
 				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferMaterial, MaterialConstants);
-				Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferMaterial);
+				Pipeline->SetConstantBuffer(2, EShaderType::VS | EShaderType::PS, ConstantBufferMaterial);
 
 				if (UTexture* DiffuseTexture = Material->GetDiffuseTexture())
 				{
@@ -135,9 +139,9 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 				{
 					Pipeline->SetShaderResourceView(2, EShaderType::PS, SpecularTexture->GetTextureSRV());
 				}
-				if (UTexture* NormalTexture = Material->GetNormalTexture())
+				if (Material->GetNormalTexture() && MeshComp->IsNormalMapEnabled())
 				{
-					Pipeline->SetShaderResourceView(3, EShaderType::PS, NormalTexture->GetTextureSRV());
+					Pipeline->SetShaderResourceView(3, EShaderType::PS, Material->GetNormalTexture()->GetTextureSRV());
 				}
 				if (UTexture* AlphaTexture = Material->GetAlphaTexture())
 				{
