@@ -128,8 +128,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 		{
 			PointLightBufferCount = PointLightBufferCount << 1;
 		}
-		PointLightStructuredBuffer->Release();
+		SafeRelease(PointLightStructuredBuffer);
 		PointLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(PointLightBufferCount);
+		SafeRelease(PointLightStructuredBufferSRV);
+		FRenderResourceFactory::CreateStructuredShaderResourceView(PointLightStructuredBuffer, &PointLightStructuredBufferSRV);
 	}
 	if (SpotLightBufferCount < SpotLightCount)
 	{
@@ -137,8 +139,10 @@ void FLightPass::Execute(FRenderingContext& Context)
 		{
 			SpotLightBufferCount = SpotLightBufferCount << 1;
 		}
-		SpotLightStructuredBuffer->Release();
-		SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FPointLightInfo>(SpotLightBufferCount);
+		SafeRelease(SpotLightStructuredBuffer);
+		SpotLightStructuredBuffer = FRenderResourceFactory::CreateStructuredBuffer<FSpotLightInfo>(SpotLightBufferCount);
+		SafeRelease(SpotLightStructuredBufferSRV);
+		FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
 	}
 
 	FRenderResourceFactory::UpdateConstantBufferData(GlobalLightConstantBuffer, GlobalLightData);
