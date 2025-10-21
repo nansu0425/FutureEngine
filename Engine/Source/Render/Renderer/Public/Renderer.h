@@ -12,6 +12,7 @@ class UPipeline;
 class FViewportClient;
 class FFXAAPass;
 class FLightPass;
+class FClusteredRenderingGridPass;
 
 
 
@@ -41,6 +42,7 @@ public:
 	void CreateFXAAShader();
 	void CreateStaticMeshShader();
 	void CreateGizmoShader();
+	void CreateClusteredRenderingGrid();
 
 	// Release
 	void ReleaseConstantBuffers();
@@ -87,6 +89,7 @@ public:
 	ID3D11PixelShader* GetPixelShader(EViewModeIndex ViewModeIndex) const;
 
 	FLightPass* GetLightPass() { return LightPass; }
+	FClusteredRenderingGridPass* GetClusteredRenderingGridPass() { return ClusteredRenderingGridPass; }
 
 private:
 	UPipeline* Pipeline = nullptr;
@@ -131,6 +134,11 @@ private:
 	ID3D11VertexShader* GizmoVS = nullptr;
 	ID3D11PixelShader* GizmoPS = nullptr;
 
+	//ClusteredRenderingGrid
+	ID3D11InputLayout* ClusteredRenderingGridInputLayout = nullptr;
+	ID3D11PixelShader* ClusteredRenderingGridPS = nullptr;
+	ID3D11VertexShader* ClusteredRenderingGridVS = nullptr;
+
 	// Texture Shaders
 	ID3D11VertexShader* TextureVertexShader = nullptr;
 	ID3D11PixelShader* TexturePixelShader = nullptr;
@@ -163,4 +171,5 @@ private:
 
 	FFXAAPass* FXAAPass = nullptr;
 	FLightPass* LightPass = nullptr;
+	FClusteredRenderingGridPass* ClusteredRenderingGridPass = nullptr;
 };

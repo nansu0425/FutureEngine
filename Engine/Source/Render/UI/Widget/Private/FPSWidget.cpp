@@ -4,7 +4,7 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/RenderPass/Public/LightPass.h"
-
+#include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 IMPLEMENT_CLASS(UFPSWidget, UWidget)
 constexpr float REFRESH_INTERVAL = 0.1f;
 
@@ -116,6 +116,12 @@ void UFPSWidget::RenderWidget()
 		LightPass->SetClusterGizmoRender(bRenderClusterGizmo);
 	}
 
+	FClusteredRenderingGridPass* ClusteredRenderingGridPass = URenderer::GetInstance().GetClusteredRenderingGridPass();
+	bool bClusteredRenderingGriddRender = ClusteredRenderingGridPass->GetClusteredRenderginGridRender();
+	if (ImGui::Checkbox("RenderClusteredGrid", &bClusteredRenderingGriddRender))
+	{
+		ClusteredRenderingGridPass->SetClusteredRenderginGridRender(ClusteredRenderingGridPass);
+	}
 	ImGui::Separator();
 }
 
