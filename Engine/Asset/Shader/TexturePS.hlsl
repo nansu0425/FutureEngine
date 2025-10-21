@@ -66,6 +66,12 @@ PS_OUTPUT mainPS(PS_INPUT Input) : SV_TARGET
         FinalColor.a = D;
         FinalColor.a *= alpha;
     }
+    
+    // Discard fully transparent pixels to prevent depth write
+    if (FinalColor.a < 0.01f)
+    {
+        discard;
+    }
 
     Output.SceneColor = FinalColor;
     float3 EncodedNormal = normalize(Input.WorldNormal) * 0.5f + 0.5f;
