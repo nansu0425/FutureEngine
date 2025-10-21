@@ -1,4 +1,6 @@
 
+#define DEGREE_TO_RADIAN (3.141592f / 180.0f)
+
 struct FPointLightInfo
 {
     float4 Color;
@@ -61,6 +63,7 @@ StructuredBuffer<FAABB> ClusterAABB : register(t0);
 StructuredBuffer<FPointLightInfo> PointLightInfos : register(t1);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
 
+
 bool IntersectAABBSphere(float3 AABBMin, float3 AABBMax, float3 SphereCenter, float SphereRadius)
 {
     float3 BoxCenter = (AABBMin + AABBMax) * 0.5f;
@@ -92,6 +95,53 @@ bool IntersectAABBSphere(float3 AABBMin, float3 AABBMax, float3 SphereCenter, fl
     return DisSquare < SphereRadius * SphereRadius;
 }
 
+float3 RodriguesRotation(float3 N, float3 V, float Radian,  float CosCache, float SinCache)
+{
+    return dot(V, N) * N * (1 - CosCache) + CosCache * V + cross(N, V) * SinCache;
+}
+bool IntersectAABBAABB(float3 MinA, float3 MaxA, float3 MinB, float3 MaxB)
+{
+    return (MinA.x <= MaxB.x && MaxA.x >= MinB.x) &&
+           (MinA.y <= MaxB.y && MaxA.y >= MinB.y) &&
+           (MinA.z <= MaxB.z && MaxA.z >= MinB.z);
+}
+bool IntersectAABBSpotLight(float3 AABBMin, float3 AABBMax, uint SpotIdx)
+{
+    FSpotLightInfo SpotLight = SpotLightInfos[SpotIdx];
+    float4 LightViewPos = mul(float4(SpotLight.Position, 1), ViewMatrix);
+    float3 LightViewDirection = mul(float4(SpotLight.Direction, 0), ViewMatrix);
+    float ConeOuterSin = sin(SpotLight.OuterConeAngle * DEGREE_TO_RADIAN);
+    float3 SpotLocalAABBMin = float3(-SpotLight.Range * ConeOuterSin, 0, -SpotLight.Range * ConeOuterSin);
+    float3 SpotLocalAABBMax = float3(SpotLight.Range * ConeOuterSin, SpotLight.Range, SpotLight.Range * ConeOuterSin);
+    float3 Axis = cross(float3(0, 1, 0), LightViewDirection);
+    Axis = length(Axis) < 0.0001f ? float3(1, 0, 0) : normalize(Axis);
+    float RotAngleRadian = acos(saturate(LightViewDirection.y)); //dot(float3(0,1,0),SpotLight.Direction) = SpotLight.Direction.y
+    
+    float Sin = sin(RotAngleRadian);
+    float Cos = cos(RotAngleRadian);
+    
+    float3 SpotLocalAABBToWorld[8];
+    SpotLocalAABBToWorld[0] = RodriguesRotation(Axis, float3(SpotLocalAABBMin.x, SpotLocalAABBMin.y, SpotLocalAABBMin.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[1] = RodriguesRotation(Axis, float3(SpotLocalAABBMax.x, SpotLocalAABBMin.y, SpotLocalAABBMin.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[2] = RodriguesRotation(Axis, float3(SpotLocalAABBMax.x, SpotLocalAABBMin.y, SpotLocalAABBMax.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[3] = RodriguesRotation(Axis, float3(SpotLocalAABBMin.x, SpotLocalAABBMin.y, SpotLocalAABBMax.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[4] = RodriguesRotation(Axis, float3(SpotLocalAABBMin.x, SpotLocalAABBMax.y, SpotLocalAABBMin.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[5] = RodriguesRotation(Axis, float3(SpotLocalAABBMax.x, SpotLocalAABBMax.y, SpotLocalAABBMin.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[6] = RodriguesRotation(Axis, float3(SpotLocalAABBMax.x, SpotLocalAABBMax.y, SpotLocalAABBMax.z), RotAngleRadian, Cos, Sin);
+    SpotLocalAABBToWorld[7] = RodriguesRotation(Axis, float3(SpotLocalAABBMin.x, SpotLocalAABBMax.y, SpotLocalAABBMax.z), RotAngleRadian, Cos, Sin);
+    
+    float3 SpotWorldAABBMin = SpotLocalAABBToWorld[0];
+    float3 SpotWorldAABBMax = SpotLocalAABBToWorld[0];
+    for (int i = 1; i < 8;i++)
+    {
+        SpotWorldAABBMin = float3(min(SpotWorldAABBMin.x, SpotLocalAABBToWorld[i].x), min(SpotWorldAABBMin.y, SpotLocalAABBToWorld[i].y), min(SpotWorldAABBMin.z, SpotLocalAABBToWorld[i].z));
+        SpotWorldAABBMax = float3(max(SpotWorldAABBMax.x, SpotLocalAABBToWorld[i].x), max(SpotWorldAABBMax.y, SpotLocalAABBToWorld[i].y), max(SpotWorldAABBMax.z, SpotLocalAABBToWorld[i].z));
+    }
+    
+    SpotWorldAABBMin += LightViewPos;
+    SpotWorldAABBMax += LightViewPos;
+    return IntersectAABBAABB(AABBMin, AABBMax, SpotWorldAABBMin, SpotWorldAABBMax);
+}
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -118,8 +168,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     for (int i = 0; (i < SpotLightCount) && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {
         FSpotLightInfo SpotLightInfo = SpotLightInfos[i];
-        float4 LightViewPos = mul(float4(SpotLightInfo.Position, 1), ViewMatrix);
-        if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, SpotLightInfo.Range))
+        if (IntersectAABBSpotLight(CurAABB.Min, CurAABB.Max, i))
         {
             SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;
             IncludeLightCount++;
