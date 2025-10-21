@@ -65,14 +65,38 @@ void FLightPass::Execute(FRenderingContext& Context)
 	TArray<FPointLightInfo> PointLightDatas;
 	TArray<FSpotLightInfo> SpotLightDatas;
 	// 수정 필요: Context에서 가져오기
-	if (!Context.AmbientLights.empty()) {
-		UAmbientLightComponent* AmbLight = Context.AmbientLights[0];
-		GlobalLightData.Ambient = AmbLight->GetAmbientLightInfo();
+	if (!Context.AmbientLights.empty())
+	{
+		UAmbientLightComponent* VisibleAmbient = nullptr;
+		for (UAmbientLightComponent* Ambient : Context.AmbientLights)
+		{
+			if (Ambient != nullptr && Ambient->GetVisible())
+			{
+				VisibleAmbient = Ambient;
+				break;
+			}
+		}
+		if (VisibleAmbient != nullptr)
+		{
+			GlobalLightData.Ambient = VisibleAmbient->GetAmbientLightInfo();
+		}
 	}
 
-	if (!Context.DirectionalLights.empty()) {
-		UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
-		GlobalLightData.Directional = DirLight->GetDirectionalLightInfo();
+	if (!Context.DirectionalLights.empty())
+	{
+		UDirectionalLightComponent* VisibleDirectional = nullptr;
+		for (UDirectionalLightComponent* Directional : Context.DirectionalLights)
+		{
+			if (Directional != nullptr && Directional->GetVisible())
+			{
+				VisibleDirectional = Directional;
+				break;
+			}
+		}
+		if (VisibleDirectional != nullptr)
+		{
+			GlobalLightData.Directional = VisibleDirectional->GetDirectionalLightInfo();
+		}
 	}
 
 	// Fill point lights from scene

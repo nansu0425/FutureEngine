@@ -74,6 +74,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 	for (UStaticMeshComponent* MeshComp : MeshComponents) 
 	{
+		if (!MeshComp->IsVisible()) { continue; }
 		if (!MeshComp->GetStaticMesh()) { continue; }
 		FStaticMesh* MeshAsset = MeshComp->GetStaticMesh()->GetStaticMeshAsset();
 		if (!MeshAsset) { continue; }
