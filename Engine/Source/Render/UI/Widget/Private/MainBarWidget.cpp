@@ -38,6 +38,25 @@ void UMainBarWidget::RenderWidget()
 		return;
 	}
 
+	// 정보 팝업 렌더링
+	if (bShowInfoPopup)
+	{
+		ImGui::OpenPopup("정보");
+		bShowInfoPopup = false;
+	}
+
+	// 정보 팝업 모달 윈도우
+	if (ImGui::BeginPopupModal("정보", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Alt + ` 를 누르면 콘솔창이 나옵니다");
+		ImGui::Separator();
+		if (ImGui::Button("확인", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	// FutureEngine 스타일: 메뉴바 색상 및 스타일 설정
 	const ImVec4 MenuBarBg = ImVec4(pow(0.12f, 2.2f), pow(0.12f, 2.2f), pow(0.12f, 2.2f), 1.0f);
 	const ImVec4 PopupBg = ImVec4(pow(0.09f, 2.2f), pow(0.09f, 2.2f), pow(0.09f, 2.2f), 1.0f);
@@ -487,8 +506,8 @@ void UMainBarWidget::RenderHelpMenu()
 	{
 		if (ImGui::MenuItem("정보", "F1"))
 		{
+			bShowInfoPopup = true;
 			UE_LOG("MainBarWidget: 정보 메뉴 선택됨");
-			// TODO(KHJ): 정보 다이얼로그 표시
 		}
 
 		ImGui::EndMenu();

@@ -28,6 +28,7 @@ private:
 	bool bIsMenuBarVisible = true;
 	float MenuBarHeight = 0.0f;
 	UUIManager* UIManager = nullptr;
+	bool bShowInfoPopup = false;
 
 	// FutureEngine 스타일: 필수 메뉴만 유지
 	void RenderWindowsMenu() const;
@@ -35,7 +36,7 @@ private:
 	static void RenderViewMenu();
 	static void RenderShowFlagsMenu();
 	static void RenderToolsMenu();
-	static void RenderHelpMenu();
+	void RenderHelpMenu();
 	
 	// 파일 메뉴 기능
 	static void CreateNewLevel();

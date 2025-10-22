@@ -69,7 +69,7 @@ private:
 
 	// Rendering position
 	float OverlayX = 18.0f;
-	float OverlayY = 55.0f;
+	float OverlayY = 135.0f;
 
 	uint8 StatMask = static_cast<uint8>(EStatType::None);
 
