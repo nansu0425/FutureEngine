@@ -1,10 +1,11 @@
 #include "pch.h"
+#include <shobjidl.h>
 #include "Render/UI/Widget/Public/MainBarWidget.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "Level/Public/Level.h"
-#include <shobjidl.h>
+#include "Render/Renderer/Public/Renderer.h"
 
 IMPLEMENT_CLASS(UMainBarWidget, UWidget)
 
@@ -88,6 +89,7 @@ void UMainBarWidget::RenderWidget()
 			RenderViewMenu();
 			RenderShowFlagsMenu();
 			RenderWindowsMenu();
+			RenderToolsMenu();
 			RenderHelpMenu();
 
 			ImGui::EndMenuBar();
@@ -459,6 +461,19 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
 
+		ImGui::EndMenu();
+	}
+}
+
+void UMainBarWidget::RenderToolsMenu()
+{
+	if (ImGui::BeginMenu("도구"))
+	{
+		if (ImGui::MenuItem("셰이더 핫 리로드"))
+		{
+			URenderer::GetInstance().HotReloadShaders();
+			UE_LOG("Vertex Shader, PixelShader 핫 리로드 완료");
+		}
 		ImGui::EndMenu();
 	}
 }

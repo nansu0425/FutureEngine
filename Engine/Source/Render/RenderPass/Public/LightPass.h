@@ -58,6 +58,10 @@ public:
 		bSpotIntersectOpti = b;
 	}
 
+	void SetVertexShader(ID3D11VertexShader* InGizmoVS) { GizmoVS = InGizmoVS; }
+	void SetPixelShader(ID3D11PixelShader* InGizmoPS) { GizmoPS = InGizmoPS; }
+	void SetInputLayout(ID3D11InputLayout* InGizmoInputLayout) { GizmoInputLayout = InGizmoInputLayout; }
+
 private:
 	uint32 GetClusterCount() const { return ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ; }
 public:
@@ -97,7 +101,7 @@ private:
 	ID3D11UnorderedAccessView* ClusterGizmoVertexRWStructuredBufferUAV = nullptr;
 	ID3D11ShaderResourceView* ClusterGizmoVertexRWStructuredBufferSRV = nullptr;
 
-	//해제 X
+	//Renderer에서 참조해오고 Renderer에서 해제되므로 Release함수에서 해제x
 	ID3D11Buffer* CameraConstantBuffer = nullptr;
 	ID3D11InputLayout* GizmoInputLayout = nullptr;
 	ID3D11VertexShader* GizmoVS = nullptr;

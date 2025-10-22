@@ -48,6 +48,10 @@ public:
 	 */
 	void Release() override;
 
+	void SetVertexShader(ID3D11VertexShader* InVS) { VertexShader = InVS; }
+	void SetPixelShader(ID3D11PixelShader* InPS) { PixelShader = InPS; }
+	void SetInputLayout(ID3D11InputLayout* InLayout) { InputLayout = InLayout; }
+	void SetSamplerState(ID3D11SamplerState* InSampler) { SamplerState = InSampler; }
 
 private:
 	/**

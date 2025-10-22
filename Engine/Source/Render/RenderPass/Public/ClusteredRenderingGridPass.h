@@ -21,6 +21,11 @@ public:
     {
         bClusteredRenderginGridRender = b;
     }
+
+	void SetVertexShader(ID3D11VertexShader* InVS) { VS = InVS; }
+	void SetPixelShader(ID3D11PixelShader* InPS) { PS = InPS; }
+	void SetInputLayout(ID3D11InputLayout* InLayout) { InputLayout = InLayout; }
+
 private:
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;

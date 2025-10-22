@@ -6,6 +6,9 @@
 #include "component/Public/PointLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
 #include "Source/Editor/Public/Camera.h"
+
+constexpr uint32 CSNumThread = 128;
+
 FLightPass::FLightPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, 
 	ID3D11InputLayout* InGizmoInputLayout, ID3D11VertexShader* InGizmoVS, ID3D11PixelShader* InGizmoPS,
 	ID3D11DepthStencilState* InGizmoDSS) :
@@ -145,6 +148,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 		FRenderResourceFactory::CreateStructuredShaderResourceView(SpotLightStructuredBuffer, &SpotLightStructuredBufferSRV);
 	}
 
+	int ThreadGroupCount = (ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ + CSNumThread - 1) / CSNumThread;
+
 	FRenderResourceFactory::UpdateConstantBufferData(GlobalLightConstantBuffer, GlobalLightData);
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
@@ -169,7 +174,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetConstantBuffer(2, EShaderType::CS, LightCountInfoConstantBuffer);
 
 	Pipeline->SetUnorderedAccessView(0, ClusterAABBRWStructuredBufferUAV);
-	Pipeline->DispatchCS(ViewClusterCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
+	Pipeline->DispatchCS(ViewClusterCS, ThreadGroupCount, 1, 1);
+
 
 	//Light 분류
 	Pipeline->SetUnorderedAccessView(0, PointLightIndicesRWStructuredBufferUAV);
@@ -177,7 +183,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, PointLightStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
-	Pipeline->DispatchCS(ClusteredLightCullingCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
+	Pipeline->DispatchCS(ClusteredLightCullingCS, ThreadGroupCount, 1, 1);
 	Pipeline->SetUnorderedAccessView(0, nullptr);
 	Pipeline->SetUnorderedAccessView(1, nullptr);
 
@@ -192,7 +198,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 		Pipeline->SetShaderResourceView(2, EShaderType::CS, SpotLightStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(3, EShaderType::CS, PointLightIndicesRWStructuredBufferSRV);
 		Pipeline->SetShaderResourceView(4, EShaderType::CS, SpotLightIndicesRWStructuredBufferSRV);
-		Pipeline->DispatchCS(ClusterGizmoSetCS, ClusterSliceNumX, ClusterSliceNumY, ClusterSliceNumZ);
+		Pipeline->DispatchCS(ClusterGizmoSetCS, ThreadGroupCount, 1, 1);
 	}
 	Pipeline->SetUnorderedAccessView(0, nullptr);
 	Pipeline->SetShaderResourceView(0, EShaderType::CS, nullptr);

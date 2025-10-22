@@ -12,6 +12,8 @@
 #define NUM_SPOT_LIGHT 8
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
+static const float PI = 3.14159265f;
+
 // Light Structure Definitions
 struct FAmbientLightInfo
 {
@@ -307,8 +309,8 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
-    float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * NdotL;
+    float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
+    Result.Specular = Info.Color * Info.Intensity * Spec;
 #endif
     
     return Result;
@@ -340,8 +342,8 @@ FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, floa
     
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
-    float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * NdotL;
+    float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
+    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation;
 #endif
     
     return Result;
@@ -391,8 +393,8 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
-    float Spec = CosTheta < 1e-6 ? 0.0f : pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * NdotL;
+    float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle;
 #endif
     
     return Result;

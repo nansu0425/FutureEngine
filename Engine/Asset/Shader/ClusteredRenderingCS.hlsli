@@ -1,5 +1,5 @@
 #define DEGREE_TO_RADIAN (3.141592f / 180.0f)
-
+#define THREAD_NUM 128
 struct FPointLightInfo
 {
     float4 Color;
@@ -61,4 +61,22 @@ cbuffer LightCountInfo : register(b2)
     uint PointLightCount;
     uint SpotLightCount;
     uint2 padding;
+}
+
+
+//Group, Thread 모두 x만 쓴다고 가정
+//(GroupY를 쓸려면 GroupSize.x 가 있어야 인덱싱이 가능하다...)
+//하지만 실제 데이터의 크기3d공간과 Group이나 Thread 갯수를 매칭 시킨다면 인덱싱 계산을 안해도됨
+//Thread와 Group둘다 x만 쓴다고 가정
+uint GetThreadIdx(uint GroupX, uint GroupThreadX)
+{
+    return GroupX * THREAD_NUM + GroupThreadX;
+}
+uint3 GetClusterID(uint ThreadIdx)
+{
+    uint3 ClusterID;
+    ClusterID.x = ThreadIdx % ClusterSliceNumX;
+    ClusterID.y = (ThreadIdx / ClusterSliceNumX) % ClusterSliceNumY;
+    ClusterID.z = (ThreadIdx / (ClusterSliceNumX * ClusterSliceNumY));
+    return ClusterID;
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "Global/Types.h"
+#include <filesystem>
 #include "DeviceResources.h"
 #include "Core/Public/Object.h"
 #include "Component/Public/PrimitiveComponent.h"
@@ -14,6 +16,19 @@ class FFXAAPass;
 class FLightPass;
 class FClusteredRenderingGridPass;
 
+// URenderer 내부에서 셰이더들은 용도에 따라 분류될 수 있음.
+// 용도별로 Create Shader 메소드가 존재함. (e.g. CreateStaticmeshShader)
+enum class ShaderUsage
+{
+	DEFAULT,
+	TEXTURE,
+	DECAL,
+	FOG,
+	FXAA,
+	STATICMESH,
+	GIZMO,
+	CLUSTERED_RENDERING_GRID
+};
 
 
 /**
@@ -36,13 +51,18 @@ public:
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
-	void CreatePointLightShader();
 	void CreateFogShader();
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
 	void CreateStaticMeshShader();
 	void CreateGizmoShader();
 	void CreateClusteredRenderingGrid();
+
+	// HotReload
+	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
+	TSet<ShaderUsage> GatherHotReloadTargets();
+	/** @brief Shader Usage 단위로 vertex shader와 pixel shader를 핫 리로드합니다.*/
+	void HotReloadShaders();
 
 	// Release
 	void ReleaseConstantBuffers();
@@ -92,6 +112,12 @@ public:
 	FClusteredRenderingGridPass* GetClusteredRenderingGridPass() { return ClusteredRenderingGridPass; }
 
 private:
+	/*
+	* @brief URenderer가 Initialize 메소드로 vertex shader, pixel shader들을 생성할 때, 해당 셰이더 파일의 용도와 최종 수정 시간을 기록합니다.
+	* 런타임 중 셰이더 파일이 변경되었을 때, 기록된 정보를 토대로 변경된 파일을 사용하는 Shader Usage들을 찾아 셰이더를 핫 리로드할 수 있습니다.
+	*/
+	void RegisterShaderReloadCache(const std::filesystem::path& ShaderPath, ShaderUsage Usage);
+
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
@@ -148,11 +174,6 @@ private:
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
-
-	// Point Light Shaders
-	ID3D11VertexShader* PointLightVertexShader = nullptr;
-	ID3D11PixelShader* PointLightPixelShader = nullptr;
-	ID3D11InputLayout* PointLightInputLayout = nullptr;
 	
 	// Fog Shaders
 	ID3D11VertexShader* FogVertexShader = nullptr;
@@ -172,4 +193,8 @@ private:
 	FFXAAPass* FXAAPass = nullptr;
 	FLightPass* LightPass = nullptr;
 	FClusteredRenderingGridPass* ClusteredRenderingGridPass = nullptr;
+
+	// For Hot Reloading Shaders
+	TMap<std::wstring, TSet<ShaderUsage>> ShaderFileUsageMap;
+	TMap<std::wstring, std::filesystem::file_time_type> ShaderFileLastWriteTimeMap;
 };

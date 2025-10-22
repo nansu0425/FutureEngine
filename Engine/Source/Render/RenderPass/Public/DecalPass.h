@@ -25,14 +25,19 @@ public:
         ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState
 );
     
-    void Execute(FRenderingContext& Context) override;
-    void Release() override;
+	void Execute(FRenderingContext& Context) override;
+	void Release() override;
+
+	// Hot reload setter
+	void SetVertexShader(ID3D11VertexShader* InVS) { VS = InVS; }
+	void SetPixelShader(ID3D11PixelShader* InPS) { PS = InPS; }
+	void SetInputLayout(ID3D11InputLayout* InLayout) { InputLayout = InLayout; }
 
 private:
-    // --- Octree Optimization ---
-    void Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives);
+	// --- Octree Optimization ---
+	void Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives);
 
-    ID3D11VertexShader* VS = nullptr;
+	ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;
     ID3D11DepthStencilState* DS_Read = nullptr;
