@@ -6,11 +6,15 @@
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/TextComponent.h"
 #include "Global/Vector.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/Path/Public/PathManager.h"
+#include "Texture/Public/Texture.h"
 
 IMPLEMENT_CLASS(UActorDetailWidget, UWidget)
 UActorDetailWidget::UActorDetailWidget()
 {
 	LoadComponentClasses();
+	LoadActorIcons();
 }
 
 UActorDetailWidget::~UActorDetailWidget() = default;
@@ -105,8 +109,19 @@ void UActorDetailWidget::RenderActorHeader(AActor* InSelectedActor)
 	FName ActorName = InSelectedActor->GetName();
 	FString ActorDisplayName = ActorName.ToString();
 
-	ImGui::Text("[A]");
-	ImGui::SameLine();
+	// 아이콘 표시
+	UTexture* ActorIcon = GetIconForActor(InSelectedActor);
+	if (ActorIcon && ActorIcon->GetTextureSRV())
+	{
+		float IconSize = 16.0f;
+		ImGui::Image((ImTextureID)ActorIcon->GetTextureSRV(), ImVec2(IconSize, IconSize));
+		ImGui::SameLine();
+	}
+	else
+	{
+		ImGui::Text("[A]");
+		ImGui::SameLine();
+	}
 
 	if (bIsRenamingActor)
 	{
@@ -578,16 +593,73 @@ void UActorDetailWidget::RenderTransformEdit()
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 	
 	// Relative Position
+	ImDrawList* DrawList = ImGui::GetWindowDrawList();
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
-	if (ImGui::DragFloat3("Relative Position", &ComponentPosition.X, 0.1f))
+	float PosArray[3] = { ComponentPosition.X, ComponentPosition.Y, ComponentPosition.Z };
+	bool PosChanged = false;
+	
+	ImVec2 PosX = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosX", &PosArray[0], 0.1f, 0.0f, 0.0f, "X: %.1f");
+	ImVec2 SizeX = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(PosX.x + 5, PosX.y + 2), ImVec2(PosX.x + 5, PosX.y + SizeX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+	ImGui::SameLine();
+	
+	ImVec2 PosY = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosY", &PosArray[1], 0.1f, 0.0f, 0.0f, "Y: %.1f");
+	ImVec2 SizeY = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(PosY.x + 5, PosY.y + 2), ImVec2(PosY.x + 5, PosY.y + SizeY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+	ImGui::SameLine();
+	
+	ImVec2 PosZ = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosZ", &PosArray[2], 0.1f, 0.0f, 0.0f, "Z: %.1f");
+	ImVec2 SizeZ = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(PosZ.x + 5, PosZ.y + 2), ImVec2(PosZ.x + 5, PosZ.y + SizeZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+	ImGui::SameLine();
+	ImGui::Text("Relative Position");
+	
+	if (PosChanged)
 	{
+		ComponentPosition.X = PosArray[0];
+		ComponentPosition.Y = PosArray[1];
+		ComponentPosition.Z = PosArray[2];
 		SceneComponent->SetRelativeLocation(ComponentPosition);
 	}
 
 	// Relative Rotation
 	FVector ComponentRotation = SceneComponent->GetRelativeRotation().ToEuler();
-	if (ImGui::DragFloat3("Relative Rotation", &ComponentRotation.X, 1.0f))
+	float RotArray[3] = { ComponentRotation.X, ComponentRotation.Y, ComponentRotation.Z };
+	bool RotChanged = false;
+	
+	ImVec2 RotX = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotX", &RotArray[0], 1.0f, 0.0f, 0.0f, "X: %.1f");
+	ImVec2 SizeRotX = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(RotX.x + 5, RotX.y + 2), ImVec2(RotX.x + 5, RotX.y + SizeRotX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+	ImGui::SameLine();
+	
+	ImVec2 RotY = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotY", &RotArray[1], 1.0f, 0.0f, 0.0f, "Y: %.1f");
+	ImVec2 SizeRotY = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(RotY.x + 5, RotY.y + 2), ImVec2(RotY.x + 5, RotY.y + SizeRotY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+	ImGui::SameLine();
+	
+	ImVec2 RotZ = ImGui::GetCursorScreenPos();
+	ImGui::SetNextItemWidth(65.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotZ", &RotArray[2], 1.0f, 0.0f, 0.0f, "Z: %.1f");
+	ImVec2 SizeRotZ = ImGui::GetItemRectSize();
+	DrawList->AddLine(ImVec2(RotZ.x + 5, RotZ.y + 2), ImVec2(RotZ.x + 5, RotZ.y + SizeRotZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+	ImGui::SameLine();
+	ImGui::Text("Relative Rotation");
+	
+	if (RotChanged)
 	{
+		ComponentRotation.X = RotArray[0];
+		ComponentRotation.Y = RotArray[1];
+		ComponentRotation.Z = RotArray[2];
 		SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(ComponentRotation));
 	}
 
@@ -597,16 +669,46 @@ void UActorDetailWidget::RenderTransformEdit()
 	if (bUniformScale)
 	{
 		float UniformScale = ComponentScale.X;
-
+		ImVec2 PosScale = ImGui::GetCursorScreenPos();
 		if (ImGui::DragFloat("Relative Scale", &UniformScale, 0.1f))
 		{
 			SceneComponent->SetRelativeScale3D({UniformScale, UniformScale, UniformScale});
 		}
+		ImVec2 SizeScale = ImGui::GetItemRectSize();
+		DrawList->AddLine(ImVec2(PosScale.x + 5, PosScale.y + 2), ImVec2(PosScale.x + 5, PosScale.y + SizeScale.y - 2), IM_COL32(255, 255, 255, 255), 2.0f);
 	}
 	else
 	{
-		if (ImGui::DragFloat3("Relative Scale", &ComponentScale.X, 0.1f))
+		float ScaleArray[3] = { ComponentScale.X, ComponentScale.Y, ComponentScale.Z };
+		bool ScaleChanged = false;
+		
+		ImVec2 ScaleX = ImGui::GetCursorScreenPos();
+		ImGui::SetNextItemWidth(65.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleX", &ScaleArray[0], 0.1f, 0.0f, 0.0f, "X: %.1f");
+		ImVec2 SizeScaleX = ImGui::GetItemRectSize();
+		DrawList->AddLine(ImVec2(ScaleX.x + 5, ScaleX.y + 2), ImVec2(ScaleX.x + 5, ScaleX.y + SizeScaleX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+		ImGui::SameLine();
+		
+		ImVec2 ScaleY = ImGui::GetCursorScreenPos();
+		ImGui::SetNextItemWidth(65.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleY", &ScaleArray[1], 0.1f, 0.0f, 0.0f, "Y: %.1f");
+		ImVec2 SizeScaleY = ImGui::GetItemRectSize();
+		DrawList->AddLine(ImVec2(ScaleY.x + 5, ScaleY.y + 2), ImVec2(ScaleY.x + 5, ScaleY.y + SizeScaleY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+		ImGui::SameLine();
+		
+		ImVec2 ScaleZ = ImGui::GetCursorScreenPos();
+		ImGui::SetNextItemWidth(65.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleZ", &ScaleArray[2], 0.1f, 0.0f, 0.0f, "Z: %.1f");
+		ImVec2 SizeScaleZ = ImGui::GetItemRectSize();
+		DrawList->AddLine(ImVec2(ScaleZ.x + 5, ScaleZ.y + 2), ImVec2(ScaleZ.x + 5, ScaleZ.y + SizeScaleZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+		ImGui::SameLine();
+		ImGui::Text("Relative Scale");
+		
+		if (ScaleChanged)
 		{
+			ComponentScale.X = ScaleArray[0];
+			ComponentScale.Y = ScaleArray[1];
+			ComponentScale.Z = ScaleArray[2];
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
 	}
@@ -711,4 +813,133 @@ void UActorDetailWidget::LoadComponentClasses()
 			ComponentClasses[Class->GetName().ToString().substr(1)] = Class;
 		}
 	}
+}
+
+/**
+ * @brief Actor 클래스별 아이콘 텍스처를 로드하는 함수
+ */
+void UActorDetailWidget::LoadActorIcons()
+{
+	UE_LOG("ActorDetailWidget: 아이콘 로드 시작...");
+	UAssetManager& AssetManager = UAssetManager::GetInstance();
+	UPathManager& PathManager = UPathManager::GetInstance();
+	FString IconBasePath = PathManager.GetAssetPath().string() + "\\Icon\\";
+
+	// 로드할 아이콘 목록 (클래스 이름 -> 파일명)
+	TArray<FString> IconFiles = {
+		"Actor.png",
+		"StaticMeshActor.png",
+		"DirectionalLight.png",
+		"PointLight.png",
+		"SpotLight.png",
+		"SkyLight.png",
+		"DecalActor.png",
+		"ExponentialHeightFog.png"
+	};
+
+	int32 LoadedCount = 0;
+	for (const FString& FileName : IconFiles)
+	{
+		FString FullPath = IconBasePath + FileName;
+		UTexture* IconTexture = AssetManager.LoadTexture(FullPath);
+		if (IconTexture)
+		{
+			// 파일명에서 .png 제거하여 클래스 이름으로 사용
+			FString ClassName = FileName.substr(0, FileName.find_last_of('.'));
+			IconTextureMap[ClassName] = IconTexture;
+			LoadedCount++;
+			UE_LOG("ActorDetailWidget: 아이콘 로드 성공: '%s' -> %p", ClassName.c_str(), IconTexture);
+		}
+		else
+		{
+			UE_LOG_WARNING("ActorDetailWidget: 아이콘 로드 실패: %s", FullPath.c_str());
+		}
+	}
+	UE_LOG_SUCCESS("ActorDetailWidget: 아이콘 로드 완료 (%d/%d)", LoadedCount, (int32)IconFiles.size());
+}
+
+/**
+ * @brief Actor에 맞는 아이콘 텍스처를 반환하는 함수
+ * @param InActor 아이콘을 가져올 Actor
+ * @return 아이콘 텍스처 (없으면 기본 Actor 아이콘)
+ */
+UTexture* UActorDetailWidget::GetIconForActor(AActor* InActor)
+{
+	if (!InActor)
+	{
+		return nullptr;
+	}
+
+	// 클래스 이름 가져오기
+	FString OriginalClassName = InActor->GetClass()->GetName().ToString();
+	FString ClassName = OriginalClassName;
+	
+	// 'A' 접두사 제거 (예: AStaticMeshActor -> StaticMeshActor)
+	if (ClassName.size() > 1 && ClassName[0] == 'A')
+	{
+		ClassName = ClassName.substr(1);
+	}
+
+	// 특정 클래스에 대한 매핑
+	auto It = IconTextureMap.find(ClassName);
+	if (It != IconTextureMap.end())
+	{
+		return It->second;
+	}
+
+	// Light 계열 처리
+	if (ClassName.find("Light") != std::string::npos)
+	{
+		if (ClassName.find("Directional") != std::string::npos)
+		{
+			auto DirIt = IconTextureMap.find("DirectionalLight");
+			if (DirIt != IconTextureMap.end()) return DirIt->second;
+		}
+		else if (ClassName.find("Point") != std::string::npos)
+		{
+			auto PointIt = IconTextureMap.find("PointLight");
+			if (PointIt != IconTextureMap.end()) return PointIt->second;
+		}
+		else if (ClassName.find("Spot") != std::string::npos)
+		{
+			auto SpotIt = IconTextureMap.find("SpotLight");
+			if (SpotIt != IconTextureMap.end()) return SpotIt->second;
+		}
+		else if (ClassName.find("Sky") != std::string::npos || ClassName.find("Ambient") != std::string::npos)
+		{
+			auto SkyIt = IconTextureMap.find("SkyLight");
+			if (SkyIt != IconTextureMap.end()) return SkyIt->second;
+		}
+	}
+
+	// Fog 처리
+	if (ClassName.find("Fog") != std::string::npos)
+	{
+		auto FogIt = IconTextureMap.find("ExponentialHeightFog");
+		if (FogIt != IconTextureMap.end()) return FogIt->second;
+	}
+
+	// Decal 처리
+	if (ClassName.find("Decal") != std::string::npos)
+	{
+		auto DecalIt = IconTextureMap.find("DecalActor");
+		if (DecalIt != IconTextureMap.end()) return DecalIt->second;
+	}
+
+	// 기본 Actor 아이콘 반환
+	auto ActorIt = IconTextureMap.find("Actor");
+	if (ActorIt != IconTextureMap.end())
+	{
+		return ActorIt->second;
+	}
+
+	// 아이콘을 찾지 못했을 경우 1회만 로그 출력
+	static std::unordered_set<FString> LoggedClasses;
+	if (LoggedClasses.find(OriginalClassName) == LoggedClasses.end())
+	{
+		UE_LOG("ActorDetailWidget: '%s' (변환: '%s')에 대한 아이콘을 찾을 수 없습니다", OriginalClassName.c_str(), ClassName.c_str());
+		LoggedClasses.insert(OriginalClassName);
+	}
+
+	return nullptr;
 }

@@ -4,6 +4,7 @@
 class AActor;
 class UActorComponent;
 class USceneComponent;
+class UTexture;
 
 /**
  * @brief 선택된 Actor의 이름과 컴포넌트 트리를 표시하는 Widget
@@ -53,4 +54,9 @@ private:
 	void LoadComponentClasses();
 	
 	TMap<FString, UClass*> ComponentClasses;
+
+	// 아이콘 시스템
+	TMap<FString, UTexture*> IconTextureMap; // 클래스 이름 -> 아이콘 텍스처 매핑
+	void LoadActorIcons();
+	UTexture* GetIconForActor(AActor* InActor);
 };

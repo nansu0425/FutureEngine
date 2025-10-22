@@ -144,21 +144,62 @@ void UStaticMeshComponentWidget::RenderMaterialSections()
 			RenderAvailableMaterials(SlotIndex);
 			ImGui::EndCombo();
 		}
+		// Helper lambda for RGB color picker
+		auto RenderColorPicker = [](const char* Label, FVector& Color, UMaterial* Material, void (UMaterial::*SetColor)(FVector&)) {
+			float ColorRGB[3] = { Color.X * 255.0f, Color.Y * 255.0f, Color.Z * 255.0f };
+			bool ColorChanged = false;
+			ImDrawList* DrawList = ImGui::GetWindowDrawList();
+			float BoxWidth = 65.0f;
+			
+			ImGui::SetNextItemWidth(BoxWidth);
+			ImVec2 PosR = ImGui::GetCursorScreenPos();
+			std::string IDR = std::string("##") + Label + "R";
+			ColorChanged |= ImGui::DragFloat(IDR.c_str(), &ColorRGB[0], 1.0f, 0.0f, 255.0f, "R: %.0f");
+			ImVec2 SizeR = ImGui::GetItemRectSize();
+			DrawList->AddLine(ImVec2(PosR.x + 5, PosR.y + 2), ImVec2(PosR.x + 5, PosR.y + SizeR.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+			ImGui::SameLine();
+			
+			ImGui::SetNextItemWidth(BoxWidth);
+			ImVec2 PosG = ImGui::GetCursorScreenPos();
+			std::string IDG = std::string("##") + Label + "G";
+			ColorChanged |= ImGui::DragFloat(IDG.c_str(), &ColorRGB[1], 1.0f, 0.0f, 255.0f, "G: %.0f");
+			ImVec2 SizeG = ImGui::GetItemRectSize();
+			DrawList->AddLine(ImVec2(PosG.x + 5, PosG.y + 2), ImVec2(PosG.x + 5, PosG.y + SizeG.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+			ImGui::SameLine();
+			
+			ImGui::SetNextItemWidth(BoxWidth);
+			ImVec2 PosB = ImGui::GetCursorScreenPos();
+			std::string IDB = std::string("##") + Label + "B";
+			ColorChanged |= ImGui::DragFloat(IDB.c_str(), &ColorRGB[2], 1.0f, 0.0f, 255.0f, "B: %.0f");
+			ImVec2 SizeB = ImGui::GetItemRectSize();
+			DrawList->AddLine(ImVec2(PosB.x + 5, PosB.y + 2), ImVec2(PosB.x + 5, PosB.y + SizeB.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+			ImGui::SameLine();
+			
+			float Color01[3] = { ColorRGB[0] / 255.0f, ColorRGB[1] / 255.0f, ColorRGB[2] / 255.0f };
+			if (ImGui::ColorEdit3(Label, Color01, ImGuiColorEditFlags_NoInputs))
+			{
+				ColorRGB[0] = Color01[0] * 255.0f;
+				ColorRGB[1] = Color01[1] * 255.0f;
+				ColorRGB[2] = Color01[2] * 255.0f;
+				ColorChanged = true;
+			}
+			
+			if (ColorChanged)
+			{
+				Color.X = ColorRGB[0] / 255.0f;
+				Color.Y = ColorRGB[1] / 255.0f;
+				Color.Z = ColorRGB[2] / 255.0f;
+				(Material->*SetColor)(Color);
+			}
+		};
+		
 		FVector Ambient = CurrentMaterial->GetAmbientColor();
 		FVector Diffuse = CurrentMaterial->GetDiffuseColor();
 		FVector Specular = CurrentMaterial->GetSpecularColor();
-		if (ImGui::ColorEdit3("Ambient", &Ambient.X))
-		{
-			CurrentMaterial->SetAmbientColor(Ambient);
-		}
-		if (ImGui::ColorEdit3("Diffuse", &Diffuse.X))
-		{
-			CurrentMaterial->SetDiffuseColor(Diffuse);
-		}
-		if (ImGui::ColorEdit3("Specular", &Specular.X))
-		{
-			CurrentMaterial->SetSpecularColor(Specular);
-		}
+		
+		RenderColorPicker("Ambient", Ambient, CurrentMaterial, &UMaterial::SetAmbientColor);
+		RenderColorPicker("Diffuse", Diffuse, CurrentMaterial, &UMaterial::SetDiffuseColor);
+		RenderColorPicker("Specular", Specular, CurrentMaterial, &UMaterial::SetSpecularColor);
 
 
 

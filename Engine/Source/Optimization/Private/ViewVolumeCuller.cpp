@@ -61,14 +61,14 @@ void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>&
 const TArray<UPrimitiveComponent*>& ViewVolumeCuller::GetRenderableObjects()
 {
 	// Octree에 없는 DynamicPrimitives들 추가
-	TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
-	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
-	{
-		if (Primitive != nullptr && Primitive->IsVisible())
-		{
-			RenderableObjects.push_back(Primitive);
-		}
-	}
+	//TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
+	//for (UPrimitiveComponent* Primitive : DynamicPrimitives)
+	//{
+	//	if (Primitive != nullptr && Primitive->IsVisible())
+	//	{
+	//		RenderableObjects.push_back(Primitive);
+	//	}
+	//}
 	return RenderableObjects;
 }
 
