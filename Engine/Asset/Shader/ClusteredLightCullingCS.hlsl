@@ -87,13 +87,18 @@ bool IntersectAABBSpotLight(float3 AABBMin, float3 AABBMax, uint SpotIdx)
 
     return IntersectAABBAABB(AABBMin, AABBMax, SpotWorldAABBMin, SpotWorldAABBMax);
 }
-[numthreads(1, 1, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+[numthreads(THREAD_NUM, 1, 1)]
+void main(uint3 GroupID : SV_GroupID, uint3 GroupThreadID : SV_GroupThreadID)
 {
-    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
-    FAABB CurAABB = ClusterAABB[ClusterIdx];
+    uint ThreadIdx = GetThreadIdx(GroupID.x, GroupThreadID.x);
+    if (ThreadIdx >= ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ)
+    {
+        return;
+    }
+    uint3 ClusterID = GetClusterID(ThreadIdx);
+    FAABB CurAABB = ClusterAABB[ThreadIdx];
     
-    int LightIndicesOffset = LightMaxCountPerCluster * ClusterIdx;
+    int LightIndicesOffset = LightMaxCountPerCluster * ThreadIdx;
     uint IncludeLightCount = 0;
     for (int i = 0; (i < PointLightCount)  && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {

@@ -19,10 +19,19 @@ float3 LinearIntersectionToZPlane(float3 dir, float zDis)
     float t = zDis / dir.z;
     return t * dir;
 }
-[numthreads(1, 1, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+
+//GroupID : Dispatch 에 넣어주는 쓰레드 그룹의 ID
+//GroupThreadID : 쓰레드 그룹 내의 쓰레드 ID 
+[numthreads(THREAD_NUM, 1, 1)]
+void main(uint3 GroupID : SV_GroupID, uint3 GroupThreadID : SV_GroupThreadID)
 {
-    uint2 ScreenIdx = DTid.xy;
+    uint ThreadIdx = GetThreadIdx(GroupID.x, GroupThreadID.x);
+    if (ThreadIdx >= ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ)
+    {
+        return;
+    }
+    uint3 ClusterID = GetClusterID(ThreadIdx);
+    uint2 ScreenIdx = ClusterID.xy;
     float2 ScreenSlideNumRCP = (float) 1 / uint2(ClusterSliceNumX, ClusterSliceNumY);
     float2 ScreenMin = ScreenIdx * ScreenSlideNumRCP;
     float2 ScreenMax = (ScreenIdx + int2(1, 1)) * ScreenSlideNumRCP;
@@ -33,8 +42,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float3 ViewMin = NDCToView(float3(NearNDCMin, 0));
     float3 ViewMax = NDCToView(float3(NearNDCMax, 0));
     
-    float MinZ = GetZ(DTid.z);
-    float MaxZ = GetZ(DTid.z + 1);
+    float MinZ = GetZ(ClusterID.z);
+    float MaxZ = GetZ(ClusterID.z + 1);
     
     float3 NearViewMin = LinearIntersectionToZPlane(ViewMin, MinZ);
     float3 NearViewMax = LinearIntersectionToZPlane(ViewMax, MinZ);
@@ -44,7 +53,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float3 AABBMin = min(min(NearViewMin, NearViewMax), min(FarViewMin, FarViewMax));
     float3 AABBMax = max(max(NearViewMin, NearViewMax), max(FarViewMin, FarViewMax));
     
-    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
-    ClusterAABB[ClusterIdx].Min = AABBMin;
-    ClusterAABB[ClusterIdx].Max = AABBMax;
+    ClusterAABB[ThreadIdx].Min = AABBMin;
+    ClusterAABB[ThreadIdx].Max = AABBMax;
 }
