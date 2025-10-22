@@ -34,6 +34,7 @@ private:
 	static void RenderFileMenu();
 	static void RenderViewMenu();
 	static void RenderShowFlagsMenu();
+	static void RenderToolsMenu();
 	static void RenderHelpMenu();
 	
 	// 파일 메뉴 기능
