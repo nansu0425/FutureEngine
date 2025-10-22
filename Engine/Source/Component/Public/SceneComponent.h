@@ -51,7 +51,7 @@ private:
 
 	FVector RelativeLocation = FVector{ 0,0,0.f };
 	FQuaternion RelativeRotation = FQuaternion::Identity();
-	FVector RelativeScale3D = FVector{ 0.3f,0.3f,0.3f };
+	FVector RelativeScale3D = FVector{ 1.f,1.f,1.f };
 	bool bIsUniformScale = false;
 
 	// SceneComponent Hierarchy Section
