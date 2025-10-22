@@ -97,7 +97,7 @@ private:
 	ID3D11UnorderedAccessView* ClusterGizmoVertexRWStructuredBufferUAV = nullptr;
 	ID3D11ShaderResourceView* ClusterGizmoVertexRWStructuredBufferSRV = nullptr;
 
-	//해제 X
+	//Renderer에서 참조해오고 Renderer에서 해제되므로 Release함수에서 해제x
 	ID3D11Buffer* CameraConstantBuffer = nullptr;
 	ID3D11InputLayout* GizmoInputLayout = nullptr;
 	ID3D11VertexShader* GizmoVS = nullptr;

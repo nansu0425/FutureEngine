@@ -8,12 +8,17 @@ StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
 StructuredBuffer<int> PointLightIndices : register(t3);
 StructuredBuffer<int> SpotLightIndices : register(t4);
 
-[numthreads(1, 1, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+[numthreads(THREAD_NUM, 1, 1)]
+void main(uint3 GroupID : SV_GroupID, uint3 GroupThreadID : SV_GroupThreadID)
 {
-    uint ClusterIdx = DTid.x + DTid.y * ClusterSliceNumX + DTid.z * ClusterSliceNumX * ClusterSliceNumY;
+    uint ThreadIdx = GetThreadIdx(GroupID.x, GroupThreadID.x);
+    if (ThreadIdx >= ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ)
+    {
+        return;
+    }
+    uint3 ClusterID = GetClusterID(ThreadIdx);
     float4 Color = float4(0, 0, 0, 0);
-    uint LightIndicesOffset = ClusterIdx * LightMaxCountPerCluster;
+    uint LightIndicesOffset = ThreadIdx * LightMaxCountPerCluster;
     for (int i = 0; i < LightMaxCountPerCluster;i++)
     {
         uint LightIdx = PointLightIndices[LightIndicesOffset + i];
@@ -31,7 +36,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
         }
     }
     
-    FAABB CurAABB = ClusterAABB[ClusterIdx];
+    FAABB CurAABB = ClusterAABB[ThreadIdx];
     float3 ViewMin = CurAABB.Min;
     float3 ViewMax = CurAABB.Max;
     
@@ -46,7 +51,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     ViewPos[7] = float3(ViewMax.x, ViewMin.y, ViewMax.z);
 
     Color.w = 1;
-    uint VertexOffset = 8 * ClusterIdx + 8;
+    uint VertexOffset = 8 * ThreadIdx + 8;
     ClusterGizmoVertex[0 + VertexOffset].Pos = mul(float4(ViewPos[0], 1), ViewInv);
     ClusterGizmoVertex[1 + VertexOffset].Pos = mul(float4(ViewPos[1], 1), ViewInv);
     ClusterGizmoVertex[2 + VertexOffset].Pos = mul(float4(ViewPos[2], 1), ViewInv);
@@ -64,7 +69,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     ClusterGizmoVertex[6 + VertexOffset].Color = Color;
     ClusterGizmoVertex[7 + VertexOffset].Color = Color;
 
-    if(ClusterIdx == 0)
+    if (ThreadIdx == 0)
     {
         //SetSpotLightGizmo(0);
         float tanhalffov = tan(fov * 0.5f * 3.141592f / 180.0f);
