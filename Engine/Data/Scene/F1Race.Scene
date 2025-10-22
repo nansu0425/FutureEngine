@@ -1,6 +1,6 @@
 {
   "Actors" : {
-    "899" : {
+    "292" : {
       "Components" : [{
           "Intensity" : 0.500000,
           "IsEditorOnly" : "false",
@@ -9,7 +9,7 @@
           "Location" : [-5.842158, 1.385845, 17.015900],
           "Name" : "UDirectionalLightComponent_0",
           "ParentName" : "",
-          "Rotation" : [44.181335, -25.075644, 23.562113],
+          "Rotation" : [44.181335, -25.075645, 23.562098],
           "Scale" : [0.511856, 0.511856, 0.511856],
           "Type" : "UDirectionalLightComponent",
           "bLightEnabled" : "true",
@@ -23,7 +23,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UDirectionalLightComponent_0",
-          "Rotation" : [50.521664, 16.129608, 158.693634],
+          "Rotation" : [49.825310, 14.013190, 154.608063],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -39,13 +39,13 @@
           "bVisible" : "true"
         }],
       "Location" : [-5.842158, 1.385845, 17.015900],
-      "Rotation" : [44.181335, -25.075644, 23.562113],
+      "Rotation" : [44.181335, -25.075645, 23.562098],
       "Scale" : [0.511856, 0.511856, 0.511856],
       "Type" : "ADirectionalLight",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "903" : {
+    "296" : {
       "Components" : [{
           "Intensity" : 0.350000,
           "IsEditorOnly" : "false",
@@ -68,7 +68,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UAmbientLightComponent_0",
-          "Rotation" : [-1.563916, 19.841421, 175.401154],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -90,7 +90,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "907" : {
+    "300" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -120,7 +120,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "910" : {
+    "303" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -160,7 +160,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "914" : {
+    "307" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -200,7 +200,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "918" : {
+    "311" : {
       "Components" : [{
           "AngleFalloffExponent" : 2.000000,
           "AttenuationAngle" : 0.994837,
@@ -227,7 +227,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_2",
           "ParentName" : "USpotLightComponent_0",
-          "Rotation" : [3.369259, -37.848305, 174.519272],
+          "Rotation" : [4.752108, -42.158520, 172.939529],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -265,7 +265,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_3",
           "ParentName" : "UPointLightComponent_0",
-          "Rotation" : [3.369259, -37.848305, 174.519272],
+          "Rotation" : [4.752108, -42.158520, 172.939529],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -277,54 +277,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "924" : {
-      "Components" : [{
-          "FogCutoffDistance" : 50000.000000,
-          "FogDensity" : 0.036000,
-          "FogHeightFalloff" : 0.040000,
-          "FogInScatteringColor" : [0.080169, 0.080169, 0.080169],
-          "FogMaxOpacity" : 0.980000,
-          "IsEditorOnly" : "false",
-          "IsVisualizationComponent" : "false",
-          "Location" : [0.000000, 0.000000, -5.577278],
-          "Name" : "UHeightFogComponent_0",
-          "ParentName" : "",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [0.300000, 0.300000, 0.300000],
-          "StartDistance" : 0.000000,
-          "Type" : "UHeightFogComponent"
-        }, {
-          "IsEditorOnly" : "true",
-          "IsVisualizationComponent" : "false",
-          "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UUUIDTextComponent_6",
-          "ParentName" : "UHeightFogComponent_0",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
-          "Scale" : [0.300000, 0.300000, 0.300000],
-          "Type" : "UUUIDTextComponent",
-          "bVisible" : "false"
-        }, {
-          "BillBoardScreenSize" : "0.100000",
-          "BillBoardScreenSizeScaled" : "true",
-          "BillBoardSprite" : "Data\\Icons\\ExponentialHeightFog_64x.png",
-          "IsEditorOnly" : "true",
-          "IsVisualizationComponent" : "true",
-          "Location" : [0.000000, 0.000000, 0.000000],
-          "Name" : "UBillBoardComponent_4",
-          "ParentName" : "UHeightFogComponent_0",
-          "Rotation" : [1.386251, 13.229539, -173.963882],
-          "Scale" : [0.300000, 0.300000, 0.300000],
-          "Type" : "UBillBoardComponent",
-          "bVisible" : "false"
-        }],
-      "Location" : [0.000000, 0.000000, -5.577278],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [0.300000, 0.300000, 0.300000],
-      "Type" : "AHeightFogActor",
-      "bCanEverTick" : "false",
-      "bTickInEditor" : "false"
-    },
-    "928" : {
+    "317" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -363,7 +316,7 @@
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [2.168520, 0.000000, 0.796747],
+          "Location" : [2.253429, 0.000000, 0.248436],
           "Name" : "UPointLightComponent_14",
           "ParentName" : "UStaticMeshComponent_3",
           "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -380,7 +333,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_32",
           "ParentName" : "UPointLightComponent_14",
-          "Rotation" : [-1.563916, 19.841421, 175.401154],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -392,7 +345,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "932" : {
+    "323" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -431,7 +384,7 @@
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [1.344833, 0.000000, 0.461708],
+          "Location" : [1.441097, -0.003738, 0.235302],
           "Name" : "UPointLightComponent_13",
           "ParentName" : "UStaticMeshComponent_4",
           "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -448,7 +401,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_31",
           "ParentName" : "UPointLightComponent_13",
-          "Rotation" : [-1.563916, 19.841421, 175.401154],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -460,7 +413,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "936" : {
+    "329" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -500,7 +453,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "940" : {
+    "333" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -532,6 +485,34 @@
           "Type" : "UProjectileMovementComponent",
           "Velocity" : [-10.000000, 0.000000, 0.000000],
           "bRotationFollowsVelocity" : "false"
+        }, {
+          "AttenuationRadius" : 2.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 1.400000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [1.467813, 0.000994, 0.289987],
+          "Name" : "UPointLightComponent_9",
+          "ParentName" : "UStaticMeshComponent_6",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UPointLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightPoint.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_29",
+          "ParentName" : "UPointLightComponent_9",
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
         }],
       "Location" : [34.585346, -36.150326, 3.735550],
       "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -540,7 +521,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "944" : {
+    "339" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -580,7 +561,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "948" : {
+    "343" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -610,7 +591,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "951" : {
+    "346" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -640,7 +621,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "954" : {
+    "349" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -670,7 +651,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "957" : {
+    "352" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -700,7 +681,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "960" : {
+    "355" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -730,7 +711,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "963" : {
+    "358" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -761,7 +742,7 @@
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [-0.818114, -0.815098, 0.209595],
+          "Location" : [-0.937774, -0.776817, 0.182028],
           "Name" : "USpotLightComponent_3",
           "ParentName" : "UStaticMeshComponent_13",
           "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -778,20 +759,20 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_6",
           "ParentName" : "USpotLightComponent_3",
-          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
         }, {
-          "AngleFalloffExponent" : 2.000000,
-          "AttenuationAngle" : 0.506145,
-          "AttenuationRadius" : 1.100000,
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
           "DistanceFalloffExponent" : 2.000000,
           "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [-0.684527, -0.448475, 0.170729],
+          "Location" : [-0.938000, -0.388878, 0.184700],
           "Name" : "USpotLightComponent_8",
           "ParentName" : "UStaticMeshComponent_13",
           "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -808,22 +789,22 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_7",
           "ParentName" : "USpotLightComponent_8",
-          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
         }, {
-          "AngleFalloffExponent" : 2.000000,
-          "AttenuationAngle" : 0.506145,
-          "AttenuationRadius" : 1.600000,
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
           "DistanceFalloffExponent" : 2.000000,
           "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [-0.530484, -0.032265, 0.169500],
+          "Location" : [-0.938000, 0.009909, 0.181149],
           "Name" : "USpotLightComponent_12",
-          "ParentName" : "UStaticMeshComponent_13",
+          "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "USpotLightComponent",
@@ -838,22 +819,22 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_8",
           "ParentName" : "USpotLightComponent_12",
-          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
         }, {
-          "AngleFalloffExponent" : 2.000000,
-          "AttenuationAngle" : 0.349066,
-          "AttenuationRadius" : 2.800000,
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
           "DistanceFalloffExponent" : 2.000000,
           "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [-0.530790, 0.402365, 0.187691],
+          "Location" : [-0.938000, 0.393642, 0.187691],
           "Name" : "USpotLightComponent_13",
-          "ParentName" : "UStaticMeshComponent_13",
+          "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "USpotLightComponent",
@@ -868,22 +849,22 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_9",
           "ParentName" : "USpotLightComponent_13",
-          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
         }, {
-          "AngleFalloffExponent" : 2.000000,
-          "AttenuationAngle" : 0.209439,
-          "AttenuationRadius" : 10.000000,
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
           "DistanceFalloffExponent" : 2.000000,
           "Intensity" : 20.000000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 0.000000, 0.000000],
-          "Location" : [-0.842502, 0.764263, 0.195747],
+          "Location" : [-0.938000, 0.784807, 0.184324],
           "Name" : "USpotLightComponent_14",
-          "ParentName" : "UStaticMeshComponent_13",
+          "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "USpotLightComponent",
@@ -898,7 +879,427 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_10",
           "ParentName" : "USpotLightComponent_14",
-          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_12",
+          "ParentName" : "USpotLightComponent_3",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_12",
+          "ParentName" : "USpotLightComponent_12",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_13",
+          "ParentName" : "USpotLightComponent_12",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_13",
+          "ParentName" : "USpotLightComponent_13",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_14",
+          "ParentName" : "USpotLightComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_14",
+          "ParentName" : "USpotLightComponent_14",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_15",
+          "ParentName" : "USpotLightComponent_8",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_15",
+          "ParentName" : "USpotLightComponent_15",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_16",
+          "ParentName" : "USpotLightComponent_15",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_16",
+          "ParentName" : "USpotLightComponent_16",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_17",
+          "ParentName" : "USpotLightComponent_16",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_17",
+          "ParentName" : "USpotLightComponent_17",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.938000, 0.000000, 0.194624],
+          "Name" : "USpotLightComponent_21",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_26",
+          "ParentName" : "USpotLightComponent_21",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_22",
+          "ParentName" : "USpotLightComponent_21",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_27",
+          "ParentName" : "USpotLightComponent_22",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_23",
+          "ParentName" : "USpotLightComponent_22",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_28",
+          "ParentName" : "USpotLightComponent_23",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_24",
+          "ParentName" : "USpotLightComponent_23",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_29",
+          "ParentName" : "USpotLightComponent_24",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.938001, 0.385075, 0.182928],
+          "Name" : "USpotLightComponent_41",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_51",
+          "ParentName" : "USpotLightComponent_41",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_42",
+          "ParentName" : "USpotLightComponent_41",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_52",
+          "ParentName" : "USpotLightComponent_42",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_43",
+          "ParentName" : "USpotLightComponent_42",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_53",
+          "ParentName" : "USpotLightComponent_43",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.370000],
+          "Name" : "USpotLightComponent_44",
+          "ParentName" : "USpotLightComponent_43",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_54",
+          "ParentName" : "USpotLightComponent_44",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -910,7 +1311,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "976" : {
+    "399" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -940,7 +1341,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "979" : {
+    "402" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -948,7 +1349,7 @@
           "Name" : "UStaticMeshComponent_15",
           "ObjStaticMeshAsset" : "Data/CrowdSeat.obj",
           "ParentName" : "",
-          "Rotation" : [0.000000, 0.000000, -90.000092],
+          "Rotation" : [0.000000, 0.000000, -90.000099],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UStaticMeshComponent",
           "bVisible" : "true"
@@ -964,9 +1365,148 @@
           "bVisible" : "true"
         }],
       "Location" : [-86.020950, 60.448250, -3.135098],
-      "Rotation" : [0.000000, 0.000000, -90.000092],
+      "Rotation" : [0.000000, 0.000000, -90.000099],
       "Scale" : [1.000000, 1.000000, 1.000000],
       "Type" : "AStaticMeshActor",
+      "bCanEverTick" : "false",
+      "bTickInEditor" : "false"
+    },
+    "405" : {
+      "Components" : [{
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [1.460329, -37.165108, 7.048690],
+          "Name" : "USpotLightComponent_20",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 180.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_25",
+          "ParentName" : "USpotLightComponent_20",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UUUIDTextComponent_19",
+          "ParentName" : "USpotLightComponent_20",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.653138],
+          "Name" : "USpotLightComponent_21",
+          "ParentName" : "USpotLightComponent_20",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_26",
+          "ParentName" : "USpotLightComponent_21",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.653000],
+          "Name" : "USpotLightComponent_23",
+          "ParentName" : "USpotLightComponent_21",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_28",
+          "ParentName" : "USpotLightComponent_23",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [0.000000, 0.000000, 0.653000],
+          "Name" : "USpotLightComponent_24",
+          "ParentName" : "USpotLightComponent_23",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_29",
+          "ParentName" : "USpotLightComponent_24",
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }],
+      "Location" : [1.460329, -37.165108, 7.048690],
+      "Rotation" : [0.000000, 0.000000, 180.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "ASpotLight",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     }
@@ -982,11 +1522,11 @@
           "CameraType" : 1,
           "FarZ" : 100000.000000,
           "FovY" : 90.000000,
-          "Location" : [36.741474, -32.175724, 4.525000],
-          "MoveSpeed" : 24.000000,
+          "Location" : [36.673843, -32.133595, 4.525440],
+          "MoveSpeed" : 1.000000,
           "NearZ" : 0.100000,
           "OrthoWidth" : 90.000000,
-          "Rotation" : [0.000000, 19.900482, -175.674698]
+          "Rotation" : [0.000000, 15.500468, -174.772125]
         },
         "Index" : 0,
         "ViewMode" : 2,

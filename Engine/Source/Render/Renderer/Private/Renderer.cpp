@@ -33,6 +33,7 @@
 #include "Render/RenderPass/Public/SceneDepthPass.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Manager/UI/Public/ViewportManager.h"
+#include "Global/Octree.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
@@ -725,8 +726,37 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	if (!CurrentLevel) { return; }
 
 	const FCameraConstants& ViewProj = InViewport->GetViewportClient()->GetCamera()->GetFViewProjConstants();
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
-
+	static bool bCullingEnabled = false; // 임시 토글(초기값: 컬링 비활성)
+	TArray<UPrimitiveComponent*> FinalVisiblePrims;
+	if (!bCullingEnabled)
+	{
+		// 1) 옥트리(정적 프리미티브) 전부 수집
+		if (FOctree* StaticOctree = GWorld->GetLevel()->GetStaticOctree())
+		{
+			TArray<UPrimitiveComponent*> AllStatics;
+			StaticOctree->GetAllPrimitives(AllStatics);
+			for (UPrimitiveComponent* Primitive : AllStatics)
+			{
+				if (Primitive && Primitive->IsVisible())
+				{
+					FinalVisiblePrims.push_back(Primitive);
+				}
+			}
+		}
+		// 2) 동적 프리미티브 전부 수집
+		TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
+		for (UPrimitiveComponent* Primitive : DynamicPrimitives)
+		{
+			if (Primitive && Primitive->IsVisible())
+			{
+				FinalVisiblePrims.push_back(Primitive);
+			}
+		}
+	}
+	else
+	{
+		FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
+	}
 	FRenderingContext RenderingContext(
 
 		&ViewProj,
