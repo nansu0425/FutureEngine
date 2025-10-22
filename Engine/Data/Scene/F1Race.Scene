@@ -23,7 +23,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UDirectionalLightComponent_0",
-          "Rotation" : [47.963840, 27.432236, 153.685593],
+          "Rotation" : [49.825310, 14.013190, 154.608063],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -68,7 +68,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UAmbientLightComponent_0",
-          "Rotation" : [-7.817899, 22.444422, 160.220047],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -227,7 +227,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_2",
           "ParentName" : "USpotLightComponent_0",
-          "Rotation" : [16.660282, -31.553139, 150.235626],
+          "Rotation" : [4.752108, -42.158520, 172.939529],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -265,7 +265,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_3",
           "ParentName" : "UPointLightComponent_0",
-          "Rotation" : [16.660282, -31.553139, 150.235626],
+          "Rotation" : [4.752108, -42.158520, 172.939529],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -333,7 +333,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_32",
           "ParentName" : "UPointLightComponent_14",
-          "Rotation" : [-9.987261, 20.378487, 153.173935],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -401,7 +401,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_31",
           "ParentName" : "UPointLightComponent_13",
-          "Rotation" : [-9.987261, 20.378487, 153.173935],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -509,7 +509,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_29",
           "ParentName" : "UPointLightComponent_9",
-          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Rotation" : [-1.447553, 15.434381, 174.575974],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -521,7 +521,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "337" : {
+    "339" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -561,7 +561,7 @@
       "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "341" : {
+    "343" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -591,7 +591,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "344" : {
+    "346" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -621,7 +621,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "347" : {
+    "349" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -651,7 +651,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "350" : {
+    "352" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -681,7 +681,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "353" : {
+    "355" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -711,7 +711,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "356" : {
+    "358" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -759,7 +759,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_6",
           "ParentName" : "USpotLightComponent_3",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -789,7 +789,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_7",
           "ParentName" : "USpotLightComponent_8",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -819,7 +819,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_8",
           "ParentName" : "USpotLightComponent_12",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -849,7 +849,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_9",
           "ParentName" : "USpotLightComponent_13",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -879,7 +879,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_10",
           "ParentName" : "USpotLightComponent_14",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -909,7 +909,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_12",
           "ParentName" : "USpotLightComponent_12",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -939,7 +939,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_13",
           "ParentName" : "USpotLightComponent_13",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -969,7 +969,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_14",
           "ParentName" : "USpotLightComponent_14",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -999,7 +999,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_15",
           "ParentName" : "USpotLightComponent_15",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1029,7 +1029,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_16",
           "ParentName" : "USpotLightComponent_16",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1059,7 +1059,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_17",
           "ParentName" : "USpotLightComponent_17",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1089,7 +1089,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_26",
           "ParentName" : "USpotLightComponent_21",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1119,7 +1119,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_27",
           "ParentName" : "USpotLightComponent_22",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1149,7 +1149,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_28",
           "ParentName" : "USpotLightComponent_23",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1179,7 +1179,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_29",
           "ParentName" : "USpotLightComponent_24",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1209,7 +1209,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_51",
           "ParentName" : "USpotLightComponent_41",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1239,7 +1239,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_52",
           "ParentName" : "USpotLightComponent_42",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1269,7 +1269,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_53",
           "ParentName" : "USpotLightComponent_43",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1299,7 +1299,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_54",
           "ParentName" : "USpotLightComponent_44",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1311,7 +1311,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "397" : {
+    "399" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -1341,7 +1341,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "400" : {
+    "402" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -1371,7 +1371,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "403" : {
+    "405" : {
       "Components" : [{
           "AngleFalloffExponent" : 1.000000,
           "AttenuationAngle" : 0.296706,
@@ -1398,7 +1398,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_25",
           "ParentName" : "USpotLightComponent_20",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1438,7 +1438,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_26",
           "ParentName" : "USpotLightComponent_21",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1468,7 +1468,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_28",
           "ParentName" : "USpotLightComponent_23",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1498,7 +1498,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_29",
           "ParentName" : "USpotLightComponent_24",
-          "Rotation" : [-9.987261, 20.378487, -26.826063],
+          "Rotation" : [-1.447553, 15.434381, -5.424039],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -1522,11 +1522,11 @@
           "CameraType" : 1,
           "FarZ" : 100000.000000,
           "FovY" : 90.000000,
-          "Location" : [36.644444, -32.076088, 4.442999],
+          "Location" : [36.673843, -32.133595, 4.525440],
           "MoveSpeed" : 1.000000,
           "NearZ" : 0.100000,
           "OrthoWidth" : 90.000000,
-          "Rotation" : [0.000000, 11.400347, -177.873581]
+          "Rotation" : [0.000000, 15.500468, -174.772125]
         },
         "Index" : 0,
         "ViewMode" : 2,
