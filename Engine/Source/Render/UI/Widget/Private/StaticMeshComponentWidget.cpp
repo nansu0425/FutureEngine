@@ -153,21 +153,24 @@ void UStaticMeshComponentWidget::RenderMaterialSections()
 			
 			ImGui::SetNextItemWidth(BoxWidth);
 			ImVec2 PosR = ImGui::GetCursorScreenPos();
-			ColorChanged |= ImGui::DragFloat("##R", &ColorRGB[0], 1.0f, 0.0f, 255.0f, "R: %.0f");
+			std::string IDR = std::string("##") + Label + "R";
+			ColorChanged |= ImGui::DragFloat(IDR.c_str(), &ColorRGB[0], 1.0f, 0.0f, 255.0f, "R: %.0f");
 			ImVec2 SizeR = ImGui::GetItemRectSize();
 			DrawList->AddLine(ImVec2(PosR.x + 5, PosR.y + 2), ImVec2(PosR.x + 5, PosR.y + SizeR.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
 			ImGui::SameLine();
 			
 			ImGui::SetNextItemWidth(BoxWidth);
 			ImVec2 PosG = ImGui::GetCursorScreenPos();
-			ColorChanged |= ImGui::DragFloat("##G", &ColorRGB[1], 1.0f, 0.0f, 255.0f, "G: %.0f");
+			std::string IDG = std::string("##") + Label + "G";
+			ColorChanged |= ImGui::DragFloat(IDG.c_str(), &ColorRGB[1], 1.0f, 0.0f, 255.0f, "G: %.0f");
 			ImVec2 SizeG = ImGui::GetItemRectSize();
 			DrawList->AddLine(ImVec2(PosG.x + 5, PosG.y + 2), ImVec2(PosG.x + 5, PosG.y + SizeG.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
 			ImGui::SameLine();
 			
 			ImGui::SetNextItemWidth(BoxWidth);
 			ImVec2 PosB = ImGui::GetCursorScreenPos();
-			ColorChanged |= ImGui::DragFloat("##B", &ColorRGB[2], 1.0f, 0.0f, 255.0f, "B: %.0f");
+			std::string IDB = std::string("##") + Label + "B";
+			ColorChanged |= ImGui::DragFloat(IDB.c_str(), &ColorRGB[2], 1.0f, 0.0f, 255.0f, "B: %.0f");
 			ImVec2 SizeB = ImGui::GetItemRectSize();
 			DrawList->AddLine(ImVec2(PosB.x + 5, PosB.y + 2), ImVec2(PosB.x + 5, PosB.y + SizeB.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
 			ImGui::SameLine();
