@@ -83,7 +83,7 @@ private:
 	uint32 ClusterSliceNumX = 24;
 	uint32 ClusterSliceNumY = 16;
 	uint32 ClusterSliceNumZ = 32;
-	uint32 LightMaxCountPerCluster = 8;
+	uint32 LightMaxCountPerCluster = 32;
 
 
 	ID3D11Buffer* ClusterGizmoVertexRWStructuredBuffer = nullptr;

@@ -120,7 +120,7 @@ void UFPSWidget::RenderWidget()
 	bool bClusteredRenderingGriddRender = ClusteredRenderingGridPass->GetClusteredRenderginGridRender();
 	if (ImGui::Checkbox("RenderClusteredGrid", &bClusteredRenderingGriddRender))
 	{
-		ClusteredRenderingGridPass->SetClusteredRenderginGridRender(ClusteredRenderingGridPass);
+		ClusteredRenderingGridPass->SetClusteredRenderginGridRender(bClusteredRenderingGriddRender);
 	}
 	ImGui::Separator();
 }
