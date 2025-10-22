@@ -167,16 +167,10 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			if (CurrentIdx >= 0 && CurrentIdx < IM_ARRAYSIZE(ViewTypeLabels))
 			{
 				EViewType NewType = static_cast<EViewType>(CurrentIdx);
+				// SetViewType now handles camera type and rotation internally
 				Clients[ViewportIndex]->SetViewType(NewType);
-				
-				// Camera 타입도 동기화
-				if (UCamera* Cam = Clients[ViewportIndex]->GetCamera())
-				{
-					if (NewType == EViewType::Perspective)
-						Cam->SetCameraType(ECameraType::ECT_Perspective);
-					else
-						Cam->SetCameraType(ECameraType::ECT_Orthographic);
-				}
+				UE_LOG("ViewportControlWidget: Viewport[%d]의 ViewType을 %s로 변경", 
+					ViewportIndex, ViewTypeLabels[CurrentIdx]);
 			}
 		}
 		
