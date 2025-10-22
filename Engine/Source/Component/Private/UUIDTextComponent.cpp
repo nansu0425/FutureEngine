@@ -24,12 +24,12 @@ UUUIDTextComponent::~UUUIDTextComponent()
 
 void UUUIDTextComponent::OnSelected()
 {
-	SetVisibility(true);
+	Super::OnSelected();
 }
 
 void UUUIDTextComponent::OnDeselected()
 {
-	SetVisibility(false);
+	Super::OnDeselected();
 }
 
 void UUUIDTextComponent::UpdateRotationMatrix(const FVector& InCameraForward)
