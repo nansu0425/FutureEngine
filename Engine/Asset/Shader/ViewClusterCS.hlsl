@@ -1,32 +1,4 @@
-
-cbuffer ViewClusterInfo : register(b0)
-{
-    row_major float4x4 ProjectionInv;
-    row_major float4x4 ViewInv;
-    row_major float4x4 ViewMatrix;
-    float ZNear;
-    float ZFar;
-    float Aspect;
-    float fov;
-};
-cbuffer ClusterSliceInfo : register(b1)
-{
-    uint ClusterSliceNumX;
-    uint ClusterSliceNumY;
-    uint ClusterSliceNumZ;
-    uint LightMaxCountPerCluster;
-};
-cbuffer LightCountInfo : register(b2)
-{
-    uint PointLightCount;
-    uint SpotLightCount;
-    uint2 padding;
-}
-struct FAABB
-{
-    float3 Min;
-    float3 Max;
-};
+#include "ClusteredRenderingCS.hlsli"
 
 RWStructuredBuffer<FAABB> ClusterAABB : register(u0);
 

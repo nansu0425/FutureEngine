@@ -1,64 +1,9 @@
+#include "ClusteredRenderingCS.hlsli"
 
-#define DEGREE_TO_RADIAN (3.141592f / 180.0f)
-
-struct FPointLightInfo
-{
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-    float2 padding;
-};
-
-//StructuredBuffer padding 없어도됨
-struct FSpotLightInfo
-{
-	// Point Light와 공유하는 속성 (필드 순서 맞춤)
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-
-	// SpotLight 고유 속성
-    float InnerConeAngle;
-    float OuterConeAngle;
-    float AngleFalloffExponent;
-    float3 Direction;
-};
-
-struct FAABB
-{
-    float3 Min;
-    float3 Max;
-};
-cbuffer ViewClusterInfo : register(b0)
-{
-    row_major float4x4 ProjectionInv;
-    row_major float4x4 ViewInv;
-    row_major float4x4 ViewMatrix;
-    float ZNear;
-    float ZFar;
-    float Aspect;
-    float fov;
-};
-cbuffer ClusterSliceInfo : register(b1)
-{
-    uint ClusterSliceNumX;
-    uint ClusterSliceNumY;
-    uint ClusterSliceNumZ;
-    uint LightMaxCountPerCluster;
-};
-cbuffer LightCountInfo : register(b2)
-{
-    uint PointLightCount;
-    uint SpotLightCount;
-    uint2 padding;
-}
 
 RWStructuredBuffer<int> PointLightIndices : register(u0);
 RWStructuredBuffer<int> SpotLightIndices : register(u1);
+
 StructuredBuffer<FAABB> ClusterAABB : register(t0);
 StructuredBuffer<FPointLightInfo> PointLightInfos : register(t1);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
@@ -137,9 +82,9 @@ bool IntersectAABBSpotLight(float3 AABBMin, float3 AABBMax, uint SpotIdx)
         SpotWorldAABBMin = float3(min(SpotWorldAABBMin.x, SpotLocalAABBToWorld[i].x), min(SpotWorldAABBMin.y, SpotLocalAABBToWorld[i].y), min(SpotWorldAABBMin.z, SpotLocalAABBToWorld[i].z));
         SpotWorldAABBMax = float3(max(SpotWorldAABBMax.x, SpotLocalAABBToWorld[i].x), max(SpotWorldAABBMax.y, SpotLocalAABBToWorld[i].y), max(SpotWorldAABBMax.z, SpotLocalAABBToWorld[i].z));
     }
-    
-    SpotWorldAABBMin += LightViewPos;
-    SpotWorldAABBMax += LightViewPos;
+    SpotWorldAABBMin += LightViewPos.xyz;
+    SpotWorldAABBMax += LightViewPos.xyz;
+
     return IntersectAABBAABB(AABBMin, AABBMax, SpotWorldAABBMin, SpotWorldAABBMax);
 }
 [numthreads(1, 1, 1)]
@@ -168,6 +113,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     for (int i = 0; (i < SpotLightCount) && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {
         FSpotLightInfo SpotLightInfo = SpotLightInfos[i];
+        //float4 LightViewPos = mul(float4(SpotLightInfo.Position, 1), ViewMatrix);
+        //if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, SpotLightInfo.Range))
         if (IntersectAABBSpotLight(CurAABB.Min, CurAABB.Max, i))
         {
             SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;

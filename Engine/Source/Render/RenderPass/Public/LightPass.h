@@ -18,6 +18,8 @@ struct FClusterSliceInfo
 	uint32 ClusterSliceNumY;
 	uint32 ClusterSliceNumZ;
 	uint32 LightMaxCountPerCluster;
+	//uint32 SpotIntersectType;
+	//FVector Padding;
 };
 struct FLightCountInfo
 {
