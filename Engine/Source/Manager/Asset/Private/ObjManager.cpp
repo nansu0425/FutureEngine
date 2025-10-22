@@ -80,7 +80,7 @@ static void ComputeTangents(TArray<FNormalVertex>& Vertices, const TArray<uint32
 	{
 		FVector Normal = Vertices[V].Normal;
 		FVector Tangent = FVector(Vertices[V].Tangent.X, Vertices[V].Tangent.Y, Vertices[V].Tangent.Z);
-
+		// Gram-Schmidt 직교화
 		Tangent = Tangent - Normal * Dot(Normal, Tangent);
 		float TangentLength = sqrtf(Tangent.X * Tangent.X + Tangent.Y * Tangent.Y + Tangent.Z * Tangent.Z);
 		if (TangentLength > 1e-8f)
