@@ -65,7 +65,7 @@ public:
 
 private:
 	EWorldType WorldType;
-	ULevel* Level = nullptr; // Persistance Level. Sublevels are not considered in GTL.
+	ULevel* Level = nullptr; // Persistance Level. Sublevels are not considered in Engine.
 	bool bBegunPlay = false;
 	TArray<AActor*> PendingDestroyActors;
 
