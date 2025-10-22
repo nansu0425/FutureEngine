@@ -27,7 +27,8 @@ enum class ShaderUsage
 	FOG,
 	FXAA,
 	STATICMESH,
-	GIZMO
+	GIZMO,
+	CLUSTERED_RENDERING_GRID
 };
 
 

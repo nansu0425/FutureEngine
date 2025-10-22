@@ -393,6 +393,22 @@ void URenderer::CreateGizmoShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::GIZMO);
 }
 
+void URenderer::CreateClusteredRenderingGrid()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/ClusteredRenderingGrid.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	TArray<D3D11_INPUT_ELEMENT_DESC> InputLayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, InputLayout, &ClusteredRenderingGridVS, &ClusteredRenderingGridInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &ClusteredRenderingGridPS);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::CLUSTERED_RENDERING_GRID);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -558,18 +574,20 @@ void URenderer::HotReloadShaders()
 					}
 				}
 				break;
+			case ShaderUsage::CLUSTERED_RENDERING_GRID:
+				SafeRelease(ClusteredRenderingGridInputLayout);
+				SafeRelease(ClusteredRenderingGridVS);
+				SafeRelease(ClusteredRenderingGridPS);
+				CreateClusteredRenderingGrid();
+				if (ClusteredRenderingGridPass)
+				{
+					ClusteredRenderingGridPass->SetVertexShader(ClusteredRenderingGridVS);
+					ClusteredRenderingGridPass->SetPixelShader(ClusteredRenderingGridPS);
+					ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
+				}
+				break;
 		}
 	}
-}
-void URenderer::CreateClusteredRenderingGrid()
-{
-	TArray<D3D11_INPUT_ELEMENT_DESC> InputLayout =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ClusteredRenderingGrid.hlsl", InputLayout, &ClusteredRenderingGridVS, &ClusteredRenderingGridInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ClusteredRenderingGrid.hlsl", &ClusteredRenderingGridPS);
 }
 
 void URenderer::ReleaseDefaultShader()
