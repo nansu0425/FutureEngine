@@ -118,7 +118,7 @@ void main(uint3 GroupID : SV_GroupID, uint3 GroupThreadID : SV_GroupThreadID)
     for (int i = 0; (i < SpotLightCount) && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {
         FSpotLightInfo SpotLightInfo = SpotLightInfos[i];
-        if (SpotLightIntersectOption == 0)
+        if (SpotLightIntersectOption == 1)
         {
             if (IntersectAABBSpotLight(CurAABB.Min, CurAABB.Max, i))
             {
