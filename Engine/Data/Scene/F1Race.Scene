@@ -1,6 +1,6 @@
 {
   "Actors" : {
-    "384" : {
+    "899" : {
       "Components" : [{
           "Intensity" : 0.500000,
           "IsEditorOnly" : "false",
@@ -9,7 +9,7 @@
           "Location" : [-5.842158, 1.385845, 17.015900],
           "Name" : "UDirectionalLightComponent_0",
           "ParentName" : "",
-          "Rotation" : [49.492565, 0.000000, 0.000000],
+          "Rotation" : [44.181335, -25.075644, 23.562113],
           "Scale" : [0.511856, 0.511856, 0.511856],
           "Type" : "UDirectionalLightComponent",
           "bLightEnabled" : "true",
@@ -23,7 +23,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UDirectionalLightComponent_0",
-          "Rotation" : [48.784260, 19.054005, -174.671753],
+          "Rotation" : [50.521664, 16.129608, 158.693634],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -39,15 +39,15 @@
           "bVisible" : "true"
         }],
       "Location" : [-5.842158, 1.385845, 17.015900],
-      "Rotation" : [49.492565, 0.000000, 0.000000],
+      "Rotation" : [44.181335, -25.075644, 23.562113],
       "Scale" : [0.511856, 0.511856, 0.511856],
       "Type" : "ADirectionalLight",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "388" : {
+    "903" : {
       "Components" : [{
-          "Intensity" : 0.050000,
+          "Intensity" : 0.350000,
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
           "LightColor" : [1.000000, 1.000000, 1.000000],
@@ -68,7 +68,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_1",
           "ParentName" : "UAmbientLightComponent_0",
-          "Rotation" : [-3.241699, 16.187836, 168.516052],
+          "Rotation" : [-1.563916, 19.841421, 175.401154],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -90,7 +90,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "392" : {
+    "907" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -120,11 +120,11 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "395" : {
+    "910" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [35.264305, -32.086990, 4.166590],
+          "Location" : [36.812328, -32.086990, 4.166590],
           "Name" : "UStaticMeshComponent_1",
           "ObjStaticMeshAsset" : "Data/Mclaren.obj",
           "ParentName" : "",
@@ -142,15 +142,25 @@
           "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 0.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 0.000000,
+          "Name" : "UProjectileMovementComponent_8",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [0.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
         }],
-      "Location" : [35.264305, -32.086990, 4.166590],
+      "Location" : [36.812328, -32.086990, 4.166590],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.000000, 1.000000, 1.000000],
       "Type" : "AStaticMeshActor",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "398" : {
+    "914" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -174,13 +184,13 @@
           "bVisible" : "true"
         }, {
           "GravityScale" : 0.000000,
-          "InitialSpeed" : 0.000000,
-          "IsEditorOnly" : "true",
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "MaxSpeed" : 0.000000,
+          "MaxSpeed" : 10.000000,
           "Name" : "UProjectileMovementComponent_0",
           "Type" : "UProjectileMovementComponent",
-          "Velocity" : [0.000000, 0.000000, 0.000000],
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
           "bRotationFollowsVelocity" : "false"
         }],
       "Location" : [23.102592, -36.248062, 3.700000],
@@ -188,9 +198,9 @@
       "Scale" : [1.450000, 1.450000, 1.450000],
       "Type" : "AStaticMeshActor",
       "bCanEverTick" : "true",
-      "bTickInEditor" : "true"
+      "bTickInEditor" : "false"
     },
-    "401" : {
+    "918" : {
       "Components" : [{
           "AngleFalloffExponent" : 2.000000,
           "AttenuationAngle" : 0.994837,
@@ -217,7 +227,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_2",
           "ParentName" : "USpotLightComponent_0",
-          "Rotation" : [9.560028, -40.450775, 165.447891],
+          "Rotation" : [3.369259, -37.848305, 174.519272],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -255,7 +265,7 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_3",
           "ParentName" : "UPointLightComponent_0",
-          "Rotation" : [9.560028, -40.450775, 165.447891],
+          "Rotation" : [3.369259, -37.848305, 174.519272],
           "Scale" : [2.000000, 2.000000, 2.000000],
           "Type" : "UBillBoardComponent",
           "bVisible" : "true"
@@ -267,7 +277,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "407" : {
+    "924" : {
       "Components" : [{
           "FogCutoffDistance" : 50000.000000,
           "FogDensity" : 0.036000,
@@ -292,7 +302,7 @@
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UUUIDTextComponent",
-          "bVisible" : "true"
+          "bVisible" : "false"
         }, {
           "BillBoardScreenSize" : "0.100000",
           "BillBoardScreenSizeScaled" : "true",
@@ -302,10 +312,10 @@
           "Location" : [0.000000, 0.000000, 0.000000],
           "Name" : "UBillBoardComponent_4",
           "ParentName" : "UHeightFogComponent_0",
-          "Rotation" : [-3.241699, 16.187836, 168.516052],
+          "Rotation" : [1.386251, 13.229539, -173.963882],
           "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UBillBoardComponent",
-          "bVisible" : "true"
+          "bVisible" : "false"
         }],
       "Location" : [0.000000, 0.000000, -5.577278],
       "Rotation" : [0.000000, 0.000000, 0.000000],
@@ -314,11 +324,11 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "411" : {
+    "928" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [28.503508, -36.151615, 3.700000],
+          "Location" : [28.490440, -36.151615, 3.700000],
           "Name" : "UStaticMeshComponent_3",
           "ObjStaticMeshAsset" : "Data/Ferrari.obj",
           "ParentName" : "",
@@ -336,19 +346,57 @@
           "Scale" : [0.300000, 0.300000, 0.300000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 10.000000,
+          "Name" : "UProjectileMovementComponent_4",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
+        }, {
+          "AttenuationRadius" : 2.500000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 0.900000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [2.168520, 0.000000, 0.796747],
+          "Name" : "UPointLightComponent_14",
+          "ParentName" : "UStaticMeshComponent_3",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UPointLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightPoint.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_32",
+          "ParentName" : "UPointLightComponent_14",
+          "Rotation" : [-1.563916, 19.841421, 175.401154],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
         }],
-      "Location" : [28.503508, -36.151615, 3.700000],
+      "Location" : [28.490440, -36.151615, 3.700000],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.100000, 1.100000, 1.100000],
       "Type" : "AStaticMeshActor",
-      "bCanEverTick" : "false",
+      "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "414" : {
+    "932" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [30.029642, -32.096161, 3.748025],
+          "Location" : [30.586132, -32.096161, 3.748025],
           "Name" : "UStaticMeshComponent_4",
           "ObjStaticMeshAsset" : "Data/Mercedes.obj",
           "ParentName" : "",
@@ -366,15 +414,53 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 10.000000,
+          "Name" : "UProjectileMovementComponent_6",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
+        }, {
+          "AttenuationRadius" : 2.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 1.400000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [1.344833, 0.000000, 0.461708],
+          "Name" : "UPointLightComponent_13",
+          "ParentName" : "UStaticMeshComponent_4",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UPointLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightPoint.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_31",
+          "ParentName" : "UPointLightComponent_13",
+          "Rotation" : [-1.563916, 19.841421, 175.401154],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
         }],
-      "Location" : [30.029642, -32.096161, 3.748025],
+      "Location" : [30.586132, -32.096161, 3.748025],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.700000, 1.700000, 1.700000],
       "Type" : "AStaticMeshActor",
-      "bCanEverTick" : "false",
+      "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "417" : {
+    "936" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -396,19 +482,29 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 10.000000,
+          "Name" : "UProjectileMovementComponent_3",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
         }],
       "Location" : [24.952616, -32.173893, 3.736973],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.300000, 1.300000, 1.300000],
       "Type" : "AStaticMeshActor",
-      "bCanEverTick" : "false",
+      "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "420" : {
+    "940" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [33.782261, -36.150326, 3.735550],
+          "Location" : [34.585346, -36.150326, 3.735550],
           "Name" : "UStaticMeshComponent_6",
           "ObjStaticMeshAsset" : "Data/Alphatauri.obj",
           "ParentName" : "",
@@ -426,19 +522,29 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 10.000000,
+          "Name" : "UProjectileMovementComponent_5",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
         }],
-      "Location" : [33.782261, -36.150326, 3.735550],
+      "Location" : [34.585346, -36.150326, 3.735550],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.200000, 1.400000, 1.200000],
       "Type" : "AStaticMeshActor",
-      "bCanEverTick" : "false",
+      "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "423" : {
+    "944" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [38.694897, -36.116383, 3.739707],
+          "Location" : [40.315739, -36.116383, 3.739707],
           "Name" : "UStaticMeshComponent_7",
           "ObjStaticMeshAsset" : "Data/AstonMartin.obj",
           "ParentName" : "",
@@ -456,15 +562,25 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "GravityScale" : 0.000000,
+          "InitialSpeed" : 10.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "MaxSpeed" : 10.000000,
+          "Name" : "UProjectileMovementComponent_7",
+          "Type" : "UProjectileMovementComponent",
+          "Velocity" : [-10.000000, 0.000000, 0.000000],
+          "bRotationFollowsVelocity" : "false"
         }],
-      "Location" : [38.694897, -36.116383, 3.739707],
+      "Location" : [40.315739, -36.116383, 3.739707],
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.400000, 1.400000, 1.400000],
       "Type" : "AStaticMeshActor",
-      "bCanEverTick" : "false",
+      "bCanEverTick" : "true",
       "bTickInEditor" : "false"
     },
-    "426" : {
+    "948" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -494,7 +610,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "429" : {
+    "951" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -524,7 +640,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "432" : {
+    "954" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -554,7 +670,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "435" : {
+    "957" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -584,7 +700,7 @@
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "438" : {
+    "960" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
@@ -592,7 +708,7 @@
           "Name" : "UStaticMeshComponent_12",
           "ObjStaticMeshAsset" : "Data/CrowdSeat.obj",
           "ParentName" : "",
-          "Rotation" : [0.000000, 0.000000, -90.000092],
+          "Rotation" : [0.000000, 0.000000, -90.000099],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UStaticMeshComponent",
           "bVisible" : "true"
@@ -608,22 +724,22 @@
           "bVisible" : "true"
         }],
       "Location" : [-85.841652, -6.751213, -3.442817],
-      "Rotation" : [0.000000, 0.000000, -90.000092],
+      "Rotation" : [0.000000, 0.000000, -90.000099],
       "Scale" : [1.000000, 1.000000, 1.000000],
       "Type" : "AStaticMeshActor",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
     },
-    "441" : {
+    "963" : {
       "Components" : [{
           "IsEditorOnly" : "false",
           "IsVisualizationComponent" : "false",
-          "Location" : [0.427458, -35.860683, 7.557535],
+          "Location" : [0.413800, -35.860683, 6.743529],
           "Name" : "UStaticMeshComponent_13",
           "ObjStaticMeshAsset" : "Data/SignalLight.obj",
           "ParentName" : "",
           "Rotation" : [0.000000, 0.000000, 180.000000],
-          "Scale" : [1.200000, 1.200000, 1.200000],
+          "Scale" : [1.200000, 1.677077, 1.710402],
           "Type" : "UStaticMeshComponent",
           "bVisible" : "true"
         }, {
@@ -636,10 +752,220 @@
           "Scale" : [1.000000, 1.000000, 1.000000],
           "Type" : "UUUIDTextComponent",
           "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 1.000000,
+          "AttenuationAngle" : 0.296706,
+          "AttenuationRadius" : 1.400000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.818114, -0.815098, 0.209595],
+          "Name" : "USpotLightComponent_3",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_6",
+          "ParentName" : "USpotLightComponent_3",
+          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 2.000000,
+          "AttenuationAngle" : 0.506145,
+          "AttenuationRadius" : 1.100000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.684527, -0.448475, 0.170729],
+          "Name" : "USpotLightComponent_8",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_7",
+          "ParentName" : "USpotLightComponent_8",
+          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 2.000000,
+          "AttenuationAngle" : 0.506145,
+          "AttenuationRadius" : 1.600000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.530484, -0.032265, 0.169500],
+          "Name" : "USpotLightComponent_12",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_8",
+          "ParentName" : "USpotLightComponent_12",
+          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 2.000000,
+          "AttenuationAngle" : 0.349066,
+          "AttenuationRadius" : 2.800000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.530790, 0.402365, 0.187691],
+          "Name" : "USpotLightComponent_13",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_9",
+          "ParentName" : "USpotLightComponent_13",
+          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
+        }, {
+          "AngleFalloffExponent" : 2.000000,
+          "AttenuationAngle" : 0.209439,
+          "AttenuationRadius" : 10.000000,
+          "DistanceFalloffExponent" : 2.000000,
+          "Intensity" : 20.000000,
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "LightColor" : [1.000000, 0.000000, 0.000000],
+          "Location" : [-0.842502, 0.764263, 0.195747],
+          "Name" : "USpotLightComponent_14",
+          "ParentName" : "UStaticMeshComponent_13",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "USpotLightComponent",
+          "bLightEnabled" : "true",
+          "bVisible" : "true"
+        }, {
+          "BillBoardScreenSize" : "0.100000",
+          "BillBoardScreenSizeScaled" : "true",
+          "BillBoardSprite" : "Data\\Icons\\S_LightSpot.PNG",
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "true",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UBillBoardComponent_10",
+          "ParentName" : "USpotLightComponent_14",
+          "Rotation" : [-1.563915, 19.841421, -4.598846],
+          "Scale" : [2.000000, 2.000000, 2.000000],
+          "Type" : "UBillBoardComponent",
+          "bVisible" : "true"
         }],
-      "Location" : [0.427458, -35.860683, 7.557535],
+      "Location" : [0.413800, -35.860683, 6.743529],
       "Rotation" : [0.000000, 0.000000, 180.000000],
-      "Scale" : [1.200000, 1.200000, 1.200000],
+      "Scale" : [1.200000, 1.677077, 1.710402],
+      "Type" : "AStaticMeshActor",
+      "bCanEverTick" : "false",
+      "bTickInEditor" : "false"
+    },
+    "976" : {
+      "Components" : [{
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UStaticMeshComponent_14",
+          "ObjStaticMeshAsset" : "Data/Skybox.obj",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [10000.000000, 100000.000000, 10000.000000],
+          "Type" : "UStaticMeshComponent",
+          "bVisible" : "true"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UUUIDTextComponent_18",
+          "ParentName" : "UStaticMeshComponent_14",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent",
+          "bVisible" : "true"
+        }],
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [10000.000000, 100000.000000, 10000.000000],
+      "Type" : "AStaticMeshActor",
+      "bCanEverTick" : "false",
+      "bTickInEditor" : "false"
+    },
+    "979" : {
+      "Components" : [{
+          "IsEditorOnly" : "false",
+          "IsVisualizationComponent" : "false",
+          "Location" : [-86.020950, 60.448250, -3.135098],
+          "Name" : "UStaticMeshComponent_15",
+          "ObjStaticMeshAsset" : "Data/CrowdSeat.obj",
+          "ParentName" : "",
+          "Rotation" : [0.000000, 0.000000, -90.000092],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UStaticMeshComponent",
+          "bVisible" : "true"
+        }, {
+          "IsEditorOnly" : "true",
+          "IsVisualizationComponent" : "false",
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "Name" : "UUUIDTextComponent_19",
+          "ParentName" : "UStaticMeshComponent_15",
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Type" : "UUUIDTextComponent",
+          "bVisible" : "true"
+        }],
+      "Location" : [-86.020950, 60.448250, -3.135098],
+      "Rotation" : [0.000000, 0.000000, -90.000092],
+      "Scale" : [1.000000, 1.000000, 1.000000],
       "Type" : "AStaticMeshActor",
       "bCanEverTick" : "false",
       "bTickInEditor" : "false"
@@ -654,13 +980,13 @@
     "Viewports" : [{
         "Camera" : {
           "CameraType" : 1,
-          "FarZ" : 1000.000000,
+          "FarZ" : 100000.000000,
           "FovY" : 90.000000,
-          "Location" : [54.317711, -32.164352, 17.867966],
+          "Location" : [36.741474, -32.175724, 4.525000],
           "MoveSpeed" : 24.000000,
           "NearZ" : 0.100000,
           "OrthoWidth" : 90.000000,
-          "Rotation" : [0.000000, 16.500710, -168.977188]
+          "Rotation" : [0.000000, 19.900482, -175.674698]
         },
         "Index" : 0,
         "ViewMode" : 2,
