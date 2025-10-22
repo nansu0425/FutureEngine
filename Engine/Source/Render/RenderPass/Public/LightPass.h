@@ -62,8 +62,17 @@ public:
 	void SetPixelShader(ID3D11PixelShader* InGizmoPS) { GizmoPS = InGizmoPS; }
 	void SetInputLayout(ID3D11InputLayout* InGizmoInputLayout) { GizmoInputLayout = InGizmoInputLayout; }
 
+	uint32 GetClusterSliceNumX() const { return ClusterSliceNumX; }
+	uint32 GetClusterSliceNumY() const { return ClusterSliceNumY; }
+	uint32 GetClusterSliceNumZ() const { return ClusterSliceNumZ; }
+	void SetClusterSliceNumX(uint32 SliceNum) { ClusterSliceNumX = SliceNum; }
+	void SetClusterSliceNumY(uint32 SliceNum) { ClusterSliceNumY = SliceNum; }
+	void SetClusterSliceNumZ(uint32 SliceNum) { ClusterSliceNumZ = SliceNum; }
 private:
 	uint32 GetClusterCount() const { return ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ; }
+	bool IsChangeOption();
+	void CreateOptionBuffers();
+	void ReleaseOptionBuffers();
 public:
 private:
 	ID3D11ComputeShader* ViewClusterCS = nullptr;
