@@ -599,22 +599,22 @@ void UActorDetailWidget::RenderTransformEdit()
 	bool PosChanged = false;
 	
 	ImVec2 PosX = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosX", &PosArray[0], 0.1f, 0.0f, 0.0f, "X: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosX", &PosArray[0], 0.1f, 0.0f, 0.0f, "X: %.3f");
 	ImVec2 SizeX = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosX.x + 5, PosX.y + 2), ImVec2(PosX.x + 5, PosX.y + SizeX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
 	ImGui::SameLine();
 	
 	ImVec2 PosY = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosY", &PosArray[1], 0.1f, 0.0f, 0.0f, "Y: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosY", &PosArray[1], 0.1f, 0.0f, 0.0f, "Y: %.3f");
 	ImVec2 SizeY = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosY.x + 5, PosY.y + 2), ImVec2(PosY.x + 5, PosY.y + SizeY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
 	ImGui::SameLine();
 	
 	ImVec2 PosZ = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosZ", &PosArray[2], 0.1f, 0.0f, 0.0f, "Z: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	PosChanged |= ImGui::DragFloat("##RelPosZ", &PosArray[2], 0.1f, 0.0f, 0.0f, "Z: %.3f");
 	ImVec2 SizeZ = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosZ.x + 5, PosZ.y + 2), ImVec2(PosZ.x + 5, PosZ.y + SizeZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
 	ImGui::SameLine();
@@ -634,22 +634,22 @@ void UActorDetailWidget::RenderTransformEdit()
 	bool RotChanged = false;
 	
 	ImVec2 RotX = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotX", &RotArray[0], 1.0f, 0.0f, 0.0f, "X: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotX", &RotArray[0], 1.0f, 0.0f, 0.0f, "X: %.3f");
 	ImVec2 SizeRotX = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotX.x + 5, RotX.y + 2), ImVec2(RotX.x + 5, RotX.y + SizeRotX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
 	ImGui::SameLine();
 	
 	ImVec2 RotY = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotY", &RotArray[1], 1.0f, 0.0f, 0.0f, "Y: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotY", &RotArray[1], 1.0f, 0.0f, 0.0f, "Y: %.3f");
 	ImVec2 SizeRotY = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotY.x + 5, RotY.y + 2), ImVec2(RotY.x + 5, RotY.y + SizeRotY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
 	ImGui::SameLine();
 	
 	ImVec2 RotZ = ImGui::GetCursorScreenPos();
-	ImGui::SetNextItemWidth(65.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotZ", &RotArray[2], 1.0f, 0.0f, 0.0f, "Z: %.1f");
+	ImGui::SetNextItemWidth(75.0f);
+	RotChanged |= ImGui::DragFloat("##RelRotZ", &RotArray[2], 1.0f, 0.0f, 0.0f, "Z: %.3f");
 	ImVec2 SizeRotZ = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotZ.x + 5, RotZ.y + 2), ImVec2(RotZ.x + 5, RotZ.y + SizeRotZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
 	ImGui::SameLine();
@@ -683,22 +683,22 @@ void UActorDetailWidget::RenderTransformEdit()
 		bool ScaleChanged = false;
 		
 		ImVec2 ScaleX = ImGui::GetCursorScreenPos();
-		ImGui::SetNextItemWidth(65.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleX", &ScaleArray[0], 0.1f, 0.0f, 0.0f, "X: %.1f");
+		ImGui::SetNextItemWidth(75.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleX", &ScaleArray[0], 0.1f, 0.0f, 0.0f, "X: %.3f");
 		ImVec2 SizeScaleX = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleX.x + 5, ScaleX.y + 2), ImVec2(ScaleX.x + 5, ScaleX.y + SizeScaleX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
 		ImGui::SameLine();
 		
 		ImVec2 ScaleY = ImGui::GetCursorScreenPos();
-		ImGui::SetNextItemWidth(65.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleY", &ScaleArray[1], 0.1f, 0.0f, 0.0f, "Y: %.1f");
+		ImGui::SetNextItemWidth(75.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleY", &ScaleArray[1], 0.1f, 0.0f, 0.0f, "Y: %.3f");
 		ImVec2 SizeScaleY = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleY.x + 5, ScaleY.y + 2), ImVec2(ScaleY.x + 5, ScaleY.y + SizeScaleY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
 		ImGui::SameLine();
 		
 		ImVec2 ScaleZ = ImGui::GetCursorScreenPos();
-		ImGui::SetNextItemWidth(65.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleZ", &ScaleArray[2], 0.1f, 0.0f, 0.0f, "Z: %.1f");
+		ImGui::SetNextItemWidth(75.0f);
+		ScaleChanged |= ImGui::DragFloat("##RelScaleZ", &ScaleArray[2], 0.1f, 0.0f, 0.0f, "Z: %.3f");
 		ImVec2 SizeScaleZ = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleZ.x + 5, ScaleZ.y + 2), ImVec2(ScaleZ.x + 5, ScaleZ.y + SizeScaleZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
 		ImGui::SameLine();
