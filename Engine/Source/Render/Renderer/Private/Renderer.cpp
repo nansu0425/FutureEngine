@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <algorithm>
 #include "Component/Mesh/Public/StaticMesh.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Component/Public/DecalComponent.h"
@@ -68,7 +69,7 @@ void URenderer::Init(HWND InWindowHandle)
 	RenderPasses.push_back(LightPass);
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-	UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
+		UberLitVertexShader, UberLitPixelShader, UberLitInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(StaticMeshPass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
@@ -187,8 +188,42 @@ void URenderer::CreateSamplerState()
 	GetDevice()->CreateSamplerState(&samplerDesc, &DefaultSampler);
 }
 
+void URenderer::RegisterShaderReloadCache(const std::filesystem::path& ShaderPath, ShaderUsage Usage)
+{
+	std::error_code ErrorCode; // 파일 API는 대개 문제가 생겼을 때 exception 발생을 피하고 ErrorCode에 문제 내용 저장
+
+	// weakly_canonical: 경로의 일부가 실제로 없어도 존재하는 구간까지는 실제 파일시스템을 참고해 절대경로로 정규화 + 나머지는 문자열로 정규화
+	std::filesystem::path NormalizedPath = std::filesystem::weakly_canonical(ShaderPath, ErrorCode);
+	if (ErrorCode)
+	{
+		// 1차 FALLBACK: 기준 경로 오류 대비. 현재 작업 디렉터리를 기준으로 재시도.
+		ErrorCode.clear();
+		NormalizedPath = std::filesystem::weakly_canonical(std::filesystem::current_path() / ShaderPath, ErrorCode);
+	}
+	if (ErrorCode)
+	{
+		// 2차 FALLBACK: 그냥 원본 경로 사용.
+		ErrorCode.clear();
+		NormalizedPath = ShaderPath;
+	}
+
+	const std::wstring Key = NormalizedPath.generic_wstring(); // 경로 구분자를 '/'로 통일한 유니코드 문자열
+	ShaderFileUsageMap[Key].insert(Usage);
+
+	// 정규화된 경로(NormalizedPath)의 마지막 수정 시간 캐싱
+	const auto LastWriteTime = std::filesystem::last_write_time(NormalizedPath, ErrorCode);
+	if (!ErrorCode)
+	{
+		ShaderFileLastWriteTimeMap[Key] = LastWriteTime;
+		return;
+	}
+}
+
 void URenderer::CreateDefaultShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/SampleShader.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> DefaultLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -196,13 +231,20 @@ void URenderer::CreateDefaultShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/SampleShader.hlsl", DefaultLayout, &DefaultVertexShader, &DefaultInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/SampleShader.hlsl", &DefaultPixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, DefaultLayout, &DefaultVertexShader, &DefaultInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &DefaultPixelShader);
 	Stride = sizeof(FNormalVertex);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::DEFAULT);
 }
 
 void URenderer::CreateTextureShader()
 {
+	const std::wstring VSFilePathString = L"Asset/Shader/TextureVS.hlsl";
+	const std::filesystem::path VSPath(VSFilePathString);
+	const std::wstring PSFilePathString = L"Asset/Shader/TexturePS.hlsl";
+	const std::filesystem::path PSPath(PSFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> TextureLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -210,12 +252,18 @@ void URenderer::CreateTextureShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/TextureVS.hlsl", TextureLayout, &TextureVertexShader, &TextureInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TexturePS.hlsl", &TexturePixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(VSFilePathString, TextureLayout, &TextureVertexShader, &TextureInputLayout);
+	FRenderResourceFactory::CreatePixelShader(PSFilePathString, &TexturePixelShader);
+
+	RegisterShaderReloadCache(VSPath, ShaderUsage::TEXTURE);
+	RegisterShaderReloadCache(PSPath, ShaderUsage::TEXTURE);
 }
 
 void URenderer::CreateDecalShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/DecalShader.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> DecalLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -223,12 +271,17 @@ void URenderer::CreateDecalShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/DecalShader.hlsl", DecalLayout, &DecalVertexShader, &DecalInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, DecalLayout, &DecalVertexShader, &DecalInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &DecalPixelShader);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::DECAL);
 }
 
 void URenderer::CreatePointLightShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/PointLightShader.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> PointLightLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -236,34 +289,49 @@ void URenderer::CreatePointLightShader()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/PointLightShader.hlsl", PointLightLayout, &PointLightVertexShader, &PointLightInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/PointLightShader.hlsl", &PointLightPixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, PointLightLayout, &PointLightVertexShader, &PointLightInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &PointLightPixelShader);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::POINTLIGHT);
 }
 
 void URenderer::CreateFogShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/HeightFogShader.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> FogLayout =
 	{
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/HeightFogShader.hlsl", FogLayout, &FogVertexShader, &FogInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, FogLayout, &FogVertexShader, &FogInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &FogPixelShader);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::FOG);
 }
 
 void URenderer::CreateFXAAShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/FXAAShader.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> FXAALayout =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FXAAShader.hlsl", FXAALayout, &FXAAVertexShader, &FXAAInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FXAAShader.hlsl", &FXAAPixelShader);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, FXAALayout, &FXAAVertexShader, &FXAAInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &FXAAPixelShader);
 	
 	FXAASamplerState = FRenderResourceFactory::CreateFXAASamplerState();
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::FXAA);
 }
 
 void URenderer::CreateStaticMeshShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/UberLit.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	TArray<D3D11_INPUT_ELEMENT_DESC> ShaderMeshLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -278,8 +346,8 @@ void URenderer::CreateStaticMeshShader()
 		{ "LIGHTING_MODEL_LAMBERT", "1" },
 		{ nullptr, nullptr }
 	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShader, &UberLitInputLayout, "Uber_VS", LambertMacros.data());
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShader, "Uber_PS", LambertMacros.data());
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, ShaderMeshLayout, &UberLitVertexShader, &UberLitInputLayout, "Uber_VS", LambertMacros.data());
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &UberLitPixelShader, "Uber_PS", LambertMacros.data());
 	
 	// Compile Gouraud variant
 	TArray<D3D_SHADER_MACRO> GouraudMacros = {
@@ -287,26 +355,31 @@ void URenderer::CreateStaticMeshShader()
 		{ nullptr, nullptr }
 	};
 	ID3D11InputLayout* GouraudInputLayout = nullptr;
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/UberLit.hlsl", ShaderMeshLayout, &UberLitVertexShaderGouraud, &GouraudInputLayout, "Uber_VS", GouraudMacros.data());
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, ShaderMeshLayout, &UberLitVertexShaderGouraud, &GouraudInputLayout, "Uber_VS", GouraudMacros.data());
 	SafeRelease(GouraudInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderGouraud, "Uber_PS", GouraudMacros.data());
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &UberLitPixelShaderGouraud, "Uber_PS", GouraudMacros.data());
 	
 	// Compile Phong (Blinn-Phong) variant
 	TArray<D3D_SHADER_MACRO> PhongMacros = {
 		{ "LIGHTING_MODEL_BLINNPHONG", "1" },
 		{ nullptr, nullptr }
 	};
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &UberLitPixelShaderBlinnPhong, "Uber_PS", PhongMacros.data());
 
 	TArray<D3D_SHADER_MACRO> WorldNormalViewMacros = {
 		{ "LIGHTING_MODEL_NORMAL", "1" },
 		{ nullptr, nullptr }
 	};
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/UberLit.hlsl", &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &UberLitPixelShaderWorldNormal, "Uber_PS", WorldNormalViewMacros.data());
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::STATICMESH);
 }
 
 void URenderer::CreateGizmoShader()
 {
+	const std::wstring ShaderFilePathString = L"Asset/Shader/GizmoLine.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
 	// Create shaders
 	TArray<D3D11_INPUT_ELEMENT_DESC> LayoutDesc =
 	{
@@ -314,8 +387,179 @@ void URenderer::CreateGizmoShader()
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/GizmoLine.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/GizmoLine.hlsl", &GizmoPS);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, LayoutDesc, &GizmoVS, &GizmoInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &GizmoPS);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::GIZMO);
+}
+
+TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
+{
+	TSet<ShaderUsage> HotReloadTargets = {};
+	for (const auto& ShaderFileUsagePair : ShaderFileUsageMap)
+	{
+		const std::wstring& ShaderFilePathString = ShaderFileUsagePair.first;
+		const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+		// 해당 파일을 마지막으로 불러왔을 때 캐시해둔 최종 수정 시간 조회
+		const auto CachedLastWriteTimeIter = ShaderFileLastWriteTimeMap.find(ShaderFilePathString);
+		if (CachedLastWriteTimeIter == ShaderFileLastWriteTimeMap.end())
+		{
+			continue;
+		}
+		const auto& CachedLastWriteTime = CachedLastWriteTimeIter->second;
+
+		// 파일의 현재 최종 수정 시간 조회
+		std::error_code ErrorCode;
+		const auto CurrentLastWriteTime = std::filesystem::last_write_time(ShaderPath, ErrorCode);
+		if (ErrorCode)
+		{
+			continue;
+		}
+		
+		// 두 시간 비교해서 다르면 핫 리로드 대상에 추가
+		if (CurrentLastWriteTime != CachedLastWriteTime)
+		{
+			for (const ShaderUsage Usage : ShaderFileUsagePair.second)
+			{
+				HotReloadTargets.insert(Usage);
+			}
+		}
+	}
+
+	return HotReloadTargets;
+}
+
+void URenderer::HotReloadShaders()
+{
+	TSet<ShaderUsage> HotReloadTargets = GatherHotReloadTargets();
+
+	for (TSet<ShaderUsage>::iterator Iter = HotReloadTargets.begin(); Iter != HotReloadTargets.end(); Iter++)
+	{
+		switch (*Iter)
+		{
+			case ShaderUsage::DEFAULT:
+				SafeRelease(DefaultInputLayout);
+				SafeRelease(DefaultVertexShader);
+				SafeRelease(DefaultPixelShader);
+				CreateDefaultShader();
+				break;
+			case ShaderUsage::TEXTURE:
+				SafeRelease(TextureInputLayout);
+				SafeRelease(TextureVertexShader);
+				SafeRelease(TexturePixelShader);
+				CreateTextureShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* BillboardPass = dynamic_cast<FBillboardPass*>(RenderPass))
+					{
+						BillboardPass->SetInputLayout(TextureInputLayout);
+						BillboardPass->SetVertexShader(TextureVertexShader);
+						BillboardPass->SetPixelShader(TexturePixelShader);
+						break;
+					}
+				}
+				break;
+			case ShaderUsage::DECAL:
+				SafeRelease(DecalInputLayout);
+				SafeRelease(DecalVertexShader);
+				SafeRelease(DecalPixelShader);
+				CreateDecalShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* DecalPass = dynamic_cast<FDecalPass*>(RenderPass))
+					{
+						DecalPass->SetInputLayout(DecalInputLayout);
+						DecalPass->SetVertexShader(DecalVertexShader);
+						DecalPass->SetPixelShader(DecalPixelShader);
+						break;
+					}
+				}
+				break;
+			case ShaderUsage::POINTLIGHT:
+				SafeRelease(PointLightInputLayout);
+				SafeRelease(PointLightVertexShader);
+				SafeRelease(PointLightPixelShader);
+				CreatePointLightShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* PointLightPass = dynamic_cast<FPointLightPass*>(RenderPass))
+					{
+						PointLightPass->SetInputLayout(PointLightInputLayout);
+						PointLightPass->SetVertexShader(PointLightVertexShader);
+						PointLightPass->SetPixelShader(PointLightPixelShader);
+						break;
+					}
+				}
+				break;
+			case ShaderUsage::FOG:
+				SafeRelease(FogInputLayout);
+				SafeRelease(FogVertexShader);
+				SafeRelease(FogPixelShader);
+				CreateFogShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* FogPass = dynamic_cast<FFogPass*>(RenderPass))
+					{
+						FogPass->SetInputLayout(FogInputLayout);
+						FogPass->SetVertexShader(FogVertexShader);
+						FogPass->SetPixelShader(FogPixelShader);
+						break;
+					}
+				}
+				break;
+			case ShaderUsage::FXAA:
+				SafeRelease(FXAAInputLayout);
+				SafeRelease(FXAAVertexShader);
+				SafeRelease(FXAAPixelShader);
+				SafeRelease(FXAASamplerState);
+				CreateFXAAShader();
+				if (FXAAPass)
+				{
+					FXAAPass->SetInputLayout(FXAAInputLayout);
+					FXAAPass->SetVertexShader(FXAAVertexShader);
+					FXAAPass->SetPixelShader(FXAAPixelShader);
+					FXAAPass->SetSamplerState(FXAASamplerState);
+				}
+				break;
+			case ShaderUsage::STATICMESH:
+				SafeRelease(UberLitInputLayout);
+				SafeRelease(UberLitVertexShader);
+				SafeRelease(UberLitVertexShaderGouraud);
+				SafeRelease(UberLitPixelShader);
+				SafeRelease(UberLitPixelShaderGouraud);
+				SafeRelease(UberLitPixelShaderBlinnPhong);
+				SafeRelease(UberLitPixelShaderWorldNormal);
+				CreateStaticMeshShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* StaticMeshPass = dynamic_cast<FStaticMeshPass*>(RenderPass))
+					{
+						StaticMeshPass->SetInputLayout(UberLitInputLayout);
+						StaticMeshPass->SetVertexShader(UberLitVertexShader);
+						StaticMeshPass->SetPixelShader(UberLitPixelShader);
+						break;
+					}
+				}
+				break;
+			case ShaderUsage::GIZMO:
+				SafeRelease(GizmoInputLayout);
+				SafeRelease(GizmoVS);
+				SafeRelease(GizmoPS);
+				CreateGizmoShader();
+				for (FRenderPass* RenderPass : RenderPasses)
+				{
+					if (auto* LightPass = dynamic_cast<FLightPass*>(RenderPass))
+					{
+						LightPass->SetInputLayout(GizmoInputLayout);
+						LightPass->SetVertexShader(GizmoVS);
+						LightPass->SetPixelShader(GizmoPS);
+						break;
+					}
+				}
+				break;
+		}
+	}
 }
 void URenderer::CreateClusteredRenderingGrid()
 {
@@ -702,7 +946,6 @@ void URenderer::CreateConstantBuffers()
 	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FCameraConstants>();
 }
-
 
 void URenderer::ReleaseConstantBuffers()
 {

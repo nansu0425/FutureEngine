@@ -30,7 +30,7 @@ struct FViewportConstants
 class FFogPass : public FRenderPass
 {
 public:
-    FFogPass(
+	FFogPass(
         UPipeline* InPipeline,
         ID3D11Buffer* InConstantBufferViewProj,
         ID3D11VertexShader* InVS,
@@ -41,6 +41,10 @@ public:
     
     void Execute(FRenderingContext& Context) override;
     void Release() override;
+
+	void SetVertexShader(ID3D11VertexShader* InVS) { VS = InVS; }
+	void SetPixelShader(ID3D11PixelShader* InPS) { PS = InPS; }
+	void SetInputLayout(ID3D11InputLayout* InLayout) { InputLayout = InLayout; }
 
 private:
     ID3D11VertexShader* VS = nullptr;

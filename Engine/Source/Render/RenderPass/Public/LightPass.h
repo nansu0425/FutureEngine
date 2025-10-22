@@ -58,6 +58,10 @@ public:
 		bSpotIntersectOpti = b;
 	}
 
+	void SetVertexShader(ID3D11VertexShader* InGizmoVS) { GizmoVS = InGizmoVS; }
+	void SetPixelShader(ID3D11PixelShader* InGizmoPS) { GizmoPS = InGizmoPS; }
+	void SetInputLayout(ID3D11InputLayout* InGizmoInputLayout) { GizmoInputLayout = InGizmoInputLayout; }
+
 private:
 	uint32 GetClusterCount() const { return ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ; }
 public:
