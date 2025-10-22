@@ -4,6 +4,7 @@
 class AActor;
 class ULevel;
 class UCamera;
+class UTexture;
 
 /**
  * @brief 현재 Level의 모든 Actor들을 트리 형태로 표시하는 Widget
@@ -37,6 +38,11 @@ private:
 	double LastClickTime = 0.0f;
 	AActor* LastClickedActor = nullptr;
 	static constexpr float RENAME_CLICK_DELAY = 0.5f; // 두 번째 클릭 간격
+
+	// 아이콘 시스템
+	TMap<FString, UTexture*> IconTextureMap; // 클래스 이름 -> 아이콘 텍스처 매핑
+	void LoadActorIcons();
+	UTexture* GetIconForActor(AActor* InActor);
 
 	// Camera focus animation
 	bool bIsCameraAnimating = false;

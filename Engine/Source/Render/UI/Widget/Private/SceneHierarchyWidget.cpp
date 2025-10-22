@@ -12,6 +12,10 @@
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Quaternion.h"
 #include "Component/Public/LightComponentBase.h"
+#include "Component/Public/HeightFogComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Texture/Public/Texture.h"
+#include "Manager/Path/Public/PathManager.h"
 
 IMPLEMENT_CLASS(USceneHierarchyWidget, UWidget)
 USceneHierarchyWidget::USceneHierarchyWidget()
@@ -22,6 +26,7 @@ USceneHierarchyWidget::~USceneHierarchyWidget() = default;
 
 void USceneHierarchyWidget::Initialize()
 {
+	LoadActorIcons();
 	UE_LOG("SceneHierarchyWidget: Initialized");
 }
 
@@ -159,6 +164,7 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 	// Actor의 PrimitiveComponent들의 Visibility 체크
 	bool bHasPrimitive = false;
 	bool bHasLight = false;
+	bool bHasFog = false;
 	bool bAllVisible = true;
 	UPrimitiveComponent* FirstPrimitive = nullptr;
 
@@ -187,13 +193,21 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				bAllVisible = false;
 			}
 		}
+		if (UHeightFogComponent* FogComponent = Cast<UHeightFogComponent>(Component))
+		{
+			bHasFog = true;
+			if (!FogComponent->GetVisible())
+			{
+				bAllVisible = false;
+			}
+		}
 	}
 
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-	// PrimitiveComponent나 light가 있는 경우에만 Visibility 버튼 표시
-	if (bHasPrimitive || bHasLight)
+	// PrimitiveComponent나 light, fog가 있는 경우에만 Visibility 버튼 표시
+	if (bHasPrimitive || bHasLight || bHasFog)
 	{
 		if (ImGui::SmallButton(bAllVisible ? "[O]" : "[X]"))
 		{
@@ -209,6 +223,10 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 				{
 					LightComp->SetVisible(bNewVisibility);
 				}
+				if (UHeightFogComponent* FogComp = Cast<UHeightFogComponent>(Component))
+				{
+					FogComp->SetVisible(bNewVisibility);
+				}
 			}
 			UE_LOG_INFO("SceneHierarchy: %s의 가시성이 %s로 변경되었습니다",
 			            ActorName.ToString().data(),
@@ -223,8 +241,16 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 		ImGui::PopStyleVar();
 	}
 	ImGui::PopStyleColor(3);
-	// 이름 클릭 감지 (오른쪽)
+	
+	// 아이콘 표시
 	ImGui::SameLine();
+	UTexture* IconTexture = GetIconForActor(InActor);
+	if (IconTexture && IconTexture->GetTextureSRV())
+	{
+		ImVec2 IconSize(20.0f, 20.0f); // 아이콘 크기
+		ImGui::Image((ImTextureID)IconTexture->GetTextureSRV(), IconSize);
+		ImGui::SameLine();
+	}
 
 	// 이름 변경 모드인지 확인
 	if (RenamingActor == InActor)
@@ -626,4 +652,133 @@ void USceneHierarchyWidget::FinishRenaming(bool bInConfirm)
 	// 상태 초기화
 	RenamingActor = nullptr;
 	RenameBuffer[0] = '\0';
+}
+
+/**
+ * @brief Actor 클래스별 아이콘 텍스처를 로드하는 함수
+ */
+void USceneHierarchyWidget::LoadActorIcons()
+{
+	UE_LOG("SceneHierarchy: 아이콘 로드 시작...");
+	UAssetManager& AssetManager = UAssetManager::GetInstance();
+	UPathManager& PathManager = UPathManager::GetInstance();
+	FString IconBasePath = PathManager.GetAssetPath().string() + "\\Icon\\";
+
+	// 로드할 아이콘 목록 (클래스 이름 -> 파일명)
+	TArray<FString> IconFiles = {
+		"Actor.png",
+		"StaticMeshActor.png",
+		"DirectionalLight.png",
+		"PointLight.png",
+		"SpotLight.png",
+		"SkyLight.png",
+		"DecalActor.png",
+		"ExponentialHeightFog.png"
+	};
+
+	int32 LoadedCount = 0;
+	for (const FString& FileName : IconFiles)
+	{
+		FString FullPath = IconBasePath + FileName;
+		UTexture* IconTexture = AssetManager.LoadTexture(FullPath);
+		if (IconTexture)
+		{
+			// 파일명에서 .png 제거하여 클래스 이름으로 사용
+			FString ClassName = FileName.substr(0, FileName.find_last_of('.'));
+			IconTextureMap[ClassName] = IconTexture;
+			LoadedCount++;
+			UE_LOG("SceneHierarchy: 아이콘 로드 성공: '%s' -> %p", ClassName.c_str(), IconTexture);
+		}
+		else
+		{
+			UE_LOG_WARNING("SceneHierarchy: 아이콘 로드 실패: %s", FullPath.c_str());
+		}
+	}
+	UE_LOG_SUCCESS("SceneHierarchy: 아이콘 로드 완료 (%d/%d)", LoadedCount, (int32)IconFiles.size());
+}
+
+/**
+ * @brief Actor에 맞는 아이콘 텍스처를 반환하는 함수
+ * @param InActor 아이콘을 가져올 Actor
+ * @return 아이콘 텍스처 (없으면 기본 Actor 아이콘)
+ */
+UTexture* USceneHierarchyWidget::GetIconForActor(AActor* InActor)
+{
+	if (!InActor)
+	{
+		return nullptr;
+	}
+
+	// 클래스 이름 가져오기
+	FString OriginalClassName = InActor->GetClass()->GetName().ToString();
+	FString ClassName = OriginalClassName;
+	
+	// 'A' 접두사 제거 (예: AStaticMeshActor -> StaticMeshActor)
+	if (ClassName.size() > 1 && ClassName[0] == 'A')
+	{
+		ClassName = ClassName.substr(1);
+	}
+
+	// 특정 클래스에 대한 매핑
+	auto It = IconTextureMap.find(ClassName);
+	if (It != IconTextureMap.end())
+	{
+		return It->second;
+	}
+
+	// Light 계열 처리
+	if (ClassName.find("Light") != std::string::npos)
+	{
+		if (ClassName.find("Directional") != std::string::npos)
+		{
+			auto DirIt = IconTextureMap.find("DirectionalLight");
+			if (DirIt != IconTextureMap.end()) return DirIt->second;
+		}
+		else if (ClassName.find("Point") != std::string::npos)
+		{
+			auto PointIt = IconTextureMap.find("PointLight");
+			if (PointIt != IconTextureMap.end()) return PointIt->second;
+		}
+		else if (ClassName.find("Spot") != std::string::npos)
+		{
+			auto SpotIt = IconTextureMap.find("SpotLight");
+			if (SpotIt != IconTextureMap.end()) return SpotIt->second;
+		}
+		else if (ClassName.find("Sky") != std::string::npos || ClassName.find("Ambient") != std::string::npos)
+		{
+			auto SkyIt = IconTextureMap.find("SkyLight");
+			if (SkyIt != IconTextureMap.end()) return SkyIt->second;
+		}
+	}
+
+	// Fog 처리
+	if (ClassName.find("Fog") != std::string::npos)
+	{
+		auto FogIt = IconTextureMap.find("ExponentialHeightFog");
+		if (FogIt != IconTextureMap.end()) return FogIt->second;
+	}
+
+	// Decal 처리
+	if (ClassName.find("Decal") != std::string::npos)
+	{
+		auto DecalIt = IconTextureMap.find("DecalActor");
+		if (DecalIt != IconTextureMap.end()) return DecalIt->second;
+	}
+
+	// 기본 Actor 아이콘 반환
+	auto ActorIt = IconTextureMap.find("Actor");
+	if (ActorIt != IconTextureMap.end())
+	{
+		return ActorIt->second;
+	}
+
+	// 아이콘을 찾지 못했을 경우 1회만 로그 출력
+	static std::unordered_set<FString> LoggedClasses;
+	if (LoggedClasses.find(OriginalClassName) == LoggedClasses.end())
+	{
+		UE_LOG("SceneHierarchy: '%s' (변환: '%s')에 대한 아이콘을 찾을 수 없습니다", OriginalClassName.c_str(), ClassName.c_str());
+		LoggedClasses.insert(OriginalClassName);
+	}
+
+	return nullptr;
 }

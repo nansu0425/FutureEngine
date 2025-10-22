@@ -19,7 +19,11 @@ UStaticMesh::~UStaticMesh()
 	// 임시로 할당된 Material 해제 -> 이후 GUObject에서 관리 예정
 	for (UMaterial* Material : Materials)
 	{
-		SafeDelete(Material);
+		// Skip deletion of shared DefaultMaterial to prevent dangling pointer
+		if (Material && Material->GetName().ToString() != "DefaultMaterial")
+		{
+			SafeDelete(Material);
+		}
 	}
 	Materials.clear();
 }

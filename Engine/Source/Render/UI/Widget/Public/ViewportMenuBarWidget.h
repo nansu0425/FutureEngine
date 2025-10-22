@@ -3,6 +3,7 @@
 
 class FViewport;
 class UEditor;
+class UTexture;
 
 /**
  * @brief 레거시 위젯 - ViewportControlWidget으로 교체 권장
@@ -29,10 +30,21 @@ public:
 
 private:
 	void RenderCameraControls(UCamera& InCamera);
+	void LoadViewIcons(); // 아이콘 로드 함수
 
 	FViewport* Viewport = nullptr; // 레거시 참조
 	UEditor* Editor = nullptr; // 레거시 에디터 참조
 
 	bool bIsSingleViewportClient = true;
+
+	// View Type 아이콘들
+	UTexture* IconPerspective = nullptr;
+	UTexture* IconTop = nullptr;
+	UTexture* IconBottom = nullptr;
+	UTexture* IconLeft = nullptr;
+	UTexture* IconRight = nullptr;
+	UTexture* IconFront = nullptr;
+	UTexture* IconBack = nullptr;
+	bool bIconsLoaded = false;
 };
 

@@ -72,6 +72,11 @@ void UDecalTextureSelectionWidget::RenderWidget()
     {
         Preview = std::filesystem::path(CurrentPath).stem().string();
     }
+    
+    // 입력 필드 배경색을 검은색으로 설정
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 
     if (ImGui::BeginCombo("Texture (png)##Combo", Preview.c_str()))
     {
@@ -93,11 +98,23 @@ void UDecalTextureSelectionWidget::RenderWidget()
         }
         ImGui::EndCombo();
     }
+    
+    ImGui::PopStyleColor(3);
 
     ImGui::Separator();
+    
+    // CollapsingHeader 배경색 설정
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 
     if (ImGui::CollapsingHeader("Fade Controls"))
     {
+        // 버튼 배경색 설정
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        
         if (ImGui::Button("Fade In"))
         {
             DecalComponent->BeginFadeIn();
@@ -122,6 +139,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
         {
             DecalComponent->StopFade();
         }
+        
+        ImGui::PopStyleColor(3);
 
         float FadeProgress = DecalComponent->GetFadeProgress();
         ImGui::ProgressBar(1.0f - FadeProgress, ImVec2(-1.0f, 0.0f));
@@ -158,6 +177,11 @@ void UDecalTextureSelectionWidget::RenderWidget()
         {
             FadePreview = std::filesystem::path(CurrentFadeTexturePath).stem().string();
         }
+        
+        // 입력 필드 배경색을 검은색으로 설정
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 
         if (ImGui::BeginCombo("Fade Texture##FadeCombo", FadePreview.c_str()))
         {
@@ -208,15 +232,34 @@ void UDecalTextureSelectionWidget::RenderWidget()
             DecalComponent->SetFadeDuration(FadeDuration);
         }
         ImGui::PopItemWidth();
+        
+        ImGui::PopStyleColor(3);
+        
+        // 체크박스 배경색 설정
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
         bool bDestroyOwner = DecalComponent->GetDestroyOwnerAfterFade();
         if (ImGui::Checkbox("Destroy Owner After Fade", &bDestroyOwner))
         {
             DecalComponent->SetDestroyOwnerAfterFade(bDestroyOwner);
         }
+        
+        ImGui::PopStyleColor(4);
     }
+    
+    ImGui::PopStyleColor(3);
 
     ImGui::Separator();
+    
+    // 체크박스 배경색 설정
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+    
     // 1. Get the current state from the component
     bool bPerspective = DecalComponent->IsPerspective();
 
@@ -226,6 +269,8 @@ void UDecalTextureSelectionWidget::RenderWidget()
         // 3. If changed, update the component's state
         DecalComponent->SetPerspective(bPerspective);
     }
+    
+    ImGui::PopStyleColor(4);
 
 }
 

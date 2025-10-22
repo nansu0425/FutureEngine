@@ -46,6 +46,12 @@ void FFogPass::Execute(FRenderingContext& Context)
     // --- Draw Fog --- //
     for (UHeightFogComponent* Fog : Context.Fogs)
     {
+        // Fog가 보이지 않는 경우 건너뛴
+        if (!Fog->GetVisible())
+        {
+            continue;
+        }
+        
         // Update Fog Constant Buffer (Slot 0)
         FFogConstants FogConstant;
         FVector color3 = Fog->GetFogInscatteringColor();
