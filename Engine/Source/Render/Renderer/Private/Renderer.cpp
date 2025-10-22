@@ -326,8 +326,6 @@ void URenderer::CreateClusteredRenderingGrid()
 	};
 	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ClusteredRenderingGrid.hlsl", InputLayout, &ClusteredRenderingGridVS, &ClusteredRenderingGridInputLayout);
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ClusteredRenderingGrid.hlsl", &ClusteredRenderingGridPS);
-
-	FXAASamplerState = FRenderResourceFactory::CreateFXAASamplerState();
 }
 
 void URenderer::ReleaseDefaultShader()
