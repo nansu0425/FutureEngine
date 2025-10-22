@@ -191,10 +191,35 @@ void UActorDetailWidget::RenderSceneComponents(USceneComponent* InSceneComponent
 	FString ComponentName = InSceneComponent->GetName().ToString();
 
 	ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
-	if (!InSceneComponent || InSceneComponent->GetChildren().empty())
+
+	bool bHasNonVisualizationChildren = false;
+	if (InSceneComponent)
+	{
+		const TArray<USceneComponent*>& Children = InSceneComponent->GetChildren();
+		for (USceneComponent* Child : Children)
+		{
+			if (!Child)
+			{
+				continue;
+			}
+			if (Child->IsVisualizationComponent())
+			{
+				continue;
+			}
+			bHasNonVisualizationChildren = true;
+			break;
+		}
+	}
+
+	if (!bHasNonVisualizationChildren)
+	{
 		NodeFlags |= ImGuiTreeNodeFlags_Leaf;
+	}
+
 	if (SelectedComponent == InSceneComponent)
+	{
 		NodeFlags |= ImGuiTreeNodeFlags_Selected;
+	}
 
 	bool bNodeOpen = ImGui::TreeNodeEx((void*)InSceneComponent, NodeFlags, "%s", ComponentName.c_str());
 
