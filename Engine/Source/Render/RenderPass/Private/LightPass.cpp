@@ -198,6 +198,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 
 	int ThreadGroupCount = (ClusterSliceNumX * ClusterSliceNumY * ClusterSliceNumZ + CSNumThread - 1) / CSNumThread;
 
+
 	FRenderResourceFactory::UpdateConstantBufferData(GlobalLightConstantBuffer, GlobalLightData);
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
@@ -211,10 +212,12 @@ void FLightPass::Execute(FRenderingContext& Context)
 	float CamFar = Context.CurrentCamera->GetFarZ();
 	float Aspect = Context.CurrentCamera->GetAspect();
 	float fov = Context.CurrentCamera->GetFovY();
+	uint32 Orthographic = ECameraType::ECT_Orthographic == Context.CurrentCamera->GetCameraType() ? 1 : 0;
+
 	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
 		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar,Aspect,fov});
 	FRenderResourceFactory::UpdateConstantBufferData(ClusterSliceInfoConstantBuffer,
-		FClusterSliceInfo{ ClusterSliceNumX, ClusterSliceNumY,ClusterSliceNumZ,LightMaxCountPerCluster,bSpotIntersectOpti });
+		FClusterSliceInfo{ ClusterSliceNumX, ClusterSliceNumY,ClusterSliceNumZ,LightMaxCountPerCluster,bSpotIntersectOpti, Orthographic });
 	FRenderResourceFactory::UpdateConstantBufferData(LightCountInfoConstantBuffer,
 		FLightCountInfo{ PointLightCount, SpotLightCount });
 	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);

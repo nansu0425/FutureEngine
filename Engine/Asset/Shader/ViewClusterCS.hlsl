@@ -16,8 +16,15 @@ float3 NDCToView(float3 NDC)
 //eye = (0,0,0)
 float3 LinearIntersectionToZPlane(float3 dir, float zDis)
 {
-    float t = zDis / dir.z;
-    return t * dir;
+    if(Orthographic)
+    {
+        return float3(dir.xy, zDis);
+    }
+    else
+    {
+        float t = zDis / dir.z;
+        return t * dir;
+    }
 }
 
 //GroupID : Dispatch 에 넣어주는 쓰레드 그룹의 ID
