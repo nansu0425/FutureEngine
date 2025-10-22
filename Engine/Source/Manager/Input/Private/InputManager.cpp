@@ -123,8 +123,6 @@ void UInputManager::Update(const FAppWindow* InWindow)
 	// 마우스 위치 업데이트
 	UpdateMousePosition(InWindow);
 
-	// 마우스 휠 델타 리셋
-	MouseWheelDelta = 0.0f;
 
 	// 더블클릭 감지 업데이트
 	UpdateDoubleClickDetection();

@@ -144,6 +144,7 @@ void FClientApp::UpdateSystem() const
 		TIME_PROFILE(Renderer)
 		Renderer.Update();
 	}
+	UInputManager::GetInstance().ClearMouseWheelDelta();
 }
 
 /**

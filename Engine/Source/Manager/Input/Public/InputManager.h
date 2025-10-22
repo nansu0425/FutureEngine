@@ -45,6 +45,10 @@ public:
 	const FVector& GetMousePosition() const { return CurrentMousePosition; }
 	const FVector& GetMouseDelta() const { return MouseDelta; }
 
+	void ClearMouseWheelDelta()
+	{
+		MouseWheelDelta = 0.0f;
+	}
 private:
 	// Key Status
 	TMap<EKeyInput, bool> CurrentKeyState;
