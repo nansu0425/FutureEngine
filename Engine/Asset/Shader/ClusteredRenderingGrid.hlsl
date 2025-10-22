@@ -67,5 +67,5 @@ float4 mainPS(PS_INPUT input) : SV_Target
             }
         }
     }
-    return float4(0, (float) LightCount / LightMaxCountPerCluster, 0, 1);
+    return float4(0, 1, 0, (float) LightCount / (LightMaxCountPerCluster * ClusterSliceNumZ * 0.25f));
 }
