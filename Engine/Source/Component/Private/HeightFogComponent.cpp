@@ -60,6 +60,7 @@ UObject* UHeightFogComponent::Duplicate()
     HeightFogComponent->FogCutoffDistance = FogCutoffDistance;
     HeightFogComponent->FogMaxOpacity = FogMaxOpacity;
     HeightFogComponent->FogInScatteringColor = FogInScatteringColor;
+    HeightFogComponent->bVisible = bVisible;  // 가시성 상태 복사
 
     return HeightFogComponent;
 }
