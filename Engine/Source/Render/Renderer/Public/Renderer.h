@@ -23,7 +23,6 @@ enum class ShaderUsage
 	DEFAULT,
 	TEXTURE,
 	DECAL,
-	POINTLIGHT,
 	FOG,
 	FXAA,
 	STATICMESH,
@@ -52,7 +51,6 @@ public:
 	void CreateDefaultShader();
 	void CreateTextureShader();
 	void CreateDecalShader();
-	void CreatePointLightShader();
 	void CreateFogShader();
 	void CreateConstantBuffers();
 	void CreateFXAAShader();
@@ -176,11 +174,6 @@ private:
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
-
-	// Point Light Shaders
-	ID3D11VertexShader* PointLightVertexShader = nullptr;
-	ID3D11PixelShader* PointLightPixelShader = nullptr;
-	ID3D11InputLayout* PointLightInputLayout = nullptr;
 	
 	// Fog Shaders
 	ID3D11VertexShader* FogVertexShader = nullptr;

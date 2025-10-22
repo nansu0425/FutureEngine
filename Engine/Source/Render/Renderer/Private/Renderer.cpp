@@ -55,7 +55,6 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
-	CreatePointLightShader();
 	CreateFogShader();
 	CreateConstantBuffers();
 	CreateFXAAShader();
@@ -277,24 +276,6 @@ void URenderer::CreateDecalShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::DECAL);
 }
 
-void URenderer::CreatePointLightShader()
-{
-	const std::wstring ShaderFilePathString = L"Asset/Shader/PointLightShader.hlsl";
-	const std::filesystem::path ShaderPath(ShaderFilePathString);
-
-	TArray<D3D11_INPUT_ELEMENT_DESC> PointLightLayout =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
-	};
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, PointLightLayout, &PointLightVertexShader, &PointLightInputLayout);
-	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &PointLightPixelShader);
-
-	RegisterShaderReloadCache(ShaderPath, ShaderUsage::POINTLIGHT);
-}
-
 void URenderer::CreateFogShader()
 {
 	const std::wstring ShaderFilePathString = L"Asset/Shader/HeightFogShader.hlsl";
@@ -492,22 +473,6 @@ void URenderer::HotReloadShaders()
 					}
 				}
 				break;
-			case ShaderUsage::POINTLIGHT:
-				SafeRelease(PointLightInputLayout);
-				SafeRelease(PointLightVertexShader);
-				SafeRelease(PointLightPixelShader);
-				CreatePointLightShader();
-				for (FRenderPass* RenderPass : RenderPasses)
-				{
-					if (auto* PointLightPass = dynamic_cast<FPointLightPass*>(RenderPass))
-					{
-						PointLightPass->SetInputLayout(PointLightInputLayout);
-						PointLightPass->SetVertexShader(PointLightVertexShader);
-						PointLightPass->SetPixelShader(PointLightPixelShader);
-						break;
-					}
-				}
-				break;
 			case ShaderUsage::FOG:
 				SafeRelease(FogInputLayout);
 				SafeRelease(FogVertexShader);
@@ -611,10 +576,6 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
 	SafeRelease(DecalInputLayout);
-	
-	SafeRelease(PointLightVertexShader);
-	SafeRelease(PointLightPixelShader);
-	SafeRelease(PointLightInputLayout);
 	
 	SafeRelease(FogVertexShader);
 	SafeRelease(FogPixelShader);
