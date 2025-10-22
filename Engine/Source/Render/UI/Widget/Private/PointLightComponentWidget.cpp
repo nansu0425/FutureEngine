@@ -50,13 +50,62 @@ void UPointLightComponentWidget::RenderWidget()
     }
     // Light Color
     FVector LightColor = PointLightComponent->GetLightColor();
-    if (ImGui::ColorEdit3("Light Color", &LightColor.X))
+    // Convert from 0-1 to 0-255 for display
+    float LightColorRGB[3] = { LightColor.X * 255.0f, LightColor.Y * 255.0f, LightColor.Z * 255.0f };
+    
+    bool ColorChanged = false;
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
+    
+    float BoxWidth = 65.0f;  // Fixed width for each RGB box
+    
+    // R channel
+    ImGui::SetNextItemWidth(BoxWidth);
+    ImVec2 PosR = ImGui::GetCursorScreenPos();
+    ColorChanged |= ImGui::DragFloat("##R", &LightColorRGB[0], 1.0f, 0.0f, 255.0f, "R: %.0f");
+    ImVec2 SizeR = ImGui::GetItemRectSize();
+    DrawList->AddLine(ImVec2(PosR.x + 5, PosR.y + 2), ImVec2(PosR.x + 5, PosR.y + SizeR.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+    
+    ImGui::SameLine();
+    
+    // G channel
+    ImGui::SetNextItemWidth(BoxWidth);
+    ImVec2 PosG = ImGui::GetCursorScreenPos();
+    ColorChanged |= ImGui::DragFloat("##G", &LightColorRGB[1], 1.0f, 0.0f, 255.0f, "G: %.0f");
+    ImVec2 SizeG = ImGui::GetItemRectSize();
+    DrawList->AddLine(ImVec2(PosG.x + 5, PosG.y + 2), ImVec2(PosG.x + 5, PosG.y + SizeG.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+    
+    ImGui::SameLine();
+    
+    // B channel
+    ImGui::SetNextItemWidth(BoxWidth);
+    ImVec2 PosB = ImGui::GetCursorScreenPos();
+    ColorChanged |= ImGui::DragFloat("##B", &LightColorRGB[2], 1.0f, 0.0f, 255.0f, "B: %.0f");
+    ImVec2 SizeB = ImGui::GetItemRectSize();
+    DrawList->AddLine(ImVec2(PosB.x + 5, PosB.y + 2), ImVec2(PosB.x + 5, PosB.y + SizeB.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+    
+    ImGui::SameLine();
+    
+    // Color picker button
+    float LightColor01[3] = { LightColorRGB[0] / 255.0f, LightColorRGB[1] / 255.0f, LightColorRGB[2] / 255.0f };
+    if (ImGui::ColorEdit3("Light Color", LightColor01, ImGuiColorEditFlags_NoInputs))
     {
+        LightColorRGB[0] = LightColor01[0] * 255.0f;
+        LightColorRGB[1] = LightColor01[1] * 255.0f;
+        LightColorRGB[2] = LightColor01[2] * 255.0f;
+        ColorChanged = true;
+    }
+    
+    if (ColorChanged)
+    {
+        // Convert back from 0-255 to 0-1
+        LightColor.X = LightColorRGB[0] / 255.0f;
+        LightColor.Y = LightColorRGB[1] / 255.0f;
+        LightColor.Z = LightColorRGB[2] / 255.0f;
         PointLightComponent->SetLightColor(LightColor);
     }
     if (ImGui::IsItemHovered())
     {
-        ImGui::SetTooltip("라이트 필터 색입니다.\n이 색을 조절하면 실제 라이트의 강도가 조절되는 것과 같은 효과가 생기게 됩니다.");
+        ImGui::SetTooltip("라이트 필터 색입니다.\n이 색을 조절하면 실제 라이트의 강도가 조절되는 것과 같은 효과가 생까게 됩니다.");
     }
 
     // Intensity
