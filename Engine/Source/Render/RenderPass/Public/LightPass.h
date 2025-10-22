@@ -19,7 +19,8 @@ struct FClusterSliceInfo
 	uint32 ClusterSliceNumZ;
 	uint32 LightMaxCountPerCluster;
 	uint32 SpotLightIntersectOption;
-	FVector padding;
+	uint32 Orthographic; //0 = Perspective, 1 = Orthographic
+	FVector2 padding;
 };
 struct FLightCountInfo
 {
