@@ -305,7 +305,17 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
 
 	if (ULightComponent* LightComponent = Cast<ULightComponent>(InComponentToDelete))
 	{
+		// 1) 라이트에 연결된 시각화 빌보드가 있으면, 자식 분리 옵션과 무관하게 먼저 삭제
+		if (UBillBoardComponent* Billboard = LightComponent->GetBillBoardComponent())
+		{
+			// 빌보드는 반드시 파괴되도록 자식 분리 옵션을 false로 호출
+			RemoveComponent(Billboard, false);
+			LightComponent->SetBillBoardComponent(nullptr);
+		}
+
+		// 2) 라이트 컴포넌트 자체를 등록 해제
 		GWorld->GetLevel()->UnregisterComponent(LightComponent);
+
 	}
     if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
     {
