@@ -1,62 +1,5 @@
-struct FPointLightInfo
-{
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-    float2 padding;
-};
+#include "ClusteredRenderingCS.hlsli"
 
-//StructuredBuffer padding 없어도됨
-struct FSpotLightInfo
-{
-	// Point Light와 공유하는 속성 (필드 순서 맞춤)
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-
-	// SpotLight 고유 속성
-    float InnerConeAngle;
-    float OuterConeAngle;
-    float AngleFalloffExponent;
-    float3 Direction;
-};
-cbuffer ViewClusterInfo : register(b0)
-{
-    row_major float4x4 ProjectionInv;
-    row_major float4x4 ViewInv;
-    row_major float4x4 ViewMatrix;
-    float ZNear;
-    float ZFar;
-    float Aspect;
-    float fov;
-};
-cbuffer ClusterSliceInfo : register(b1)
-{
-    uint ClusterSliceNumX;
-    uint ClusterSliceNumY;
-    uint ClusterSliceNumZ;
-    uint LightMaxCountPerCluster;
-};
-cbuffer LightCountInfo : register(b2)
-{
-    uint PointLightCount;
-    uint SpotLightCount;
-    uint2 padding;
-}
-struct FGizmoVertex
-{
-    float3 Pos;
-    float4 Color;
-};
-struct FAABB
-{
-    float3 Min;
-    float3 Max;
-};
 
 RWStructuredBuffer<FGizmoVertex> ClusterGizmoVertex : register(u0);
 StructuredBuffer<FAABB> ClusterAABB : register(t0);
@@ -64,7 +7,6 @@ StructuredBuffer<FPointLightInfo> PointLightInfos : register(t1);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t2);
 StructuredBuffer<int> PointLightIndices : register(t3);
 StructuredBuffer<int> SpotLightIndices : register(t4);
-
 
 [numthreads(1, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -121,8 +63,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
     ClusterGizmoVertex[5 + VertexOffset].Color = Color;
     ClusterGizmoVertex[6 + VertexOffset].Color = Color;
     ClusterGizmoVertex[7 + VertexOffset].Color = Color;
+
     if(ClusterIdx == 0)
     {
+        //SetSpotLightGizmo(0);
         float tanhalffov = tan(fov * 0.5f * 3.141592f / 180.0f);
         float3 ViewFrustumPos[8];
         ViewFrustumPos[0] = float3(-tanhalffov * ZNear * Aspect, -tanhalffov * ZNear, ZNear);
@@ -133,7 +77,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
         ViewFrustumPos[5] = float3(tanhalffov * ZFar * Aspect, -tanhalffov * ZFar, ZFar);
         ViewFrustumPos[6] = float3(tanhalffov * ZFar * Aspect, tanhalffov * ZFar, ZFar);
         ViewFrustumPos[7] = float3(-tanhalffov * ZFar * Aspect, tanhalffov * ZFar, ZFar);
-        for (int i = 0; i < 8;i++)
+        for (int i = 0; i < 8; i++)
         {
             ClusterGizmoVertex[i].Pos = mul(float4(ViewFrustumPos[i], 1), ViewInv);
             ClusterGizmoVertex[i].Color = float4(1, 1, 1, 1);

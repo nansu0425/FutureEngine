@@ -27,6 +27,7 @@
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 
 #include "Render/RenderPass/Public/SceneDepthPass.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
@@ -59,6 +60,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateFXAAShader();
 	CreateStaticMeshShader();
 	CreateGizmoShader();
+	CreateClusteredRenderingGrid();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -83,6 +85,10 @@ void URenderer::Init(HWND InWindowHandle)
 	FFogPass* FogPass = new FFogPass(Pipeline, ConstantBufferViewProj,
 		FogVertexShader, FogPixelShader, FogInputLayout, DefaultDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(FogPass);
+
+	ClusteredRenderingGridPass = new FClusteredRenderingGridPass(Pipeline, ConstantBufferViewProj,
+		ClusteredRenderingGridVS, ClusteredRenderingGridPS, ClusteredRenderingGridInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(ClusteredRenderingGridPass);
 
 	FSceneDepthPass* SceneDepthPass = new FSceneDepthPass(Pipeline, ConstantBufferViewProj, DisabledDepthStencilState);
 	RenderPasses.push_back(SceneDepthPass);
@@ -311,7 +317,16 @@ void URenderer::CreateGizmoShader()
 	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/GizmoLine.hlsl", LayoutDesc, &GizmoVS, &GizmoInputLayout);
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/GizmoLine.hlsl", &GizmoPS);
 }
-
+void URenderer::CreateClusteredRenderingGrid()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> InputLayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/ClusteredRenderingGrid.hlsl", InputLayout, &ClusteredRenderingGridVS, &ClusteredRenderingGridInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/ClusteredRenderingGrid.hlsl", &ClusteredRenderingGridPS);
+}
 
 void URenderer::ReleaseDefaultShader()
 {
@@ -350,6 +365,10 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(GizmoVS);
 	SafeRelease(GizmoPS);
 	SafeRelease(GizmoInputLayout);
+
+	SafeRelease(ClusteredRenderingGridInputLayout);
+	SafeRelease(ClusteredRenderingGridVS);
+	SafeRelease(ClusteredRenderingGridPS);
 }
 
 void URenderer::ReleaseDepthStencilState()

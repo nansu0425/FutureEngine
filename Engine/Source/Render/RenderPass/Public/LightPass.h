@@ -18,6 +18,8 @@ struct FClusterSliceInfo
 	uint32 ClusterSliceNumY;
 	uint32 ClusterSliceNumZ;
 	uint32 LightMaxCountPerCluster;
+	uint32 SpotLightIntersectOption;
+	FVector padding;
 };
 struct FLightCountInfo
 {
@@ -49,6 +51,11 @@ public:
 	void SetClusterGizmoRender(bool b)
 	{
 		bRenderClusterGizmo = b;
+	}
+	bool GetSpotIntersectType() const { return bSpotIntersectOpti; }
+	void SetSpotIntersectType(bool b)
+	{
+		bSpotIntersectOpti = b;
 	}
 
 private:
@@ -83,7 +90,7 @@ private:
 	uint32 ClusterSliceNumX = 24;
 	uint32 ClusterSliceNumY = 16;
 	uint32 ClusterSliceNumZ = 32;
-	uint32 LightMaxCountPerCluster = 8;
+	uint32 LightMaxCountPerCluster = 32;
 
 
 	ID3D11Buffer* ClusterGizmoVertexRWStructuredBuffer = nullptr;
@@ -99,6 +106,7 @@ private:
 
 	bool bRenderClusterGizmo = false;
 	bool bClusterGizmoSet = false;
+	bool bSpotIntersectOpti = true;
 
 
 
