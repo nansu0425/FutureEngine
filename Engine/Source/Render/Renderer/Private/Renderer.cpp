@@ -505,6 +505,7 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	TArray<UPrimitiveComponent*> FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
 
 	FRenderingContext RenderingContext(
+
 		&ViewProj,
 		InViewport->GetViewportClient()->GetCamera(),
 		InViewport->GetViewportClient()->GetViewMode(),
