@@ -111,6 +111,11 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 	{
 		if (ImGui::GetIO().WantCaptureMouse)
 		{
+			// 휠 메시지는 ImGui가 캡처해도 InputManager에 전달하여 카메라 속도 조절이 가능하도록 함
+			if (InMessage == WM_MOUSEWHEEL)
+			{
+				UInputManager::GetInstance().ProcessKeyMessage(InMessage, InWParam, InLParam);
+			}
 			return true;
 		}
 	}
