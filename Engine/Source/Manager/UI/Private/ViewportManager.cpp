@@ -12,7 +12,8 @@
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 #include "Editor/Public/Editor.h"
 #include "Manager/Input/Public/InputManager.h"
-
+#include "Utility/Public/JsonSerializer.h"
+#include "Global/Enum.h"
 namespace
 {
 	template <typename T>
@@ -852,4 +853,154 @@ void UViewportManager::FinalizeFourSplitLayoutFromAnimation()
 	// 다음 전환 대비 저장(선택)
 	IniSaveSharedV = SplitterValueV;
 	IniSaveSharedH = SplitterValueH;
+}
+
+void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHandle)
+{
+	// 저장/로드 모두에서 쓸 공통 키
+	const char* ViewportSystemKey = "ViewportSystem";
+
+	if (bInIsLoading)
+	{
+		JSON ViewportSystemJson;
+		if (!FJsonSerializer::ReadObject(InOutHandle, ViewportSystemKey, ViewportSystemJson))
+		{
+			return; // 저장된 뷰포트 정보가 없으면 무시
+		}
+
+		// 1) 레이아웃/활성뷰/스플리터 비율
+		int32 LayoutInt = 0;
+		int32 LoadedActiveIndex = 0;
+		float LoadedSplitterV = 0.5f;
+		float LoadedSplitterH = 0.5f;
+
+		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
+		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 0);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH);
+
+		SetViewportLayout(static_cast<EViewportLayout>(LayoutInt));
+		SetActiveIndex(LoadedActiveIndex);
+		// 내부 비율 값에 적재
+		// 주의: 실제 코드에선 멤버 접근자 사용 권장. 여기에선 IniSaveSharedV/H를 복원해 둡니다.
+		//      PersistSplitterRatios()가 이 값들을 복사해 사용합니다.
+		//      파일 접근 없이 멤버를 직접 만지는 대신 아래 두 라인을 적절히 “설정 함수”로 대체해도 됩니다.
+		//      (현재 코드베이스에는 setter가 없으니 멤버를 그대로 쓰는 패턴을 유지)
+		IniSaveSharedV = LoadedSplitterV;
+		IniSaveSharedH = LoadedSplitterH;
+
+		// 2) 뷰포트 배열
+		JSON ViewportsArray;
+		if (FJsonSerializer::ReadArray(ViewportSystemJson, "Viewports", ViewportsArray))
+		{
+			// 최대 4개 기준
+			const int32 SavedCount = static_cast<int32>(ViewportsArray.size());
+			const int32 ClientCount = static_cast<int32>(Clients.size());
+			const int32 RestoreCount = std::min(SavedCount, ClientCount);
+
+			for (int32 Index = 0; Index < RestoreCount; ++Index)
+			{
+				JSON& ViewportJson = ViewportsArray[Index];
+
+				// View type
+				int32 ViewTypeInt = 0;
+				FJsonSerializer::ReadInt32(ViewportJson, "ViewType", ViewTypeInt, 0);
+
+				if (FViewportClient* Client = Clients[Index])
+				{
+					Client->SetViewType(static_cast<EViewType>(ViewTypeInt));
+
+					// ViewMode(있으면)
+					int32 ViewModeInt = static_cast<int32>(Client->GetViewMode());
+					FJsonSerializer::ReadInt32(ViewportJson, "ViewMode", ViewModeInt, ViewModeInt);
+					Client->SetViewMode(static_cast<EViewModeIndex>(ViewModeInt));
+
+					// Camera
+					if (UCamera* Camera = Client->GetCamera())
+					{
+						JSON CameraJson;
+						if (FJsonSerializer::ReadObject(ViewportJson, "Camera", CameraJson))
+						{
+							int32 CameraTypeInt = static_cast<int32>(Camera->GetCameraType());
+							FJsonSerializer::ReadInt32(CameraJson, "CameraType", CameraTypeInt, CameraTypeInt);
+							Camera->SetCameraType(static_cast<ECameraType>(CameraTypeInt));
+
+							FVector SavedLocation, SavedRotation;
+							FJsonSerializer::ReadVector(CameraJson, "Location", SavedLocation, Camera->GetLocation());
+							FJsonSerializer::ReadVector(CameraJson, "Rotation", SavedRotation, Camera->GetRotation());
+
+							float SavedFovY = Camera->GetFovY();
+							float SavedNearZ = Camera->GetNearZ();
+							float SavedFarZ = Camera->GetFarZ();
+							float SavedOrthoWidth = Camera->GetOrthoWidth();
+							float SavedMoveSpeed = Camera->GetMoveSpeed();
+
+							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY);
+							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ);
+							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ);
+							FJsonSerializer::ReadFloat(CameraJson, "OrthoWidth", SavedOrthoWidth);
+							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed);
+
+							Camera->SetLocation(SavedLocation);
+							Camera->SetRotation(SavedRotation);
+							Camera->SetFovY(SavedFovY);
+							Camera->SetNearZ(SavedNearZ);
+							Camera->SetFarZ(SavedFarZ);
+							Camera->SetOrthoWidth(SavedOrthoWidth);
+							Camera->SetMoveSpeed(SavedMoveSpeed);
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		JSON ViewportSystemJson = json::Object();
+
+		// 1) 레이아웃/활성뷰/스플리터 비율 저장
+		ViewportSystemJson["Layout"] = static_cast<int32>(GetViewportLayout());
+		ViewportSystemJson["ActiveIndex"] = GetActiveIndex();
+		ViewportSystemJson["SplitterV"] = IniSaveSharedV;
+		ViewportSystemJson["SplitterH"] = IniSaveSharedH;
+
+		// 2) 각 뷰포트 상태 저장
+		JSON ViewportsArray = json::Array();
+		const int32 ClientCount = static_cast<int32>(Clients.size());
+		for (int32 Index = 0; Index < ClientCount; ++Index)
+		{
+			FViewportClient* Client = Clients[Index];
+			if (!Client)
+			{
+				continue;
+			}
+
+			JSON ViewportJson = json::Object();
+			ViewportJson["Index"] = Index;
+			ViewportJson["ViewType"] = static_cast<int32>(Client->GetViewType());
+			ViewportJson["ViewMode"] = static_cast<int32>(Client->GetViewMode());
+
+			if (UCamera* Camera = Client->GetCamera())
+			{
+				JSON CameraJson = json::Object();
+				CameraJson["CameraType"] = static_cast<int32>(Camera->GetCameraType());
+				CameraJson["Location"] = FJsonSerializer::VectorToJson(Camera->GetLocation());
+				CameraJson["Rotation"] = FJsonSerializer::VectorToJson(Camera->GetRotation());
+				CameraJson["FovY"] = Camera->GetFovY();
+				CameraJson["NearZ"] = Camera->GetNearZ();
+				CameraJson["FarZ"] = Camera->GetFarZ();
+				CameraJson["OrthoWidth"] = Camera->GetOrthoWidth();
+				CameraJson["MoveSpeed"] = Camera->GetMoveSpeed();
+
+				ViewportJson["Camera"] = CameraJson;
+			}
+
+			ViewportsArray.append(ViewportJson);
+		}
+
+		ViewportSystemJson["Viewports"] = ViewportsArray;
+
+		InOutHandle[ViewportSystemKey] = ViewportSystemJson;
+	}
+
 }

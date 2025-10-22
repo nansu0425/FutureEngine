@@ -102,7 +102,7 @@ public:
 	{
 		return Clients;
 	}
-
+	void SerializeViewports(const bool bInIsLoading, JSON& InOutHandle);
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect

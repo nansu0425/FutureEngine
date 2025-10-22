@@ -14,6 +14,7 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Utility/Public/JsonSerializer.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include <json.hpp>
 
 IMPLEMENT_CLASS(ULevel, UObject)
@@ -49,6 +50,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
 		// TODO: ViewportManager를 통한 카메라 설정 로드 기능 구현 필요
+		// ViewportManager를 통한 카메라/뷰포트 상태 로드
+		UViewportManager& ViewportManager = UViewportManager::GetInstance();
+		ViewportManager.SerializeViewports(true, InOutHandle);
 		// JSON PerspectiveCameraData;
 		// if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
 		// {
@@ -70,7 +74,6 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			}
 		}
 	}
-
 	// 저장
 	else
 	{
@@ -80,7 +83,10 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
 		// TODO: ViewportManager를 통해 모든 ViewportClient의 Camera 설정을 JSON으로 저장하는 기능 구현 필요
 		// InOutHandle["PerspectiveCamera"] = ViewportManager::GetInstance().GetAllCameraSettingsAsJson();
-
+		
+		// ViewportManager를 통한 카메라/뷰포트 상태 저장
+		UViewportManager& ViewportManager = UViewportManager::GetInstance();
+		ViewportManager.SerializeViewports(false, InOutHandle);
 		JSON ActorsJson = json::Object();
 		for (AActor* Actor : LevelActors)
 		{
