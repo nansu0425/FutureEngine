@@ -4,6 +4,9 @@
 #include "Render/UI/Viewport/Public/ViewportClient.h"
 #include "Editor/Public/Editor.h"
 #include "Manager/UI/Public/ViewportManager.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/Path/Public/PathManager.h"
+#include "Texture/Public/Texture.h"
 
 /* *
 * @brief UI에 적용할 색상을 정의합니다.
@@ -31,9 +34,83 @@ UViewportMenuBarWidget::~UViewportMenuBarWidget()
 	Viewport = nullptr;
 }
 
+void UViewportMenuBarWidget::LoadViewIcons()
+{
+	if (bIconsLoaded) return;
+
+	UE_LOG("ViewportMenuBar: 아이콘 로드 시작...");
+	UAssetManager& AssetManager = UAssetManager::GetInstance();
+	UPathManager& PathManager = UPathManager::GetInstance();
+	FString IconBasePath = PathManager.GetAssetPath().string() + "\\Icon\\";
+
+	int32 LoadedCount = 0;
+
+	IconPerspective = AssetManager.LoadTexture(IconBasePath + "ViewPerspective.png");
+	if (IconPerspective) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewPerspective' -> %p", IconPerspective);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewPerspective.png").c_str());
+	}
+
+	IconTop = AssetManager.LoadTexture(IconBasePath + "ViewTop.png");
+	if (IconTop) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewTop' -> %p", IconTop);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewTop.png").c_str());
+	}
+
+	IconBottom = AssetManager.LoadTexture(IconBasePath + "ViewBottom.png");
+	if (IconBottom) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewBottom' -> %p", IconBottom);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewBottom.png").c_str());
+	}
+
+	IconLeft = AssetManager.LoadTexture(IconBasePath + "ViewLeft.png");
+	if (IconLeft) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewLeft' -> %p", IconLeft);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewLeft.png").c_str());
+	}
+
+	IconRight = AssetManager.LoadTexture(IconBasePath + "ViewRight.png");
+	if (IconRight) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewRight' -> %p", IconRight);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewRight.png").c_str());
+	}
+
+	IconFront = AssetManager.LoadTexture(IconBasePath + "ViewFront.png");
+	if (IconFront) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewFront' -> %p", IconFront);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewFront.png").c_str());
+	}
+
+	IconBack = AssetManager.LoadTexture(IconBasePath + "ViewBack.png");
+	if (IconBack) {
+		UE_LOG("ViewportMenuBar: 아이콘 로드 성공: 'ViewBack' -> %p", IconBack);
+		LoadedCount++;
+	} else {
+		UE_LOG_WARNING("ViewportMenuBar: 아이콘 로드 실패: %s", (IconBasePath + "ViewBack.png").c_str());
+	}
+
+	UE_LOG_SUCCESS("ViewportMenuBar: 아이콘 로드 완료 (%d/7)", LoadedCount);
+	bIconsLoaded = true;
+}
+
 void UViewportMenuBarWidget::RenderWidget()
 {
 	if (!Viewport) { return; }
+
+	// 아이콘 로드 (한 번만)
+	LoadViewIcons();
 
 	//TArray<FViewportClient>& ViewportClients = UViewportManager::GetInstance().GetViewportClient();
 	auto& ViewportManager = UViewportManager::GetInstance();
@@ -90,11 +167,37 @@ void UViewportMenuBarWidget::RenderWidget()
 			// 3. 기존의 뷰포트 타입 메뉴 (Perspective, Ortho 등)
 			// KTLWeek07: ViewportClient가 EViewType을 관리
 			EViewType CurrentViewType = ViewportClient->GetViewType();
-			const char* ViewTypeNames[] = { "Perspective", "OrthoTop", "OrthoBottom", "OrthoLeft", "OrthoRight", "OrthoFront", "OrthoBack" };
-			const char* CurrentViewTypeName = (CurrentViewType < EViewType::OrthoBack) ? ViewTypeNames[(int)CurrentViewType] : "Unknown";
+			const char* ViewTypeNames[] = { "Perspective", "Top", "Bottom", "Left", "Right", "Front", "Back" };
+			const char* CurrentViewTypeName = (CurrentViewType <= EViewType::OrthoBack) ? ViewTypeNames[(int)CurrentViewType] : "Unknown";
+
+			// 현재 뷰 타입에 맞는 아이콘 표시
+			UTexture* CurrentIcon = nullptr;
+			switch (CurrentViewType)
+			{
+				case EViewType::Perspective: CurrentIcon = IconPerspective; break;
+				case EViewType::OrthoTop: CurrentIcon = IconTop; break;
+				case EViewType::OrthoBottom: CurrentIcon = IconBottom; break;
+				case EViewType::OrthoLeft: CurrentIcon = IconLeft; break;
+				case EViewType::OrthoRight: CurrentIcon = IconRight; break;
+				case EViewType::OrthoFront: CurrentIcon = IconFront; break;
+				case EViewType::OrthoBack: CurrentIcon = IconBack; break;
+			}
+
+			// 아이콘 표시
+			if (CurrentIcon && CurrentIcon->GetTextureSRV())
+			{
+				ImGui::Image((ImTextureID)CurrentIcon->GetTextureSRV(), ImVec2(16, 16));
+				ImGui::SameLine();
+			}
 
 			if (ImGui::BeginMenu(CurrentViewTypeName))
 			{
+				// Perspective 메뉴 아이템
+				if (IconPerspective && IconPerspective->GetTextureSRV())
+				{
+					ImGui::Image((ImTextureID)IconPerspective->GetTextureSRV(), ImVec2(16, 16));
+					ImGui::SameLine();
+				}
 				if (ImGui::MenuItem("Perspective"))
 				{
 					ViewportClient->SetViewType(EViewType::Perspective);
@@ -103,12 +206,54 @@ void UViewportMenuBarWidget::RenderWidget()
 
 				if (ImGui::BeginMenu("Orthographic"))
 				{
+					// Top
+					if (IconTop && IconTop->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconTop->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Top")) { ViewportClient->SetViewType(EViewType::OrthoTop); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
+					// Bottom
+					if (IconBottom && IconBottom->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconBottom->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Bottom")) { ViewportClient->SetViewType(EViewType::OrthoBottom); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
+					// Left
+					if (IconLeft && IconLeft->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconLeft->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Left")) { ViewportClient->SetViewType(EViewType::OrthoLeft); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
+					// Right
+					if (IconRight && IconRight->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconRight->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Right")) { ViewportClient->SetViewType(EViewType::OrthoRight); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
+					// Front
+					if (IconFront && IconFront->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconFront->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Front")) { ViewportClient->SetViewType(EViewType::OrthoFront); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
+					// Back
+					if (IconBack && IconBack->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconBack->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
 					if (ImGui::MenuItem("Back")) { ViewportClient->SetViewType(EViewType::OrthoBack); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenu();

@@ -37,8 +37,18 @@ void ULevelTabBarWindow::Initialize()
 
     WindowHeight = LevelTabBarWidget->GetLevelBarHeight();
 
-
-    AddWidget(NewObject<UViewportControlWidget>());
+    // ViewportControlWidget 생성 및 초기화
+    UViewportControlWidget* ViewportControlWidget = NewObject<UViewportControlWidget>(this);
+    if (ViewportControlWidget)
+    {
+        ViewportControlWidget->Initialize();
+        AddWidget(ViewportControlWidget);
+        UE_LOG("LevelTabBarWindow: ViewportControlWidget이 생성되고 초기화되었습니다");
+    }
+    else
+    {
+        UE_LOG_WARNING("LevelTabBarWindow: ViewportControlWidget 생성에 실패했습니다!");
+    }
 }
 
 void ULevelTabBarWindow::Cleanup()

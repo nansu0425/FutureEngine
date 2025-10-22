@@ -1,6 +1,8 @@
 #pragma once
 #include "Widget.h"
 
+class UTexture;
+
 
 // UE 스타일 아이콘 타입
 enum class EUEViewportIcon : uint8
@@ -89,6 +91,7 @@ public:
 
 private:
 	void RenderViewportToolbar(int32 ViewportIndex);
+	void LoadViewIcons();
 	//static void RenderSplitterLines();
 	//static void RenderCameraSpeedControl(int32 ViewportIndex);
 	//static void RenderGridSizeControl();
@@ -102,6 +105,27 @@ private:
 	// 현재 레이아웃 상태
 	enum class ELayout : uint8 { Single, Quad };
 	ELayout CurrentLayout = ELayout::Single;
+
+	// View Type 아이콘들
+	UTexture* IconPerspective = nullptr;
+	UTexture* IconTop = nullptr;
+	UTexture* IconBottom = nullptr;
+	UTexture* IconLeft = nullptr;
+	UTexture* IconRight = nullptr;
+	UTexture* IconFront = nullptr;
+	UTexture* IconBack = nullptr;
+	
+	// ViewMode 아이콘
+	UTexture* IconLitCube = nullptr;
+	
+	// 레이아웃 전환 아이콘
+	UTexture* IconQuad = nullptr;
+	UTexture* IconSquare = nullptr;
+	
+	// 카메라 설정 아이콘
+	UTexture* IconCamera = nullptr;
+	
+	bool bIconsLoaded = false;
 };
 
 
