@@ -13,18 +13,22 @@ void ULightComponentBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         float LoadedIntensity = Intensity;
         FVector LoadedColor = LightColor;
         FString VisibleString;
+        FString LightEnabledString;
         FJsonSerializer::ReadFloat(InOutHandle, "Intensity", LoadedIntensity);
         FJsonSerializer::ReadVector(InOutHandle, "LightColor", LoadedColor);
         FJsonSerializer::ReadString(InOutHandle, "bVisible", VisibleString, "true");
+        FJsonSerializer::ReadString(InOutHandle, "bLightEnabled", LightEnabledString, "true");
         SetIntensity(LoadedIntensity);
         SetLightColor(LoadedColor);
         SetVisible(VisibleString == "true");
+        SetLightEnabled(LightEnabledString == "true");
     }
     else
     {
         InOutHandle["Intensity"] = Intensity;
         InOutHandle["LightColor"] = FJsonSerializer::VectorToJson(LightColor);
         InOutHandle["bVisible"] = GetVisible() ? "true" : "false";
+        InOutHandle["bLightEnabled"] = GetLightEnabled() ? "true" : "false";
     }
 }
 
@@ -34,6 +38,7 @@ UObject* ULightComponentBase::Duplicate()
     LightComponentBase->Intensity = Intensity;
     LightComponentBase->LightColor = LightColor;
     LightComponentBase->bVisible = bVisible;
+    LightComponentBase->bLightEnabled = bLightEnabled;
     return LightComponentBase;
 }
 

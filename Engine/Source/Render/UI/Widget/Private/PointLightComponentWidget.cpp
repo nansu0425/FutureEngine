@@ -38,7 +38,16 @@ void UPointLightComponentWidget::RenderWidget()
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-
+	// 라이트 활성화 체크박스
+    bool LightEnabled = PointLightComponent->GetLightEnabled();
+    if (ImGui::Checkbox("Light Enabled", &LightEnabled))
+    {
+        PointLightComponent->SetLightEnabled(LightEnabled);
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("라이트를 켜고 끕니다.\n끄면 조명 계산에서 제외됩니다.\n(Outliner O/X와는 별개)");
+    }
     // Light Color
     FVector LightColor = PointLightComponent->GetLightColor();
     if (ImGui::ColorEdit3("Light Color", &LightColor.X))

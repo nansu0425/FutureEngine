@@ -61,7 +61,8 @@ public:
     
     void SetVisible(bool InVisible) { bVisible = InVisible; }
     
-    
+    bool GetLightEnabled() const { return bLightEnabled; }
+    void SetLightEnabled(bool InEnabled) { bLightEnabled = InEnabled; }
 
 protected:
     /** Total energy that the light emits. */
@@ -74,4 +75,5 @@ protected:
     FVector LightColor = { 1.0f, 1.0f, 1.0f };
 
     bool bVisible = true;
+    bool bLightEnabled = true; // 조명 계산 포함 여부 (Outliner Visible과 독립)
 };

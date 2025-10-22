@@ -73,7 +73,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 		UAmbientLightComponent* VisibleAmbient = nullptr;
 		for (UAmbientLightComponent* Ambient : Context.AmbientLights)
 		{
-			if (Ambient != nullptr && Ambient->GetVisible())
+			if (Ambient != nullptr && Ambient->GetVisible() && Ambient->GetLightEnabled())
 			{
 				VisibleAmbient = Ambient;
 				break;
@@ -90,7 +90,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 		UDirectionalLightComponent* VisibleDirectional = nullptr;
 		for (UDirectionalLightComponent* Directional : Context.DirectionalLights)
 		{
-			if (Directional != nullptr && Directional->GetVisible())
+			if (Directional != nullptr && Directional->GetVisible() && Directional->GetLightEnabled())
 			{
 				VisibleDirectional = Directional;
 				break;
@@ -108,7 +108,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	for (int32 i = 0; i < PointLightComponentCount; ++i)
 	{
 		UPointLightComponent* Light = Context.PointLights[i];
-		if (!Light || !Light->GetVisible()) continue;
+		if (!Light || !Light->GetVisible() || !Light->GetLightEnabled()) continue;
 		PointLightDatas.push_back(Light->GetPointlightInfo());
 	}
 	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
@@ -118,7 +118,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	for (int32 i = 0; i < SpotLightComponentCount; ++i)
 	{
 		USpotLightComponent* Light = Context.SpotLights[i];
-		if (!Light->GetVisible()) continue;
+		if (!Light || !Light->GetVisible() || !Light->GetLightEnabled()) continue;
 		SpotLightDatas.push_back(Light->GetSpotLightInfo());
 	}
 
