@@ -113,13 +113,23 @@ void main( uint3 DTid : SV_DispatchThreadID )
     for (int i = 0; (i < SpotLightCount) && (IncludeLightCount < LightMaxCountPerCluster); i++)
     {
         FSpotLightInfo SpotLightInfo = SpotLightInfos[i];
-        //float4 LightViewPos = mul(float4(SpotLightInfo.Position, 1), ViewMatrix);
-        //if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, SpotLightInfo.Range))
-        if (IntersectAABBSpotLight(CurAABB.Min, CurAABB.Max, i))
+        if (SpotLightIntersectOption == 0)
         {
-            SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;
-            IncludeLightCount++;
+            if (IntersectAABBSpotLight(CurAABB.Min, CurAABB.Max, i))
+            {
+                SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;
+                IncludeLightCount++;
+            }
         }
+        else
+        {
+            float4 LightViewPos = mul(float4(SpotLightInfo.Position, 1), ViewMatrix);
+            if (IntersectAABBSphere(CurAABB.Min, CurAABB.Max, LightViewPos.xyz, SpotLightInfo.Range))
+            {
+                SpotLightIndices[LightIndicesOffset + IncludeLightCount] = i;
+                IncludeLightCount++;
+            }
+        }  
     }
     
     for (uint i = IncludeLightCount; i < LightMaxCountPerCluster; i++)

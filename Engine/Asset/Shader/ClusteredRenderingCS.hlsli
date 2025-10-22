@@ -53,6 +53,8 @@ cbuffer ClusterSliceInfo : register(b1)
     uint ClusterSliceNumY;
     uint ClusterSliceNumZ;
     uint LightMaxCountPerCluster;
+    uint SpotLightIntersectOption;
+    uint3 ClusterSliceInfo_padding;
 };
 cbuffer LightCountInfo : register(b2)
 {

@@ -115,6 +115,11 @@ void UFPSWidget::RenderWidget()
 	{
 		LightPass->SetClusterGizmoRender(bRenderClusterGizmo);
 	}
+	bool bSpotIntersectOpti = LightPass->GetSpotIntersectType();
+	if (ImGui::Checkbox("SpotIntersectOpti", &bSpotIntersectOpti))
+	{
+		LightPass->SetSpotIntersectType(bSpotIntersectOpti);
+	}
 
 	FClusteredRenderingGridPass* ClusteredRenderingGridPass = URenderer::GetInstance().GetClusteredRenderingGridPass();
 	bool bClusteredRenderingGriddRender = ClusteredRenderingGridPass->GetClusteredRenderginGridRender();

@@ -18,8 +18,8 @@ struct FClusterSliceInfo
 	uint32 ClusterSliceNumY;
 	uint32 ClusterSliceNumZ;
 	uint32 LightMaxCountPerCluster;
-	//uint32 SpotIntersectType;
-	//FVector Padding;
+	uint32 SpotLightIntersectOption;
+	FVector padding;
 };
 struct FLightCountInfo
 {
@@ -51,6 +51,11 @@ public:
 	void SetClusterGizmoRender(bool b)
 	{
 		bRenderClusterGizmo = b;
+	}
+	bool GetSpotIntersectType() const { return bSpotIntersectOpti; }
+	void SetSpotIntersectType(bool b)
+	{
+		bSpotIntersectOpti = b;
 	}
 
 private:
@@ -101,6 +106,7 @@ private:
 
 	bool bRenderClusterGizmo = false;
 	bool bClusterGizmoSet = false;
+	bool bSpotIntersectOpti = true;
 
 
 

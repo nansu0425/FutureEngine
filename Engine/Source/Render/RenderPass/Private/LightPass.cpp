@@ -161,7 +161,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FRenderResourceFactory::UpdateConstantBufferData(ViewClusterInfoConstantBuffer,
 		FViewClusterInfo{ ProjectionInv, ViewInv, ViewMatrix, CamNear,CamFar,Aspect,fov});
 	FRenderResourceFactory::UpdateConstantBufferData(ClusterSliceInfoConstantBuffer,
-		FClusterSliceInfo{ ClusterSliceNumX, ClusterSliceNumY,ClusterSliceNumZ,LightMaxCountPerCluster });
+		FClusterSliceInfo{ ClusterSliceNumX, ClusterSliceNumY,ClusterSliceNumZ,LightMaxCountPerCluster,bSpotIntersectOpti });
 	FRenderResourceFactory::UpdateConstantBufferData(LightCountInfoConstantBuffer,
 		FLightCountInfo{ PointLightCount, SpotLightCount });
 	Pipeline->SetConstantBuffer(0, EShaderType::CS, ViewClusterInfoConstantBuffer);
