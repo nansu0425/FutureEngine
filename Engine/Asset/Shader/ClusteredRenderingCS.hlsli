@@ -1,31 +1,7 @@
+#include "LightStructures.hlsli"
 #define DEGREE_TO_RADIAN (3.141592f / 180.0f)
 #define THREAD_NUM 128
-struct FPointLightInfo
-{
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-    float2 padding;
-};
 
-//StructuredBuffer padding 없어도됨
-struct FSpotLightInfo
-{
-	// Point Light와 공유하는 속성 (필드 순서 맞춤)
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-
-	// SpotLight 고유 속성
-    float InnerConeAngle;
-    float OuterConeAngle;
-    float AngleFalloffExponent;
-    float3 Direction;
-};
 struct FGizmoVertex
 {
     float3 Pos;

@@ -6,51 +6,13 @@
 // normalize 대신 SafeNormalize 함수를 사용하세요.
 // normalize에는 영벡터 입력시 NaN이 발생할 수 있습니다. (div by zero 가드가 없음)
 // =============================================================================
-
+#include "LightStructures.hlsli"
 
 #define NUM_POINT_LIGHT 8
 #define NUM_SPOT_LIGHT 8
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
 static const float PI = 3.14159265f;
-
-// Light Structure Definitions
-struct FAmbientLightInfo
-{
-    float4 Color;
-    float Intensity;
-    float3 Padding;
-};
-
-struct FDirectionalLightInfo
-{
-    float4 Color;
-    float3 Direction;
-    float Intensity;
-};
-
-struct FPointLightInfo
-{
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-    float2 Padding;
-};
-
-struct FSpotLightInfo
-{
-    float4 Color;
-    float3 Position;
-    float Intensity;
-    float Range;
-    float DistanceFalloffExponent;
-    float InnerConeAngle;
-    float OuterConeAngle;
-    float AngleFalloffExponent;
-    float3 Direction;
-};
 
 // reflectance와 곱해지기 전
 // 표면에 도달한 빛의 조명 기여량

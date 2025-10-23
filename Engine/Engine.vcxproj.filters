@@ -46,6 +46,9 @@
     <FxCompile Include="Asset\Shader\TextureVS.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Asset\Shader\ViewClusterCS.hlsl">
+      <Filter>Asset\Shader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp">
@@ -1006,10 +1009,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Asset\Shader\ClusteredRendering.hlsl">
+    <None Include="Asset\Shader\ClusteredRenderingCS.hlsli">
       <Filter>Asset\Shader</Filter>
     </None>
-    <None Include="Asset\Shader\ClusteredRenderingCS.hlsli">
+    <None Include="Asset\Shader\LightStructures.hlsli">
       <Filter>Asset\Shader</Filter>
     </None>
   </ItemGroup>
