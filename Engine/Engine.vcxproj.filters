@@ -503,6 +503,9 @@
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp">
       <Filter>Source\Optimization\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\Shadow\Private\ShadowMapResources.cpp">
+      <Filter>Source\Render\Shadow\Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Global\BVH.h">
@@ -1007,6 +1010,9 @@
     <ClInclude Include="Source\Optimization\Public\ViewVolumeCuller.h">
       <Filter>Source\Optimization\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\Shadow\Public\ShadowMapResources.h">
+      <Filter>Source\Render\Shadow\Public</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\ClusteredRenderingCS.hlsli">
@@ -1265,6 +1271,15 @@
     </Filter>
     <Filter Include="Source\Optimization\Private">
       <UniqueIdentifier>{ba726c8f-3f6b-4f0f-a75e-e05349c1fd52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow">
+      <UniqueIdentifier>{475b619e-37d2-4bdc-bac1-e1bc1bbb75dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow\Public">
+      <UniqueIdentifier>{718f41e6-6c18-4d43-8862-ba83015f67aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow\Private">
+      <UniqueIdentifier>{1f5be01f-9b19-4169-b96b-6d5b19d503a4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
