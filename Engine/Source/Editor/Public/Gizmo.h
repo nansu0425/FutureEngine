@@ -66,18 +66,18 @@ public:
 	/* *
 	* @brief Getter
 	*/
-	const float GetTranslateScale() const { return TranslateCollisionConfig.Scale; }
-	const float GetRotateScale() const { return RotateCollisionConfig.Scale; }
-	const EGizmoDirection GetGizmoDirection() { return GizmoDirection; }
-	const FVector& GetGizmoLocation() { return Primitives[(int)GizmoMode].Location; }
-	const FVector& GetComponentRotation() { return TargetComponent->GetWorldRotation(); }
-	const FVector& GetComponentScale() { return TargetComponent->GetWorldScale3D(); }
-	const FVector& GetDragStartMouseLocation() { return DragStartMouseLocation; }
-	const FVector& GetDragStartActorLocation() { return DragStartActorLocation; }
-	const FVector& GetDragStartActorRotation() { return DragStartActorRotation; }
-	const FVector& GetDragStartActorScale() { return DragStartActorScale; }
-	const EGizmoMode GetGizmoMode() { return GizmoMode; }
-	const FVector GetGizmoAxis() {
+	float GetTranslateScale() const { return TranslateCollisionConfig.Scale; }
+	float GetRotateScale() const { return RotateCollisionConfig.Scale; }
+	EGizmoDirection GetGizmoDirection() { return GizmoDirection; }
+	FVector GetGizmoLocation() { return Primitives[(int)GizmoMode].Location; }
+	FVector GetComponentRotation() { return TargetComponent->GetWorldRotation(); }
+	FVector GetComponentScale() { return TargetComponent->GetWorldScale3D(); }
+	FVector GetDragStartMouseLocation() { return DragStartMouseLocation; }
+	FVector GetDragStartActorLocation() { return DragStartActorLocation; }
+	FVector GetDragStartActorRotation() { return DragStartActorRotation; }
+	FVector GetDragStartActorScale() { return DragStartActorScale; }
+	EGizmoMode GetGizmoMode() { return GizmoMode; }
+	FVector GetGizmoAxis() {
 		FVector Axis[3]{ {1,0,0},{0,1,0},{0,0,1} }; return Axis[AxisIndex(GizmoDirection)];
 	}
 

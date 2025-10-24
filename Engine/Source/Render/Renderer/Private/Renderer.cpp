@@ -924,6 +924,8 @@ ID3D11VertexShader* URenderer::GetVertexShader(EViewModeIndex ViewModeIndex) con
 	{
 		return TextureVertexShader;
 	}
+
+	return nullptr;
 }
 
 ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
@@ -948,6 +950,8 @@ ID3D11PixelShader* URenderer::GetPixelShader(EViewModeIndex ViewModeIndex) const
 	{
 		return UberLitPixelShaderWorldNormal;
 	}
+
+	return nullptr;
 }
 
 void URenderer::CreateConstantBuffers()

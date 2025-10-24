@@ -92,7 +92,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 		if (MeshAsset->MaterialInfo.empty() || MeshComp->GetStaticMesh()->GetNumMaterials() == 0) 
 		{
-			Pipeline->DrawIndexed(MeshAsset->Indices.size(), 0, 0);
+			Pipeline->DrawIndexed(static_cast<uint32>(MeshAsset->Indices.size()), 0, 0);
 			continue;
 		}
 

@@ -91,7 +91,7 @@ void USceneHierarchyWidget::RenderWidget()
 		{
 			// 검색어가 없으면 모든 Actor 표시
 			ImGuiListClipper clipper;
-			clipper.Begin(LevelActors.size());
+			clipper.Begin(static_cast<int>(LevelActors.size()));
 			while (clipper.Step())
 			{
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -107,7 +107,7 @@ void USceneHierarchyWidget::RenderWidget()
 		{
 			// 필터링된 Actor들만 표시
 			ImGuiListClipper clipper;
-			clipper.Begin(FilteredIndices.size());
+			clipper.Begin(static_cast<int>(FilteredIndices.size()));
 			while (clipper.Step())
 			{
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)

@@ -4,7 +4,6 @@
 class UClass;
 class UBillBoardComponent;
 
-UClass;
 class USpriteSelectionWidget : public UWidget
 {
 	GENERATED_BODY()

@@ -129,7 +129,8 @@ void UViewportManager::Update()
 	}
 
 	// 91px height
-	const int MenuAndLevelHeight = UMainMenuWindow::GetInstance().GetMenuBarHeight() + ULevelTabBarWindow::GetInstance().GetLevelBarHeight() - 12;
+	const int MenuAndLevelHeight = static_cast<int>(UMainMenuWindow::GetInstance().GetMenuBarHeight()) + 
+		static_cast<int>(ULevelTabBarWindow::GetInstance().GetLevelBarHeight()) - 12;
 
 	// ActiveViewportRect는 실제로 렌더링이 될 영역의 뷰포트 입니다
 	const int32 RightPanelWidth = static_cast<int32>(UUIManager::GetInstance().GetRightPanelWidth());

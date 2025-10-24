@@ -121,7 +121,9 @@ void UFPSWidget::RenderWidget()
 		LightPass->SetSpotIntersectType(bSpotIntersectOpti);
 	}
 
-	int ClusterSlice[3] = { LightPass->GetClusterSliceNumX(),LightPass->GetClusterSliceNumY(),LightPass->GetClusterSliceNumZ() };
+	int ClusterSlice[3] = { static_cast<int>(LightPass->GetClusterSliceNumX()),
+							static_cast<int>(LightPass->GetClusterSliceNumY()),
+							static_cast<int>(LightPass->GetClusterSliceNumZ()) };
 	if (ImGui::DragInt3("ClusterSliceNum", &ClusterSlice[0], 1, 1, 32))
 	{
 		LightPass->SetClusterSliceNumX(ClusterSlice[0]);

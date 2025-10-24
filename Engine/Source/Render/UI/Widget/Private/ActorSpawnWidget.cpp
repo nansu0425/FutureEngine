@@ -40,7 +40,7 @@ void UActorSpawnWidget::RenderWidget()
 		"##ActorType",
 		&SelectedActorClassIndex,
 		Names.data(),
-		Names.size()
+		static_cast<int>(Names.size())
 	);
 	
 	// Spawn 버튼과 개수 입력

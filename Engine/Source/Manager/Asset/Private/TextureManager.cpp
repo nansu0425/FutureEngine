@@ -37,7 +37,7 @@ UTexture* FTextureManager::LoadTexture(const FName& InFilePath)
         path CanonicalPath = canonical(AbsolutePath);
         RelativeKeyPath = relative(CanonicalPath, RootPath);
     }
-    catch (const filesystem::filesystem_error& Error)
+    catch (const filesystem::filesystem_error&)
     {
         RelativeKeyPath = InputPath;
     }
