@@ -58,9 +58,7 @@ void ULevelTabBarWidget::Initialize()
 	}
 }
 
-ULevelTabBarWidget::~ULevelTabBarWidget()
-{
-}
+ULevelTabBarWidget::~ULevelTabBarWidget() = default;
 
 void ULevelTabBarWidget::Update()
 {
@@ -77,9 +75,7 @@ void ULevelTabBarWidget::RenderWidget()
 	// ② 탭 스트립 높이
 	// 36의 높이를 가지고 있음
 
-
 	const float leftGap = 60.0f; // 원하는 틈(px)
-
 
 	// 화면(메인 뷰) 기준으로 절대 배치
 	const ImVec2 screenSize = ImGui::GetIO().DisplaySize;
@@ -196,7 +192,7 @@ void ULevelTabBarWidget::RenderWidget()
 		const ImVec4 colBtnActive = ImVec4(0.28f, 0.28f, 0.30f, 1.0f);
 		const ImU32 separatorColor = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_Separator));
 
-		auto IconButton = [&](const char* id, ID3D11ShaderResourceView* srv, const char* tooltip) -> bool
+		auto IconButton = [&](const char* id, ID3D11ShaderResourceView* srv, const char* tooltip, bool bEnabled = true, ImVec4 tintColor = ImVec4(1, 1, 1, 1)) -> bool
 			{
 				if (!srv) return ImGui::Button(id, ImVec2(30, 30));
 
@@ -204,8 +200,8 @@ void ULevelTabBarWidget::RenderWidget()
 				ImTextureRef tex_ref = (ImTextureRef)srv;  // 혹은 ImTextureRef(texID) 등
 
 				ImGui::PushStyleColor(ImGuiCol_Button, colBtn);
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colBtnHover);
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, colBtnActive);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bEnabled ? colBtnHover : colBtn);
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, bEnabled ? colBtnActive : colBtn);
 
 				// 네 시그니처에 정확히 맞춰 호출
 				bool clicked = ImGui::ImageButton(
@@ -215,14 +211,14 @@ void ULevelTabBarWidget::RenderWidget()
 					ImVec2(0, 0),           // uv0
 					ImVec2(1, 1),           // uv1
 					ImVec4(0, 0, 0, 0),     // bg_col (투명 배경, 필요시 colBtn로 변경)
-					ImVec4(1, 1, 1, 1)      // tint_col (흰색 = 원본 그대로)
+					tintColor               // tint_col (색상 틴트)
 				);
 
 				if (ImGui::IsItemHovered() && tooltip)
 					ImGui::SetTooltip("%s", tooltip);
 
 				ImGui::PopStyleColor(3);
-				return clicked;
+				return bEnabled ? clicked : false;
 			};
 
 		// --- 버튼들 ---
@@ -350,14 +346,23 @@ void ULevelTabBarWidget::RenderWidget()
 
 		ToolbarVSeparator(10.0f, 6.0f, 6.0f, 1.0f, separatorColor, 5.0f);
 
-		if (IconButton("##btn_StartPIE", PlayPIEIconSRV.Get(), "Play PIE"))
+		// PIE 세션이 활성화되어 있지 않을 때: 초록 재생 + 회색 정지
+		if (!GEditor || !GEditor->IsPIESessionActive())
 		{
-			StartPIE();
+			// 초록색 재생 버튼
+			if (IconButton("##btn_StartPIE", PlayPIEIconSRV.Get(), "Play PIE", true, ImVec4(0.3f, 1.0f, 0.3f, 1.0f)))
+			{
+				StartPIE();
+			}
+
+			ImGui::SameLine(0.0f, 10.0f);
+
+			// 회색 정지 버튼 (비활성)
+			IconButton("##btn_StopPIE_Disabled", StopPIEIconSRV.Get(), "Stop PIE (Not Playing)", false, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
 		}
-		ImGui::SameLine(0.0f, 10.0f);
-		
-		// Pause/Resume 버튼: PIE가 실행 중일 때만 표시
-		if (GEditor && GEditor->IsPIESessionActive())
+
+		// PIE 세션이 활성화되어 있을 때: 일시정지/재개 + 빨간 정지
+		else
 		{
 			// PIE 상태에 따라 Pause 또는 Resume 버튼 표시
 			if (GEditor->GetPIEState() == EPIEState::Playing)
@@ -369,17 +374,20 @@ void ULevelTabBarWidget::RenderWidget()
 			}
 			else if (GEditor->GetPIEState() == EPIEState::Paused)
 			{
-				if (IconButton("##btn_ResumePIE", PlayPIEIconSRV.Get(), "Resume PIE"))
+				// 재개 버튼
+				if (IconButton("##btn_ResumePIE", PlayPIEIconSRV.Get(), "Resume PIE", true, ImVec4(0.3f, 1.0f, 0.3f, 1.0f)))
 				{
 					ResumePIE();
 				}
 			}
-			ImGui::SameLine(0.0f, 10.0f);
-		}
 
-		if (IconButton("##btn_StopPIE", StopPIEIconSRV.Get(), "Stop PIE"))
-		{
-			EndPIE();
+			ImGui::SameLine(0.0f, 10.0f);
+
+			// 정지 버튼
+			if (IconButton("##btn_StopPIE", StopPIEIconSRV.Get(), "Stop PIE", true, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)))
+			{
+				EndPIE();
+			}
 		}
 
 		ToolbarVSeparator(10.0f, 6.0f, 6.0f, 1.0f, separatorColor, 5.0f);
