@@ -25,6 +25,7 @@
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Render/RenderPass/Public/LightPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
+#include "Render/RenderPass/Public/ShadowMapPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/Renderer/Public/Renderer.h"
@@ -62,8 +63,13 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateStaticMeshShader();
 	CreateGizmoShader();
 	CreateClusteredRenderingGrid();
+	CreateDepthOnlyShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
+
+	ShadowMapPass = new FShadowMapPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+		DepthOnlyShader, DepthOnlyInputLayout);
+	RenderPasses.push_back(ShadowMapPass);
 
 	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
 	RenderPasses.push_back(LightPass);
@@ -186,6 +192,21 @@ void URenderer::CreateSamplerState()
 	samplerDesc.MinLOD = 0;
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	GetDevice()->CreateSamplerState(&samplerDesc, &DefaultSampler);
+
+	// Comparison sampler for shadow mapping (PCF)
+	D3D11_SAMPLER_DESC shadowSamplerDesc = {};
+	shadowSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;  // PCF filtering
+	shadowSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSamplerDesc.BorderColor[0] = 1.0f;  // Outside shadow map = fully lit
+	shadowSamplerDesc.BorderColor[1] = 1.0f;
+	shadowSamplerDesc.BorderColor[2] = 1.0f;
+	shadowSamplerDesc.BorderColor[3] = 1.0f;
+	shadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;  // Shadow test
+	shadowSamplerDesc.MinLOD = 0;
+	shadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	GetDevice()->CreateSamplerState(&shadowSamplerDesc, &ShadowComparisonSampler);
 }
 
 void URenderer::RegisterShaderReloadCache(const std::filesystem::path& ShaderPath, ShaderUsage Usage)
@@ -391,6 +412,27 @@ void URenderer::CreateClusteredRenderingGrid()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::CLUSTERED_RENDERING_GRID);
 }
 
+void URenderer::CreateDepthOnlyShader()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/DepthOnlyVS.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	// Depth-only VS uses FNormalVertex layout (same as UberLit)
+	TArray<D3D11_INPUT_ELEMENT_DESC> InputLayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, InputLayout, &DepthOnlyShader, &DepthOnlyInputLayout);
+	// No pixel shader needed for depth-only rendering
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -593,6 +635,9 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(ClusteredRenderingGridInputLayout);
 	SafeRelease(ClusteredRenderingGridVS);
 	SafeRelease(ClusteredRenderingGridPS);
+
+	SafeRelease(DepthOnlyShader);
+	SafeRelease(DepthOnlyInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -616,6 +661,7 @@ void URenderer::ReleaseSamplerState()
 {
 	SafeRelease(FXAASamplerState);
 	SafeRelease(DefaultSampler);
+	SafeRelease(ShadowComparisonSampler);
 }
 
 void URenderer::Update()

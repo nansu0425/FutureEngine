@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Render/Shadow/Public/ShadowMapResources.h"
+#include "Texture/Public/ShadowMapResources.h"
 #include <stdexcept>
 
 // =============================================================================

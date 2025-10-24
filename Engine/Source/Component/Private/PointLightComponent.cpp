@@ -91,6 +91,7 @@ FPointLightInfo UPointLightComponent::GetPointlightInfo() const
 	Info.ShadowBias = GetShadowBias();
 	Info.ShadowSlopeBias = GetShadowSlopeBias();
 	Info.ShadowSharpen = GetShadowSharpen();
+	Info.Padding = FVector2(0.0f, 0.0f);  // Padding for 16-byte alignment
 
 	return Info;
 }

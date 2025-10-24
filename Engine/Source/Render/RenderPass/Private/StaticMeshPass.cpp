@@ -4,6 +4,9 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Texture/Public/Texture.h"
+#include "Render/RenderPass/Public/ShadowMapPass.h"
+#include "Component/Public/DirectionalLightComponent.h"
+#include "Texture/Public/ShadowMapResources.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
@@ -34,6 +37,24 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 
 	// Set a default sampler to slot 0 to ensure one is always bound
 	Pipeline->SetSamplerState(0, EShaderType::PS, URenderer::GetInstance().GetDefaultSampler());
+
+	// Bind shadow map and comparison sampler (s1 slot, t10 slot)
+	Pipeline->SetSamplerState(1, EShaderType::PS, Renderer.GetShadowComparisonSampler());
+
+	// Bind directional light shadow map if available
+	if (!Context.DirectionalLights.empty() && Context.DirectionalLights[0]->GetCastShadows())
+	{
+		UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
+		FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
+		if (ShadowPass)
+		{
+			FShadowMapResource* ShadowMap = ShadowPass->GetDirectionalShadowMap(DirLight);
+			if (ShadowMap && ShadowMap->IsValid())
+			{
+				Pipeline->SetShaderResourceView(10, EShaderType::PS, ShadowMap->ShadowSRV.Get());
+			}
+		}
+	}
 
 	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 	Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferCamera);

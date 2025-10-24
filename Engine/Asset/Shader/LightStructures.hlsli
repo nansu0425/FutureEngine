@@ -35,6 +35,7 @@ struct FPointLightInfo
     float ShadowBias;
     float ShadowSlopeBias;
     float ShadowSharpen;
+    float2 Padding;  // 8 bytes padding for 16-byte alignment (C++ FVector4 alignment)
 };
 
 struct FSpotLightInfo

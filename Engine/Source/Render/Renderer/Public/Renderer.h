@@ -15,6 +15,7 @@ class FViewportClient;
 class FFXAAPass;
 class FLightPass;
 class FClusteredRenderingGridPass;
+class FShadowMapPass;
 
 // URenderer 내부에서 셰이더들은 용도에 따라 분류될 수 있음.
 // 용도별로 Create Shader 메소드가 존재함. (e.g. CreateStaticmeshShader)
@@ -27,7 +28,8 @@ enum class ShaderUsage
 	FXAA,
 	STATICMESH,
 	GIZMO,
-	CLUSTERED_RENDERING_GRID
+	CLUSTERED_RENDERING_GRID,
+	SHADOWMAP
 };
 
 
@@ -57,6 +59,7 @@ public:
 	void CreateStaticMeshShader();
 	void CreateGizmoShader();
 	void CreateClusteredRenderingGrid();
+	void CreateDepthOnlyShader();
 
 	// HotReload
 	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
@@ -86,6 +89,7 @@ public:
 	IDXGISwapChain* GetSwapChain() const { return DeviceResources->GetSwapChain(); }
 	
 	ID3D11SamplerState* GetDefaultSampler() const { return DefaultSampler; }
+	ID3D11SamplerState* GetShadowComparisonSampler() const { return ShadowComparisonSampler; }
 	ID3D11ShaderResourceView* GetDepthSRV() const { return DeviceResources->GetDepthStencilSRV(); }
 	
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
@@ -110,6 +114,7 @@ public:
 
 	FLightPass* GetLightPass() { return LightPass; }
 	FClusteredRenderingGridPass* GetClusteredRenderingGridPass() { return ClusteredRenderingGridPass; }
+	FShadowMapPass* GetShadowMapPass() const { return ShadowMapPass; }
 
 private:
 	/*
@@ -180,6 +185,11 @@ private:
 	ID3D11PixelShader* FogPixelShader = nullptr;
 	ID3D11InputLayout* FogInputLayout = nullptr;
 	ID3D11SamplerState* DefaultSampler = nullptr;
+	ID3D11SamplerState* ShadowComparisonSampler = nullptr;
+
+	// Shadow Map Shaders
+	ID3D11VertexShader* DepthOnlyShader = nullptr;
+	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
 	
 	uint32 Stride = 0;
 
@@ -193,6 +203,7 @@ private:
 	FFXAAPass* FXAAPass = nullptr;
 	FLightPass* LightPass = nullptr;
 	FClusteredRenderingGridPass* ClusteredRenderingGridPass = nullptr;
+	FShadowMapPass* ShadowMapPass = nullptr;
 
 	// For Hot Reloading Shaders
 	TMap<std::wstring, TSet<ShaderUsage>> ShaderFileUsageMap;

@@ -151,7 +151,11 @@ Texture2D NormalTexture : register(t3);
 Texture2D AlphaTexture : register(t4);
 Texture2D BumpTexture : register(t5);
 
+// Shadow Maps
+Texture2D DirectionalShadowMap : register(t10);
+
 SamplerState SamplerWrap : register(s0);
+SamplerComparisonState ShadowSampler : register(s1);
 
 // Material flags
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
@@ -245,6 +249,60 @@ float3x3 Inverse3x3(float3x3 M)
     return inv;
 }
 
+// Shadow Calculation Functions
+float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+        return 1.0f;
+
+    // Transform world position to light space
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+
+    // Perspective divide (to NDC space)
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    // Check if position is outside light frustum
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    // Convert NDC to texture coordinates ([-1,1] -> [0,1])
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
+
+    // Current pixel depth in light space
+    float CurrentDepth = LightSpacePos.z;
+
+    // PCF (Percentage Closer Filtering) for soft shadows
+    float ShadowFactor = 0.0f;
+    float2 TexelSize = 1.0f / float2(2048.0f, 2048.0f); // Shadow map resolution
+
+    // 3x3 PCF kernel
+    [unroll]
+    for (int x = -1; x <= 1; x++)
+    {
+        [unroll]
+        for (int y = -1; y <= 1; y++)
+        {
+            float2 Offset = float2(x, y) * TexelSize;
+            ShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                ShadowTexCoord + Offset,
+                CurrentDepth
+            );
+        }
+    }
+
+    ShadowFactor /= 9.0f; // Average of 9 samples
+
+    return ShadowFactor;
+}
+
 // Lighting Calculation Functions
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
@@ -254,28 +312,31 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
 FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
     FIllumination Result = (FIllumination) 0;
-    
+
     // LightDir 또는 WorldNormal이 영벡터면 결과도 전부 영벡터가 되므로 계산 종료 (Nan 방어 코드도 겸함)
     if (dot(Info.Direction, Info.Direction) < 1e-12 || dot(WorldNormal, WorldNormal) < 1e-12)
         return Result;
-    
+
     float3 LightDir = SafeNormalize3(-Info.Direction);
     float NdotL = saturate(dot(WorldNormal, LightDir));
-    
-    // diffuse illumination
-    Result.Diffuse = Info.Color * Info.Intensity * NdotL;
-    
+
+    // Calculate shadow factor (0 = shadow, 1 = lit)
+    float ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+
+    // diffuse illumination (affected by shadow)
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * ShadowFactor;
+
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
-    // Specular (Blinn-Phong)
+    // Specular (Blinn-Phong) - also affected by shadow
     float3 WorldToCameraVector = SafeNormalize3(ViewPos - WorldPos); // 영벡터면 결과적으로 LightDir와 같은 셈이 됨
     float3 WorldToLightVector = LightDir;
-    
+
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec;
+    Result.Specular = Info.Color * Info.Intensity * Spec * ShadowFactor;
 #endif
-    
+
     return Result;
 }
 
