@@ -634,7 +634,13 @@ void URenderer::Update()
 
     for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
     {
-        if (Viewport->GetRect().Width < 1.0f || Viewport->GetRect().Height < 1.0f) { continue; }
+    	// TODO(KHJ): 해당 해결책은 근본적인 해결법이 아니며 실제 Viewport 세팅의 문제를 확인할 필요가 있음
+    	// 너무 작은 뷰포트는 건너뛰기 (애니메이션 중 artefact 방지)
+		// 50픽셀 미만의 뷰포트는 렌더링하지 않음
+		if (Viewport->GetRect().Width < 50 || Viewport->GetRect().Height < 50)
+		{
+			continue;
+		}
 
     	FRect SingleWindowRect = Viewport->GetRect();
     	const int32 ViewportToolBarHeight = 32;
