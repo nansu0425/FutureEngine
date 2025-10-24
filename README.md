@@ -1,5 +1,6 @@
-# Week7 Team3 (김호민, 신동민, 정찬호, 최진혁) 기술문서
+# Week8 Team5 (김희준, 이준용, 허준, 홍신화) 기술문서
 
+<!--
 ## 1. 개요
 
 본 문서는 KTL 엔진에 구현된 조명(Lighting) 시스템의 기술적 사양과 아키텍처를 설명합니다.
@@ -705,3 +706,4 @@ Pipeline->DispatchCS(ViewClusterCS, ThreadGroupCount, 1, 1);
 | Cluster Y Slices | 16 | > 0 | 화면 Y축 분할 수 |
 | Cluster Z Slices | 32 | > 0 | 깊이 분할 수 (로그 스케일) |
 | Max Lights Per Cluster | 32 | > 0 | Cluster당 최대 광원 수 |
+-->
