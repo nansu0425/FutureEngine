@@ -52,10 +52,15 @@ public:
     void RenderLightDirectionGizmo(UCamera* InCamera);
     FDirectionalLightInfo GetDirectionalLightInfo() const;
 
+    // Shadow mapping
+    void SetShadowViewProjection(const FMatrix& ViewProj) { CachedShadowViewProjection = ViewProj; }
+    const FMatrix& GetShadowViewProjection() const { return CachedShadowViewProjection; }
+
 private:
     void EnsureVisualizationBillboard()override;
 
 private:
     FEditorPrimitive LightDirectionArrow;
+    FMatrix CachedShadowViewProjection = FMatrix::Identity();
 };
 

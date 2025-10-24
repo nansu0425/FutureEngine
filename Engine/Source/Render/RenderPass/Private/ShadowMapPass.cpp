@@ -198,6 +198,10 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 	FMatrix LightView, LightProj;
 	CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
 
+	// Store the calculated shadow view-projection matrix in the light component
+	FMatrix LightViewProj = LightView * LightProj;
+	Light->SetShadowViewProjection(LightViewProj);
+
 	// 5. 각 메시 렌더링
 	for (auto Mesh : Meshes)
 	{
@@ -323,12 +327,22 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	}
 
 	// 4. Orthographic projection 생성
+	// Scene 크기에 비례한 padding 사용 (씬이 크면 padding도 크게)
+	float SceneSizeZ = LightSpaceMax.Z - LightSpaceMin.Z;
+	float Padding = std::max(SceneSizeZ * 0.5f, 50.0f);  // 최소 50, 씬 깊이의 50%
+
 	float Left = LightSpaceMin.X;
 	float Right = LightSpaceMax.X;
 	float Bottom = LightSpaceMin.Y;
 	float Top = LightSpaceMax.Y;
-	float Near = LightSpaceMin.Z - 50.0f;  // Padding
-	float Far = LightSpaceMax.Z + 50.0f;
+	float Near = LightSpaceMin.Z - Padding;
+	float Far = LightSpaceMax.Z + Padding;
+
+	// Near는 음수가 되면 안됨 (orthographic에서는 괜찮지만, 안전을 위해)
+	if (Near < 0.1f)
+	{
+		Near = 0.1f;
+	}
 
 	OutProj = ShadowMatrixHelper::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
 }
