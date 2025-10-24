@@ -133,6 +133,13 @@ struct FDirectionalLightInfo
 	FVector4 Color;
 	FVector Direction;
 	float Intensity;
+
+	// Shadow parameters
+	FMatrix LightViewProjection;
+	uint32 CastShadow;           // 0 or 1
+	float ShadowBias;
+	float ShadowSlopeBias;
+	float ShadowSharpen;
 };
 
 //StructuredBuffer padding 없어도됨
@@ -143,7 +150,12 @@ struct FPointLightInfo
 	float Intensity;
 	float Range;
 	float DistanceFalloffExponent;
-	FVector2 padding;
+
+	// Shadow parameters
+	uint32 CastShadow;
+	float ShadowBias;
+	float ShadowSlopeBias;
+	float ShadowSharpen;
 };
 
 //StructuredBuffer padding 없어도됨
@@ -161,6 +173,13 @@ struct FSpotLightInfo
 	float OuterConeAngle;
 	float AngleFalloffExponent;
 	FVector Direction;
+
+	// Shadow parameters
+	FMatrix LightViewProjection;
+	uint32 CastShadow;
+	float ShadowBias;
+	float ShadowSlopeBias;
+	float ShadowSharpen;
 };
 
 struct FGlobalLightConstant

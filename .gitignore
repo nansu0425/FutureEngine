@@ -422,7 +422,10 @@ Engine/editor.ini
 # AI Agent Init Files
 AGENTS.md
 WARP.md
+
+# CLAUDE CODE
 CLAUDE.md
+.claude/
 
 # Rider
 .idea/

@@ -137,5 +137,17 @@ void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 
 FDirectionalLightInfo UDirectionalLightComponent::GetDirectionalLightInfo() const
 {
-    return FDirectionalLightInfo{ FVector4(LightColor, 1), GetForwardVector(), Intensity };
+    FDirectionalLightInfo Info;
+    Info.Color = FVector4(LightColor, 1);
+    Info.Direction = GetForwardVector();
+    Info.Intensity = Intensity;
+
+    // Shadow parameters
+    Info.LightViewProjection = FMatrix::Identity(); // Will be calculated by ShadowMapPass
+    Info.CastShadow = GetCastShadows() ? 1u : 0u;
+    Info.ShadowBias = GetShadowBias();
+    Info.ShadowSlopeBias = GetShadowSlopeBias();
+    Info.ShadowSharpen = GetShadowSharpen();
+
+    return Info;
 }
