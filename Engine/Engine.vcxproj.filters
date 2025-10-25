@@ -28,9 +28,6 @@
     <FxCompile Include="Asset\Shader\DecalShader.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Asset\Shader\TextureDepthPS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Asset\Shader\TexturePS.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
@@ -50,6 +47,9 @@
       <Filter>Asset\Shader</Filter>
     </FxCompile>
     <FxCompile Include="Asset\Shader\DepthOnlyVS.hlsl">
+      <Filter>Asset\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Asset\Shader\PointLightShadowDepth.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
   </ItemGroup>

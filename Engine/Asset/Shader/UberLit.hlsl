@@ -358,6 +358,26 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, float3 WorldPos)
     return ShadowFactor;
 }
 
+// Point Light PCF (Percentage Closer Filtering) Sample Offsets
+// 20 samples in 3D space for soft shadows on cube maps
+static const float3 CubePCFOffsets[20] = {
+    // 6-direction axis-aligned offsets
+    float3( 1.0,  0.0,  0.0), float3(-1.0,  0.0,  0.0),
+    float3( 0.0,  1.0,  0.0), float3( 0.0, -1.0,  0.0),
+    float3( 0.0,  0.0,  1.0), float3( 0.0,  0.0, -1.0),
+
+    // 12-direction face-diagonal offsets
+    float3( 1.0,  1.0,  0.0), float3( 1.0, -1.0,  0.0),
+    float3(-1.0,  1.0,  0.0), float3(-1.0, -1.0,  0.0),
+    float3( 1.0,  0.0,  1.0), float3( 1.0,  0.0, -1.0),
+    float3(-1.0,  0.0,  1.0), float3(-1.0,  0.0, -1.0),
+    float3( 0.0,  1.0,  1.0), float3( 0.0,  1.0, -1.0),
+    float3( 0.0, -1.0,  1.0), float3( 0.0, -1.0, -1.0),
+
+    // 2-direction 3D diagonal offsets (corners of cube)
+    float3( 1.0,  1.0,  1.0), float3(-1.0, -1.0, -1.0)
+};
+
 float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
 {
     // If shadow is disabled, return fully lit (1.0)
@@ -375,23 +395,40 @@ float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
     // Normalize direction for cube sampling
     float3 SampleDir = LightToPixel / Distance;
 
-    // Sample the cube shadow map to get stored linear distance
-    // The shadow map stores: saturate(distance / range)
-    // Use SampleLevel instead of Sample for VS compatibility (Gouraud shading uses VS lighting)
-    float StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, SampleDir, 0).r;
-
     // Convert current distance to normalized [0,1] range
     float CurrentDistance = Distance / Light.Range;
 
     // Add small bias to prevent shadow acne
-    // Bias는 Light component의 ShadowBias 값 사용 (현재는 고정값)
     float Bias = 0.005f;
 
-    // Manual depth comparison (hard shadow - no PCF for now)
-    // If current distance > stored distance, pixel is in shadow
-    float ShadowFactor = (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+    // PCF (Percentage Closer Filtering) for soft shadows
+    // Filter radius controls shadow softness (larger = softer)
+    float FilterRadius = 0.003f;
 
-    return ShadowFactor;
+    float ShadowFactor = 0.0f;
+    float TotalSamples = 1.0f;  // Start with 1 for center sample
+
+    // Center sample
+    float StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, SampleDir, 0).r;
+    ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+
+    // Offset samples for soft shadow edges
+    [unroll]
+    for (int i = 0; i < 20; i++)
+    {
+        // Apply offset in tangent space around the sample direction
+        float3 OffsetDir = normalize(SampleDir + CubePCFOffsets[i] * FilterRadius);
+
+        // Sample shadow map with offset direction
+        StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, OffsetDir, 0).r;
+
+        // Compare and accumulate
+        ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+        TotalSamples += 1.0f;
+    }
+
+    // Average all samples
+    return ShadowFactor / TotalSamples;
 }
 
 // Lighting Calculation Functions
