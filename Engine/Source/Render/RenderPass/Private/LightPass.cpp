@@ -151,7 +151,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	}
 
 	// Fill point lights from scene
-	int PointLightComponentCount = Context.PointLights.size();
+	int PointLightComponentCount = static_cast<int>(Context.PointLights.size());
 	PointLightDatas.reserve(PointLightComponentCount);
 	for (int32 i = 0; i < PointLightComponentCount; ++i)
 	{
@@ -160,7 +160,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 		PointLightDatas.push_back(Light->GetPointlightInfo());
 	}
 	// 5. Spot Lights 배열 채우기 (최대 NUM_SPOT_LIGHT개)
-	int SpotLightComponentCount = Context.SpotLights.size();
+	int SpotLightComponentCount = static_cast<int>(Context.SpotLights.size());
 	SpotLightDatas.reserve(SpotLightComponentCount);
 	int CurSpotLightIdx = 0;
 	for (int32 i = 0; i < SpotLightComponentCount; ++i)
@@ -170,8 +170,8 @@ void FLightPass::Execute(FRenderingContext& Context)
 		SpotLightDatas.push_back(Light->GetSpotLightInfo());
 	}
 
-	uint32 PointLightCount = PointLightDatas.size();
-	uint32 SpotLightCount = SpotLightDatas.size();
+	uint32 PointLightCount = static_cast<uint32>(PointLightDatas.size());
+	uint32 SpotLightCount = static_cast<uint32>(SpotLightDatas.size());
 	//최대갯수 재할당
 	if (PointLightBufferCount < PointLightCount)
 	{

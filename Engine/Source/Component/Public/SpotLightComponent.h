@@ -67,6 +67,10 @@ public:
 
     FSpotLightInfo GetSpotLightInfo() const;
 
+    // Shadow mapping
+    void SetShadowViewProjection(const FMatrix& ViewProj) { CachedShadowViewProjection = ViewProj; }
+    const FMatrix& GetShadowViewProjection() const { return CachedShadowViewProjection; }
+
 private:
     void EnsureVisualizationBillboard()override;
     
@@ -80,4 +84,7 @@ private:
     /** Angle of light source shape. */
     float OuterConeAngleRad = PI / 4.0f;
     float InnerConeAngleRad = 0.0f;
+
+    // Shadow mapping
+    FMatrix CachedShadowViewProjection = FMatrix::Identity();
 };

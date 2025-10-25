@@ -65,8 +65,25 @@ void USpotLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
 }
 FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
 {
-    return FSpotLightInfo{ FVector4(LightColor, 1), GetWorldLocation(), Intensity, AttenuationRadius, DistanceFalloffExponent,
-    InnerConeAngleRad, OuterConeAngleRad, AngleFalloffExponent, GetForwardVector() };
+    FSpotLightInfo Info;
+    Info.Color = FVector4(LightColor, 1);
+    Info.Position = GetWorldLocation();
+    Info.Intensity = Intensity;
+    Info.Range = AttenuationRadius;
+    Info.DistanceFalloffExponent = DistanceFalloffExponent;
+    Info.InnerConeAngle = InnerConeAngleRad;
+    Info.OuterConeAngle = OuterConeAngleRad;
+    Info.AngleFalloffExponent = AngleFalloffExponent;
+    Info.Direction = GetForwardVector();
+
+    // Shadow parameters
+    Info.LightViewProjection = CachedShadowViewProjection; // Updated by ShadowMapPass
+    Info.CastShadow = GetCastShadows() ? 1u : 0u;
+    Info.ShadowBias = GetShadowBias();
+    Info.ShadowSlopeBias = GetShadowSlopeBias();
+    Info.ShadowSharpen = GetShadowSharpen();
+
+    return Info;
 }
 
 void USpotLightComponent::EnsureVisualizationBillboard()

@@ -21,7 +21,7 @@ struct FWindowsBinReader : public FArchive
 	{
 		if (!Stream)
 		{
-			UE_LOG_ERROR("읽기용 파일을 여는데 실패했습니다: %s", FilePath.string());
+			UE_LOG_ERROR("읽기용 파일을 여는데 실패했습니다: %s", FilePath.string().c_str());
 			//assert("읽기용 파일을 여는데 실패했습니다" && false);
 		}
 	}

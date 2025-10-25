@@ -40,7 +40,7 @@ TArray<UPrimitiveComponent*> COcclusionCuller::PerformCulling(const TArray<UPrim
 
     // 1. 오클루더 동적 선택
     ULevel* CurrentLevel = GWorld->GetLevel();
-    TArray<UPrimitiveComponent*> OccluderCandidates = CurrentLevel->GetStaticOctree()->FindNearestPrimitives(CameraPos, AllPrimitives.size() / 10);
+    TArray<UPrimitiveComponent*> OccluderCandidates = CurrentLevel->GetStaticOctree()->FindNearestPrimitives(CameraPos, static_cast<uint32>(AllPrimitives.size()) / 10);
     TArray<UPrimitiveComponent*> SelectedOccluders = SelectOccluders(OccluderCandidates, CameraPos);
 
     // 2. CPU Z-Buffer 구성

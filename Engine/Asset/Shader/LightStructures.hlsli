@@ -13,6 +13,13 @@ struct FDirectionalLightInfo
     float4 Color;
     float3 Direction;
     float Intensity;
+
+    // Shadow parameters
+    row_major float4x4 LightViewProjection;
+    uint CastShadow;           // 0 or 1
+    float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
 };
 
 struct FPointLightInfo
@@ -22,7 +29,13 @@ struct FPointLightInfo
     float Intensity;
     float Range;
     float DistanceFalloffExponent;
-    float2 Padding;
+
+    // Shadow parameters
+    uint CastShadow;
+    float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
+    float2 Padding;  // 8 bytes padding for 16-byte alignment (C++ FVector4 alignment)
 };
 
 struct FSpotLightInfo
@@ -36,6 +49,13 @@ struct FSpotLightInfo
     float OuterConeAngle;
     float AngleFalloffExponent;
     float3 Direction;
+
+    // Shadow parameters
+    row_major float4x4 LightViewProjection;
+    uint CastShadow;
+    float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
 };
 
 #endif

@@ -64,8 +64,15 @@ public:
     bool GetLightEnabled() const { return bLightEnabled; }
     void SetLightEnabled(bool InEnabled) { bLightEnabled = InEnabled; }
 
+    /*-----------------------------------------------------------------------------
+        Shadow Features
+     -----------------------------------------------------------------------------*/
+public:
+    /** @brief 이 라이트가 shadow를 cast할지 여부를 반환합니다. */
     bool GetCastShadows() const { return bCastShadows; }
-    void SetCastShadows(bool InbCastShadows) {bCastShadows = InbCastShadows; }
+
+    /** @brief 이 라이트의 shadow casting 여부를 설정합니다. */
+    void SetCastShadows(bool InCastShadows) { bCastShadows = InCastShadows; }
 
 protected:
     /** Total energy that the light emits. */
@@ -79,5 +86,7 @@ protected:
 
     bool bVisible = true;
     bool bLightEnabled = true; // 조명 계산 포함 여부 (Outliner Visible과 독립)
+
+    /** 이 라이트가 shadow를 cast할지 여부 */
     bool bCastShadows = true;
 };

@@ -235,10 +235,10 @@ void FOctree::TryMerge()
 	}
 
 	// 모든 자식 노드에 있는 프리미티브의 총 개수를 계산
-	uint32 TotalPrimitives = Primitives.size();
+	uint32 TotalPrimitives = static_cast<uint32>(Primitives.size());
 	for (int Index = 0; Index < 8; ++Index)
 	{
-		TotalPrimitives += Children[Index]->Primitives.size();
+		TotalPrimitives += static_cast<uint32>(Children[Index]->Primitives.size());
 	}
 
 	// 프리미티브 총 개수가 최대치보다 작으면 합치기 수행

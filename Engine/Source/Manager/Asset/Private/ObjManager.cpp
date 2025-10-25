@@ -137,7 +137,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 	FObjInfo ObjInfo;
 	if (!FObjImporter::LoadObj(PathFileName.ToString(), &ObjInfo, Config))
 	{
-		UE_LOG_ERROR("파일 정보를 읽어오는데 실패했습니다: %s", PathFileName.ToString());
+		UE_LOG_ERROR("파일 정보를 읽어오는데 실패했습니다: %s", PathFileName.ToString().c_str());
 		return nullptr;
 	}
 
@@ -190,14 +190,14 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 				Vertex.TexCoord = ObjInfo.TexCoordList[TexCoordIndex];
 			}
 
-			size_t Index = StaticMesh->Vertices.size();
+			uint32 Index = static_cast<uint32>(StaticMesh->Vertices.size());
 			StaticMesh->Vertices.push_back(Vertex);
 			StaticMesh->Indices.push_back(Index);
 			VertexMap[Key] = Index;
 		}
 		else
 		{
-			StaticMesh->Indices.push_back(It->second);
+			StaticMesh->Indices.push_back(static_cast<uint32>(It->second));
 		}
 	}
 	ComputeTangents(StaticMesh->Vertices, StaticMesh->Indices);
@@ -257,7 +257,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 	{
 		StaticMesh->Sections.resize(1);
 		StaticMesh->Sections[0].StartIndex = 0;
-		StaticMesh->Sections[0].IndexCount = StaticMesh->Indices.size();
+		StaticMesh->Sections[0].IndexCount = static_cast<uint32>(StaticMesh->Indices.size());
 		StaticMesh->Sections[0].MaterialSlot = 0;
 	}
 	else
@@ -265,14 +265,14 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 		StaticMesh->Sections.resize(ObjectInfo.MaterialIndexList.size());
 		for (size_t i = 0; i < ObjectInfo.MaterialIndexList.size(); ++i)
 		{
-			StaticMesh->Sections[i].StartIndex = ObjectInfo.MaterialIndexList[i] * 3;
+			StaticMesh->Sections[i].StartIndex = static_cast<uint32>(ObjectInfo.MaterialIndexList[i]) * 3;
 			if (i < ObjectInfo.MaterialIndexList.size() - 1)
 			{
-				StaticMesh->Sections[i].IndexCount = (ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3;
+				StaticMesh->Sections[i].IndexCount = static_cast<uint32>(ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3;
 			}
 			else
 			{
-				StaticMesh->Sections[i].IndexCount = (StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3;
+				StaticMesh->Sections[i].IndexCount = static_cast<uint32>(StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3;
 			}
 
 			const FName& MaterialName = ObjectInfo.MaterialNameList[i];
@@ -283,7 +283,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 			}
 			else
 			{
-				StaticMesh->Sections[i].MaterialSlot = INVALID_INDEX;
+				StaticMesh->Sections[i].MaterialSlot = static_cast<uint32>(INVALID_INDEX);
 			}
 		}
 	}

@@ -13,11 +13,41 @@ IMPLEMENT_ABSTRACT_CLASS(ULightComponent, ULightComponentBase)
 void ULightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        float LoadedShadowResolutionScale = ShadowResolutionScale;
+        float LoadedShadowBias = ShadowBias;
+        float LoadedShadowSlopeBias = ShadowSlopeBias;
+        float LoadedShadowSharpen = ShadowSharpen;
+
+        FJsonSerializer::ReadFloat(InOutHandle, "ShadowResolutionScale", LoadedShadowResolutionScale);
+        FJsonSerializer::ReadFloat(InOutHandle, "ShadowBias", LoadedShadowBias);
+        FJsonSerializer::ReadFloat(InOutHandle, "ShadowSlopeBias", LoadedShadowSlopeBias);
+        FJsonSerializer::ReadFloat(InOutHandle, "ShadowSharpen", LoadedShadowSharpen);
+
+        SetShadowResolutionScale(LoadedShadowResolutionScale);
+        SetShadowBias(LoadedShadowBias);
+        SetShadowSlopeBias(LoadedShadowSlopeBias);
+        SetShadowSharpen(LoadedShadowSharpen);
+    }
+    else
+    {
+        InOutHandle["ShadowResolutionScale"] = ShadowResolutionScale;
+        InOutHandle["ShadowBias"] = ShadowBias;
+        InOutHandle["ShadowSlopeBias"] = ShadowSlopeBias;
+        InOutHandle["ShadowSharpen"] = ShadowSharpen;
+    }
 }
 
 UObject* ULightComponent::Duplicate()
 {
 	ULightComponent* LightComponent = Cast<ULightComponent>(Super::Duplicate());
+
+	LightComponent->ShadowResolutionScale = ShadowResolutionScale;
+	LightComponent->ShadowBias = ShadowBias;
+	LightComponent->ShadowSlopeBias = ShadowSlopeBias;
+	LightComponent->ShadowSharpen = ShadowSharpen;
 
 	return LightComponent;
 }

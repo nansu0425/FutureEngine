@@ -128,8 +128,9 @@ void UViewportManager::Update()
 		AppWindow->GetClientSize(Width, Height);
 	}
 
-	// 상단 메뉴바 + 레벨바 높이
-	const int MenuAndLevelHeight = UMainMenuWindow::GetInstance().GetMenuBarHeight() + ULevelTabBarWindow::GetInstance().GetLevelBarHeight() - 12;
+	// 91px height
+	const int MenuAndLevelHeight = static_cast<int>(UMainMenuWindow::GetInstance().GetMenuBarHeight()) + 
+		static_cast<int>(ULevelTabBarWindow::GetInstance().GetLevelBarHeight()) - 12;
 
 	// 하단 StatusBar 높이
 	const int StatusBarHeight = static_cast<int>(UUIManager::GetInstance().GetStatusBarHeight());
