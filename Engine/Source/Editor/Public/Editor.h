@@ -2,7 +2,6 @@
 #include "Core/Public/Object.h"
 #include "Editor/Public/Gizmo.h"
 #include "Editor/Public/Grid.h"
-#include "Editor/public/Axis.h"
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/BatchLines.h"
 #include "editor/Public/Camera.h"
@@ -30,7 +29,7 @@ public:
 	~UEditor();
 
 	void Update();
-	void RenderEditor();
+	void RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera);
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
@@ -41,12 +40,12 @@ public:
 	void SelectActor(AActor* InActor);
 	AActor* GetSelectedActor() const { return SelectedActor; }
 	void SelectComponent(UActorComponent* InComponent);
+	void FocusOnSelectedActor();
 	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
 
 // Getter
 public:
 	UBatchLines* GetBatchLines() { return &BatchLines; }
-	UAxis* GetAxis() { return &Axis; }
 	UGizmo* GetGizmo() { return &Gizmo; }
 
 	
@@ -70,9 +69,8 @@ private:
 
 	UCamera* Camera;
 	UGizmo Gizmo;
-	UAxis Axis;
 	UBatchLines BatchLines;
-	
+
 	// InteractionViewport 제거: ViewportManager가 레이아웃 관리
 
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_BlinnPhong;
@@ -80,4 +78,14 @@ private:
 	int32 ActiveViewportIndex = 0;
 
 	const float MinScale = 0.01f;
+
+	// Camera focus animation
+	bool bIsCameraAnimating = false;
+	float CameraAnimationTime = 0.0f;
+	TArray<FVector> CameraStartLocation;
+	TArray<FVector> CameraStartRotation;
+	TArray<FVector> CameraTargetLocation;
+	TArray<FVector> CameraTargetRotation;
+	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
+	void UpdateCameraAnimation();
 };

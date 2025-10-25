@@ -64,19 +64,19 @@ FVector UCamera::UpdateInput()
 		if (CameraType == ECameraType::ECT_Perspective)
 		{
 			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-			RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel * 2;
-			RelativeRotation.Y += MouseDelta.Y * KeySensitivityDegPerPixel * 2;
+			RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel * 2;  // 마우스 좌우 → Yaw (Z축 회전)
+			RelativeRotation.Y -= MouseDelta.Y * KeySensitivityDegPerPixel * 2;  // 마우스 상하 → Pitch (Y축 회전, 반전)
 			MovementDelta = FVector::Zero(); // 원근 투영 모드는 반환할 필요가 없음
 		}
 
 
-		// Yaw 래핑(값이 무한히 커지지 않도록)
+		// Yaw 래핑 - Z축 회전 (값이 무한히 커지지 않도록)
 		if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
 		if (RelativeRotation.Z < -180.0f) RelativeRotation.Z += 360.0f;
 
-		// Pitch 클램프(짐벌 플립 방지)
-		if (RelativeRotation.Y > 89.0f)  RelativeRotation.Y = 89.0f;
-		if (RelativeRotation.Y < -89.0f) RelativeRotation.Y = -89.0f;
+		// Pitch 래핑 - Y축 회전 (전체 범위 허용)
+		if (RelativeRotation.Y > 180.0f) RelativeRotation.Y -= 360.0f;
+		if (RelativeRotation.Y < -180.0f) RelativeRotation.Y += 360.0f;
 	}
 
 	return MovementDelta;

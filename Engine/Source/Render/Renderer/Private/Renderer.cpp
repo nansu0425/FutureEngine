@@ -659,7 +659,7 @@ void URenderer::Update()
         }
 		{
 			TIME_PROFILE(RenderEditor)
-				GEditor->GetEditorModule()->RenderEditor();
+			GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
 		}
         // Gizmo는 최종적으로 렌더
         GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
@@ -889,6 +889,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 {
     if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
 
+    DeviceResources->ReleaseFactories();
     DeviceResources->ReleaseSceneColorTarget();
 	DeviceResources->ReleaseFrameBuffer();
 	DeviceResources->ReleaseDepthBuffer();
@@ -906,6 +907,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	DeviceResources->CreateFrameBuffer();
 	DeviceResources->CreateDepthBuffer();
 	DeviceResources->CreateNormalBuffer();
+    DeviceResources->CreateFactories();
 
     ID3D11RenderTargetView* targetView = bFXAAEnabled
         ? DeviceResources->GetSceneColorRenderTargetView()

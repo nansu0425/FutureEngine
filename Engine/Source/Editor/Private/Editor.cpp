@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
+#include "Editor/Public/Axis.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -79,19 +80,27 @@ void UEditor::Update()
 	UpdateBatchLines();
 	BatchLines.UpdateVertexBuffer();
 
+	UpdateCameraAnimation();
+
 	ProcessMouseInput();
 }
 
-void UEditor::RenderEditor()
+void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive()) { return; }
+	if (GEditor->IsPIESessionActive())
+	{
+		return;
+	}
 	BatchLines.Render();
-	Axis.Render();
+	FAxis::Render(InCamera, InViewport);
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera)
 {
-	if (GEditor->IsPIESessionActive()) { return; }
+	if (GEditor->IsPIESessionActive())
+	{
+		return;
+	}
 	Gizmo.RenderGizmo(InCamera);
 	
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
@@ -311,6 +320,11 @@ void UEditor::ProcessMouseInput()
 			}
 		}
 	}
+
+	if (InputManager.IsKeyPressed(EKeyInput::F))
+	{
+		FocusOnSelectedActor();
+	}
 }
 
 FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
@@ -441,4 +455,133 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 		SelectedComponent->OnSelected();
 	}
 	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
+}
+
+void UEditor::FocusOnSelectedActor()
+{
+	if (!SelectedActor)
+	{
+		return;
+	}
+
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Viewports = ViewportManager.GetViewports();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (Viewports.empty() || Clients.empty()) { return; }
+
+	UPrimitiveComponent* Prim = nullptr;
+	if (SelectedActor->GetRootComponent() && SelectedActor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
+	{
+		Prim = Cast<UPrimitiveComponent>(SelectedActor->GetRootComponent());
+	}
+
+	if (!Prim)
+	{
+		return;
+	}
+
+	const FMatrix& ActorWorldMatrix = SelectedActor->GetRootComponent()->GetWorldTransformMatrix();
+	FVector ActorForward = { ActorWorldMatrix.Data[0][0], ActorWorldMatrix.Data[0][1], ActorWorldMatrix.Data[0][2] };
+	ActorForward.Normalize();
+
+	FVector ComponentMin, ComponentMax;
+	Prim->GetWorldAABB(ComponentMin, ComponentMax);
+	const FVector Center = (ComponentMin + ComponentMax) * 0.5f;
+	const FVector Size = ComponentMax - ComponentMin;
+	const float BoundingRadius = Size.Length() * 0.5f;
+
+	const int32 ViewportCount = static_cast<int32>(Viewports.size());
+
+	CameraStartLocation.resize(ViewportCount);
+	CameraStartRotation.resize(ViewportCount);
+	CameraTargetLocation.resize(ViewportCount);
+	CameraTargetRotation.resize(ViewportCount);
+
+	for (int32 i = 0; i < ViewportCount; ++i)
+	{
+		if (!Clients[i]) continue;
+		UCamera* Cam = Clients[i]->GetCamera();
+		if (!Cam) continue;
+
+		CameraStartLocation[i] = Cam->GetLocation();
+		CameraStartRotation[i] = Cam->GetRotation();
+
+		if (Cam->GetCameraType() == ECameraType::ECT_Perspective)
+		{
+			const float FovY = Cam->GetFovY();
+			const float HalfFovRadian = FVector::GetDegreeToRadian(FovY * 0.5f);
+			const float Distance = (BoundingRadius / sinf(HalfFovRadian)) * 1.2f;
+
+			CameraTargetLocation[i] = Center - ActorForward * Distance;
+
+			FVector LookAtDir = (Center - CameraTargetLocation[i]);
+			LookAtDir.Normalize();
+
+			float Yaw = FVector::GetRadianToDegree(atan2f(LookAtDir.Y, LookAtDir.X));
+			float Pitch = FVector::GetRadianToDegree(asinf(LookAtDir.Z));
+			CameraTargetRotation[i] = FVector(0.f, Pitch, Yaw);
+		}
+		else
+		{
+			CameraTargetLocation[i] = Center;
+		}
+	}
+
+	bIsCameraAnimating = true;
+	CameraAnimationTime = 0.0f;
+}
+
+void UEditor::UpdateCameraAnimation()
+{
+	if (!bIsCameraAnimating)
+	{
+		return;
+	}
+
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (Clients.empty())
+	{
+		bIsCameraAnimating = false;
+		return;
+	}
+
+	CameraAnimationTime += DT;
+	float Progress = CameraAnimationTime / CAMERA_ANIMATION_DURATION;
+
+	if (Progress >= 1.0f)
+	{
+		Progress = 1.0f;
+		bIsCameraAnimating = false;
+	}
+
+	float SmoothProgress;
+	if (Progress < 0.5f)
+	{
+		SmoothProgress = 8.0f * Progress * Progress * Progress * Progress;
+	}
+	else
+	{
+		float ProgressFromEnd = Progress - 1.0f;
+		SmoothProgress = 1.0f - 8.0f * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd;
+	}
+
+	const size_t AnimationVectorSize = CameraStartLocation.size();
+	for (int Index = 0; Index < Clients.size() && Index < AnimationVectorSize; ++Index)
+	{
+		if (!Clients[Index]) continue;
+		UCamera* Cam = Clients[Index]->GetCamera();
+		if (!Cam) continue;
+
+		FVector CurrentLocation = CameraStartLocation[Index] + (CameraTargetLocation[Index] - CameraStartLocation[Index]) * SmoothProgress;
+		Cam->SetLocation(CurrentLocation);
+
+		if (Cam->GetCameraType() == ECameraType::ECT_Perspective)
+		{
+			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
+			Cam->SetRotation(CurrentRotation);
+		}
+	}
 }

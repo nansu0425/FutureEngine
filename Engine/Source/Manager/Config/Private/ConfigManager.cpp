@@ -25,7 +25,7 @@ void UConfigManager::LoadEditorSetting()
 	std::ifstream Ifs(FileNameStr);
 	if (!Ifs.is_open())
 	{
-		CellSize = 1.0f;
+		CellSize = 5.0f;
 		CameraSensitivity = UCamera::DEFAULT_SPEED;
 		return; // 파일이 없으면 기본값 유지
 	}
