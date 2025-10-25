@@ -409,4 +409,92 @@ FVector FMatrix::TransformPosition(const FVector& V) const
     );
 }
 
+FMatrix FMatrix::CreateFromRotator(const FRotator& InRotator)
+{
+    float PitchRad = FVector::GetDegreeToRadian(InRotator.Pitch);
+    float YawRad = FVector::GetDegreeToRadian(InRotator.Yaw);
+    float RollRad = FVector::GetDegreeToRadian(InRotator.Roll);
+
+    return RotationZ(RollRad) * RotationY(YawRad) * RotationX(PitchRad);
+}
+
+FMatrix FMatrix::Inverse() const
+{
+    FMatrix Result;
+
+    float Det = Data[0][0] * (Data[1][1] * Data[2][2] - Data[1][2] * Data[2][1])
+              - Data[0][1] * (Data[1][0] * Data[2][2] - Data[1][2] * Data[2][0])
+              + Data[0][2] * (Data[1][0] * Data[2][1] - Data[1][1] * Data[2][0]);
+
+    if (std::abs(Det) < 1e-6f)
+    {
+        return FMatrix::Identity();
+    }
+
+    float InvDet = 1.0f / Det;
+
+    Result.Data[0][0] = (Data[1][1] * Data[2][2] - Data[1][2] * Data[2][1]) * InvDet;
+    Result.Data[0][1] = (Data[0][2] * Data[2][1] - Data[0][1] * Data[2][2]) * InvDet;
+    Result.Data[0][2] = (Data[0][1] * Data[1][2] - Data[0][2] * Data[1][1]) * InvDet;
+    Result.Data[0][3] = 0.0f;
+
+    Result.Data[1][0] = (Data[1][2] * Data[2][0] - Data[1][0] * Data[2][2]) * InvDet;
+    Result.Data[1][1] = (Data[0][0] * Data[2][2] - Data[0][2] * Data[2][0]) * InvDet;
+    Result.Data[1][2] = (Data[0][2] * Data[1][0] - Data[0][0] * Data[1][2]) * InvDet;
+    Result.Data[1][3] = 0.0f;
+
+    Result.Data[2][0] = (Data[1][0] * Data[2][1] - Data[1][1] * Data[2][0]) * InvDet;
+    Result.Data[2][1] = (Data[0][1] * Data[2][0] - Data[0][0] * Data[2][1]) * InvDet;
+    Result.Data[2][2] = (Data[0][0] * Data[1][1] - Data[0][1] * Data[1][0]) * InvDet;
+    Result.Data[2][3] = 0.0f;
+
+    Result.Data[3][0] = -(Result.Data[0][0] * Data[3][0] + Result.Data[1][0] * Data[3][1] + Result.Data[2][0] * Data[3][2]);
+    Result.Data[3][1] = -(Result.Data[0][1] * Data[3][0] + Result.Data[1][1] * Data[3][1] + Result.Data[2][1] * Data[3][2]);
+    Result.Data[3][2] = -(Result.Data[0][2] * Data[3][0] + Result.Data[1][2] * Data[3][1] + Result.Data[2][2] * Data[3][2]);
+    Result.Data[3][3] = 1.0f;
+
+    return Result;
+}
+
+FQuaternion FMatrix::ToQuaternion() const
+{
+    float Trace = Data[0][0] + Data[1][1] + Data[2][2];
+    FQuaternion Result;
+
+    if (Trace > 0.0f)
+    {
+        float S = sqrtf(Trace + 1.0f) * 2.0f;
+        Result.W = 0.25f * S;
+        Result.X = (Data[2][1] - Data[1][2]) / S;
+        Result.Y = (Data[0][2] - Data[2][0]) / S;
+        Result.Z = (Data[1][0] - Data[0][1]) / S;
+    }
+    else if (Data[0][0] > Data[1][1] && Data[0][0] > Data[2][2])
+    {
+        float S = sqrtf(1.0f + Data[0][0] - Data[1][1] - Data[2][2]) * 2.0f;
+        Result.W = (Data[2][1] - Data[1][2]) / S;
+        Result.X = 0.25f * S;
+        Result.Y = (Data[0][1] + Data[1][0]) / S;
+        Result.Z = (Data[0][2] + Data[2][0]) / S;
+    }
+    else if (Data[1][1] > Data[2][2])
+    {
+        float S = sqrtf(1.0f + Data[1][1] - Data[0][0] - Data[2][2]) * 2.0f;
+        Result.W = (Data[0][2] - Data[2][0]) / S;
+        Result.X = (Data[0][1] + Data[1][0]) / S;
+        Result.Y = 0.25f * S;
+        Result.Z = (Data[1][2] + Data[2][1]) / S;
+    }
+    else
+    {
+        float S = sqrtf(1.0f + Data[2][2] - Data[0][0] - Data[1][1]) * 2.0f;
+        Result.W = (Data[1][0] - Data[0][1]) / S;
+        Result.X = (Data[0][2] + Data[2][0]) / S;
+        Result.Y = (Data[1][2] + Data[2][1]) / S;
+        Result.Z = 0.25f * S;
+    }
+
+    return Result;
+}
+
 

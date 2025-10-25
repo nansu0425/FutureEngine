@@ -1,4 +1,6 @@
 #pragma once
+
+struct FRotator;
 struct FVector;
 struct FVector4;
 struct FQuaternion;
@@ -110,9 +112,13 @@ struct FMatrix
 	static FVector VectorMultiply(const FVector& v, const FMatrix& m);
 
 	FMatrix Transpose() const;
+	FMatrix Inverse() const;
 
 	FVector GetLocation() const;
 	FVector GetRotation() const;
 	FVector GetScale() const;
 	FVector TransformPosition(const FVector& V) const;
+
+	static FMatrix CreateFromRotator(const FRotator& InRotator);
+	FQuaternion ToQuaternion() const;
 };

@@ -456,30 +456,36 @@ FQuaternion UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRa
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
-	FVector GizmoAxis = Gizmo.GetGizmoAxis();
+	FVector LocalGizmoAxis = Gizmo.GetGizmoAxis();
+	FQuaternion StartRotQuat = Gizmo.GetDragStartActorRotationQuat();
 
+	// 평면 충돌 검사를 위한 월드 공간 축
+	FVector WorldRotationAxis = LocalGizmoAxis;
 	if (!Gizmo.IsWorldMode())
 	{
-		FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
-		GizmoAxis = q.RotateVector(GizmoAxis);
+		// Local 모드: 기즈모가 실제로 보이는 방향으로 평면 설정
+		WorldRotationAxis = StartRotQuat.RotateVector(LocalGizmoAxis);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxis, MouseWorld))
+	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, WorldRotationAxis, MouseWorld))
 	{
 		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
 		FVector PlaneOriginToMouseStart = Gizmo.GetDragStartMouseLocation() - PlaneOrigin;
 		PlaneOriginToMouse.Normalize();
 		PlaneOriginToMouseStart.Normalize();
-		float DotResult = (PlaneOriginToMouseStart).Dot(PlaneOriginToMouse);
+
+		// 각도 계산
+		float DotResult = PlaneOriginToMouseStart.Dot(PlaneOriginToMouse);
 		float Angle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxis) < 0)
+
+		// 회전 방향 결정 (외적 순서: 현재 → 시작)
+		FVector CrossProduct = PlaneOriginToMouse.Cross(PlaneOriginToMouseStart);
+		if (CrossProduct.Dot(WorldRotationAxis) < 0.0f)
 		{
 			Angle = -Angle;
 		}
 
-		FQuaternion StartRotQuat = Gizmo.GetDragStartActorRotationQuat();
-		// 로컬 모드일 때는 이미 월드 좌표로 변환된 GizmoAxis 사용
-		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(GizmoAxis, Angle);
+		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(LocalGizmoAxis, Angle);
 		if (Gizmo.IsWorldMode())
 		{
 			return StartRotQuat * DeltaRotQuat;

@@ -185,7 +185,7 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
-	float SharedOrthoWidth = 100.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
+	float SharedOrthoWidth = 50.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;
