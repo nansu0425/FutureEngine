@@ -26,7 +26,10 @@ public:
 		ID3D11Buffer* InConstantBufferCamera,
 		ID3D11Buffer* InConstantBufferModel,
 		ID3D11VertexShader* InDepthOnlyVS,
-		ID3D11InputLayout* InDepthOnlyInputLayout);
+		ID3D11InputLayout* InDepthOnlyInputLayout,
+		ID3D11VertexShader* InPointLightShadowVS,
+		ID3D11PixelShader* InPointLightShadowPS,
+		ID3D11InputLayout* InPointLightShadowInputLayout);
 
 	virtual ~FShadowMapPass();
 
@@ -47,6 +50,13 @@ public:
 	 * @return Shadow map 리소스 포인터 (없으면 nullptr)
 	 */
 	FShadowMapResource* GetSpotShadowMap(USpotLightComponent* Light);
+
+	/**
+	 * @brief Point light의 cube shadow map 리소스를 가져옵니다.
+	 * @param Light Point light component
+	 * @return Cube shadow map 리소스 포인터 (없으면 nullptr)
+	 */
+	FCubeShadowMapResource* GetPointShadowMap(UPointLightComponent* Light);
 
 private:
 	// --- Directional Light Shadow Rendering ---
@@ -148,10 +158,26 @@ private:
 	 */
 	ID3D11RasterizerState* GetOrCreateRasterizerState(USpotLightComponent* Light);
 
+	/**
+	 * @brief Point light의 rasterizer state를 가져오거나 생성합니다.
+	 *
+	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	 *
+	 * @param Light Point light component
+	 * @return Light 전용 rasterizer state
+	 */
+	ID3D11RasterizerState* GetOrCreateRasterizerState(UPointLightComponent* Light);
+
 private:
 	// Shaders
 	ID3D11VertexShader* DepthOnlyShader = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
+
+	// Point Light Shadow Shaders (with linear distance)
+	ID3D11VertexShader* PointLightShadowVS = nullptr;
+	ID3D11PixelShader* PointLightShadowPS = nullptr;
+	ID3D11InputLayout* PointLightShadowInputLayout = nullptr;
 
 	// States
 	ID3D11DepthStencilState* ShadowDepthStencilState = nullptr;
@@ -165,6 +191,7 @@ private:
 	// Rasterizer state 캐싱 (매 프레임 생성/해제 방지)
 	TMap<UDirectionalLightComponent*, ID3D11RasterizerState*> DirectionalRasterizerStates;
 	TMap<USpotLightComponent*, ID3D11RasterizerState*> SpotRasterizerStates;
+	TMap<UPointLightComponent*, ID3D11RasterizerState*> PointRasterizerStates;
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
 	struct FShadowViewProjConstant
@@ -172,4 +199,12 @@ private:
 		FMatrix ViewProjection;
 	};
 	ID3D11Buffer* ShadowViewProjConstantBuffer = nullptr;
+
+	// Point Light Shadow constant buffer (PointLightShadowDepth.hlsl의 b2)
+	struct FPointLightShadowParams
+	{
+		FVector LightPosition;
+		float LightRange;
+	};
+	ID3D11Buffer* PointLightShadowParamsBuffer = nullptr;
 };

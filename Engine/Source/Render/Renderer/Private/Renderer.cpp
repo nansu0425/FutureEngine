@@ -64,11 +64,13 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateGizmoShader();
 	CreateClusteredRenderingGrid();
 	CreateDepthOnlyShader();
+	CreatePointLightShadowShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	ShadowMapPass = new FShadowMapPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DepthOnlyShader, DepthOnlyInputLayout);
+		DepthOnlyShader, DepthOnlyInputLayout,
+		PointLightShadowVS, PointLightShadowPS, PointLightShadowInputLayout);
 	RenderPasses.push_back(ShadowMapPass);
 
 	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
@@ -433,6 +435,30 @@ void URenderer::CreateDepthOnlyShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
 }
 
+void URenderer::CreatePointLightShadowShader()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/PointLightShadowDepth.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	// Same layout as depth-only shader
+	TArray<D3D11_INPUT_ELEMENT_DESC> InputLayout =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	// Create vertex shader and input layout
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, InputLayout, &PointLightShadowVS, &PointLightShadowInputLayout);
+
+	// Create pixel shader (for linear distance output)
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &PointLightShadowPS);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -638,6 +664,10 @@ void URenderer::ReleaseDefaultShader()
 
 	SafeRelease(DepthOnlyShader);
 	SafeRelease(DepthOnlyInputLayout);
+
+	SafeRelease(PointLightShadowVS);
+	SafeRelease(PointLightShadowPS);
+	SafeRelease(PointLightShadowInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()

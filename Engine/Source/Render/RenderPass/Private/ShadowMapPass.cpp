@@ -84,10 +84,16 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	ID3D11Buffer* InConstantBufferCamera,
 	ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InDepthOnlyVS,
-	ID3D11InputLayout* InDepthOnlyInputLayout)
+	ID3D11InputLayout* InDepthOnlyInputLayout,
+	ID3D11VertexShader* InPointLightShadowVS,
+	ID3D11PixelShader* InPointLightShadowPS,
+	ID3D11InputLayout* InPointLightShadowInputLayout)
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel)
 	, DepthOnlyShader(InDepthOnlyVS)
 	, DepthOnlyInputLayout(InDepthOnlyInputLayout)
+	, PointLightShadowVS(InPointLightShadowVS)
+	, PointLightShadowPS(InPointLightShadowPS)
+	, PointLightShadowInputLayout(InPointLightShadowInputLayout)
 {
 	ID3D11Device* Device = URenderer::GetInstance().GetDevice();
 
@@ -125,6 +131,9 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 
 	// 3. Shadow view-projection constant buffer 생성 (DepthOnlyVS.hlsl의 PerFrame과 동일)
 	ShadowViewProjConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FShadowViewProjConstant>();
+
+	// 5. Point Light Shadow constant buffer 생성
+	PointLightShadowParamsBuffer = FRenderResourceFactory::CreateConstantBuffer<FPointLightShadowParams>();
 }
 
 FShadowMapPass::~FShadowMapPass()
@@ -321,8 +330,106 @@ void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 void FShadowMapPass::RenderPointShadowMap(UPointLightComponent* Light,
 	const TArray<UStaticMeshComponent*>& Meshes)
 {
-	// TODO: Implement point light cube shadow mapping
-	// Render to 6 faces
+	FCubeShadowMapResource* ShadowMap = GetOrCreateCubeShadowMap(Light);
+	if (!ShadowMap || !ShadowMap->IsValid())
+		return;
+
+	const auto& Renderer = URenderer::GetInstance();
+	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
+
+	// 0. 현재 상태 저장 (복원용)
+	ID3D11RenderTargetView* OriginalRTV = nullptr;
+	ID3D11DepthStencilView* OriginalDSV = nullptr;
+	DeviceContext->OMGetRenderTargets(1, &OriginalRTV, &OriginalDSV);
+
+	D3D11_VIEWPORT OriginalViewport;
+	UINT NumViewports = 1;
+	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
+
+	// 1. Rasterizer state
+	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
+
+	// 2. Pipeline 설정 (Point Light는 linear distance를 depth로 저장하므로 pixel shader 필요)
+	FPipelineInfo ShadowPipelineInfo = {
+		PointLightShadowInputLayout,
+		PointLightShadowVS,
+		RastState,
+		ShadowDepthStencilState,
+		PointLightShadowPS,  // Pixel shader for linear distance output
+		nullptr,  // No blend state
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(ShadowPipelineInfo);
+
+	// 2.5. Point Light shadow params 설정 (light position, range)
+	FPointLightShadowParams Params;
+	Params.LightPosition = Light->GetWorldLocation();
+	Params.LightRange = Light->GetAttenuationRadius();
+	FRenderResourceFactory::UpdateConstantBufferData(PointLightShadowParamsBuffer, Params);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, PointLightShadowParamsBuffer);
+
+	// 3. 6개 View-Projection 계산
+	FMatrix ViewProj[6];
+	CalculatePointLightViewProj(Light, ViewProj);
+
+	// 4. 6개 면 렌더링 (+X, -X, +Y, -Y, +Z, -Z)
+	for (int Face = 0; Face < 6; Face++)
+	{
+		// 4-1. DSV 설정 (각 면)
+		ID3D11RenderTargetView* NullRTV = nullptr;
+		Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSVs[Face].Get());
+		DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+		DeviceContext->ClearDepthStencilView(
+			ShadowMap->ShadowDSVs[Face].Get(),
+			D3D11_CLEAR_DEPTH,
+			1.0f,
+			0
+		);
+
+		// 4-2. Constant buffer 업데이트 (각 면의 ViewProj)
+		FShadowViewProjConstant CBData;
+		CBData.ViewProjection = ViewProj[Face];
+		FRenderResourceFactory::UpdateConstantBufferData(ShadowViewProjConstantBuffer, CBData);
+		Pipeline->SetConstantBuffer(1, EShaderType::VS, ShadowViewProjConstantBuffer);
+
+		// 4-3. 메시 렌더링
+		for (auto Mesh : Meshes)
+		{
+			if (Mesh->IsVisible())
+			{
+				// Model transform 업데이트
+				FMatrix WorldMatrix = Mesh->GetWorldTransformMatrix();
+				FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
+				Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
+
+				// Vertex/Index buffer 바인딩
+				ID3D11Buffer* VertexBuffer = Mesh->GetVertexBuffer();
+				ID3D11Buffer* IndexBuffer = Mesh->GetIndexBuffer();
+				uint32 IndexCount = Mesh->GetNumIndices();
+
+				if (!VertexBuffer || !IndexBuffer || IndexCount == 0)
+					continue;
+
+				Pipeline->SetVertexBuffer(VertexBuffer, sizeof(FNormalVertex));
+				Pipeline->SetIndexBuffer(IndexBuffer, 0);
+
+				// Draw call
+				Pipeline->DrawIndexed(IndexCount, 0, 0);
+			}
+		}
+	}
+
+	// 5. 상태 복원
+	Pipeline->SetRenderTargets(1, &OriginalRTV, OriginalDSV);
+	DeviceContext->RSSetViewports(1, &OriginalViewport);
+
+	if (OriginalRTV)
+		OriginalRTV->Release();
+	if (OriginalDSV)
+		OriginalDSV->Release();
+
+	// Note: 6개 ViewProj를 PointLightComponent에 저장하는 것은 비효율적이므로,
+	// Shader에서 Light position 기반으로 direction을 계산하도록 구현
 }
 
 void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
@@ -472,10 +579,50 @@ void FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light,
 
 void FShadowMapPass::CalculatePointLightViewProj(UPointLightComponent* Light, FMatrix OutViewProj[6])
 {
-	// TODO: Implement point light 6-face view-projection calculation
+	// 1. Light position
+	FVector LightPos = Light->GetWorldLocation();
+
+	// 2. Near/Far planes
+	float Near = 1.0f;
+	float Far = Light->GetAttenuationRadius();
+	if (Far <= Near)
+		Far = Near + 10.0f;
+
+	// 3. Perspective projection (90 degree FOV for cube faces)
+	FMatrix Proj = ShadowMatrixHelper::CreatePerspectiveFovLH(
+		PI / 2.0f,  // 90 degrees FOV
+		1.0f,       // Aspect ratio 1:1 (square)
+		Near,
+		Far
+	);
+
+	// 4. 6 directions for cube faces (DirectX cube map order)
+	// Order: +X, -X, +Y, -Y, +Z, -Z
+	FVector Directions[6] = {
+		FVector(1.0f, 0.0f, 0.0f),   // +X
+		FVector(-1.0f, 0.0f, 0.0f),  // -X
+		FVector(0.0f, 1.0f, 0.0f),   // +Y
+		FVector(0.0f, -1.0f, 0.0f),  // -Y
+		FVector(0.0f, 0.0f, 1.0f),   // +Z
+		FVector(0.0f, 0.0f, -1.0f)   // -Z
+	};
+
+	// 5. Up vectors for each direction (avoid gimbal lock)
+	FVector Ups[6] = {
+		FVector(0.0f, 1.0f, 0.0f),   // +X: Y-Up
+		FVector(0.0f, 1.0f, 0.0f),   // -X: Y-Up
+		FVector(0.0f, 0.0f, -1.0f),  // +Y: -Z-Up (looking up, so up is -Z)
+		FVector(0.0f, 0.0f, 1.0f),   // -Y: +Z-Up (looking down, so up is +Z)
+		FVector(0.0f, 1.0f, 0.0f),   // +Z: Y-Up
+		FVector(0.0f, 1.0f, 0.0f)    // -Z: Y-Up
+	};
+
+	// 6. Calculate View-Projection for each face
 	for (int i = 0; i < 6; i++)
 	{
-		OutViewProj[i] = FMatrix::Identity();
+		FVector Target = LightPos + Directions[i];
+		FMatrix View = ShadowMatrixHelper::CreateLookAtLH(LightPos, Target, Ups[i]);
+		OutViewProj[i] = View * Proj;
 	}
 }
 
@@ -528,8 +675,34 @@ FShadowMapResource* FShadowMapPass::GetOrCreateShadowMap(ULightComponent* Light)
 
 FCubeShadowMapResource* FShadowMapPass::GetOrCreateCubeShadowMap(UPointLightComponent* Light)
 {
-	// TODO: Implement cube shadow map resource management
-	return nullptr;
+	FCubeShadowMapResource* ShadowMap = nullptr;
+	ID3D11Device* Device = URenderer::GetInstance().GetDevice();
+
+	auto It = PointShadowMaps.find(Light);
+	if (It == PointShadowMaps.end())
+	{
+		// 새로 생성
+		ShadowMap = new FCubeShadowMapResource();
+		ShadowMap->Initialize(Device, Light->GetShadowMapResolution());
+		PointShadowMaps[Light] = ShadowMap;
+	}
+	else
+	{
+		ShadowMap = It->second;
+		// 해상도 변경 체크
+		if (ShadowMap->NeedsResize(Light->GetShadowMapResolution()))
+		{
+			ShadowMap->Initialize(Device, Light->GetShadowMapResolution());
+		}
+	}
+
+	return ShadowMap;
+}
+
+FCubeShadowMapResource* FShadowMapPass::GetPointShadowMap(UPointLightComponent* Light)
+{
+	auto It = PointShadowMaps.find(Light);
+	return It != PointShadowMaps.end() ? It->second : nullptr;
 }
 
 void FShadowMapPass::RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj)
@@ -588,6 +761,13 @@ void FShadowMapPass::Release()
 	}
 	SpotRasterizerStates.clear();
 
+	for (auto& Pair : PointRasterizerStates)
+	{
+		if (Pair.second)
+			Pair.second->Release();
+	}
+	PointRasterizerStates.clear();
+
 	for (auto& Pair : SpotShadowMaps)
 	{
 		if (Pair.second)
@@ -625,6 +805,12 @@ void FShadowMapPass::Release()
 	{
 		ShadowViewProjConstantBuffer->Release();
 		ShadowViewProjConstantBuffer = nullptr;
+	}
+
+	if (PointLightShadowParamsBuffer)
+	{
+		PointLightShadowParamsBuffer->Release();
+		PointLightShadowParamsBuffer = nullptr;
 	}
 
 	// Shader와 InputLayout은 Renderer가 소유하므로 여기서 해제하지 않음
@@ -698,6 +884,36 @@ ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(USpotLightComp
 
 	// 캐시에 저장
 	SpotRasterizerStates[Light] = NewState;
+
+	return NewState;
+}
+
+ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UPointLightComponent* Light)
+{
+	// 이미 생성된 state가 있으면 재사용
+	auto It = PointRasterizerStates.find(Light);
+	if (It != PointRasterizerStates.end())
+		return It->second;
+
+	// 새로 생성
+	const auto& Renderer = URenderer::GetInstance();
+	D3D11_RASTERIZER_DESC RastDesc = {};
+	ShadowRasterizerState->GetDesc(&RastDesc);
+
+	// Light별 DepthBias 설정
+	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+	//   - 100000.0f: float → integer 변환 스케일
+	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+
+	ID3D11RasterizerState* NewState = nullptr;
+	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+
+	// 캐시에 저장
+	PointRasterizerStates[Light] = NewState;
 
 	return NewState;
 }

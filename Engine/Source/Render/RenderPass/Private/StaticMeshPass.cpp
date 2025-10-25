@@ -7,6 +7,7 @@
 #include "Render/RenderPass/Public/ShadowMapPass.h"
 #include "Component/Public/DirectionalLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
+#include "Component/Public/PointLightComponent.h"
 #include "Texture/Public/ShadowMapResources.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
@@ -68,6 +69,21 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 			if (ShadowMap && ShadowMap->IsValid())
 			{
 				Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowMap->ShadowSRV.Get());
+			}
+		}
+	}
+
+	// Bind point light shadow map if available (cube map)
+	if (!Context.PointLights.empty() && Context.PointLights[0]->GetCastShadows())
+	{
+		UPointLightComponent* PointLight = Context.PointLights[0];
+		FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
+		if (ShadowPass)
+		{
+			FCubeShadowMapResource* CubeShadowMap = ShadowPass->GetPointShadowMap(PointLight);
+			if (CubeShadowMap && CubeShadowMap->IsValid())
+			{
+				Pipeline->SetShaderResourceView(12, EShaderType::PS, CubeShadowMap->ShadowSRV.Get());
 			}
 		}
 	}
@@ -199,7 +215,12 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	}
 	Pipeline->SetConstantBuffer(2, EShaderType::PS, nullptr);
 
-	
+	// Unbind shadow maps to prevent resource hazards
+	Pipeline->SetShaderResourceView(10, EShaderType::PS, nullptr);  // Directional shadow map
+	Pipeline->SetShaderResourceView(11, EShaderType::PS, nullptr);  // Spot shadow map
+	Pipeline->SetShaderResourceView(12, EShaderType::PS, nullptr);  // Point shadow map (cube)
+
+
 	// --- RTVs Reset ---
 	
 	/**

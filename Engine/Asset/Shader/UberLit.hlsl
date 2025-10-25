@@ -154,6 +154,7 @@ Texture2D BumpTexture : register(t5);
 // Shadow Maps
 Texture2D DirectionalShadowMap : register(t10);
 Texture2D SpotShadowMap : register(t11);
+TextureCube PointShadowMap : register(t12);
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
@@ -357,6 +358,42 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, float3 WorldPos)
     return ShadowFactor;
 }
 
+float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+        return 1.0f;
+
+    // Calculate direction from light to pixel (for cube map sampling)
+    float3 LightToPixel = WorldPos - Light.Position;
+    float Distance = length(LightToPixel);
+
+    // If too close to light or outside range, assume lit
+    if (Distance < 1e-6 || Distance > Light.Range)
+        return 1.0f;
+
+    // Normalize direction for cube sampling
+    float3 SampleDir = LightToPixel / Distance;
+
+    // Sample the cube shadow map to get stored linear distance
+    // The shadow map stores: saturate(distance / range)
+    // Use SampleLevel instead of Sample for VS compatibility (Gouraud shading uses VS lighting)
+    float StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, SampleDir, 0).r;
+
+    // Convert current distance to normalized [0,1] range
+    float CurrentDistance = Distance / Light.Range;
+
+    // Add small bias to prevent shadow acne
+    // Bias는 Light component의 ShadowBias 값 사용 (현재는 고정값)
+    float Bias = 0.005f;
+
+    // Manual depth comparison (hard shadow - no PCF for now)
+    // If current distance > stored distance, pixel is in shadow
+    float ShadowFactor = (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+
+    return ShadowFactor;
+}
+
 // Lighting Calculation Functions
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
@@ -397,33 +434,36 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
 FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
     FIllumination Result = (FIllumination) 0;
-    
+
     float3 LightDir = Info.Position - WorldPos;
     float Distance = length(LightDir);
-    
+
     // 거리나 범위가 너무 작거나, 거리가 범위 밖이면 조명 기여 없음 (Nan 방어 코드도 겸함)
     if (Distance < 1e-6 || Info.Range < 1e-6 || Distance > Info.Range)
         return Result;
-    
+
     LightDir = SafeNormalize3(LightDir);
     float NdotL = saturate(dot(WorldNormal, LightDir));
     // attenuation based on distance: (1 - d / R)^n
     float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
-    
-    // diffuse illumination
-    Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
-    
+
+    // Calculate shadow factor (0 = shadow, 1 = lit)
+    float ShadowFactor = CalculatePointShadowFactor(Info, WorldPos);
+
+    // diffuse illumination (affected by shadow)
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * ShadowFactor;
+
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
-    // Specular (Blinn-Phong)
+    // Specular (Blinn-Phong) - also affected by shadow
     float3 WorldToCameraVector = SafeNormalize3(ViewPos - WorldPos); // 영벡터면 결과적으로 LightDir와 같은 셈이 됨
     float3 WorldToLightVector = LightDir;
-    
+
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation;
+    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * ShadowFactor;
 #endif
-    
+
     return Result;
 }
 
@@ -535,16 +575,18 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     // 3. Point Lights
     uint LightIndicesOffset = GetLightIndicesOffset(Output.WorldPosition);
     uint PointLightCount = GetPointLightCount(LightIndicesOffset);
+    [loop]
     for (uint i = 0; i < PointLightCount; i++)
-    {        
+    {
         FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
         ADD_ILLUM(Illumination, CalculatePointLight(PointLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
 
-    // 4.Spot Lights 
+    // 4.Spot Lights
     uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
-     for (uint j = 0; j < SpotLightCount; j++)
-    {        
+    [loop]
+    for (uint j = 0; j < SpotLightCount; j++)
+    {
         FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
         ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
@@ -613,15 +655,17 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     // 3. Point Lights
     uint LightIndicesOffset = GetLightIndicesOffset(Input.WorldPosition);
     uint PointLightCount = GetPointLightCount(LightIndicesOffset);
+    [loop]
     for (uint i = 0; i < PointLightCount ; i++)
     {
         FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
         ADD_ILLUM(Illumination, CalculatePointLight(PointLight, N, Input.WorldPosition, ViewWorldLocation));
     }
-    
+
     // 4. Spot Lights
     uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
-     for (uint j = 0; j < SpotLightCount ; j++)
+    [loop]
+    for (uint j = 0; j < SpotLightCount ; j++)
     {
         FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
         ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, N, Input.WorldPosition, ViewWorldLocation));

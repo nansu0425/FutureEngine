@@ -60,6 +60,7 @@ public:
 	void CreateGizmoShader();
 	void CreateClusteredRenderingGrid();
 	void CreateDepthOnlyShader();
+	void CreatePointLightShadowShader();
 
 	// HotReload
 	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
@@ -190,7 +191,12 @@ private:
 	// Shadow Map Shaders
 	ID3D11VertexShader* DepthOnlyShader = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
-	
+
+	// Point Light Shadow Shaders (with linear distance output)
+	ID3D11VertexShader* PointLightShadowVS = nullptr;
+	ID3D11PixelShader* PointLightShadowPS = nullptr;
+	ID3D11InputLayout* PointLightShadowInputLayout = nullptr;
+
 	uint32 Stride = 0;
 
 	FViewport* ViewportClient = nullptr;
