@@ -95,7 +95,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	if (GizmoMode == EGizmoMode::Rotate && !bIsWorld && bIsDragging)
 	{
 		// 로컬 회전 모드 드래그 중: 드래그 시작 시점의 회전 고정
-		BaseRot = FQuaternion::FromEuler(DragStartActorRotation);
+		BaseRot = DragStartActorRotationQuat;
 	}
 	else if (GizmoMode == EGizmoMode::Scale)
 	{
@@ -115,12 +115,12 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	Renderer.RenderEditorPrimitive(P, RenderState);
 
 	// Y축 (Right) - 초록색 (Z축 주위로 -90도 회전)
-	P.Rotation = FQuaternion::FromAxisAngle(FVector::UpVector(), -90.0f * (PI / 180.0f)) * BaseRot;
+	P.Rotation = FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f)) * BaseRot;
 	P.Color = ColorFor(EGizmoDirection::Right);
 	Renderer.RenderEditorPrimitive(P, RenderState);
 
 	// Z축 (Up) - 파란색 (Y축 주위로 90도 회전)
-	P.Rotation = FQuaternion::FromAxisAngle(FVector::RightVector(), 90.0f * (PI / 180.0f)) * BaseRot;
+	P.Rotation = FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f)) * BaseRot;
 	P.Color = ColorFor(EGizmoDirection::Up);
 	Renderer.RenderEditorPrimitive(P, RenderState);
 }
@@ -159,6 +159,7 @@ void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
 	{
 		DragStartActorLocation = TargetComponent->GetWorldLocation();
 		DragStartActorRotation = TargetComponent->GetWorldRotation();
+		DragStartActorRotationQuat = TargetComponent->GetWorldRotationAsQuaternion();
 		DragStartActorScale = TargetComponent->GetWorldScale3D();
 	}
 }

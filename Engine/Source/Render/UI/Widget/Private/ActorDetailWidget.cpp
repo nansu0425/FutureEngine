@@ -7,10 +7,12 @@
 #include "Component/Public/TextComponent.h"
 #include "Global/Vector.h"
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/Input/Public/InputManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Texture/Public/Texture.h"
 
 IMPLEMENT_CLASS(UActorDetailWidget, UWidget)
+
 UActorDetailWidget::UActorDetailWidget()
 {
 	LoadComponentClasses();
@@ -584,42 +586,104 @@ void UActorDetailWidget::RenderTransformEdit()
 	USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedComponent);
 	if (!SceneComponent) { return; }
 
-	ImGui::Text("Component Transform");
+	// Ctrl+` 단축키로 전체 World/Local 전환
+	const UInputManager& InputManager = UInputManager::GetInstance();
+	if (InputManager.IsKeyDown(EKeyInput::Ctrl) && InputManager.IsKeyPressed(EKeyInput::Backtick))
+	{
+		bShowWorldLocation = !bShowWorldLocation;
+		bShowWorldRotation = !bShowWorldRotation;
+	}
+
+	// Transform 헤더
+	ImGui::Text("Transform");
+
 	ImGui::PushID(SceneComponent);
 
 	// Drag 필드 색상을 검은색으로 설정
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-	
-	// Relative Position
+
+	// Location
 	ImDrawList* DrawList = ImGui::GetWindowDrawList();
-	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
-	float PosArray[3] = { ComponentPosition.X, ComponentPosition.Y, ComponentPosition.Z };
+	static FVector cachedLocation = FVector::ZeroVector();
+	static bool bIsDraggingLocation = false;
+	static USceneComponent* lastDraggedLocationComponent = nullptr;
+	static bool lastShowWorldLocation = false;
+
+	// 컴포넌트 전환 또는 World/Local 모드 전환 시 캐싱
+	if (lastDraggedLocationComponent != SceneComponent || lastShowWorldLocation != bShowWorldLocation)
+	{
+		cachedLocation = bShowWorldLocation ? SceneComponent->GetWorldLocation() : SceneComponent->GetRelativeLocation();
+		lastDraggedLocationComponent = SceneComponent;
+		lastShowWorldLocation = bShowWorldLocation;
+		bIsDraggingLocation = false;
+	}
+
+	// 드래그 중이 아닐 때만 동기화
+	if (!bIsDraggingLocation)
+	{
+		cachedLocation = bShowWorldLocation ? SceneComponent->GetWorldLocation() : SceneComponent->GetRelativeLocation();
+	}
+
+	float PosArray[3] = { cachedLocation.X, cachedLocation.Y, cachedLocation.Z };
 	bool PosChanged = false;
+
+	// Location Label (드롭다운 메뉴)
+	const char* LocationLabel = bShowWorldLocation ? "Absolute Location" : "Location";
+	ImGui::SetNextItemWidth(120.0f); // 고정 너비로 테이블 정렬
+	if (ImGui::BeginCombo("##LocationMode", LocationLabel, ImGuiComboFlags_NoArrowButton))
+	{
+		bool bSelectWorld = bShowWorldLocation;
+		bool bSelectLocal = !bShowWorldLocation;
+
+		if (ImGui::Selectable("Absolute Location", bSelectWorld))
+		{
+			bShowWorldLocation = true;
+			cachedLocation = SceneComponent->GetWorldLocation();
+			lastShowWorldLocation = bShowWorldLocation;
+			bIsDraggingLocation = false;
+		}
+		if (ImGui::Selectable("Location", bSelectLocal))
+		{
+			bShowWorldLocation = false;
+			cachedLocation = SceneComponent->GetRelativeLocation();
+			lastShowWorldLocation = bShowWorldLocation;
+			bIsDraggingLocation = false;
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::SameLine();
 
 	ImVec2 PosX = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosX", &PosArray[0], 0.1f, 0.0f, 0.0f, "%.3f");
+	PosChanged |= ImGui::DragFloat("##PosX", &PosArray[0], 0.1f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("X: %.3f", PosArray[0]); }
 	ImVec2 SizeX = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosX.x + 5, PosX.y + 2), ImVec2(PosX.x + 5, PosX.y + SizeX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
+
+	// 드래그 상태 추적
+	bool bIsAnyLocationItemActive = ImGui::IsItemActive();
 	ImGui::SameLine();
 
 	ImVec2 PosY = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosY", &PosArray[1], 0.1f, 0.0f, 0.0f, "%.3f");
+	PosChanged |= ImGui::DragFloat("##PosY", &PosArray[1], 0.1f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Y: %.3f", PosArray[1]); }
 	ImVec2 SizeY = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosY.x + 5, PosY.y + 2), ImVec2(PosY.x + 5, PosY.y + SizeY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
+
+	bIsAnyLocationItemActive |= ImGui::IsItemActive();
 	ImGui::SameLine();
 
 	ImVec2 PosZ = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	PosChanged |= ImGui::DragFloat("##RelPosZ", &PosArray[2], 0.1f, 0.0f, 0.0f, "%.3f");
+	PosChanged |= ImGui::DragFloat("##PosZ", &PosArray[2], 0.1f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Z: %.3f", PosArray[2]); }
 	ImVec2 SizeZ = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(PosZ.x + 5, PosZ.y + 2), ImVec2(PosZ.x + 5, PosZ.y + SizeZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
+
+	bIsAnyLocationItemActive |= ImGui::IsItemActive();
 	ImGui::SameLine();
 
 	// Reset button
@@ -629,43 +693,100 @@ void UActorDetailWidget::RenderTransformEdit()
 		PosChanged = true;
 	}
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Reset to zero"); }
-	ImGui::SameLine();
-
-	ImGui::Text("Relative Position");
 
 	if (PosChanged)
 	{
-		ComponentPosition.X = PosArray[0];
-		ComponentPosition.Y = PosArray[1];
-		ComponentPosition.Z = PosArray[2];
-		SceneComponent->SetRelativeLocation(ComponentPosition);
+		cachedLocation.X = PosArray[0];
+		cachedLocation.Y = PosArray[1];
+		cachedLocation.Z = PosArray[2];
+		if (bShowWorldLocation)
+		{
+			SceneComponent->SetWorldLocation(cachedLocation);
+		}
+		else
+		{
+			SceneComponent->SetRelativeLocation(cachedLocation);
+		}
 	}
 
-	// Relative Rotation (캐싱 방식으로 Quaternion↔Euler 변환 오차 방지)
+	// 드래그 상태 업데이트
+	bIsDraggingLocation = bIsAnyLocationItemActive;
+
+	// Rotation (캐싱 방식으로 Quaternion과 Euler 변환 오차 방지)
 	static FVector cachedRotation = FVector::ZeroVector();
 	static bool bIsDraggingRotation = false;
 	static USceneComponent* lastDraggedComponent = nullptr;
+	static bool lastShowWorldRotation = false;
 
-	// 컴포넌트 전환 또는 드래그 시작 시 캐싱
-	if (lastDraggedComponent != SceneComponent)
+	// 기즈모로 회전 중인지 확인
+	bool bIsGizmoDragging = GEditor->GetEditorModule()->GetGizmo()->IsDragging() &&
+	                        GEditor->GetEditorModule()->GetGizmo()->GetGizmoMode() == EGizmoMode::Rotate;
+
+	// 컴포넌트 전환 또는 World / Local 모드 전환 시 캐싱
+	if (lastDraggedComponent != SceneComponent || lastShowWorldRotation != bShowWorldRotation)
 	{
-		cachedRotation = SceneComponent->GetRelativeRotation().ToEuler();
+		if (bShowWorldRotation)
+		{
+			cachedRotation = SceneComponent->GetWorldRotationAsQuaternion().ToEuler();
+		}
+		else
+		{
+			cachedRotation = SceneComponent->GetRelativeRotation().ToEuler();
+		}
 		lastDraggedComponent = SceneComponent;
+		lastShowWorldRotation = bShowWorldRotation;
 		bIsDraggingRotation = false;
 	}
 
-	// 드래그 중이 아닐 때만 Quaternion에서 동기화
-	if (!bIsDraggingRotation)
+	// UI 드래그 중이 아니고 기즈모 드래그 중이 아닐 때만 동기화
+	if (!bIsDraggingRotation && !bIsGizmoDragging)
 	{
-		cachedRotation = SceneComponent->GetRelativeRotation().ToEuler();
+		if (bShowWorldRotation)
+		{
+			FQuaternion WorldQuat = SceneComponent->GetWorldRotationAsQuaternion();
+			cachedRotation = WorldQuat.ToEuler();
+		}
+		else
+		{
+			FQuaternion RelativeQuat = SceneComponent->GetRelativeRotation();
+			cachedRotation = RelativeQuat.ToEuler();
+		}
 	}
 
 	float RotArray[3] = { cachedRotation.X, cachedRotation.Y, cachedRotation.Z };
 	bool RotChanged = false;
 
+	// Rotation Label (드롭다운 메뉴)
+	const char* RotationLabel = bShowWorldRotation ? "Absolute Rotation" : "Rotation";
+	ImGui::SetNextItemWidth(120.0f); // 고정 너비로 테이블 정렬
+	if (ImGui::BeginCombo("##RotationMode", RotationLabel, ImGuiComboFlags_NoArrowButton))
+	{
+		bool bSelectWorld = bShowWorldRotation;
+		bool bSelectLocal = !bShowWorldRotation;
+
+		if (ImGui::Selectable("Absolute Rotation", bSelectWorld))
+		{
+			bShowWorldRotation = true;
+			cachedRotation = SceneComponent->GetWorldRotationAsQuaternion().ToEuler();
+			lastShowWorldRotation = bShowWorldRotation;
+			lastDraggedComponent = SceneComponent;
+			bIsDraggingRotation = false;
+		}
+		if (ImGui::Selectable("Rotation", bSelectLocal))
+		{
+			bShowWorldRotation = false;
+			cachedRotation = SceneComponent->GetRelativeRotation().ToEuler();
+			lastShowWorldRotation = bShowWorldRotation;
+			lastDraggedComponent = SceneComponent;
+			bIsDraggingRotation = false;
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::SameLine();
+
 	ImVec2 RotX = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotX", &RotArray[0], 1.0f, 0.0f, 0.0f, "%.3f");
+	RotChanged |= ImGui::DragFloat("##RotX", &RotArray[0], 1.0f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("X: %.3f", RotArray[0]); }
 	ImVec2 SizeRotX = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotX.x + 5, RotX.y + 2), ImVec2(RotX.x + 5, RotX.y + SizeRotX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
@@ -676,7 +797,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	ImVec2 RotY = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotY", &RotArray[1], 1.0f, 0.0f, 0.0f, "%.3f");
+	RotChanged |= ImGui::DragFloat("##RotY", &RotArray[1], 1.0f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Y: %.3f", RotArray[1]); }
 	ImVec2 SizeRotY = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotY.x + 5, RotY.y + 2), ImVec2(RotY.x + 5, RotY.y + SizeRotY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
@@ -686,7 +807,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	ImVec2 RotZ = ImGui::GetCursorScreenPos();
 	ImGui::SetNextItemWidth(75.0f);
-	RotChanged |= ImGui::DragFloat("##RelRotZ", &RotArray[2], 1.0f, 0.0f, 0.0f, "%.3f");
+	RotChanged |= ImGui::DragFloat("##RotZ", &RotArray[2], 1.0f, 0.0f, 0.0f, "%.3f");
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Z: %.3f", RotArray[2]); }
 	ImVec2 SizeRotZ = ImGui::GetItemRectSize();
 	DrawList->AddLine(ImVec2(RotZ.x + 5, RotZ.y + 2), ImVec2(RotZ.x + 5, RotZ.y + SizeRotZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
@@ -701,9 +822,6 @@ void UActorDetailWidget::RenderTransformEdit()
 		RotChanged = true;
 	}
 	if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Reset to zero"); }
-	ImGui::SameLine();
-
-	ImGui::Text("Relative Rotation");
 
 	// 값 변경 시 컴포넌트에 반영
 	if (RotChanged)
@@ -711,25 +829,47 @@ void UActorDetailWidget::RenderTransformEdit()
 		cachedRotation.X = RotArray[0];
 		cachedRotation.Y = RotArray[1];
 		cachedRotation.Z = RotArray[2];
-		SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(cachedRotation));
+		if (bShowWorldRotation)
+		{
+			SceneComponent->SetWorldRotation(cachedRotation);
+		}
+		else
+		{
+			SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(cachedRotation));
+		}
 	}
 
 	// 드래그 상태 업데이트
 	bIsDraggingRotation = bIsAnyItemActive;
 
-	// Relative Scale
+	// Scale (항상 Relative Scale 표시)
 	FVector ComponentScale = SceneComponent->GetRelativeScale3D();
 	bool bUniformScale = SceneComponent->IsUniformScale();
 	if (bUniformScale)
 	{
 		float UniformScale = ComponentScale.X;
 		bool ScaleChanged = false;
+
+		// Scale Label (드롭다운 메뉴, 선택지는 하나만)
+		ImGui::SetNextItemWidth(120.0f);
+		if (ImGui::BeginCombo("##ScaleMode", "Scale", ImGuiComboFlags_NoArrowButton))
+		{
+			ImGui::Selectable("Scale", true);
+			ImGui::EndCombo();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Scale is always relative");
+		}
+		ImGui::SameLine();
+
 		ImVec2 PosScale = ImGui::GetCursorScreenPos();
 		// Uniform Scale 너비 = (75 * 3) + (간격 * 2)
 		const float ItemWidth = 75.0f;
 		const float ItemSpacing = ImGui::GetStyle().ItemSpacing.x;
 		const float UniformScaleWidth = (ItemWidth * 3.0f) + (ItemSpacing * 2.0f);
 		ImGui::SetNextItemWidth(UniformScaleWidth);
+
 		ScaleChanged = ImGui::DragFloat("##UniformScale", &UniformScale, 0.1f, 0.0f, 0.0f, "%.3f");
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Scale: %.3f", UniformScale); }
 		ImVec2 SizeScale = ImGui::GetItemRectSize();
@@ -743,9 +883,6 @@ void UActorDetailWidget::RenderTransformEdit()
 			ScaleChanged = true;
 		}
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Reset to 1.0"); }
-		ImGui::SameLine();
-
-		ImGui::Text("Relative Scale");
 
 		if (ScaleChanged)
 		{
@@ -757,9 +894,22 @@ void UActorDetailWidget::RenderTransformEdit()
 		float ScaleArray[3] = { ComponentScale.X, ComponentScale.Y, ComponentScale.Z };
 		bool ScaleChanged = false;
 
+		// Scale Label
+		ImGui::SetNextItemWidth(120.0f);
+		if (ImGui::BeginCombo("##ScaleMode", "Scale", ImGuiComboFlags_NoArrowButton))
+		{
+			ImGui::Selectable("Scale", true);
+			ImGui::EndCombo();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Scale is always relative");
+		}
+		ImGui::SameLine();
+
 		ImVec2 ScaleX = ImGui::GetCursorScreenPos();
 		ImGui::SetNextItemWidth(75.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleX", &ScaleArray[0], 0.1f, 0.0f, 0.0f, "%.3f");
+		ScaleChanged |= ImGui::DragFloat("##ScaleX", &ScaleArray[0], 0.1f, 0.0f, 0.0f, "%.3f");
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("X: %.3f", ScaleArray[0]); }
 		ImVec2 SizeScaleX = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleX.x + 5, ScaleX.y + 2), ImVec2(ScaleX.x + 5, ScaleX.y + SizeScaleX.y - 2), IM_COL32(255, 0, 0, 255), 2.0f);
@@ -767,7 +917,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 		ImVec2 ScaleY = ImGui::GetCursorScreenPos();
 		ImGui::SetNextItemWidth(75.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleY", &ScaleArray[1], 0.1f, 0.0f, 0.0f, "%.3f");
+		ScaleChanged |= ImGui::DragFloat("##ScaleY", &ScaleArray[1], 0.1f, 0.0f, 0.0f, "%.3f");
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Y: %.3f", ScaleArray[1]); }
 		ImVec2 SizeScaleY = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleY.x + 5, ScaleY.y + 2), ImVec2(ScaleY.x + 5, ScaleY.y + SizeScaleY.y - 2), IM_COL32(0, 255, 0, 255), 2.0f);
@@ -775,7 +925,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 		ImVec2 ScaleZ = ImGui::GetCursorScreenPos();
 		ImGui::SetNextItemWidth(75.0f);
-		ScaleChanged |= ImGui::DragFloat("##RelScaleZ", &ScaleArray[2], 0.1f, 0.0f, 0.0f, "%.3f");
+		ScaleChanged |= ImGui::DragFloat("##ScaleZ", &ScaleArray[2], 0.1f, 0.0f, 0.0f, "%.3f");
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Z: %.3f", ScaleArray[2]); }
 		ImVec2 SizeScaleZ = ImGui::GetItemRectSize();
 		DrawList->AddLine(ImVec2(ScaleZ.x + 5, ScaleZ.y + 2), ImVec2(ScaleZ.x + 5, ScaleZ.y + SizeScaleZ.y - 2), IM_COL32(0, 0, 255, 255), 2.0f);
@@ -788,10 +938,7 @@ void UActorDetailWidget::RenderTransformEdit()
 			ScaleChanged = true;
 		}
 		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Reset to 1.0"); }
-		ImGui::SameLine();
 
-		ImGui::Text("Relative Scale");
-		
 		if (ScaleChanged)
 		{
 			ComponentScale.X = ScaleArray[0];

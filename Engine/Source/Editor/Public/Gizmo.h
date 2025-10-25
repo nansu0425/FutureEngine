@@ -57,7 +57,7 @@ public:
 	*/
 	void SetLocation(const FVector& Location);
 	void SetGizmoDirection(EGizmoDirection Direction) { GizmoDirection = Direction; }
-	void SetComponentRotation(const FVector& Rotation) { TargetComponent->SetWorldRotation(Rotation); }
+	void SetComponentRotation(const FQuaternion& Rotation) { TargetComponent->SetWorldRotation(Rotation); }
 	void SetComponentScale(const FVector& Scale) { TargetComponent->SetWorldScale3D(Scale); }
 
 	void SetWorld() { bIsWorld = true; }
@@ -71,11 +71,12 @@ public:
 	float GetRotateScale() const { return RotateCollisionConfig.Scale; }
 	EGizmoDirection GetGizmoDirection() { return GizmoDirection; }
 	FVector GetGizmoLocation() { return Primitives[(int)GizmoMode].Location; }
-	FVector GetComponentRotation() { return TargetComponent->GetWorldRotation(); }
+	FQuaternion GetComponentRotation() { return TargetComponent->GetWorldRotationAsQuaternion(); }
 	FVector GetComponentScale() { return TargetComponent->GetWorldScale3D(); }
 	FVector GetDragStartMouseLocation() { return DragStartMouseLocation; }
 	FVector GetDragStartActorLocation() { return DragStartActorLocation; }
 	FVector GetDragStartActorRotation() { return DragStartActorRotation; }
+	FQuaternion GetDragStartActorRotationQuat() { return DragStartActorRotationQuat; }
 	FVector GetDragStartActorScale() { return DragStartActorScale; }
 	EGizmoMode GetGizmoMode() { return GizmoMode; }
 	FVector GetGizmoAxis() {
@@ -129,6 +130,7 @@ private:
 	FVector DragStartActorLocation;
 	FVector DragStartMouseLocation;
 	FVector DragStartActorRotation;
+	FQuaternion DragStartActorRotationQuat;
 	FVector DragStartActorScale;
 
 	FGizmoTranslationCollisionConfig TranslateCollisionConfig;
