@@ -5,6 +5,9 @@
 #include "Level/Public/Level.h"
 #include "Component/Public/ActorComponent.h"
 #include "ImGui/imgui.h"
+#include "Manager/UI/Public/ViewportManager.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
 
 IMPLEMENT_CLASS(USpotLightComponentWidget, UWidget)
 
@@ -162,6 +165,122 @@ void USpotLightComponentWidget::RenderWidget()
     if (ImGui::IsItemHovered())
     {
         ImGui::SetTooltip("스포트라이트 원뿔의 안쪽 가장자리 각도입니다.\n이 각도 안쪽은 최대 밝기입니다.");
+    }
+
+    /*
+     * 그림자 속성 관련 UI
+     */
+    ImGui::Separator();
+    
+    bool CastShadow = SpotLightComponent->GetCastShadows();
+    if (ImGui::Checkbox("Cast Shadow", &CastShadow))
+    {
+        SpotLightComponent->SetCastShadows(CastShadow);
+    }
+
+    if (SpotLightComponent->GetCastShadows())
+    {
+        float ShadowResoulutionScale = SpotLightComponent->GetShadowResolutionScale();
+        if (ImGui::DragFloat("ShadowResoulutionScale", &ShadowResoulutionScale, 0.1f, 0.0f, 20.0f))
+        {
+            SpotLightComponent->SetShadowResolutionScale(ShadowResoulutionScale);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("그림자 해상도 크기\n범위: 0.0(최소) ~ 20.0(최대)");
+        }
+
+        float ShadowBias = SpotLightComponent->GetShadowBias();
+        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.1f, 0.0f, 20.0f))
+        {
+            SpotLightComponent->SetShadowBias(ShadowBias);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+        }
+
+        float ShadowSlopeBias = SpotLightComponent->GetShadowSlopeBias();
+        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 20.0f))
+        {
+            SpotLightComponent->SetShadowSlopeBias(ShadowSlopeBias);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+        }
+
+        float ShadowSharpen = SpotLightComponent->GetShadowSharpen();
+        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.1f, 0.0f, 20.0f))
+        {
+            SpotLightComponent->SetShadowSharpen(ShadowSharpen);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
+        }
+
+        float NearPlane = SpotLightComponent->GetNearPlane();
+        if (ImGui::DragFloat("NearPlane", &NearPlane, 0.1f, 0.0f, 1.0f))
+        {
+            SpotLightComponent->SetNearPlane(NearPlane);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("광원 시야 근평면\n범위: 0.0(최소) ~ 1.0(최대)");
+        }
+
+        float FarPlane = SpotLightComponent->GetFarPlane();
+        if (ImGui::DragFloat("FarPlane", &FarPlane, 0.1f, 10.0f, 1000.0f))
+        {
+            SpotLightComponent->SetFarPlane(FarPlane);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
+        }
+    }
+
+    if (ImGui::Button("Override Camera With Light's Perspective"))
+    {
+        for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
+        {
+            FViewportClient* ViewportClient = Viewport->GetViewportClient();
+            if (UCamera* Camera = ViewportClient->GetCamera())
+            {
+                Camera->SetLocation(SpotLightComponent->GetWorldLocation());
+                Camera->SetRotation(SpotLightComponent->GetWorldRotation());
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("카메라의 시점을 광원의 시점으로 변경\n");
+    }
+
+    /*
+     * Light Shadow Map 출력 UI
+     * 임시로 NormalSRV 출력
+     */
+
+    ImTextureID TextureID = (ImTextureID)URenderer::GetInstance().GetDeviceResources()->GetNormalSRV();
+    if (URenderer::GetInstance().GetDeviceResources()->GetNormalSRV())
+    {
+        // 원하는 출력 크기 설정
+        ImVec2 ImageSize(256, 256); 
+    
+        // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
+        // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
+        ImGui::Image(TextureID, 
+                     ImageSize, 
+                     ImVec2(0, 0), ImVec2(1, 1), 
+                     ImVec4(1, 1, 1, 1), 
+                     ImVec4(0, 0, 0, 0)); 
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("광원의 Shadow Map 출력");
+        }
     }
     
     ImGui::PopStyleColor(3);

@@ -58,8 +58,18 @@ public:
 
     FPointLightInfo GetPointlightInfo() const;
 
+    float GetNearPlane() const { return NearPlane; }
+    void SetNearPlane(float InNearPlane) { NearPlane = InNearPlane; }
+    
+    float GetFarPlane() const { return FarPlane; }
+    void SetFarPlane(float InFarPlane) { FarPlane = InFarPlane; }
+
 private:
     void EnsureVisualizationBillboard()override;
+
+private:
+    float NearPlane = 0.01f;
+    float FarPlane = 100.0f;
     
 protected:
     /**
