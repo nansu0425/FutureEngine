@@ -77,7 +77,7 @@ FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
     Info.Direction = GetForwardVector();
 
     // Shadow parameters
-    Info.LightViewProjection = FMatrix::Identity(); // Will be calculated by ShadowMapPass
+    Info.LightViewProjection = CachedShadowViewProjection; // Updated by ShadowMapPass
     Info.CastShadow = GetCastShadows() ? 1u : 0u;
     Info.ShadowBias = GetShadowBias();
     Info.ShadowSlopeBias = GetShadowSlopeBias();

@@ -6,6 +6,7 @@
 #include "Texture/Public/Texture.h"
 #include "Render/RenderPass/Public/ShadowMapPass.h"
 #include "Component/Public/DirectionalLightComponent.h"
+#include "Component/Public/SpotLightComponent.h"
 #include "Texture/Public/ShadowMapResources.h"
 
 FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
@@ -52,6 +53,21 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 			if (ShadowMap && ShadowMap->IsValid())
 			{
 				Pipeline->SetShaderResourceView(10, EShaderType::PS, ShadowMap->ShadowSRV.Get());
+			}
+		}
+	}
+
+	// Bind spot light shadow map if available
+	if (!Context.SpotLights.empty() && Context.SpotLights[0]->GetCastShadows())
+	{
+		USpotLightComponent* SpotLight = Context.SpotLights[0];
+		FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
+		if (ShadowPass)
+		{
+			FShadowMapResource* ShadowMap = ShadowPass->GetSpotShadowMap(SpotLight);
+			if (ShadowMap && ShadowMap->IsValid())
+			{
+				Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowMap->ShadowSRV.Get());
 			}
 		}
 	}

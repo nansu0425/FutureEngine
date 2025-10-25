@@ -153,6 +153,7 @@ Texture2D BumpTexture : register(t5);
 
 // Shadow Maps
 Texture2D DirectionalShadowMap : register(t10);
+Texture2D SpotShadowMap : register(t11);
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
@@ -303,6 +304,59 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
     return ShadowFactor;
 }
 
+float CalculateSpotShadowFactor(FSpotLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+        return 1.0f;
+
+    // Transform world position to light space
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+
+    // Perspective divide (to NDC space)
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    // Check if position is outside light frustum
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    // Convert NDC to texture coordinates ([-1,1] -> [0,1])
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
+
+    // Current pixel depth in light space
+    float CurrentDepth = LightSpacePos.z;
+
+    // PCF (Percentage Closer Filtering) for soft shadows
+    float ShadowFactor = 0.0f;
+    float2 TexelSize = 1.0f / float2(1024.0f, 1024.0f); // Spot shadow map resolution
+
+    // 3x3 PCF kernel
+    [unroll]
+    for (int x = -1; x <= 1; x++)
+    {
+        [unroll]
+        for (int y = -1; y <= 1; y++)
+        {
+            float2 Offset = float2(x, y) * TexelSize;
+            ShadowFactor += SpotShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                ShadowTexCoord + Offset,
+                CurrentDepth
+            );
+        }
+    }
+
+    ShadowFactor /= 9.0f; // Average of 9 samples
+
+    return ShadowFactor;
+}
+
 // Lighting Calculation Functions
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
@@ -397,7 +451,7 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
 
     // attenuation based on distance: (1 - d / R)^n
     float AttenuationDistance = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
-    
+
     float AttenuationAngle = 0.0f;
     if (CosAngle >= CosInner || CosInner - CosOuter <= 1e-6)
     {
@@ -407,18 +461,21 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     {
         AttenuationAngle = pow(saturate((CosAngle - CosOuter) / (CosInner - CosOuter)), Info.AngleFalloffExponent);
     }
-    
-    Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle;
-    
+
+    // Shadow factor
+    float ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
+
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
+
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = SafeNormalize3(ViewPos - WorldPos);
     float3 WorldToLightVector = LightDir;
-    
+
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle;
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * ShadowFactor;
 #endif
     
     return Result;

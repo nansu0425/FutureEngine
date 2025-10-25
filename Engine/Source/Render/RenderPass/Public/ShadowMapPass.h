@@ -41,6 +41,13 @@ public:
 	 */
 	FShadowMapResource* GetDirectionalShadowMap(UDirectionalLightComponent* Light);
 
+	/**
+	 * @brief Spot light의 shadow map 리소스를 가져옵니다.
+	 * @param Light Spot light component
+	 * @return Shadow map 리소스 포인터 (없으면 nullptr)
+	 */
+	FShadowMapResource* GetSpotShadowMap(USpotLightComponent* Light);
+
 private:
 	// --- Directional Light Shadow Rendering ---
 	/**
@@ -83,9 +90,12 @@ private:
 	/**
 	 * @brief Spot light의 view-projection 행렬을 계산합니다.
 	 * @param Light Spot light component
-	 * @return Light space view-projection 행렬
+	 * @param Meshes 렌더링할 메시 목록 (현재 사용 안 함, Directional과 시그니처 일관성 유지)
+	 * @param OutView 출력 view matrix
+	 * @param OutProj 출력 projection matrix
 	 */
-	FMatrix CalculateSpotLightViewProj(USpotLightComponent* Light);
+	void CalculateSpotLightViewProj(USpotLightComponent* Light,
+		const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj);
 
 	/**
 	 * @brief Point light의 6면에 대한 view-projection 행렬을 계산합니다.
@@ -127,6 +137,17 @@ private:
 	 */
 	ID3D11RasterizerState* GetOrCreateRasterizerState(UDirectionalLightComponent* Light);
 
+	/**
+	 * @brief Spot light의 rasterizer state를 가져오거나 생성합니다.
+	 *
+	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	 *
+	 * @param Light Spot light component
+	 * @return Light 전용 rasterizer state
+	 */
+	ID3D11RasterizerState* GetOrCreateRasterizerState(USpotLightComponent* Light);
+
 private:
 	// Shaders
 	ID3D11VertexShader* DepthOnlyShader = nullptr;
@@ -143,6 +164,7 @@ private:
 
 	// Rasterizer state 캐싱 (매 프레임 생성/해제 방지)
 	TMap<UDirectionalLightComponent*, ID3D11RasterizerState*> DirectionalRasterizerStates;
+	TMap<USpotLightComponent*, ID3D11RasterizerState*> SpotRasterizerStates;
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
 	struct FShadowViewProjConstant

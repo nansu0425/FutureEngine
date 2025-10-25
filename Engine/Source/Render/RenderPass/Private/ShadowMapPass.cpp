@@ -56,6 +56,28 @@ namespace ShadowMatrixHelper
 
 		return Result;
 	}
+
+	// Create a perspective projection matrix (Left-Handed)
+	// Used for spot light shadow mapping
+	FMatrix CreatePerspectiveFovLH(float FovYRadians, float Aspect, float Near, float Far)
+	{
+		// f = 1 / tan(fovY/2)
+		const float F = 1.0f / std::tanf(FovYRadians * 0.5f);
+
+		FMatrix Result = FMatrix::Identity();
+		// | f/aspect   0        0         0 |
+		// |    0       f        0         0 |
+		// |    0       0   zf/(zf-zn)     1 |
+		// |    0       0  -zn*zf/(zf-zn)  0 |
+		Result.Data[0][0] = F / Aspect;
+		Result.Data[1][1] = F;
+		Result.Data[2][2] = Far / (Far - Near);
+		Result.Data[2][3] = 1.0f;
+		Result.Data[3][2] = (-Near * Far) / (Far - Near);
+		Result.Data[3][3] = 0.0f;
+
+		return Result;
+	}
 }
 
 FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
@@ -116,8 +138,8 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	// This prevents D3D11 resource hazard warnings
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
-	ID3D11ShaderResourceView* NullSRV = nullptr;
-	DeviceContext->PSSetShaderResources(10, 1, &NullSRV);  // Unbind t10 (DirectionalShadowMap)
+	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
+	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
 
 	// Phase 1: Directional Lights
 	for (auto DirLight : Context.DirectionalLights)
@@ -225,8 +247,75 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 	const TArray<UStaticMeshComponent*>& Meshes)
 {
-	// TODO: Implement spot light shadow mapping
-	// Similar to directional but with perspective projection
+	FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
+	if (!ShadowMap || !ShadowMap->IsValid())
+		return;
+
+	const auto& Renderer = URenderer::GetInstance();
+	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
+
+	// 0. 현재 상태 저장 (복원용)
+	ID3D11RenderTargetView* OriginalRTV = nullptr;
+	ID3D11DepthStencilView* OriginalDSV = nullptr;
+	DeviceContext->OMGetRenderTargets(1, &OriginalRTV, &OriginalDSV);
+
+	D3D11_VIEWPORT OriginalViewport;
+	UINT NumViewports = 1;
+	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
+
+	// 1. Shadow render target 설정
+	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
+	ID3D11RenderTargetView* NullRTV = nullptr;
+	Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
+	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
+
+	// 3. Pipeline을 통해 shadow rendering state 설정
+	FPipelineInfo ShadowPipelineInfo = {
+		DepthOnlyInputLayout,
+		DepthOnlyShader,
+		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
+		ShadowDepthStencilState,
+		nullptr,  // No pixel shader for depth-only
+		nullptr,  // No blend state
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(ShadowPipelineInfo);
+
+	// 4. Light view-projection 계산 (Perspective projection for cone-shaped frustum)
+	FMatrix LightView, LightProj;
+	CalculateSpotLightViewProj(Light, Meshes, LightView, LightProj);
+
+	// Store the calculated shadow view-projection matrix in the light component
+	FMatrix LightViewProj = LightView * LightProj;
+	Light->SetShadowViewProjection(LightViewProj);  // Will be added to SpotLightComponent in Phase 6
+
+	// 5. 각 메시 렌더링
+	for (auto Mesh : Meshes)
+	{
+		if (Mesh->IsVisible())
+		{
+			RenderMeshDepth(Mesh, LightView, LightProj);
+		}
+	}
+
+	// 6. 상태 복원
+	// RenderTarget과 DepthStencil 복원 (Pipeline API 사용)
+	Pipeline->SetRenderTargets(1, &OriginalRTV, OriginalDSV);
+
+	// Viewport 복원 (DeviceContext 직접 사용)
+	DeviceContext->RSSetViewports(1, &OriginalViewport);
+
+	// 임시 리소스 해제
+	if (OriginalRTV)
+		OriginalRTV->Release();
+	if (OriginalDSV)
+		OriginalDSV->Release();
+
+	// Note: RastState는 캐싱되므로 여기서 해제하지 않음 (Release()에서 일괄 해제)
 }
 
 void FShadowMapPass::RenderPointShadowMap(UPointLightComponent* Light,
@@ -342,10 +431,43 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	OutProj = ShadowMatrixHelper::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
 }
 
-FMatrix FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light)
+void FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light,
+	const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj)
 {
-	// TODO: Implement spot light view-projection calculation
-	return FMatrix::Identity();
+	// 1. Light의 위치와 방향 가져오기
+	FVector LightPos = Light->GetWorldLocation();
+	FVector LightDir = Light->GetForwardVector();
+
+	// LightDir이 거의 0이면 기본값 사용
+	if (LightDir.Length() < 1e-6f)
+		LightDir = FVector(1, 0, 0);  // X-Forward (engine default)
+	else
+		LightDir = LightDir.GetNormalized();
+
+	// 2. View Matrix 생성: Light 위치에서 Direction 방향으로
+	FVector Target = LightPos + LightDir;
+
+	// Up vector 계산 (Z-Up, X-Forward, Y-Right Left-Handed 좌표계)
+	FVector Up = FVector(0, 0, 1);  // Z-Up
+	if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
+		Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
+
+	OutView = ShadowMatrixHelper::CreateLookAtLH(LightPos, Target, Up);
+
+	// 3. Perspective Projection 생성: Cone 모양의 frustum
+	float FovY = Light->GetOuterConeAngle() * 2.0f;  // Full cone angle
+	float Aspect = 1.0f;  // Square shadow map
+	float Near = 1.0f;    // 너무 작으면 depth precision 문제
+	float Far = Light->GetAttenuationRadius();  // Light range
+
+	// FovY가 너무 작거나 크면 clamp (유효 범위: 0.1 ~ PI - 0.1)
+	FovY = std::clamp(FovY, 0.1f, PI - 0.1f);
+
+	// Far가 Near보다 작거나 같으면 기본값 사용
+	if (Far <= Near)
+		Far = Near + 10.0f;
+
+	OutProj = ShadowMatrixHelper::CreatePerspectiveFovLH(FovY, Aspect, Near, Far);
 }
 
 void FShadowMapPass::CalculatePointLightViewProj(UPointLightComponent* Light, FMatrix OutViewProj[6])
@@ -459,6 +581,13 @@ void FShadowMapPass::Release()
 	}
 	DirectionalRasterizerStates.clear();
 
+	for (auto& Pair : SpotRasterizerStates)
+	{
+		if (Pair.second)
+			Pair.second->Release();
+	}
+	SpotRasterizerStates.clear();
+
 	for (auto& Pair : SpotShadowMaps)
 	{
 		if (Pair.second)
@@ -507,6 +636,12 @@ FShadowMapResource* FShadowMapPass::GetDirectionalShadowMap(UDirectionalLightCom
 	return It != DirectionalShadowMaps.end() ? It->second : nullptr;
 }
 
+FShadowMapResource* FShadowMapPass::GetSpotShadowMap(USpotLightComponent* Light)
+{
+	auto It = SpotShadowMaps.find(Light);
+	return It != SpotShadowMaps.end() ? It->second : nullptr;
+}
+
 ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UDirectionalLightComponent* Light)
 {
 	// 이미 생성된 state가 있으면 재사용
@@ -533,6 +668,36 @@ ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UDirectionalLi
 
 	// 캐시에 저장
 	DirectionalRasterizerStates[Light] = NewState;
+
+	return NewState;
+}
+
+ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(USpotLightComponent* Light)
+{
+	// 이미 생성된 state가 있으면 재사용
+	auto It = SpotRasterizerStates.find(Light);
+	if (It != SpotRasterizerStates.end())
+		return It->second;
+
+	// 새로 생성
+	const auto& Renderer = URenderer::GetInstance();
+	D3D11_RASTERIZER_DESC RastDesc = {};
+	ShadowRasterizerState->GetDesc(&RastDesc);
+
+	// Light별 DepthBias 설정
+	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+	//   - 100000.0f: float → integer 변환 스케일
+	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+
+	ID3D11RasterizerState* NewState = nullptr;
+	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+
+	// 캐시에 저장
+	SpotRasterizerStates[Light] = NewState;
 
 	return NewState;
 }
