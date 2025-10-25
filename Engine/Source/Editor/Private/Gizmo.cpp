@@ -90,34 +90,37 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 	P.Scale = FVector(RenderScale, RenderScale, RenderScale);
 
-	// 2) 드래그 중에는 나머지 축 유지되는 모드 (회전 후 새로운 로컬 기즈모 보여줌)
-	FQuaternion LocalRot;
+	// 기즈모 기준 회전 결정 (World/Local 모드)
+	FQuaternion BaseRot;
 	if (GizmoMode == EGizmoMode::Rotate && !bIsWorld && bIsDragging)
 	{
-		LocalRot = FQuaternion::FromEuler(DragStartActorRotation);
+		// 로컬 회전 모드 드래그 중: 드래그 시작 시점의 회전 고정
+		BaseRot = FQuaternion::FromEuler(DragStartActorRotation);
 	}
 	else if (GizmoMode == EGizmoMode::Scale)
 	{
-		LocalRot = TargetComponent->GetWorldRotationAsQuaternion();
+		// 스케일 모드: 항상 로컬 좌표
+		BaseRot = TargetComponent->GetWorldRotationAsQuaternion();
 	}
 	else
 	{
-		LocalRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
+		// 평행이동/회전 모드: World는 Identity, Local은 현재 회전
+		BaseRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
 	}
-	FVector LocalRotEuler = LocalRot.ToEuler();
-	
+
 	// X축 (Forward) - 빨간색
-	P.Rotation = FQuaternion::Identity() * LocalRot;
+	// Row-major: GizmoLocal * ObjectWorld
+	P.Rotation = FQuaternion::Identity() * BaseRot;
 	P.Color = ColorFor(EGizmoDirection::Forward);
 	Renderer.RenderEditorPrimitive(P, RenderState);
-	
+
 	// Y축 (Right) - 초록색 (Z축 주위로 -90도 회전)
-	P.Rotation =  FQuaternion::FromAxisAngle(FVector::UpVector(), -90.0f * (PI / 180.0f)) * LocalRot;
+	P.Rotation = FQuaternion::FromAxisAngle(FVector::UpVector(), -90.0f * (PI / 180.0f)) * BaseRot;
 	P.Color = ColorFor(EGizmoDirection::Right);
 	Renderer.RenderEditorPrimitive(P, RenderState);
-	
+
 	// Z축 (Up) - 파란색 (Y축 주위로 90도 회전)
-	P.Rotation =  FQuaternion::FromAxisAngle(FVector::RightVector(), 90.0f * (PI / 180.0f)) * LocalRot;
+	P.Rotation = FQuaternion::FromAxisAngle(FVector::RightVector(), 90.0f * (PI / 180.0f)) * BaseRot;
 	P.Color = ColorFor(EGizmoDirection::Up);
 	Renderer.RenderEditorPrimitive(P, RenderState);
 }
@@ -164,17 +167,24 @@ void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
 FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 {
 	const int Idx = AxisIndex(InAxis);
-	//UE_LOG("%d", Idx);
 	const FVector4& BaseColor = GizmoColor[Idx];
 	const bool bIsHighlight = (InAxis == GizmoDirection);
 
-	const FVector4 Paint = bIsHighlight ? FVector4(1,1,0,1) : BaseColor;
-	//UE_LOG("InAxis: %d, Idx: %d, Dir: %d, base color: %.f, %.f, %.f, bHighLight: %d", InAxis, Idx, GizmoDirection, BaseColor.X, BaseColor.Y, BaseColor.Z, bIsHighlight);
-
-	if (bIsDragging)
-		return BaseColor;
+	if (bIsDragging && bIsHighlight)
+	{
+		// 드래그 중: 짙은 노란색 (Dark Yellow)
+		return FVector4(0.8f, 0.8f, 0.0f, 1.0f);
+	}
+	else if (bIsHighlight)
+	{
+		// 호버 중: 밝은 노란색
+		return FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+	}
 	else
-		return Paint;
+	{
+		// 기본 색상 (빨강/초록/파랑)
+		return BaseColor;
+	}
 }
 
 float UGizmo::CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport, float InDesiredPixelSize) const

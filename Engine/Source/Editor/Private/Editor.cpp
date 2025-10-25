@@ -317,6 +317,24 @@ void UEditor::ProcessMouseInput()
 	{
 		Gizmo.ChangeGizmoMode();
 	}
+
+	// W/E/R 키로 기즈모 모드 직접 전환 (우클릭 중이 아닐 때만)
+	bool bIsRightMouseDown = InputManager.IsKeyDown(EKeyInput::MouseRight);
+	if (!bIsRightMouseDown)
+	{
+		if (InputManager.IsKeyPressed(EKeyInput::W))
+		{
+			Gizmo.SetGizmoMode(EGizmoMode::Translate);
+		}
+		if (InputManager.IsKeyPressed(EKeyInput::E))
+		{
+			Gizmo.SetGizmoMode(EGizmoMode::Rotate);
+		}
+		if (InputManager.IsKeyPressed(EKeyInput::R))
+		{
+			Gizmo.SetGizmoMode(EGizmoMode::Scale);
+		}
+	}
 	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
 	{
 		Gizmo.EndDrag();

@@ -240,7 +240,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 		// 커스텀 버튼 (LitCube 아이콘 + 텍스트)
 		const float buttonWidth = 140.0f;
-		const float buttonHeight = 20.0f;
+		const float buttonHeight = 24.0f;
 		const float iconSize = 16.0f;
 		const float padding = 4.0f;
 
@@ -336,7 +336,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 		// 커스텀 버튼 (아이콘 + 텍스트 포함)
 		const float viewTypeButtonWidth = 140.0f;
-		const float viewTypeButtonHeight = 20.0f;
+		const float viewTypeButtonHeight = 24.0f;
 		const float viewTypeIconSize = 16.0f;
 		const float viewTypePadding = 4.0f;
 
@@ -482,18 +482,50 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					}
 
 					// 카메라 위치
-					auto& location = Camera->GetLocation();
-					ImGui::DragFloat3("Location", &location.X, 0.1f);
+					FVector location = Camera->GetLocation();
+					if (ImGui::DragFloat3("Location", &location.X, 0.1f))
+					{
+						Camera->SetLocation(location);
+					}
 
-					// 카메라 회전
-					auto& rotation = Camera->GetRotation();
+					// 카메라 회전 (드래그 중에는 캐싱된 값 사용)
 					if (bIsPerspective)
 					{
-						ImGui::DragFloat3("Rotation", &rotation.X, 0.5f);
+						static FVector cachedRotation = FVector::ZeroVector();
+						static bool bIsDraggingRotation = false;
+
+						// 드래그 시작 시 또는 비활성 상태일 때 현재 값 캐싱
+						if (!bIsDraggingRotation)
+						{
+							cachedRotation = Camera->GetRotation();
+						}
+
+						bool bRotationChanged = ImGui::DragFloat3("Rotation", &cachedRotation.X, 0.5f);
+
+						// 드래그 상태 추적
+						if (ImGui::IsItemActive())
+						{
+							bIsDraggingRotation = true;
+
+							// 값이 변경되었으면 카메라에 반영
+							if (bRotationChanged)
+							{
+								Camera->SetRotation(cachedRotation);
+								// SetRotation 후 wrapping된 값으로 즉시 재동기화
+								cachedRotation = Camera->GetRotation();
+							}
+						}
+						else if (bIsDraggingRotation)
+						{
+							// 드래그 종료 시 최종 동기화
+							bIsDraggingRotation = false;
+							cachedRotation = Camera->GetRotation();
+						}
 					}
 					else
 					{
 						// Orthographic 뷰는 고정된 방향이므로 회전 비활성화
+						FVector rotation = Camera->GetRotation();
 						ImGui::BeginDisabled();
 						ImGui::DragFloat3("Rotation (Fixed)", &rotation.X, 0.5f);
 						ImGui::EndDisabled();
