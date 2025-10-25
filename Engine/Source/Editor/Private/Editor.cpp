@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
+#include "Editor/Public/Axis.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -50,19 +51,97 @@ void UEditor::Update()
 	// KTLWeek07: 각 뷰포트에서 마우스 우클릭 시 해당 카메라만 입력 활성화
 	int32 HoveredViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
 	bool bIsRightMouseDown = Input.IsKeyDown(EKeyInput::MouseRight);
-	
+
+	// 드래그 시작 시 뷰포트 고정, 드래그 종료 시 해제
+	if (bIsRightMouseDown && !bWasRightMouseDown)
+	{
+		// 우클릭 시작: 현재 호버된 뷰포트를 잠금
+		LockedViewportIndexForDrag = HoveredViewportIndex;
+	}
+	else if (!bIsRightMouseDown && bWasRightMouseDown)
+	{
+		// 우클릭 종료: 잠금 해제
+		LockedViewportIndexForDrag = -1;
+	}
+	bWasRightMouseDown = bIsRightMouseDown;
+
+	// 드래그 중이면 잠긴 뷰포트 사용, 아니면 호버된 뷰포트 사용
+	int32 ActiveViewportIndexForInput = (LockedViewportIndexForDrag >= 0) ? LockedViewportIndexForDrag : HoveredViewportIndex;
+
 	if (ViewportManager.GetViewportLayout() == EViewportLayout::Quad)
 	{
 		// Quad 모드: 마우스 우클릭 중이고 해당 뷰포트 위에 있을 때만 그 카메라 입력 활성화
-		
+		FViewportClient* ActiveOrthoClient = nullptr;
+
 		for (int32 i = 0; i < 4; ++i)
 		{
 			if (ViewportManager.GetClients()[i] && ViewportManager.GetClients()[i]->GetCamera())
 			{
 				UCamera* Cam = ViewportManager.GetClients()[i]->GetCamera();
-				// 마우스 우클릭 중이고 해당 뷰포트 위에 마우스가 있으면 카메라 입력 활성화
-				bool bEnableInput = (HoveredViewportIndex == i && bIsRightMouseDown);
+				// 마우스 우클릭 중이고 해당 뷰포트가 활성화된 뷰포트면 카메라 입력 활성화
+				bool bEnableInput = (ActiveViewportIndexForInput == i && bIsRightMouseDown);
 				Cam->SetInputEnabled(bEnableInput);
+
+				// 오쏘 뷰가 활성화되었고 이동이 있었다면 기록
+				if (bEnableInput && ViewportManager.GetClients()[i]->IsOrtho())
+				{
+					ActiveOrthoClient = ViewportManager.GetClients()[i];
+				}
+			}
+		}
+
+		// 오쏘 뷰 드래그 시 모든 오쏘 뷰를 공유 중심점 기준으로 업데이트
+		if (ActiveOrthoClient && bIsRightMouseDown)
+		{
+			UCamera* ActiveOrthoCam = ActiveOrthoClient->GetCamera();
+			if (ActiveOrthoCam)
+			{
+				// Camera::UpdateInput에서 이미 RelativeLocation이 업데이트됨
+				// 공유 중심점 업데이트
+				FVector CurrentLocation = ActiveOrthoCam->GetLocation();
+
+				// ViewType에 따라 InitialOffsets 인덱스 결정
+				int32 OrthoIdx = -1;
+				switch (ActiveOrthoClient->GetViewType())
+				{
+				case EViewType::OrthoTop: OrthoIdx = 0; break;
+				case EViewType::OrthoBottom: OrthoIdx = 1; break;
+				case EViewType::OrthoLeft: OrthoIdx = 2; break;
+				case EViewType::OrthoRight: OrthoIdx = 3; break;
+				case EViewType::OrthoFront: OrthoIdx = 4; break;
+				case EViewType::OrthoBack: OrthoIdx = 5; break;
+				}
+
+				if (OrthoIdx >= 0 && OrthoIdx < ViewportManager.GetInitialOffsets().size())
+				{
+					// 공유 중심점 = 현재 위치 - 초기 오프셋
+					ViewportManager.SetOrthoGraphicCameraPoint(CurrentLocation - ViewportManager.GetInitialOffsets()[OrthoIdx]);
+
+					// 모든 오쏘 뷰를 공유 중심점 기준으로 업데이트
+					for (int32 i = 0; i < 4; ++i)
+					{
+						if (ViewportManager.GetClients()[i] && ViewportManager.GetClients()[i]->IsOrtho())
+						{
+							FViewportClient* Client = ViewportManager.GetClients()[i];
+							int32 ClientOrthoIdx = -1;
+							switch (Client->GetViewType())
+							{
+							case EViewType::OrthoTop: ClientOrthoIdx = 0; break;
+							case EViewType::OrthoBottom: ClientOrthoIdx = 1; break;
+							case EViewType::OrthoLeft: ClientOrthoIdx = 2; break;
+							case EViewType::OrthoRight: ClientOrthoIdx = 3; break;
+							case EViewType::OrthoFront: ClientOrthoIdx = 4; break;
+							case EViewType::OrthoBack: ClientOrthoIdx = 5; break;
+							}
+
+							if (ClientOrthoIdx >= 0 && ClientOrthoIdx < ViewportManager.GetInitialOffsets().size() && Client->GetCamera())
+							{
+								FVector NewLocation = ViewportManager.GetOrthoGraphicCameraPoint() + ViewportManager.GetInitialOffsets()[ClientOrthoIdx];
+								Client->GetCamera()->SetLocation(NewLocation);
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -71,7 +150,8 @@ void UEditor::Update()
 		// 싱글 모드: 뷰포트 위에서 마우스 우클릭 시 카메라 입력 활성화
 		if (Camera)
 		{
-			bool bEnableInput = (HoveredViewportIndex == 0 && bIsRightMouseDown);
+			// Single 모드에서는 ActiveViewportIndexForInput이 유효한 뷰포트면 입력 활성화
+			bool bEnableInput = (ActiveViewportIndexForInput >= 0 && bIsRightMouseDown);
 			Camera->SetInputEnabled(bEnableInput);
 		}
 	}
@@ -79,20 +159,28 @@ void UEditor::Update()
 	UpdateBatchLines();
 	BatchLines.UpdateVertexBuffer();
 
+	UpdateCameraAnimation();
+
 	ProcessMouseInput();
 }
 
-void UEditor::RenderEditor()
+void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive()) { return; }
+	if (GEditor->IsPIESessionActive())
+	{
+		return;
+	}
 	BatchLines.Render();
-	Axis.Render();
+	FAxis::Render(InCamera, InViewport);
 }
 
-void UEditor::RenderGizmo(UCamera* InCamera)
+void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive()) { return; }
-	Gizmo.RenderGizmo(InCamera);
+	if (GEditor->IsPIESessionActive())
+	{
+		return;
+	}
+	Gizmo.RenderGizmo(InCamera, InViewport);
 	
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
 	if (ULevel* CurrentLevel = GWorld->GetLevel())
@@ -190,24 +278,27 @@ void UEditor::ProcessMouseInput()
 {
 	// KTLWeek07: 활성 카메라 사용 (ViewportManager에서 관리)
 	UCamera* CurrentCamera = Camera; // 생성자에서 설정된 활성 카메라
-	if (!CurrentCamera) { return; }
+	if (!CurrentCamera)
+	{
+		return;
+	}
+
+	const UInputManager& InputManager = UInputManager::GetInstance();
+	const FVector& MousePos = InputManager.GetMousePosition();
+
+	// KTLWeek07: 활성 뷰포트의 정보 가져오기
+	auto& ViewportManager = UViewportManager::GetInstance();
+	FViewport* ActiveViewport = ViewportManager.GetViewports()[ViewportManager.GetActiveIndex()];
+	if (!ActiveViewport) { return; }
+
+	const D3D11_VIEWPORT& ViewportInfo = ActiveViewport->GetRenderRect();
 
 	AActor* ActorPicked = GetSelectedActor();
 	if (ActorPicked)
 	{
 		// 피킹 전 현재 카메라에 맞는 기즈모 스케일 업데이트
-		Gizmo.UpdateScale(CurrentCamera);
+		Gizmo.UpdateScale(CurrentCamera, ViewportInfo);
 	}
-
-	const UInputManager& InputManager = UInputManager::GetInstance();
-	const FVector& MousePos = InputManager.GetMousePosition();
-	
-	// KTLWeek07: 활성 뷰포트의 정보 가져오기
-	auto& ViewportManager = UViewportManager::GetInstance();
-	FViewport* ActiveViewport = ViewportManager.GetViewports()[ViewportManager.GetActiveIndex()];
-	if (!ActiveViewport) { return; }
-	
-	const D3D11_VIEWPORT& ViewportInfo = ActiveViewport->GetRenderRect();
 
 	const float NdcX = ((MousePos.X - ViewportInfo.TopLeftX) / ViewportInfo.Width) * 2.0f - 1.0f;
 	const float NdcY = -(((MousePos.Y - ViewportInfo.TopLeftY) / ViewportInfo.Height) * 2.0f - 1.0f);
@@ -310,6 +401,11 @@ void UEditor::ProcessMouseInput()
 				Gizmo.OnMouseHovering();
 			}
 		}
+	}
+
+	if (InputManager.IsKeyPressed(EKeyInput::F))
+	{
+		FocusOnSelectedActor();
 	}
 }
 
@@ -441,4 +537,160 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 		SelectedComponent->OnSelected();
 	}
 	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
+}
+
+void UEditor::FocusOnSelectedActor()
+{
+	if (!SelectedActor)
+	{
+		return;
+	}
+
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Viewports = ViewportManager.GetViewports();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (Viewports.empty() || Clients.empty()) { return; }
+
+	UPrimitiveComponent* Prim = nullptr;
+	if (SelectedActor->GetRootComponent() && SelectedActor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
+	{
+		Prim = Cast<UPrimitiveComponent>(SelectedActor->GetRootComponent());
+	}
+
+	if (!Prim)
+	{
+		return;
+	}
+
+	FVector ComponentMin, ComponentMax;
+	Prim->GetWorldAABB(ComponentMin, ComponentMax);
+	const FVector Center = (ComponentMin + ComponentMax) * 0.5f;
+	const FVector AABBSize = ComponentMax - ComponentMin;
+	const float BoundingRadius = AABBSize.Length() * 0.5f;
+
+	const int32 ViewportCount = static_cast<int32>(Viewports.size());
+
+	CameraStartLocation.resize(ViewportCount);
+	CameraStartRotation.resize(ViewportCount);
+	CameraTargetLocation.resize(ViewportCount);
+	CameraTargetRotation.resize(ViewportCount);
+
+	for (int32 i = 0; i < ViewportCount; ++i)
+	{
+		if (!Clients[i]) continue;
+		UCamera* Cam = Clients[i]->GetCamera();
+		if (!Cam) continue;
+
+		CameraStartLocation[i] = Cam->GetLocation();
+		CameraStartRotation[i] = Cam->GetRotation();
+
+		if (Cam->GetCameraType() == ECameraType::ECT_Perspective)
+		{
+			// 현재 카메라 각도에서 Forward 벡터 계산
+			const FVector CurrentRotation = Cam->GetRotation();
+			const float Yaw = FVector::GetDegreeToRadian(CurrentRotation.Z);
+			const float Pitch = FVector::GetDegreeToRadian(CurrentRotation.Y);
+			const FVector Forward(
+				cosf(Pitch) * cosf(Yaw),
+				cosf(Pitch) * sinf(Yaw),
+				sinf(Pitch)
+			);
+
+			const float FovY = Cam->GetFovY();
+			const float HalfFovRadian = FVector::GetDegreeToRadian(FovY * 0.5f);
+
+			// AABB 크기만큼 추가 간격 확보
+			const float AABBMargin = max(AABBSize.X, max(AABBSize.Y, AABBSize.Z));
+			const float Distance = (BoundingRadius / sinf(HalfFovRadian)) + AABBMargin;
+
+			CameraTargetLocation[i] = Center - Forward * Distance;
+
+			// 목표 회전은 현재 회전 유지 (카메라 각도가 바뀌지 않음)
+			CameraTargetRotation[i] = CurrentRotation;
+		}
+		else
+		{
+			// Orthographic: 현재 뷰 방향 유지하면서 위치만 조정
+			const FVector CurrentLocation = Cam->GetLocation();
+			const FVector CurrentRotation = Cam->GetRotation();
+
+			// Forward 벡터 계산 (오쏘는 고정 방향이지만 일관성을 위해)
+			const FVector Forward = Cam->GetForward();
+
+			// Actor 위치에서 현재 위치로의 벡터
+			const FVector ToCamera = CurrentLocation - Center;
+
+			// Forward 방향의 거리는 유지
+			const float ForwardDistance = ToCamera.Dot(Forward);
+
+			// Center에서 Forward 방향으로 현재 거리만큼 떨어진 지점
+			CameraTargetLocation[i] = Center + Forward * ForwardDistance;
+		}
+	}
+
+	bIsCameraAnimating = true;
+	CameraAnimationTime = 0.0f;
+}
+
+void UEditor::UpdateCameraAnimation()
+{
+	if (!bIsCameraAnimating)
+	{
+		return;
+	}
+
+	auto& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+	const UInputManager& Input = UInputManager::GetInstance();
+
+	if (Clients.empty())
+	{
+		bIsCameraAnimating = false;
+		return;
+	}
+
+	// 우클릭 드래그 시작 시 애니메이션 중단
+	if (Input.IsKeyPressed(EKeyInput::MouseRight))
+	{
+		bIsCameraAnimating = false;
+		return;
+	}
+
+	CameraAnimationTime += DT;
+	float Progress = CameraAnimationTime / CAMERA_ANIMATION_DURATION;
+
+	if (Progress >= 1.0f)
+	{
+		Progress = 1.0f;
+		bIsCameraAnimating = false;
+	}
+
+	float SmoothProgress;
+	if (Progress < 0.5f)
+	{
+		SmoothProgress = 8.0f * Progress * Progress * Progress * Progress;
+	}
+	else
+	{
+		float ProgressFromEnd = Progress - 1.0f;
+		SmoothProgress = 1.0f - 8.0f * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd * ProgressFromEnd;
+	}
+
+	const size_t AnimationVectorSize = CameraStartLocation.size();
+	for (int Index = 0; Index < Clients.size() && Index < AnimationVectorSize; ++Index)
+	{
+		if (!Clients[Index]) continue;
+		UCamera* Cam = Clients[Index]->GetCamera();
+		if (!Cam) continue;
+
+		FVector CurrentLocation = CameraStartLocation[Index] + (CameraTargetLocation[Index] - CameraStartLocation[Index]) * SmoothProgress;
+		Cam->SetLocation(CurrentLocation);
+
+		if (Cam->GetCameraType() == ECameraType::ECT_Perspective)
+		{
+			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
+			Cam->SetRotation(CurrentRotation);
+		}
+	}
 }

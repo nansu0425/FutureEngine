@@ -710,7 +710,13 @@ void URenderer::Update()
 
     for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
     {
-        if (Viewport->GetRect().Width < 1.0f || Viewport->GetRect().Height < 1.0f) { continue; }
+    	// TODO(KHJ): 해당 해결책은 근본적인 해결법이 아니며 실제 Viewport 세팅의 문제를 확인할 필요가 있음
+    	// 너무 작은 뷰포트는 건너뛰기 (애니메이션 중 artefact 방지)
+		// 50픽셀 미만의 뷰포트는 렌더링하지 않음
+		if (Viewport->GetRect().Width < 50 || Viewport->GetRect().Height < 50)
+		{
+			continue;
+		}
 
     	FRect SingleWindowRect = Viewport->GetRect();
     	const int32 ViewportToolBarHeight = 32;
@@ -729,10 +735,10 @@ void URenderer::Update()
         }
 		{
 			TIME_PROFILE(RenderEditor)
-				GEditor->GetEditorModule()->RenderEditor();
+			GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
 		}
         // Gizmo는 최종적으로 렌더
-        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
+        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera, LocalViewport);
     }
 
     // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
@@ -959,6 +965,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 {
     if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
 
+    DeviceResources->ReleaseFactories();
     DeviceResources->ReleaseSceneColorTarget();
 	DeviceResources->ReleaseFrameBuffer();
 	DeviceResources->ReleaseDepthBuffer();
@@ -976,6 +983,7 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	DeviceResources->CreateFrameBuffer();
 	DeviceResources->CreateDepthBuffer();
 	DeviceResources->CreateNormalBuffer();
+    DeviceResources->CreateFactories();
 
     ID3D11RenderTargetView* targetView = bFXAAEnabled
         ? DeviceResources->GetSceneColorRenderTargetView()

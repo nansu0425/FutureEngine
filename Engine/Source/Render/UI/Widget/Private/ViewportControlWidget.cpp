@@ -402,115 +402,146 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		
 		ImGui::PopStyleColor(4);
 
-		// Perspective 모드일 때만 카메라 설정 버튼 표시
-		if (CurType == EViewType::Perspective)
+		// 구분자
+		ImGui::SameLine(0.0f, 10.0f);
+		ImGui::TextDisabled("|");
+		ImGui::SameLine(0.0f, 10.0f);
+
+		// 카메라 설정 버튼 (모든 뷰 타입에서 표시)
+		if (IconCamera && IconCamera->GetTextureSRV())
 		{
-			// 구분자
-			ImGui::SameLine(0.0f, 10.0f);
-			ImGui::TextDisabled("|");
-			ImGui::SameLine(0.0f, 10.0f);
+			const float cameraButtonHeight = 24.0f;
+			const float cameraIconSize = 16.0f;
+			const float cameraPadding = 6.0f;
+			const char* cameraText = "Camera Settings";
+			const float textWidth = ImGui::CalcTextSize(cameraText).x;
+			const float cameraButtonWidth = cameraIconSize + cameraPadding * 3 + textWidth;
 
-			// 카메라 설정 버튼
-			if (IconCamera && IconCamera->GetTextureSRV())
+			ImVec2 cameraButtonPos = ImGui::GetCursorScreenPos();
+			ImGui::InvisibleButton("##CameraSettingsButton", ImVec2(cameraButtonWidth, cameraButtonHeight));
+			bool bCameraClicked = ImGui::IsItemClicked();
+			bool bCameraHovered = ImGui::IsItemHovered();
+
+			// 버튼 배경 그리기
+			ImDrawList* cameraDrawList = ImGui::GetWindowDrawList();
+			ImU32 cameraBgColor = bCameraHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
+			if (ImGui::IsItemActive())
 			{
-				const float cameraButtonHeight = 24.0f;
-				const float cameraIconSize = 16.0f;
-				const float cameraPadding = 6.0f;  // 패딩 증가
-				const char* cameraText = "Camera Settings";
-				const float textWidth = ImGui::CalcTextSize(cameraText).x;
-				const float cameraButtonWidth = cameraIconSize + cameraPadding * 3 + textWidth;  // 패딩 공간 증가
+				cameraBgColor = IM_COL32(38, 38, 38, 255);
+			}
+			cameraDrawList->AddRectFilled(cameraButtonPos, ImVec2(cameraButtonPos.x + cameraButtonWidth, cameraButtonPos.y + cameraButtonHeight), cameraBgColor, 4.0f);
+			cameraDrawList->AddRect(cameraButtonPos, ImVec2(cameraButtonPos.x + cameraButtonWidth, cameraButtonPos.y + cameraButtonHeight), IM_COL32(96, 96, 96, 255), 4.0f);
 
-				ImVec2 cameraButtonPos = ImGui::GetCursorScreenPos();
-				ImGui::InvisibleButton("##CameraSettingsButton", ImVec2(cameraButtonWidth, cameraButtonHeight));
-				bool bCameraClicked = ImGui::IsItemClicked();
-				bool bCameraHovered = ImGui::IsItemHovered();
+			// 아이콘 그리기
+			ImVec2 cameraIconPos = ImVec2(
+				cameraButtonPos.x + cameraPadding,
+				cameraButtonPos.y + (cameraButtonHeight - cameraIconSize) * 0.5f
+			);
+			cameraDrawList->AddImage(
+				(ImTextureID)IconCamera->GetTextureSRV(),
+				cameraIconPos,
+				ImVec2(cameraIconPos.x + cameraIconSize, cameraIconPos.y + cameraIconSize)
+			);
 
-				// 버튼 배경 그리기
-				ImDrawList* cameraDrawList = ImGui::GetWindowDrawList();
-				ImU32 cameraBgColor = bCameraHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
-				if (ImGui::IsItemActive())
+			// 텍스트 그리기
+			ImVec2 cameraTextPos = ImVec2(
+				cameraButtonPos.x + cameraPadding + cameraIconSize + cameraPadding,
+				cameraButtonPos.y + (cameraButtonHeight - ImGui::GetTextLineHeight()) * 0.5f
+			);
+			cameraDrawList->AddText(cameraTextPos, IM_COL32(220, 220, 220, 255), cameraText);
+
+			if (bCameraClicked)
+			{
+				ImGui::OpenPopup("##CameraSettingsPopup");
+			}
+
+			// 카메라 설정 팝업
+			if (ImGui::BeginPopup("##CameraSettingsPopup"))
+			{
+				ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+				if (UCamera* Camera = Clients[ViewportIndex]->GetCamera())
 				{
-					cameraBgColor = IM_COL32(38, 38, 38, 255);
-				}
-				cameraDrawList->AddRectFilled(cameraButtonPos, ImVec2(cameraButtonPos.x + cameraButtonWidth, cameraButtonPos.y + cameraButtonHeight), cameraBgColor, 4.0f);
-				cameraDrawList->AddRect(cameraButtonPos, ImVec2(cameraButtonPos.x + cameraButtonWidth, cameraButtonPos.y + cameraButtonHeight), IM_COL32(96, 96, 96, 255), 4.0f);
+					const bool bIsPerspective = (CurType == EViewType::Perspective);
+					ImGui::Text(bIsPerspective ? "Perspective Camera Settings" : "Orthographic Camera Settings");
+					ImGui::Separator();
 
-				// 아이콘 그리기 (왼쪽 패딩)
-				ImVec2 cameraIconPos = ImVec2(
-					cameraButtonPos.x + cameraPadding,
-					cameraButtonPos.y + (cameraButtonHeight - cameraIconSize) * 0.5f
-				);
-				cameraDrawList->AddImage(
-					(ImTextureID)IconCamera->GetTextureSRV(),
-					cameraIconPos,
-					ImVec2(cameraIconPos.x + cameraIconSize, cameraIconPos.y + cameraIconSize)
-				);
-
-				// 텍스트 그리기 (아이콘 오른쪽)
-				ImVec2 cameraTextPos = ImVec2(
-					cameraButtonPos.x + cameraPadding + cameraIconSize + cameraPadding,
-					cameraButtonPos.y + (cameraButtonHeight - ImGui::GetTextLineHeight()) * 0.5f
-				);
-				cameraDrawList->AddText(cameraTextPos, IM_COL32(220, 220, 220, 255), cameraText);
-
-				if (bCameraClicked)
-				{
-					ImGui::OpenPopup("##CameraSettingsPopup");
-				}
-
-				// 카메라 설정 팝업
-				if (ImGui::BeginPopup("##CameraSettingsPopup"))
-				{
-					ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-					ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-					ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-
-					if (UCamera* Camera = Clients[ViewportIndex]->GetCamera())
+					// 전역 카메라 이동 속도 (모든 뷰포트 공유)
+					float editorCameraSpeed = ViewportManager.GetEditorCameraSpeed();
+					if (ImGui::SliderFloat("Camera Speed (Global)", &editorCameraSpeed,
+						UViewportManager::MIN_CAMERA_SPEED, UViewportManager::MAX_CAMERA_SPEED, "%.1f"))
 					{
-						ImGui::Text("Camera Settings");
-						ImGui::Separator();
+						ViewportManager.SetEditorCameraSpeed(editorCameraSpeed);
+					}
 
-						// 카메라 이동 속도
-						float moveSpeed = Camera->GetMoveSpeed();
-						if (ImGui::SliderFloat("Move Speed", &moveSpeed, UCamera::MIN_SPEED, UCamera::MAX_SPEED, "%.1f"))
-						{
-							Camera->SetMoveSpeed(moveSpeed);
-						}
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetTooltip("Applies to all viewports");
+					}
 
-						// 카메라 위치
-						auto& location = Camera->GetLocation();
-						ImGui::DragFloat3("Location", &location.X, 0.1f);
+					// 카메라 위치
+					auto& location = Camera->GetLocation();
+					ImGui::DragFloat3("Location", &location.X, 0.1f);
 
-						// 카메라 회전
-						auto& rotation = Camera->GetRotation();
+					// 카메라 회전
+					auto& rotation = Camera->GetRotation();
+					if (bIsPerspective)
+					{
 						ImGui::DragFloat3("Rotation", &rotation.X, 0.5f);
+					}
+					else
+					{
+						// Orthographic 뷰는 고정된 방향이므로 회전 비활성화
+						ImGui::BeginDisabled();
+						ImGui::DragFloat3("Rotation (Fixed)", &rotation.X, 0.5f);
+						ImGui::EndDisabled();
+					}
 
-						ImGui::Separator();
+					ImGui::Separator();
 
-						// FOV
+					if (bIsPerspective)
+					{
+						// Perspective: FOV 표시
 						float fov = Camera->GetFovY();
 						if (ImGui::SliderFloat("FOV", &fov, 1.0f, 170.0f, "%.1f"))
 						{
 							Camera->SetFovY(fov);
 						}
-
-						// Near/Far Plane
-						float nearZ = Camera->GetNearZ();
-						if (ImGui::DragFloat("Near Z", &nearZ, 0.01f, 0.01f, 100.0f, "%.3f"))
+					}
+					else
+					{
+						// Orthographic: Zoom Level (OrthoWidth) 표시
+						float orthoWidth = Camera->GetOrthoWidth();
+						if (ImGui::DragFloat("Zoom Level", &orthoWidth, 10.0f, 10.0f, 10000.0f, "%.1f"))
 						{
-							Camera->SetNearZ(nearZ);
+							Camera->SetOrthoWidth(orthoWidth);
 						}
 
-						float farZ = Camera->GetFarZ();
-						if (ImGui::DragFloat("Far Z", &farZ, 1.0f, 1.0f, 10000.0f, "%.1f"))
-						{
-							Camera->SetFarZ(farZ);
-						}
+						// 정보: Aspect는 자동 계산됨
+						float aspect = Camera->GetAspect();
+						ImGui::BeginDisabled();
+						ImGui::DragFloat("Aspect Ratio", &aspect, 0.01f, 0.1f, 10.0f, "%.3f");
+						ImGui::EndDisabled();
 					}
 
-					ImGui::PopStyleColor(3);
-					ImGui::EndPopup();
+					// Near/Far Plane
+					float nearZ = Camera->GetNearZ();
+					if (ImGui::DragFloat("Near Z", &nearZ, 0.01f, 0.01f, 100.0f, "%.3f"))
+					{
+						Camera->SetNearZ(nearZ);
+					}
+
+					float farZ = Camera->GetFarZ();
+					if (ImGui::DragFloat("Far Z", &farZ, 1.0f, 1.0f, 10000.0f, "%.1f"))
+					{
+						Camera->SetFarZ(farZ);
+					}
 				}
+
+				ImGui::PopStyleColor(3);
+				ImGui::EndPopup();
 			}
 		}
 

@@ -2,6 +2,7 @@
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
 #include "Manager/Time/Public/TimeManager.h"
+#include "Manager/UI/Public/UIManager.h"
 #include <algorithm>
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWindow, UUIWindow)
@@ -181,11 +182,17 @@ void UConsoleWindow::ApplyAnimatedLayout(float MenuBarOffset)
 	const ImVec2 WorkPos = Viewport ? Viewport->WorkPos : ImVec2(0.0f, 0.0f);
 	const ImVec2 WorkSize = Viewport ? Viewport->WorkSize : ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 
-	const float BottomY = WorkPos.y + WorkSize.y - BottomMargin;
-	float TopY = BottomY - AnimatedHeight;
-	TopY = std::max(TopY, MenuBarOffset);
+	// StatusBar 높이를 가져와서 BottomMargin으로 사용
+	const float StatusBarHeight = UUIManager::GetInstance().GetStatusBarHeight();
 
-	ImVec2 TargetPos(WorkPos.x + BottomMargin, TopY);
+	// Console 하단은 항상 StatusBar 위에 고정
+	const float ConsoleBottomY = WorkPos.y + WorkSize.y - StatusBarHeight;
+
+	// Console 상단은 하단에서 AnimatedHeight만큼 위에 위치
+	float ConsoleTopY = ConsoleBottomY - AnimatedHeight;
+	ConsoleTopY = std::max(ConsoleTopY, MenuBarOffset);
+
+	ImVec2 TargetPos(WorkPos.x, ConsoleTopY);
 	ImGui::SetNextWindowPos(TargetPos, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, AnimatedHeight), ImGuiCond_Always);
 }

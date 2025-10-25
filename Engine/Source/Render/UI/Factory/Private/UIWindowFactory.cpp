@@ -12,10 +12,17 @@
 #include "Render/UI/Window/Public/LevelTabBarWindow.h"
 #include "Render/UI/Window/Public/EditorWindow.h"
 #include "Render/UI/Window/Public/ViewportClientWindow.h"
+#include "Render/UI/Widget/Public/StatusBarWidget.h"
 
 UMainMenuWindow& UUIWindowFactory::CreateMainMenuWindow()
 {
 	UMainMenuWindow& Instance = UMainMenuWindow::GetInstance();
+	return Instance;
+}
+
+UStatusBarWidget& UUIWindowFactory::CreateStatusBarWidget()
+{
+	static UStatusBarWidget Instance;
 	return Instance;
 }
 
@@ -84,11 +91,15 @@ void UUIWindowFactory::CreateDefaultUILayout()
 	UIManager.RegisterUIWindow(&MainMenu);
 	UIManager.RegisterMainMenuWindow(&MainMenu);
 
+	// 하단 상태바 생성 및 등록
+	auto& StatusBar = CreateStatusBarWidget();
+	UIManager.RegisterStatusBarWidget(&StatusBar);
+
 	// 레벨 탭바 생성
 	auto* LevelTabBar = CreateLevelTabBarWindow();
 	UIManager.RegisterUIWindow(LevelTabBar);
 	UIManager.RegisterLevelTabBarWindow(LevelTabBar);
-	
+
 	// 기본 레이아웃 생성
 	UIManager.RegisterUIWindow(CreateConsoleWindow(EUIDockDirection::BottomLeft));
 	UIManager.RegisterUIWindow(CreateControlPanelWindow(EUIDockDirection::Left));

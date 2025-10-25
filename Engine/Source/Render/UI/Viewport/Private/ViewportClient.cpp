@@ -2,10 +2,16 @@
 
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Render/UI/Viewport/Public/ViewportClient.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 FViewportClient::FViewportClient()
 {
     ViewportCamera = NewObject<UCamera>();
+
+if (ViewportCamera)
+    {
+        ViewportCamera->SetMoveSpeed(UViewportManager::GetInstance().GetEditorCameraSpeed());
+    }
 }
 
 FViewportClient::~FViewportClient()
@@ -38,12 +44,16 @@ void FViewportClient::SetViewType(EViewType InType)
             SavedPerspectiveRotation = ViewportCamera->GetRotation();
             SavedPerspectiveFarZ = ViewportCamera->GetFarZ();
         }
-        
+
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
-        ViewportCamera->SetFarZ(5000.0f);  // Increase far clip for orthographic
-        // Top view: Looking down from above
-        ViewportCamera->SetRotation(FVector(0.0f, 90.0f, 0.0f));
-        ViewportCamera->SetLocation(FVector(0.0f, 0.0f, 50.0f));
+        ViewportCamera->SetFarZ(5000.0f);
+        ViewportCamera->SetOrthoWidth(100.0f);
+        // Top view: Looking down (-Z direction)
+        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
+        ViewportCamera->SetLocation(FVector(0.0f, 0.0f, 100.0f));
+        ViewportCamera->SetForward(FVector(0.0f, 0.0f, -1.0f));
+        ViewportCamera->SetRight(FVector(0.0f, -1.0f, 0.0f));
+        ViewportCamera->SetUp(FVector(-1.0f, 0.0f, 0.0f));
         break;
         
     case EViewType::OrthoBottom:
@@ -68,12 +78,16 @@ void FViewportClient::SetViewType(EViewType InType)
             SavedPerspectiveRotation = ViewportCamera->GetRotation();
             SavedPerspectiveFarZ = ViewportCamera->GetFarZ();
         }
-        
+
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        // Front view: Looking forward (+X). Roll=0, Pitch=0, Yaw=0
+        ViewportCamera->SetOrthoWidth(100.0f);
+        // Front view: Looking forward (+X direction)
         ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
-        ViewportCamera->SetLocation(FVector(-50.0f, 0.0f, 0.0f));
+        ViewportCamera->SetLocation(FVector(-100.0f, 0.0f, 0.0f));
+        ViewportCamera->SetForward(FVector(1.0f, 0.0f, 0.0f));
+        ViewportCamera->SetRight(FVector(0.0f, 1.0f, 0.0f));
+        ViewportCamera->SetUp(FVector(0.0f, 0.0f, 1.0f));
         break;
         
     case EViewType::OrthoBack:
@@ -98,12 +112,16 @@ void FViewportClient::SetViewType(EViewType InType)
             SavedPerspectiveRotation = ViewportCamera->GetRotation();
             SavedPerspectiveFarZ = ViewportCamera->GetFarZ();
         }
-        
+
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        // Right view: Looking right (+Y). Roll=0, Pitch=0, Yaw=90
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 90.0f));
-        ViewportCamera->SetLocation(FVector(0.0f, -50.0f, 0.0f));
+        ViewportCamera->SetOrthoWidth(100.0f);
+        // Right view: Looking right (+Y direction)
+        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
+        ViewportCamera->SetLocation(FVector(0.0f, -100.0f, 0.0f));
+        ViewportCamera->SetForward(FVector(0.0f, 1.0f, 0.0f));
+        ViewportCamera->SetRight(FVector(-1.0f, 0.0f, 0.0f));
+        ViewportCamera->SetUp(FVector(0.0f, 0.0f, 1.0f));
         break;
         
     case EViewType::OrthoLeft:

@@ -465,6 +465,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\SpotLightComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SpriteSelectionWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\StaticMeshComponentWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\StatusBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ViewportMenuBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\Widget.h" />
@@ -717,6 +718,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\SpotLightComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SpriteSelectionWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\StaticMeshComponentWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\StatusBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportControlWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ViewportMenuBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\Widget.cpp" />

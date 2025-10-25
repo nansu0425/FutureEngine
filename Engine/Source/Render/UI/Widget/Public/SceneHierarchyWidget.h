@@ -44,23 +44,9 @@ private:
 	void LoadActorIcons();
 	UTexture* GetIconForActor(AActor* InActor);
 
-	// Camera focus animation
-	bool bIsCameraAnimating = false;
-	float CameraAnimationTime = 0.0f;
-	TArray<FVector> CameraStartLocation;
-	TArray<FVector> CameraStartRotation;
-	TArray<FVector> CameraTargetLocation;
-	TArray<FVector> CameraTargetRotation;
-
-	// Heuristic constant
-	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
-	static constexpr float FOCUS_DISTANCE = 10.0f;
-
 	// Camera movement
 	void RenderActorInfo(AActor* InActor, int32 InIndex);
 	void SelectActor(AActor* InActor, bool bInFocusCamera = false);
-	void FocusOnActor(AActor* InActor);
-	void UpdateCameraAnimation();
 
 	// 검색 기능
 	void RenderSearchBar();

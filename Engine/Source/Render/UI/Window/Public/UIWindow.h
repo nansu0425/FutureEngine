@@ -135,7 +135,12 @@ public:
 		return CurrentState == EUIWindowState::Visible || CurrentState == EUIWindowState::Maximized;
 	}
 
-	void SetWindowState(EUIWindowState NewState) { CurrentState = NewState; }
+	void SetWindowState(EUIWindowState NewState)
+	{
+		CurrentState = NewState;
+		// CurrentState와 bIsWindowOpen 동기화
+		bIsWindowOpen = (CurrentState == EUIWindowState::Visible || CurrentState == EUIWindowState::Maximized);
+	}
 	void SetWindowTitle(const FString& NewTitle) { Config.WindowTitle = NewTitle; }
 	void SetPriority(int NewPriority) { Config.Priority = NewPriority; }
 	void SetConfig(const FUIWindowConfig& InConfig) { Config = InConfig; }

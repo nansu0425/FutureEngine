@@ -21,8 +21,6 @@ public:
 private:
     ULevelTabBarWidget* LevelTabBarWidget = nullptr;
 
-
-
     void SetupMainMenuConfig();
 
 };

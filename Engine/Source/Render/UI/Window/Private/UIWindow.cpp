@@ -2,6 +2,7 @@
 #include "Render/UI/Window/Public/UIWindow.h"
 #include "ImGui/imgui_internal.h"
 #include "Render/UI/Widget/Public/Widget.h"
+#include "Manager/UI/Public/UIManager.h"
 
 IMPLEMENT_ABSTRACT_CLASS(UUIWindow, UObject)
 int UUIWindow::IssuedWindowID = 0;
@@ -17,6 +18,9 @@ UUIWindow::UUIWindow() : Config(FUIWindowConfig()), CurrentState(Config.InitialS
 	// 초기 상태 설정
 	LastWindowSize = Config.DefaultSize;
 	LastWindowPosition = Config.DefaultPosition;
+
+	// 초기 상태가 Visible이면 윈도우도 열린 상태로 설정
+	bIsWindowOpen = (CurrentState == EUIWindowState::Visible || CurrentState == EUIWindowState::Maximized);
 
 	if (IssuedWindowID == 1)
 	{
@@ -167,8 +171,10 @@ void UUIWindow::ClampWindow() const
  */
 void UUIWindow::RenderWindow()
 {
-	// 숨겨진 상태면 렌더링하지 않음
-	if (!IsVisible())
+	// bIsWindowOpen이 false면 (프로그램적으로 닫힌 상태) 렌더링하지 않음
+	// IsVisible()은 CurrentState를 체크하는데, X 버튼 감지를 위해서는 ImGui::Begin이 호출되어야 하므로
+	// bIsWindowOpen이 true면 일단 Begin을 호출해야 함
+	if (!bIsWindowOpen)
 	{
 		return;
 	}
@@ -270,12 +276,19 @@ void UUIWindow::RenderWindow()
 	ImGui::End();
 
 	// 윈도우가 닫혔는지 확인
-	if (bIsWindowOpen)
+	if (!bIsOpen && bIsWindowOpen)
 	{
 		if (OnWindowClose())
 		{
 			bIsWindowOpen = false;
 			SetWindowState(EUIWindowState::Hidden);
+
+			// Outliner나 Details 패널이 닫힐 경우 UIManager에 알림
+			const FName WindowTitle = GetWindowTitle();
+			if (WindowTitle == "Outliner" || WindowTitle == "Details")
+			{
+				UUIManager::GetInstance().OnPanelVisibilityChanged();
+			}
 		}
 		else
 		{

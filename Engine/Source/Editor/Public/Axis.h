@@ -1,16 +1,26 @@
 #pragma once
-#include "Core/Public/Object.h"
-#include "Editor/Public/EditorPrimitive.h"
-#include "Global/CoreTypes.h"
 
-class UAxis : public UObject
+class UCamera;
+struct ImDrawList;
+
+/**
+ * @brief 뷰포트 좌하단에 표시되는 카메라 방향 축 위젯
+ * 2D 오버레이로 렌더링
+ */
+class FAxis
 {
 public:
-	UAxis();
-	~UAxis() override;
-	void Render();
+	FAxis();
+	virtual	~FAxis();
+
+	static void Render(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 private:
-	FEditorPrimitive Primitive;
-	TArray<FNormalVertex> AxisVertices;
+	// 뷰포트 좌하단 오프셋
+	static constexpr float OffsetFromLeft = 70.0f;
+	static constexpr float OffsetFromBottom = 70.0f;
+	static constexpr float AxisSize = 50.0f;
+
+	// 라인 두께
+	static constexpr float LineThick = 3.0f;
 };
