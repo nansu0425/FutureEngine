@@ -8,6 +8,7 @@
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/RenderPass/Public/ShadowMapPass.h"
 
 IMPLEMENT_CLASS(UPointLightComponentWidget, UWidget)
 
@@ -240,8 +241,9 @@ void UPointLightComponentWidget::RenderWidget()
      * 임시로 NormalSRV 출력
      */
 
-    ImTextureID TextureID = (ImTextureID)URenderer::GetInstance().GetDeviceResources()->GetNormalSRV();
-    if (URenderer::GetInstance().GetDeviceResources()->GetNormalSRV())
+    ID3D11ShaderResourceView* ShadowSRV = URenderer::GetInstance().GetShadowMapPass()->GetPointShadowMap(PointLightComponent)->ShadowSRV.Get();
+    ImTextureID TextureID = (ImTextureID)ShadowSRV;
+    if (ShadowSRV)
     {
         // 원하는 출력 크기 설정
         ImVec2 ImageSize(256, 256); 
