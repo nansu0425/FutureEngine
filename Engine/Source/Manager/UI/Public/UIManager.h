@@ -115,7 +115,6 @@ private:
 		float InAvailableHeight);
 	void ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow,
 		float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
-		float InAvailableHeight, float InTargetWidth) const;
-
-	
+		float InAvailableHeight, float InTargetWidth,
+		bool bOutlinerHeightChanged, bool bDetailHeightChanged);
 };

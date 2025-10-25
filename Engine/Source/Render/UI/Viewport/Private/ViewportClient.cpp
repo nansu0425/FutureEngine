@@ -2,10 +2,16 @@
 
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Render/UI/Viewport/Public/ViewportClient.h"
+#include "Manager/UI/Public/ViewportManager.h"
 
 FViewportClient::FViewportClient()
 {
     ViewportCamera = NewObject<UCamera>();
+
+if (ViewportCamera)
+    {
+        ViewportCamera->SetMoveSpeed(UViewportManager::GetInstance().GetEditorCameraSpeed());
+    }
 }
 
 FViewportClient::~FViewportClient()

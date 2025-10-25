@@ -2,6 +2,7 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Core/Public/Class.h"
 #include "Editor/Public/Camera.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Utility/Public/JsonSerializer.h"
 
 #include <json.hpp>
@@ -26,7 +27,7 @@ void UConfigManager::LoadEditorSetting()
 	if (!Ifs.is_open())
 	{
 		CellSize = 5.0f;
-		CameraSensitivity = UCamera::DEFAULT_SPEED;
+		CameraSensitivity = UViewportManager::DEFAULT_CAMERA_SPEED;
 		return; // 파일이 없으면 기본값 유지
 	}
 

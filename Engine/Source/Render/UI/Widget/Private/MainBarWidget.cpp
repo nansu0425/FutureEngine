@@ -177,6 +177,13 @@ void UMainBarWidget::RenderWindowsMenu() const
 					UE_LOG("MainBarWidget: %s 창 토글됨 (현재 상태: %s)",
 						Window->GetWindowTitle().ToString().data(),
 						Window->IsVisible() ? "표시" : "숨김");
+
+					// Outliner나 Details 패널의 visibility가 변경되면 layout 재정리
+					const FName WindowTitle = Window->GetWindowTitle();
+					if (WindowTitle == "Outliner" || WindowTitle == "Details")
+					{
+						UIManager->OnPanelVisibilityChanged();
+					}
 				}
 			}
 

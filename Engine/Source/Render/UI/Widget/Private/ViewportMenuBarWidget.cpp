@@ -336,7 +336,7 @@ void UViewportMenuBarWidget::RenderCameraControls(UCamera& InCamera)
 	ImGui::Separator();
 
 	// --- UI 렌더링 및 상호작용 ---
-	if (ImGui::SliderFloat("Move Speed", &MoveSpeed, UCamera::MIN_SPEED, UCamera::MAX_SPEED, "%.1f"))
+	if (ImGui::SliderFloat("Move Speed", &MoveSpeed, UViewportManager::MIN_CAMERA_SPEED, UViewportManager::MAX_CAMERA_SPEED, "%.1f"))
 	{
 		InCamera.SetMoveSpeed(MoveSpeed); // 변경 시 즉시 적용
 	}

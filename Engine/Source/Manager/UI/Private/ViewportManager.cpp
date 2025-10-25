@@ -1092,3 +1092,25 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 	}
 
 }
+
+void UViewportManager::SetEditorCameraSpeed(float InSpeed)
+{
+	EditorCameraSpeed = clamp(InSpeed, MIN_CAMERA_SPEED, MAX_CAMERA_SPEED);
+
+	// 모든 카메라에 전역 스피드 동기화
+	for (UCamera* Camera : PerspectiveCameras)
+	{
+		if (Camera)
+		{
+			Camera->SetMoveSpeed(EditorCameraSpeed);
+		}
+	}
+
+	for (UCamera* Camera : OrthoGraphicCameras)
+	{
+		if (Camera)
+		{
+			Camera->SetMoveSpeed(EditorCameraSpeed);
+		}
+	}
+}

@@ -108,6 +108,14 @@ public:
 		return Clients;
 	}
 	void SerializeViewports(const bool bInIsLoading, JSON& InOutHandle);
+
+	// Camera Speed
+	float GetEditorCameraSpeed() const { return EditorCameraSpeed; }
+	void SetEditorCameraSpeed(float InSpeed);
+	static constexpr float MIN_CAMERA_SPEED = 1.0f;
+	static constexpr float MAX_CAMERA_SPEED = 70.0f;
+	static constexpr float DEFAULT_CAMERA_SPEED = 20.0f;
+
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect
@@ -232,5 +240,6 @@ private:
 
 	FViewportAnimation ViewportAnimation;
 
+	float EditorCameraSpeed = DEFAULT_CAMERA_SPEED;
 };
 
