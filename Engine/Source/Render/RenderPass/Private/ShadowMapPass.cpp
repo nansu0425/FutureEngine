@@ -290,18 +290,18 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	// Light position은 scene 중심에서 light direction 반대로 충분히 멀리
 	FVector LightPos = SceneCenter - LightDir * (SceneRadius + 50.0f);
 
-	// Up vector 계산
-	FVector Up = FVector(0, 1, 0);
-	if (std::abs(LightDir.Y) > 0.99f)
-		Up = FVector(1, 0, 0);
+	// Up vector 계산 (Z-Up, X-Forward, Y-Right Left-Handed 좌표계)
+	FVector Up = FVector(0, 0, 1);  // Z-Up
+	if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
+		Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
 
 	OutView = ShadowMatrixHelper::CreateLookAtLH(LightPos, SceneCenter, Up);
 
-	// 3. AABB를 light space로 변환하여 orthographic projection 범위 계산
+	// 3. AABB를 light view space로 변환하여 orthographic projection 범위 계산
 	FVector LightSpaceMin(FLT_MAX, FLT_MAX, FLT_MAX);
 	FVector LightSpaceMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-	// AABB의 8개 코너를 light space로 변환
+	// AABB의 8개 코너를 light view space로 변환
 	FVector Corners[8] = {
 		FVector(MinBounds.X, MinBounds.Y, MinBounds.Z),
 		FVector(MaxBounds.X, MinBounds.Y, MinBounds.Z),
