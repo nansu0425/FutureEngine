@@ -167,26 +167,21 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 	UINT NumViewports = 1;
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
-	// 1. Shadow render target 설정 (Pipeline API 사용하지 않음 - 특수 용도)
+	// 1. Shadow render target 설정
+	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
 	ID3D11RenderTargetView* NullRTV = nullptr;
 	Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
 	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
 	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// 2. Rasterizer state에 bias 적용
-	D3D11_RASTERIZER_DESC RastDesc = {};
-	ShadowRasterizerState->GetDesc(&RastDesc);
-	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
-	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
-
-	ID3D11RasterizerState* TempRastState = nullptr;
-	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &TempRastState);
+	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
+	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
 		DepthOnlyShader,
-		TempRastState,
+		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
 		nullptr,  // No pixel shader for depth-only
 		nullptr,  // No blend state
@@ -211,20 +206,20 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 		}
 	}
 
-	// 6. 상태 복원 (Pipeline API 사용!)
-	// RenderTarget과 DepthStencil 복원
+	// 6. 상태 복원
+	// RenderTarget과 DepthStencil 복원 (Pipeline API 사용)
 	Pipeline->SetRenderTargets(1, &OriginalRTV, OriginalDSV);
 
-	// Viewport 복원
+	// Viewport 복원 (DeviceContext 직접 사용)
 	DeviceContext->RSSetViewports(1, &OriginalViewport);
 
 	// 임시 리소스 해제
-	if (TempRastState)
-		TempRastState->Release();
 	if (OriginalRTV)
 		OriginalRTV->Release();
 	if (OriginalDSV)
 		OriginalDSV->Release();
+
+	// Note: RastState는 캐싱되므로 여기서 해제하지 않음 (Release()에서 일괄 해제)
 }
 
 void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
@@ -456,6 +451,14 @@ void FShadowMapPass::Release()
 	}
 	DirectionalShadowMaps.clear();
 
+	// Rasterizer state 캐시 해제 (매 프레임 생성 방지를 위해 캐싱했던 states)
+	for (auto& Pair : DirectionalRasterizerStates)
+	{
+		if (Pair.second)
+			Pair.second->Release();
+	}
+	DirectionalRasterizerStates.clear();
+
 	for (auto& Pair : SpotShadowMaps)
 	{
 		if (Pair.second)
@@ -502,4 +505,34 @@ FShadowMapResource* FShadowMapPass::GetDirectionalShadowMap(UDirectionalLightCom
 {
 	auto It = DirectionalShadowMaps.find(Light);
 	return It != DirectionalShadowMaps.end() ? It->second : nullptr;
+}
+
+ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UDirectionalLightComponent* Light)
+{
+	// 이미 생성된 state가 있으면 재사용
+	auto It = DirectionalRasterizerStates.find(Light);
+	if (It != DirectionalRasterizerStates.end())
+		return It->second;
+
+	// 새로 생성
+	const auto& Renderer = URenderer::GetInstance();
+	D3D11_RASTERIZER_DESC RastDesc = {};
+	ShadowRasterizerState->GetDesc(&RastDesc);
+
+	// Light별 DepthBias 설정
+	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+	//   - 100000.0f: float → integer 변환 스케일
+	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+
+	ID3D11RasterizerState* NewState = nullptr;
+	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+
+	// 캐시에 저장
+	DirectionalRasterizerStates[Light] = NewState;
+
+	return NewState;
 }

@@ -116,6 +116,17 @@ private:
 	 */
 	void RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj);
 
+	/**
+	 * @brief Directional light의 rasterizer state를 가져오거나 생성합니다.
+	 *
+	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	 *
+	 * @param Light Directional light component
+	 * @return Light 전용 rasterizer state
+	 */
+	ID3D11RasterizerState* GetOrCreateRasterizerState(UDirectionalLightComponent* Light);
+
 private:
 	// Shaders
 	ID3D11VertexShader* DepthOnlyShader = nullptr;
@@ -129,6 +140,9 @@ private:
 	TMap<UDirectionalLightComponent*, FShadowMapResource*> DirectionalShadowMaps;
 	TMap<USpotLightComponent*, FShadowMapResource*> SpotShadowMaps;
 	TMap<UPointLightComponent*, FCubeShadowMapResource*> PointShadowMaps;
+
+	// Rasterizer state 캐싱 (매 프레임 생성/해제 방지)
+	TMap<UDirectionalLightComponent*, ID3D11RasterizerState*> DirectionalRasterizerStates;
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
 	struct FShadowViewProjConstant
