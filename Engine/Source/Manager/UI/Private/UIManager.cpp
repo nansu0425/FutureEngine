@@ -6,6 +6,7 @@
 #include "Render/UI/Widget/Public/Widget.h"
 #include "Render/UI/Window/Public/MainMenuWindow.h"
 #include "Render/UI/Widget/Public/MainBarWidget.h"
+#include "Render/UI/Widget/Public/StatusBarWidget.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Viewport/Public/Window.h"
 
@@ -164,6 +165,12 @@ void UUIManager::Render()
 		{
 			Window->RenderWindow();
 		}
+	}
+
+	// 하단 상태바 렌더링 (다른 UI 위에 표시)
+	if (StatusBarWidget)
+	{
+		StatusBarWidget->RenderWidget();
 	}
 
 	// FutureEngine 철학: 스플리터 오버레이 렌더링 (Quad 모드에서 호버링 효과)
@@ -792,11 +799,14 @@ void UUIManager::ArrangeRightPanels()
 	// 화면 크기와 메뉴바 높이 가져오기
 	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
 	const float ScreenHeight = ImGui::GetIO().DisplaySize.y;
-	
+
 	// FutureEngine 철학: ViewportManager의 Root Rect에서 메뉴바+레벨바 높이 가져오기
 	SWindow* Root = UViewportManager::GetInstance().GetRoot();
 	const float MenuBarHeight = Root ? static_cast<float>(Root->GetRect().Top) : 0.0f;
-	const float AvailableHeight = ScreenHeight - MenuBarHeight;
+
+	// StatusBar 높이를 빼서 실제 사용 가능한 높이 계산
+	const float StatusBarHeight = GetStatusBarHeight();
+	const float AvailableHeight = ScreenHeight - MenuBarHeight - StatusBarHeight;
 
 	if (ScreenWidth <= 0.0f || AvailableHeight <= 0.0f)
 	{
@@ -957,4 +967,34 @@ void UUIManager::RegisterLevelTabBarWindow(ULevelTabBarWindow* InLevelBarWindow)
 	{
 		UE_LOG("UIManager: 메인 메뉴바 윈도우가 등록되었습니다");
 	}
+}
+
+/**
+ * @brief 하단 상태바를 등록하는 함수
+ */
+void UUIManager::RegisterStatusBarWidget(UStatusBarWidget* InStatusBarWidget)
+{
+	if (StatusBarWidget)
+	{
+		UE_LOG("UIManager: 상태바 위젯이 이미 등록되어 있습니다. 기존 위젯을 교체합니다.");
+	}
+
+	StatusBarWidget = InStatusBarWidget;
+
+	if (StatusBarWidget)
+	{
+		UE_LOG("UIManager: 상태바 위젯이 등록되었습니다");
+	}
+}
+
+/**
+ * @brief 하단 상태바의 높이를 반환하는 함수
+ */
+float UUIManager::GetStatusBarHeight() const
+{
+	if (StatusBarWidget && StatusBarWidget->IsStatusBarVisible())
+	{
+		return StatusBarWidget->GetStatusBarHeight();
+	}
+	return 0.0f;
 }

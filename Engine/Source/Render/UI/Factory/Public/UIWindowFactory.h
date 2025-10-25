@@ -11,6 +11,8 @@ class UMainMenuWindow;
 class UEditorWindow;
 class UViewportClientWindow;
 class ULevelTabBarWindow;
+class UStatusBarWidget;
+
 /**
  * @brief UI 윈도우 도킹 방향
  */
@@ -33,6 +35,7 @@ class UUIWindowFactory
 public:
 	static void CreateDefaultUILayout();
 	static UMainMenuWindow& CreateMainMenuWindow();
+	static UStatusBarWidget& CreateStatusBarWidget();
 	static UConsoleWindow* CreateConsoleWindow(EUIDockDirection InDockDirection = EUIDockDirection::BottomLeft);
 	static UControlPanelWindow* CreateControlPanelWindow(EUIDockDirection InDockDirection = EUIDockDirection::Left);
 	static UOutlinerWindow* CreateOutlinerWindow(EUIDockDirection InDockDirection = EUIDockDirection::Center);
