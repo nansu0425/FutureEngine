@@ -38,8 +38,9 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 
 	RegisterClassW(&wndclass);
 
+	// Borderless window: WS_POPUP (titlebar 제거) + WS_THICKFRAME (리사이징)
 	MainWindowHandle = CreateWindowExW(0, WindowClass, L"",
-	                                   WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+	                                   WS_POPUP | WS_VISIBLE | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
 	                                   CW_USEDEFAULT, CW_USEDEFAULT,
 	                                   Render::INIT_SCREEN_WIDTH, Render::INIT_SCREEN_HEIGHT,
 	                                   nullptr, nullptr, InInstance, nullptr);
@@ -48,6 +49,10 @@ bool FAppWindow::Init(HINSTANCE InInstance, int InCmdShow)
 	{
 		return false;
 	}
+
+	// DWM을 사용하여 클라이언트 영역을 non-client 영역까지 확장 (Borderless window)
+	MARGINS Margins = {1, 1, 1, 1};
+	DwmExtendFrameIntoClientArea(MainWindowHandle, &Margins);
 
 	if (hIcon)
 	{
@@ -107,6 +112,57 @@ FAppWindow* FAppWindow::GetWindowInstance(HWND InWindowHandle, uint32 InMessage,
 LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPARAM InWParam,
                                      LPARAM InLParam)
 {
+	// WM_NCHITTEST는 ImGui보다 먼저 처리되어야 함 (윈도우 리사이징 커서 우선)
+	if (InMessage == WM_NCHITTEST)
+	{
+		// 클라이언트 좌표로 변환
+		POINT ScreenPoint;
+		ScreenPoint.x = static_cast<int16>(LOWORD(InLParam));
+		ScreenPoint.y = static_cast<int16>(HIWORD(InLParam));
+		ScreenToClient(InWindowHandle, &ScreenPoint);
+
+		// 윈도우 크기 가져오기
+		RECT WindowRect;
+		GetClientRect(InWindowHandle, &WindowRect);
+
+		// 리사이징 가능한 가장자리 크기 (픽셀)
+		const int BorderWidth = 8;
+
+		// 가장자리 영역 체크 (리사이징 우선순위가 가장 높음)
+		bool bOnLeft = ScreenPoint.x < BorderWidth;
+		bool bOnRight = ScreenPoint.x >= WindowRect.right - BorderWidth;
+		bool bOnTop = ScreenPoint.y < BorderWidth;
+		bool bOnBottom = ScreenPoint.y >= WindowRect.bottom - BorderWidth;
+
+		// 모서리 우선 처리
+		if (bOnTop && bOnLeft) return HTTOPLEFT;
+		if (bOnTop && bOnRight) return HTTOPRIGHT;
+		if (bOnBottom && bOnLeft) return HTBOTTOMLEFT;
+		if (bOnBottom && bOnRight) return HTBOTTOMRIGHT;
+
+		// 가장자리 처리
+		if (bOnLeft) return HTLEFT;
+		if (bOnRight) return HTRIGHT;
+		if (bOnTop) return HTTOP;
+		if (bOnBottom) return HTBOTTOM;
+
+		// 상단 메뉴바 영역이면 드래그 가능하도록 설정 (30픽셀)
+		if (ScreenPoint.y >= 0 && ScreenPoint.y <= 30)
+		{
+			if (ImGui::GetIO().WantCaptureMouse && ImGui::IsAnyItemHovered())
+			{
+				// ImGui 요소 위에 있으면 클라이언트 영역으로 처리
+				return HTCLIENT;
+			}
+
+			// 빈 공간이면 타이틀바처럼 동작
+			return HTCAPTION;
+		}
+
+		// 나머지는 클라이언트 영역
+		return HTCLIENT;
+	}
+
 	if (UUIManager::WndProcHandler(InWindowHandle, InMessage, InWParam, InLParam))
 	{
 		if (ImGui::GetIO().WantCaptureMouse)
@@ -124,6 +180,14 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 
 	switch (InMessage)
 	{
+	case WM_NCCALCSIZE:
+		// non-client 영역을 완전히 제거 (borderless window)
+		if (InWParam == TRUE)
+		{
+			return 0;
+		}
+		break;
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -154,6 +218,10 @@ LRESULT CALLBACK FAppWindow::WndProc(HWND InWindowHandle, uint32 InMessage, WPAR
 			{ // 드래그 X 일때 추가 처리 (최대화 버튼, ...)
 				URenderer::GetInstance().OnResize(LOWORD(InLParam), HIWORD(InLParam));
 				UUIManager::GetInstance().RepositionImGuiWindows();
+				if (ImGui::GetCurrentContext())
+				{
+					UUIManager::GetInstance().ForceArrangeRightPanels();
+				}
 			}
 		}
 		else // SIZE_MINIMIZED

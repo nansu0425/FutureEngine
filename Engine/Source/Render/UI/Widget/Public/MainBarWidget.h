@@ -37,7 +37,10 @@ private:
 	static void RenderShowFlagsMenu();
 	static void RenderToolsMenu();
 	void RenderHelpMenu();
-	
+
+	// Custom window controls (borderless window)
+	void RenderWindowControls() const;
+
 	// 파일 메뉴 기능
 	static void CreateNewLevel();
 	static void LoadLevel();

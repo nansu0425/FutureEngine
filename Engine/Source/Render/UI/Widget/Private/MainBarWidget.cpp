@@ -78,7 +78,8 @@ void UMainBarWidget::RenderWidget()
 
 	// FutureEngine 철학: 독립 윈도우로 메뉴바 위치 조정
 	const ImVec2 screenSize = ImGui::GetIO().DisplaySize;
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	constexpr float TopPadding = 3.0f;
+	ImGui::SetNextWindowPos(ImVec2(0.0f, TopPadding));
 	ImGui::SetNextWindowSize(ImVec2(screenSize.x, 20.0f));
 
 	ImGuiWindowFlags flags =
@@ -110,6 +111,9 @@ void UMainBarWidget::RenderWidget()
 			RenderWindowsMenu();
 			RenderToolsMenu();
 			RenderHelpMenu();
+
+			// Custom window controls
+			RenderWindowControls();
 
 			ImGui::EndMenuBar();
 		}
@@ -724,4 +728,66 @@ path UMainBarWidget::OpenSaveFileDialog()
 	}
 	
 	return ResultPath;
+}
+
+void UMainBarWidget::RenderWindowControls() const
+{
+	HWND MainWindowHandle = GetActiveWindow();
+	if (!MainWindowHandle)
+	{
+		return;
+	}
+
+	// 우측 정렬을 위해 여백 계산
+	const float ButtonWidth = 46.0f;
+	const float ButtonCount = 3.0f;
+	const float Padding = 30.0f;
+	const float TotalWidth = ButtonWidth * ButtonCount + Padding;
+
+	// DisplaySize 사용 (윈도우 크기 변경 시 즉시 반영)
+	const float ScreenWidth = ImGui::GetIO().DisplaySize.x;
+	const float ButtonPosX = ScreenWidth - TotalWidth;
+
+	// 버튼이 화면 밖으로 나가지 않도록 보호
+	if (ButtonPosX > 0.0f)
+	{
+		ImGui::SameLine(ButtonPosX);
+	}
+	else
+	{
+		ImGui::SameLine();
+	}
+
+	// 버튼 기본 스타일 설정
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+
+	// 최소화 버튼
+	if (ImGui::Button("-", ImVec2(ButtonWidth, 0)))
+	{
+		ShowWindow(MainWindowHandle, SW_MINIMIZE);
+	}
+
+	// 최대화 / 복원 버튼
+	ImGui::SameLine();
+	bool bIsMaximized = IsZoomed(MainWindowHandle);
+	if (ImGui::Button("□", ImVec2(ButtonWidth, 0)))
+	{
+		// 상단바 더블클릭과 동일한 방식 사용
+		SendMessageW(MainWindowHandle, WM_SYSCOMMAND, bIsMaximized ? SC_RESTORE : SC_MAXIMIZE, 0);
+	}
+
+	ImGui::PopStyleColor(3);
+
+	// 닫기 버튼
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+	if (ImGui::Button("X", ImVec2(ButtonWidth, 0)))
+	{
+		PostMessageW(MainWindowHandle, WM_CLOSE, 0, 0);
+	}
+	ImGui::PopStyleColor(3);
 }

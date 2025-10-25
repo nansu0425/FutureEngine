@@ -906,10 +906,33 @@ void UUIManager::ArrangeRightPanels()
 
 void UUIManager::ForceArrangeRightPanels()
 {
+	// ImGui context 체크
+	if (!ImGui::GetCurrentContext())
+	{
+		return;
+	}
+
 	// Reset layout state so the next arrange pass rebuilds from scratch.
 	bFirstRun = true;
 
 	UE_LOG("UIManager: 요청받아 오른쪽 패널 레이아웃을 재정리합니다");
+
+	// ImGui DisplaySize를 명시적으로 강제 업데이트 (ImGui DisplaySize가 한 프레임 늦게 반영되는 문제 해결)
+	HWND MainWindowHandle = GetActiveWindow();
+	if (MainWindowHandle)
+	{
+		RECT ClientRect;
+		if (GetClientRect(MainWindowHandle, &ClientRect))
+		{
+			const float NewWidth = static_cast<float>(ClientRect.right - ClientRect.left);
+			const float NewHeight = static_cast<float>(ClientRect.bottom - ClientRect.top);
+
+			// ImGui DisplaySize 강제 업데이트
+			ImGuiIO& io = ImGui::GetIO();
+			io.DisplaySize.x = NewWidth;
+			io.DisplaySize.y = NewHeight;
+		}
+	}
 
 	// Apply the layout immediately so the change is visible this frame.
 	ArrangeRightPanels();
