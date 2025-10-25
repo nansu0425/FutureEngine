@@ -11,15 +11,10 @@ ULevelTabBarWindow::ULevelTabBarWindow()
 {
     SetupMainMenuConfig();
 }
-ULevelTabBarWindow::~ULevelTabBarWindow()
-{
-
-}
-
+ULevelTabBarWindow::~ULevelTabBarWindow() = default;
 
 void ULevelTabBarWindow::Initialize()
 {
-
     LevelTabBarWidget = NewObject<ULevelTabBarWidget>(this);
     if (LevelTabBarWidget)
     {

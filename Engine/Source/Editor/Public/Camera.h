@@ -43,6 +43,9 @@ public:
 	void SetFarZ(const float InOtherFarZ) { FarZ = InOtherFarZ; }
 	void SetOrthoWidth(const float InOrthoWidth) { OrthoWidth = InOrthoWidth; }
 	void SetCameraType(const ECameraType InCameraType) { CameraType = InCameraType; }
+	void SetForward(const FVector& InForward) { Forward = InForward; }
+	void SetUp(const FVector& InUp) { Up = InUp; }
+	void SetRight(const FVector& InRight) { Right = InRight; }
 
 	/**
 	 * @brief Getter

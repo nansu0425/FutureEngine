@@ -375,13 +375,47 @@ void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 
 void UDeviceResources::CreateFactories()
 {
+	// Direct2D 팩토리 생성
+	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &D2DFactory);
+
 	// DirectWrite 팩토리 생성
 	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
 	                    reinterpret_cast<IUnknown**>(&DWriteFactory));
+
+	// D2D RenderTarget 생성 (FrameBuffer와 연동)
+	if (D2DFactory && FrameBuffer)
+	{
+		IDXGISurface* DxgiSurface = nullptr;
+		FrameBuffer->QueryInterface(__uuidof(IDXGISurface), reinterpret_cast<void**>(&DxgiSurface));
+
+		if (DxgiSurface)
+		{
+			D2D1_RENDER_TARGET_PROPERTIES Props = D2D1::RenderTargetProperties(
+				D2D1_RENDER_TARGET_TYPE_DEFAULT,
+				D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+			);
+
+			D2DFactory->CreateDxgiSurfaceRenderTarget(DxgiSurface, &Props, &D2DRenderTarget);
+			DxgiSurface->Release();
+		}
+	}
 }
 
 void UDeviceResources::ReleaseFactories()
 {
+	// CRITICAL: D2DRenderTarget은 FrameBuffer에 의존하므로 FrameBuffer 해제 전에 먼저 해제해야 함
+	if (D2DRenderTarget)
+	{
+		D2DRenderTarget->Release();
+		D2DRenderTarget = nullptr;
+	}
+
+	if (D2DFactory)
+	{
+		D2DFactory->Release();
+		D2DFactory = nullptr;
+	}
+
 	if (DWriteFactory)
 	{
 		DWriteFactory->Release();

@@ -165,25 +165,59 @@ FMatrix FMatrix::ScaleMatrixInverse(const FVector& InOtherVector)
 
 /**
 * @brief Rotation의 정보를 행렬로 변환하여 제공하는 함수
+* Z-up Left-Handed (Unreal Engine standard)
+* Roll: X-axis rotation (tilting head)
+* Pitch: Y-axis rotation (looking up/down)
+* Yaw: Z-axis rotation (turning left/right)
+* Rotation order: Yaw → Pitch → Roll (intrinsic rotations)
 */
 FMatrix FMatrix::RotationMatrix(const FVector& InOtherVector)
 {
-	// Dx11 yaw(y), pitch(x), roll(z)
-	// UE yaw(z), pitch(y), roll(x)
-	// 회전 축이 바뀌어서 각 회전행렬 함수에 바뀐 값을 적용
+	// X component → Roll (X-axis rotation)
+	// Y component → Pitch (Y-axis rotation)
+	// Z component → Yaw (Z-axis rotation)
+	const float roll = InOtherVector.X;
+	const float pitch = InOtherVector.Y;
+	const float yaw = InOtherVector.Z;
 
-	const float yaw = InOtherVector.Y; // pitch
-	const float pitch = InOtherVector.X; // roll
-	const float roll = InOtherVector.Z; // yaw
-	//return RotationZ(yaw) * RotationY(pitch) * RotationX(roll);
-	//return RotationX(yaw) * RotationY(roll) * RotationZ(pitch);
-	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
+	float SP, SY, SR;
+	float CP, CY, CR;
+	SP = std::sinf(pitch);
+	CP = std::cosf(pitch);
+	SY = std::sinf(yaw);
+	CY = std::cosf(yaw);
+	SR = std::sinf(roll);
+	CR = std::cosf(roll);
+
+	// UE 표준 (Reference: RotationTranslationMatrix.h:72-85)
+	FMatrix Result;
+	Result.Data[0][0] = CP * CY;
+	Result.Data[0][1] = CP * SY;
+	Result.Data[0][2] = SP;
+	Result.Data[0][3] = 0.f;
+
+	Result.Data[1][0] = SR * SP * CY - CR * SY;
+	Result.Data[1][1] = SR * SP * SY + CR * CY;
+	Result.Data[1][2] = -SR * CP;
+	Result.Data[1][3] = 0.f;
+
+	Result.Data[2][0] = -(CR * SP * CY + SR * SY);
+	Result.Data[2][1] = CY * SR - CR * SP * SY;
+	Result.Data[2][2] = CR * CP;
+	Result.Data[2][3] = 0.f;
+
+	Result.Data[3][0] = 0.f;
+	Result.Data[3][1] = 0.f;
+	Result.Data[3][2] = 0.f;
+	Result.Data[3][3] = 1.f;
+
+	return Result;
 }
 
 FMatrix FMatrix::CreateFromYawPitchRoll(const float yaw, const float pitch, const float roll)
 {
-	//return RotationZ(yaw) * RotationY(pitch)* RotationX(roll);
-	return RotationX(pitch) * RotationY(yaw) * RotationZ(roll);
+	// Use the corrected RotationMatrix implementation
+	return RotationMatrix(FVector(roll, pitch, yaw));
 }
 
 FMatrix FMatrix::RotationMatrixInverse(const FVector& InOtherVector)
@@ -230,7 +264,7 @@ FMatrix FMatrix::RotationY(float Radian)
 }
 
 /**
-* @brief Y의 회전 정보를 행렬로 변환
+* @brief Z의 회전 정보를 행렬로 변환 (Left-Handed 좌표계)
 */
 FMatrix FMatrix::RotationZ(float Radian)
 {
@@ -238,9 +272,10 @@ FMatrix FMatrix::RotationZ(float Radian)
 	const float C = std::cosf(Radian);
 	const float S = std::sinf(Radian);
 
+	// Left-Handed 좌표계에서 Z축 회전
 	Result.Data[0][0] = C;
-	Result.Data[0][1] = S;
-	Result.Data[1][0] = -S;
+	Result.Data[0][1] = -S;  // ✅ 부호 수정
+	Result.Data[1][0] = S;   // ✅ 부호 수정
 	Result.Data[1][1] = C;
 
 	return Result;

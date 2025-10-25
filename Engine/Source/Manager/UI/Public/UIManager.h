@@ -5,6 +5,7 @@ class UUIWindow;
 class UImGuiHelper;
 class UMainMenuWindow;
 class ULevelTabBarWindow;
+class UStatusBarWidget;
 /**
  * @brief UI 매니저 클래스
  * 모든 UI 윈도우를 관리하는 싱글톤 클래스
@@ -60,6 +61,10 @@ public:
 
 	// 레벨 바 관련 메서드
 	void RegisterLevelTabBarWindow(ULevelTabBarWindow* InLevelBarWindow);
+
+	// 상태바 관련 메서드
+	void RegisterStatusBarWidget(UStatusBarWidget* InStatusBarWidget);
+	float GetStatusBarHeight() const;
 	
 	void OnSelectedComponentChanged(UActorComponent* InSelectedComponent) const;
 
@@ -86,9 +91,12 @@ private:
 
 	// 레벨바 윈도우
 	ULevelTabBarWindow* LevelTabBarWindow = nullptr;
-	
+
 	// Main Menu Window
 	UMainMenuWindow* MainMenuWindow = nullptr;
+
+	// Status Bar Widget
+	UStatusBarWidget* StatusBarWidget = nullptr;
 
 	void SortUIWindowsByPriority();
 	void UpdateFocusState();
@@ -107,7 +115,6 @@ private:
 		float InAvailableHeight);
 	void ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindow* InDetailWindow,
 		float InScreenWidth, float InScreenHeight, float InMenuBarHeight,
-		float InAvailableHeight, float InTargetWidth) const;
-
-	
+		float InAvailableHeight, float InTargetWidth,
+		bool bOutlinerHeightChanged, bool bDetailHeightChanged);
 };
