@@ -1,7 +1,5 @@
 # Directional Light Shadow Mapping 구현 가이드
 
-> FutureEngine의 Directional Light Shadow Mapping 완전 구현 문서
-
 **작성일**: 2025-10-25
 **버전**: 1.0
 **구현자**: Week8 Team5
