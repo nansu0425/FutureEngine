@@ -83,11 +83,25 @@ public:
 
     void RefreshVisualizationBillboardBinding();
 
+    float GetShadowResolutionScale() const { return ShadowResolutionScale; }
+    void SetShadowResolutionScale(float InShadowResolutionScale) { ShadowResolutionScale = InShadowResolutionScale; }
+
+    float GetShadowBias() const { return ShadowBias; }
+    void SetShadowBias(float InShadowBias) { ShadowBias = InShadowBias; }
+
+    float GetShadowSlopeBias() const { return ShadowSlopeBias; }
+    void SetShadowSlopeBias(float InShadowSlopeBias) { ShadowSlopeBias = InShadowSlopeBias; }
+
+    float GetShadowSharpen() const { return ShadowSharpen; }
+    void SetShadowSharpen(float InShadowSharpen) { ShadowSharpen = InShadowSharpen; }
     
 protected:
     void UpdateVisualizationBillboardTint();
 
     UBillBoardComponent* VisualizationBillboard = nullptr;
 private:
-    
+    float ShadowResolutionScale = 0.0f;
+    float ShadowBias = 0.0f;
+    float ShadowSlopeBias = 0.0f;
+    float ShadowSharpen = 0.0f;
 };
