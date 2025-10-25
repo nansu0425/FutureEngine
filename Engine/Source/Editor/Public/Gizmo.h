@@ -94,6 +94,10 @@ public:
 	bool IsInRadius(float Radius);
 	bool HasComponent() const { return TargetComponent; }
 
+	// Quarter ring camera alignment
+	void CalculateQuarterRingDirections(UCamera* InCamera,
+		EGizmoDirection InAxis, FVector& OutStartDir, FVector& OutEndDir) const;
+
 	/* *
 	* @brief 마우스 관련
 	*/
@@ -132,6 +136,7 @@ private:
 	FVector DragStartActorRotation;
 	FQuaternion DragStartActorRotationQuat;
 	FVector DragStartActorScale;
+	float CurrentRotationAngle = 0.0f;
 
 	FGizmoTranslationCollisionConfig TranslateCollisionConfig;
 	FGizmoRotateCollisionConfig RotateCollisionConfig;
