@@ -50,6 +50,7 @@ public:
 	void UpdateScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void ChangeGizmoMode();
+	void SetGizmoMode(EGizmoMode Mode) { GizmoMode = Mode; }
 
 	/* *
 	* @brief Setter
