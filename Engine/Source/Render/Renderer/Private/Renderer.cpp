@@ -662,7 +662,7 @@ void URenderer::Update()
 			GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
 		}
         // Gizmo는 최종적으로 렌더
-        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
+        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera, LocalViewport);
     }
 
     // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행

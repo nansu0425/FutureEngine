@@ -54,8 +54,8 @@ void UViewportManager::Initialize(FAppWindow* InWindow)
 	// 루트 윈도우에 새로운 윈도우를 할당합니다.
 	ViewportLayout = EViewportLayout::Single;
 
-	// 0번 인덱스의 뷰포트로 초기화
-	ActiveIndex = 0;
+	// 2번 인덱스의 뷰포트로 초기화
+	ActiveIndex = 2;
 
 	float MenuAndLevelBarHeight = ULevelTabBarWindow::GetInstance().GetLevelBarHeight() + UMainMenuWindow::GetInstance().GetMenuBarHeight();
 
@@ -190,6 +190,74 @@ void UViewportManager::Update()
 	// 스플리터 드래그 처리 함수
 	TickInput();
 
+	// 마우스 휠로 오쏘 뷰 줌 제어
+	{
+		auto& InputManager = UInputManager::GetInstance();
+		float WheelDelta = InputManager.GetMouseWheelDelta();
+
+		if (WheelDelta != 0.0f)
+		{
+			int32 Index = GetViewportIndexUnderMouse();
+			if (Index >= 0 && Index < static_cast<int32>(Clients.size()))
+			{
+				FViewportClient* Client = Clients[Index];
+				if (Client && Client->IsOrtho())
+				{
+					// 오쏘 뷰: 휠로 줌 제어
+					constexpr float DollyStep = 10.0f;
+					constexpr float MinOrthoWidth = 10.0f;
+					constexpr float MaxOrthoWidth = 500.0f;
+
+					float NewOrthoWidth = SharedOrthoWidth - (WheelDelta * DollyStep);
+
+					// 점진적 제한 (최소값 근처에서 점점 느려지게)
+					if (NewOrthoWidth < MinOrthoWidth)
+					{
+						float DistanceFromMin = SharedOrthoWidth - MinOrthoWidth;
+						if (DistanceFromMin > 0.0f)
+						{
+							float ProgressRatio = min(1.0f, DistanceFromMin / 20.0f);
+							SharedOrthoWidth = max(MinOrthoWidth, SharedOrthoWidth - (WheelDelta * DollyStep * ProgressRatio));
+						}
+						else
+						{
+							SharedOrthoWidth = MinOrthoWidth;
+						}
+					}
+					else if (NewOrthoWidth > MaxOrthoWidth)
+					{
+						SharedOrthoWidth = MaxOrthoWidth;
+					}
+					else
+					{
+						SharedOrthoWidth = NewOrthoWidth;
+					}
+
+					// 모든 오쏘 뷰에 SharedOrthoWidth 적용
+					for (FViewportClient* OrthoClient : Clients)
+					{
+						if (OrthoClient && OrthoClient->IsOrtho())
+						{
+							if (UCamera* Cam = OrthoClient->GetCamera())
+							{
+								Cam->SetOrthoWidth(SharedOrthoWidth);
+							}
+						}
+					}
+				}
+				else if (Client && !Client->IsOrtho() && InputManager.IsKeyDown(EKeyInput::MouseRight))
+				{
+					// Perspective 뷰: 우클릭 중 휠로 이동 속도 조절
+					if (UCamera* Cam = Client->GetCamera())
+					{
+						constexpr float SpeedStep = 5.0f;
+						float NewSpeed = Cam->GetMoveSpeed() + (WheelDelta * SpeedStep);
+						Cam->SetMoveSpeed(NewSpeed);
+					}
+				}
+			}
+		}
+	}
 
 	// 애니메이션 처리함수
 	UpdateViewportAnimation();
@@ -540,9 +608,17 @@ void UViewportManager::StartLayoutAnimation(bool bSingleToQuad, int32 ViewportIn
 
 	if (!bSingleToQuad)
 	{
-		// ===== Quad -> Single (기존과 동일) =====
-		ViewportAnimation.StartVRatio = SplitterValueV;
-		ViewportAnimation.StartHRatio = SplitterValueH;
+		// ===== Quad -> Single =====
+		// 현재 splitter의 실제 비율을 읽어온다 (사용자가 드래그한 현재 위치)
+		if (auto* V = Cast(QuadRoot))
+		{
+			ViewportAnimation.StartVRatio = V->Ratio;
+		}
+		else
+		{
+			ViewportAnimation.StartVRatio = SplitterValueV;
+		}
+		ViewportAnimation.StartHRatio = SplitterValueH; // 공유 비율
 
 		switch (ViewportAnimation.PromotedViewportIndex)
 		{
@@ -674,24 +750,33 @@ void UViewportManager::InitializeViewportAndClient()
 		
 		UE_LOG("ViewportManager: Viewport[%d] 초기화 완료", i);
 	}
-	// 이 값들은 조절가능 일단 기본으로 셋
-	Clients[0]->SetViewType(EViewType::Perspective);
-	Clients[0]->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
+	// 언리얼 레퍼런스에 맞게 쿼드뷰 설정
+	// 좌상단 (Index 0): Top (Orthographic)
+	Clients[0]->SetViewType(EViewType::OrthoTop);
+	Clients[0]->SetViewMode(EViewModeIndex::VMI_Wireframe);
 
-	Clients[1]->SetViewType(EViewType::Perspective);
-	Clients[1]->SetViewMode(EViewModeIndex::VMI_Lambert);
+	// 좌하단 (Index 1): Front (Orthographic)
+	Clients[1]->SetViewType(EViewType::OrthoFront);
+	Clients[1]->SetViewMode(EViewModeIndex::VMI_Wireframe);
 
+	// 우상단 (Index 2): Perspective
 	Clients[2]->SetViewType(EViewType::Perspective);
-	Clients[2]->SetViewMode(EViewModeIndex::VMI_Gouraud);
+	Clients[2]->SetViewMode(EViewModeIndex::VMI_Unlit);
 
-	Clients[3]->SetViewType(EViewType::Perspective);
-	Clients[3]->SetViewMode(EViewModeIndex::VMI_Unlit);
+	// 우하단 (Index 3): Right (Orthographic)
+	Clients[3]->SetViewType(EViewType::OrthoRight);
+	Clients[3]->SetViewMode(EViewModeIndex::VMI_Wireframe);
+
+	// 오쏘 뷰 초기 오프셋 설정 (공유 중심점 + 초기 오프셋 = 각 뷰의 위치)
+	InitialOffsets.push_back(FVector(0.0f, 0.0f, 100.0f));   // Top
+	InitialOffsets.push_back(FVector(0.0f, 0.0f, -100.0f));  // Bottom
+	InitialOffsets.push_back(FVector(0.0f, 100.0f, 0.0f));   // Left
+	InitialOffsets.push_back(FVector(0.0f, -100.0f, 0.0f));  // Right
+	InitialOffsets.push_back(FVector(-100.0f, 0.0f, 0.0f));  // Front
+	InitialOffsets.push_back(FVector(100.0f, 0.0f, 0.0f));   // Back
+
 	UE_LOG("ViewportManager: 총 %zu개 Viewport, %zu개 Client 생성", Viewports.size(), Clients.size());
 }
-
-
-	
-
 
 void UViewportManager::InitializeOrthoGraphicCamera()
 {

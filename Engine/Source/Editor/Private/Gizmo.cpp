@@ -57,45 +57,31 @@ UGizmo::UGizmo()
 
 UGizmo::~UGizmo() = default;
 
-void UGizmo::UpdateScale(UCamera* InCamera)
+void UGizmo::UpdateScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
 	TargetComponent = Cast<USceneComponent>(GEditor->GetEditorModule()->GetSelectedComponent());
-	if (!TargetComponent || !InCamera) { return; }
+	if (!TargetComponent || !InCamera)
+	{
+		return;
+	}
 
-	float Scale;
-	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
-	{
-		float DistanceToCamera = (InCamera->GetLocation() - TargetComponent->GetWorldLocation()).Length();
-		Scale = DistanceToCamera * ScaleFactor;
-		if (DistanceToCamera < MinScaleFactor)
-			Scale = MinScaleFactor * ScaleFactor;
-	}
-	else // Orthographic
-	{
-		Scale = OrthoScaleFactor;
-	}
+	// 스크린에서 균일한 사이즈를 가지도록 하기 위한 스케일 조정
+	const float Scale = CalculateScreenSpaceScale(InCamera, InViewport, 120.0f);
 
 	TranslateCollisionConfig.Scale = Scale;
 	RotateCollisionConfig.Scale = Scale;
 }
 
-void UGizmo::RenderGizmo(UCamera* InCamera)
+void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
 	TargetComponent = Cast<USceneComponent>(GEditor->GetEditorModule()->GetSelectedComponent());
-	if (!TargetComponent || !InCamera) { return; }
+	if (!TargetComponent || !InCamera)
+	{
+		return;
+	}
 
-	float RenderScale;
-	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
-	{
-		float DistanceToCamera = (InCamera->GetLocation() - TargetComponent->GetWorldLocation()).Length();
-		RenderScale = DistanceToCamera * ScaleFactor;
-		if (DistanceToCamera < MinScaleFactor)
-			RenderScale = MinScaleFactor * ScaleFactor;
-	}
-	else // Orthographic
-	{
-		RenderScale = OrthoScaleFactor;
-	}
+	// 스크린에서 균일한 사이즈를 가지도록 하기 위한 스케일 조정
+	const float RenderScale = CalculateScreenSpaceScale(InCamera, InViewport, 120.0f);
 
 	URenderer& Renderer = URenderer::GetInstance();
 	const int Mode = static_cast<int>(GizmoMode);
@@ -189,4 +175,83 @@ FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 		return BaseColor;
 	else
 		return Paint;
+}
+
+float UGizmo::CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport, float InDesiredPixelSize) const
+{
+	if (!InCamera || !TargetComponent)
+	{
+		return 1.0f;
+	}
+
+	// Unreal Engine Screen Space Scale 계산
+	// Perspective: ViewZ 기반 (FOV + 화면 위치 자동 보정)
+	// Orthographic: OrthoHeight 기반
+
+	const FVector GizmoLocation = TargetComponent->GetWorldLocation();
+	const FCameraConstants& CameraConstants = InCamera->GetFViewProjConstants();
+	const FMatrix& ProjMatrix = CameraConstants.Projection;
+	const ECameraType CameraType = InCamera->GetCameraType();
+	const float ViewportHeight = InViewport.Height;
+
+	if (ViewportHeight < 1.0f)
+	{
+		return 1.0f;
+	}
+
+	// ProjYY = Projection[1][1]
+	// Perspective: cot(FOV_Y/2)
+	// Orthographic: 2 / OrthoHeight
+	float ProjYY = std::abs(ProjMatrix.Data[1][1]);
+	if (ProjYY < 0.0001f)
+	{
+		return 1.0f;
+	}
+
+	float Scale = 1.0f;
+
+	if (CameraType == ECameraType::ECT_Perspective)
+	{
+		// Perspective: Projected depth 사용 (Unreal Engine 방식)
+		// Gizmo를 View space로 변환하여 실제 화면상의 depth를 계산
+
+		const FMatrix& ViewMatrix = CameraConstants.View;
+
+		// Gizmo 위치를 View space로 변환
+		FVector4 GizmoPos4(GizmoLocation.X, GizmoLocation.Y, GizmoLocation.Z, 1.0f);
+		FVector4 ViewSpacePos = GizmoPos4 * ViewMatrix;
+
+		// View space Z (depth) = ViewSpacePos.Z
+		// 이것이 실제 화면에 투영될 때의 depth
+		float ProjectedDepth = std::abs(ViewSpacePos.Z);
+
+		// 최소 거리 제한
+		constexpr float MinDepth = 1.0f;
+		if (ProjectedDepth < MinDepth)
+		{
+			ProjectedDepth = MinDepth;
+		}
+
+		// Unreal Engine 공식:
+		// Scale = PixelSize * ProjectedDepth / (ProjYY * ViewportHeight * 0.5)
+		// ProjectedDepth는 화면에 투영된 실제 depth이므로 측면에서 봐도 일정
+		Scale = (InDesiredPixelSize * ProjectedDepth) / (ProjYY * ViewportHeight * 0.5f);
+	}
+	else // Orthographic
+	{
+		// Orthographic: OrthoHeight 기반 계산
+		// Ortho Projection Matrix: ProjMatrix[1][1] = 2 / OrthoHeight
+		// OrthoHeight = 2 / |ProjYY|
+		float OrthoHeight = 2.0f / ProjYY;
+
+		// Orthographic 공식:
+		// 1 픽셀 = OrthoHeight / ViewportHeight
+		// Scale = DesiredPixels * PixelToWorld
+		Scale = (InDesiredPixelSize * OrthoHeight) / ViewportHeight;
+	}
+
+	// 스케일 범위 제한
+	Scale = std::max(0.01f, std::min(Scale, 100.0f));
+
+	return Scale;
 }

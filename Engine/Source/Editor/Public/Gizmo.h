@@ -47,8 +47,8 @@ class UGizmo : public UObject
 public:
 	UGizmo();
 	~UGizmo() override;
-	void UpdateScale(UCamera* InCamera);
-	void RenderGizmo(UCamera* InCamera);
+	void UpdateScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void ChangeGizmoMode();
 
 	/* *
@@ -115,6 +115,9 @@ private:
 
 	// 렌더 시 하이라이트 색상 계산(상태 오염 방지)
 	FVector4 ColorFor(EGizmoDirection InAxis) const;
+
+	// Screen-space uniform scale calculation
+	float CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport, float InDesiredPixelSize) const;
 
 	UEditor* Editor = nullptr;
 

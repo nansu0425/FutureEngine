@@ -53,6 +53,11 @@ public:
 	const TArray<UCamera*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
 	const TArray<UCamera*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
 
+	// 오쏘 뷰 공유 데이터 접근자
+	const TArray<FVector>& GetInitialOffsets() const { return InitialOffsets; }
+	const FVector& GetOrthoGraphicCameraPoint() const { return OrthoGraphicCameraPoint; }
+	void SetOrthoGraphicCameraPoint(const FVector& InPoint) { OrthoGraphicCameraPoint = InPoint; }
+
 	// ViewportChange 상태 접근자
 	//EViewportChange GetViewportChange() const { return ViewportChange; }
 	//void SetViewportChange(EViewportChange InChange) { ViewportChange = InChange; }
@@ -157,8 +162,7 @@ private:
 	TArray<UCamera*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
-
-	FVector OrthoGraphicCamerapoint{ 0.0f, 0.0f, 0.0f };
+	FVector OrthoGraphicCameraPoint{ 0.0f, 0.0f, 0.0f }; // 모든 오쏘 뷰가 공유하는 중심점
 
 	// 현재 우클릭(카메라 제어) 입력이 적용될 뷰포트 인덱스 (-1이면 없음)
 	int32 ActiveRmbViewportIdx = -1;
@@ -173,6 +177,7 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
+	float SharedOrthoWidth = 100.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;

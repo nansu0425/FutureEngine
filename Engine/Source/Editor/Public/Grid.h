@@ -28,7 +28,7 @@ public:
 	}
 
 private:
-	float CellSize = 5.0f;
+	float CellSize = -1.0f;
 	int NumLines = 250;
 	TArray<FVector> Vertices;
 	uint32 NumVertices;

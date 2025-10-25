@@ -30,7 +30,7 @@ public:
 
 	void Update();
 	void RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
-	void RenderGizmo(UCamera* InCamera);
+	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
@@ -76,6 +76,10 @@ private:
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_BlinnPhong;
 
 	int32 ActiveViewportIndex = 0;
+
+	// 드래그 중 뷰포트 고정 처리를 위한 트래킹
+	int32 LockedViewportIndexForDrag = -1;
+	bool bWasRightMouseDown = false;
 
 	const float MinScale = 0.01f;
 

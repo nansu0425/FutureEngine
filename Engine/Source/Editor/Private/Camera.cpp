@@ -31,44 +31,41 @@ FVector UCamera::UpdateInput()
 	 */
 	if (Input.IsKeyDown(EKeyInput::MouseRight))
 	{
-		/**
-		 * @brief W, A, S, D 는 각각 카메라의 상, 하, 좌, 우 이동을 담당합니다.
-		 */
-		FVector Direction = FVector::Zero();
-
-		if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right * 2; }
-		if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right * 2; }
-		if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward * 2; }
-		if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward * 2; }
-		if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up * 2; }
-		if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up * 2; }
-		if (Direction.LengthSquared() > MATH_EPSILON)
-		{
-			Direction.Normalize();
-		}
-		RelativeLocation += Direction * CurrentMoveSpeed * DT;
-		MovementDelta = Direction * CurrentMoveSpeed * DT;
-
-		// 오른쪽 마우스 버튼 + 마우스 휠로 카메라 이동속도 조절
-		float WheelDelta = Input.GetMouseWheelDelta();
-		if (WheelDelta != 0.0f)
-		{
-			// 휠 위로 돌리면 속도 증가, 아래로 돌리면 속도 감소
-			AdjustMoveSpeed(WheelDelta * SPEED_ADJUST_STEP);
-		}
-
-		/**
-		* @brief 마우스 위치 변화량을 감지하여 카메라의 회전을 담당합니다.
-		* 원근 투영 모드를 적용한 카메라만 회전이 가능합니다.
-		*/
 		if (CameraType == ECameraType::ECT_Perspective)
 		{
+			/**
+			 * @brief Perspective: WASDQE 키로 이동, 마우스 드래그로 회전
+			 */
+			FVector Direction = FVector::Zero();
+
+			if (Input.IsKeyDown(EKeyInput::A)) { Direction += -Right * 2; }
+			if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right * 2; }
+			if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward * 2; }
+			if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward * 2; }
+			if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up * 2; }
+			if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up * 2; }
+			if (Direction.LengthSquared() > MATH_EPSILON)
+			{
+				Direction.Normalize();
+			}
+			RelativeLocation += Direction * CurrentMoveSpeed * DT;
+			MovementDelta = Direction * CurrentMoveSpeed * DT;
+
+			// 마우스 드래그로 회전
 			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
 			RelativeRotation.Z += MouseDelta.X * KeySensitivityDegPerPixel * 2;  // 마우스 좌우 → Yaw (Z축 회전)
 			RelativeRotation.Y -= MouseDelta.Y * KeySensitivityDegPerPixel * 2;  // 마우스 상하 → Pitch (Y축 회전, 반전)
 			MovementDelta = FVector::Zero(); // 원근 투영 모드는 반환할 필요가 없음
 		}
-
+		else if (CameraType == ECameraType::ECT_Orthographic)
+		{
+			// 오쏘 뷰: 마우스 드래그로만 패닝
+			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
+			const float PanSpeed = 0.25f; // 패닝 속도 계수 (절반으로 감소)
+			FVector PanDelta = Right * -MouseDelta.X * PanSpeed + Up * MouseDelta.Y * PanSpeed;
+			RelativeLocation += PanDelta; // 좌우는 반대, 상하는 동일
+			MovementDelta = PanDelta;
+		}
 
 		// Yaw 래핑 - Z축 회전 (값이 무한히 커지지 않도록)
 		if (RelativeRotation.Z > 180.0f) RelativeRotation.Z -= 360.0f;
@@ -85,23 +82,28 @@ FVector UCamera::UpdateInput()
 void UCamera::Update(const D3D11_VIEWPORT& InViewport)
 {
 	// 입력이 활성화되어 있으면 입력 처리
-	
+
 	if (bInputEnabled)
 	{
 		UpdateInput();
 	}
-	
-	const FMatrix RotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
-	const FVector4 Forward4 = FVector4::ForwardVector() * RotationMatrix;
-	const FVector4 WorldUp4 = FVector4::UpVector() * RotationMatrix;
-	const FVector WorldUp = { WorldUp4.X, WorldUp4.Y, WorldUp4.Z };
 
-	Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
-	Forward.Normalize();
-	Right = WorldUp.Cross(Forward);
-	Right.Normalize();
-	Up = Forward.Cross(Right);
-	Up.Normalize();
+	// Perspective 모드에서만 회전 행렬로 Forward/Up/Right 계산
+	// Orthographic 모드에서는 ViewportClient::SetViewType에서 설정한 값 유지
+	if (CameraType == ECameraType::ECT_Perspective)
+	{
+		const FMatrix RotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(RelativeRotation));
+		const FVector4 Forward4 = FVector4::ForwardVector() * RotationMatrix;
+		const FVector4 WorldUp4 = FVector4::UpVector() * RotationMatrix;
+		const FVector WorldUp = { WorldUp4.X, WorldUp4.Y, WorldUp4.Z };
+
+		Forward = FVector(Forward4.X, Forward4.Y, Forward4.Z);
+		Forward.Normalize();
+		Right = WorldUp.Cross(Forward);
+		Right.Normalize();
+		Up = Forward.Cross(Right);
+		Up.Normalize();
+	}
 
 	// 종횡비 갱신
 	if (InViewport.Width > 0.f && InViewport.Height > 0.f)
@@ -178,16 +180,21 @@ void UCamera::UpdateMatrixByOrth()
 	FMatrix R = FMatrix(Right, Up, Forward);
 	R = R.Transpose();
 	CameraConstants.View = T * R;
-	/*FMatrix T = FMatrix::TranslationMatrixInverse(RelativeLocation);
-	FMatrix R = FMatrix::RotationMatrixInverse(FVector::GetDegreeToRadian(RelativeRotation));
-	ViewProjConstants.View = T * R;*/
 
 	/**
 	 * @brief Projection 행렬 연산
+	 * 뷰포트 크기 변경 시 실제 view size 조정
+	 * OrthoWidth는 zoom level(base size)을 나타냄
+	 * Height 기준으로 고정하고 Width는 aspect에 따라 변경
 	 */
-	const float OrthoHeight = OrthoWidth / Aspect;
-	const float Left = -OrthoWidth * 0.5f;
-	const float Right = OrthoWidth * 0.5f;
+	const float SafeAspect = max(0.1f, Aspect);
+
+	// OrthoWidth를 "기준 높이"로 사용하고, aspect로 실제 width 계산
+	const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
+	const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+
+	const float Left = -OrthoWidth_Actual * 0.5f;
+	const float Right = OrthoWidth_Actual * 0.5f;
 	const float Bottom = -OrthoHeight * 0.5f;
 	const float Top = OrthoHeight * 0.5f;
 
@@ -200,7 +207,7 @@ void UCamera::UpdateMatrixByOrth()
 	P.Data[3][2] = -NearZ / (FarZ - NearZ);
 	P.Data[3][3] = 1.0f;
 	CameraConstants.Projection = P;
-	
+
 	CameraConstants.ViewWorldLocation = RelativeLocation;
 	CameraConstants.NearClip = NearZ;
 	CameraConstants.FarClip = FarZ;
@@ -219,9 +226,13 @@ const FCameraConstants UCamera::GetFViewProjConstantsInverse() const
 
 	if (CameraType == ECameraType::ECT_Orthographic)
 	{
-		const float OrthoHeight = OrthoWidth / Aspect;
-		const float Left = -OrthoWidth * 0.5f;
-		const float Right = OrthoWidth * 0.5f;
+		// UpdateMatrixByOrth와 동일한 계산 방식 사용
+		const float SafeAspect = max(0.1f, Aspect);
+		const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
+		const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+
+		const float Left = -OrthoWidth_Actual * 0.5f;
+		const float Right = OrthoWidth_Actual * 0.5f;
 		const float Bottom = -OrthoHeight * 0.5f;
 		const float Top = OrthoHeight * 0.5f;
 
