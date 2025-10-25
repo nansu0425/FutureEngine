@@ -22,14 +22,14 @@ struct VS_INPUT
     float4 Tangent : TANGENT;
 };
 
-struct VS_OUTPUT
+struct PS_INPUT
 {
     float4 Position : SV_POSITION;
 };
 
-VS_OUTPUT mainVS(VS_INPUT Input)
+PS_INPUT mainVS(VS_INPUT Input)
 {
-    VS_OUTPUT Output;
+    PS_INPUT Output;
 
     // 1. World space로 변환
     float4 WorldPos = mul(float4(Input.Position, 1.0f), World);
@@ -38,4 +38,9 @@ VS_OUTPUT mainVS(VS_INPUT Input)
     Output.Position = mul(WorldPos, ViewProjection);
 
     return Output;
+}
+
+float2 mainPS(PS_INPUT Input) : SV_Target0
+{
+    return float2(Input.Position.z, Input.Position.z);
 }

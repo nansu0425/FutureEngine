@@ -189,7 +189,8 @@ private:
 	ID3D11SamplerState* ShadowComparisonSampler = nullptr;
 
 	// Shadow Map Shaders
-	ID3D11VertexShader* DepthOnlyShader = nullptr;
+	ID3D11VertexShader* DepthOnlyVertexShader = nullptr;
+	ID3D11PixelShader* DepthOnlyPixelShader = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
 
 	// Point Light Shadow Shaders (with linear distance output)

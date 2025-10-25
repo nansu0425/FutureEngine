@@ -69,7 +69,7 @@ void URenderer::Init(HWND InWindowHandle)
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	ShadowMapPass = new FShadowMapPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DepthOnlyShader, DepthOnlyInputLayout,
+		DepthOnlyVertexShader, DepthOnlyPixelShader, DepthOnlyInputLayout,
 		PointLightShadowVS, PointLightShadowPS, PointLightShadowInputLayout);
 	RenderPasses.push_back(ShadowMapPass);
 
@@ -429,7 +429,8 @@ void URenderer::CreateDepthOnlyShader()
 		{"TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, InputLayout, &DepthOnlyShader, &DepthOnlyInputLayout);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(ShaderFilePathString, InputLayout, &DepthOnlyVertexShader, &DepthOnlyInputLayout);
+	FRenderResourceFactory::CreatePixelShader(ShaderFilePathString, &DepthOnlyPixelShader);
 	// No pixel shader needed for depth-only rendering
 
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
@@ -662,7 +663,8 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(ClusteredRenderingGridVS);
 	SafeRelease(ClusteredRenderingGridPS);
 
-	SafeRelease(DepthOnlyShader);
+	SafeRelease(DepthOnlyVertexShader);
+	SafeRelease(DepthOnlyPixelShader);
 	SafeRelease(DepthOnlyInputLayout);
 
 	SafeRelease(PointLightShadowVS);

@@ -16,6 +16,9 @@ struct FShadowMapResource
 	ComPtr<ID3D11Texture2D> ShadowTexture = nullptr;
 	ComPtr<ID3D11DepthStencilView> ShadowDSV = nullptr;
 	ComPtr<ID3D11ShaderResourceView> ShadowSRV = nullptr;
+	ComPtr<ID3D11Texture2D> VarianceShadowTexture = nullptr;
+	ComPtr<ID3D11RenderTargetView> VarianceShadowRTV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> VarianceShadowSRV = nullptr;
 	D3D11_VIEWPORT ShadowViewport = {};
 	uint32 Resolution = 1024;
 

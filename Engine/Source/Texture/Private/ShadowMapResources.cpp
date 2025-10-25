@@ -27,7 +27,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 	TexDesc.CPUAccessFlags = 0;
 	TexDesc.MiscFlags = 0;
 
-	HRESULT hr = Device->CreateTexture2D(&TexDesc, nullptr, ShadowTexture.GetAddressOf());
+	HRESULT hr = Device->CreateTexture2D(&TexDesc, nullptr, ShadowTexture.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 	{
 		throw std::runtime_error("Failed to create shadow map texture");
@@ -40,7 +40,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 	DSVDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	DSVDesc.Texture2D.MipSlice = 0;
 
-	hr = Device->CreateDepthStencilView(ShadowTexture.Get(), &DSVDesc, ShadowDSV.GetAddressOf());
+	hr = Device->CreateDepthStencilView(ShadowTexture.Get(), &DSVDesc, ShadowDSV.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 	{
 		throw std::runtime_error("Failed to create shadow DSV");
@@ -54,13 +54,58 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;
 
-	hr = Device->CreateShaderResourceView(ShadowTexture.Get(), &SRVDesc, ShadowSRV.GetAddressOf());
+	hr = Device->CreateShaderResourceView(ShadowTexture.Get(), &SRVDesc, ShadowSRV.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 	{
 		throw std::runtime_error("Failed to create shadow SRV");
 	}
 
-	// 4. Viewport 설정
+	// 4. VSM용 Depth Texture 생성
+	D3D11_TEXTURE2D_DESC VarianceTexDesc = {};
+	VarianceTexDesc.Width = Resolution;
+	VarianceTexDesc.Height = Resolution;
+	VarianceTexDesc.MipLevels = 1;
+	VarianceTexDesc.ArraySize = 1;
+	VarianceTexDesc.Format = DXGI_FORMAT_R32G32_TYPELESS; // R32 -> 1차 모멘트, G32 -> 2차 모멘트
+	VarianceTexDesc.SampleDesc.Count = 1;
+	VarianceTexDesc.SampleDesc.Quality = 0;
+	VarianceTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	VarianceTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	VarianceTexDesc.CPUAccessFlags = 0;
+	VarianceTexDesc.MiscFlags = 0;
+
+	hr = Device->CreateTexture2D(&VarianceTexDesc, nullptr, VarianceShadowTexture.ReleaseAndGetAddressOf());
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create VSM texture");
+	}
+
+	// 5. VSM용 Render Target View(RTV) 생성
+	D3D11_RENDER_TARGET_VIEW_DESC VarianceRTVDesc = {};
+	VarianceRTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	VarianceRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	VarianceRTVDesc.Texture2D.MipSlice = 0;
+
+	hr = Device->CreateRenderTargetView(VarianceShadowTexture.Get(), &VarianceRTVDesc, VarianceShadowRTV.ReleaseAndGetAddressOf());
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create VSM RTV");
+	}
+
+	// 6. VSM용 Shader Resource View(SRV) 생성
+	D3D11_SHADER_RESOURCE_VIEW_DESC VarianceSRVDesc = {};
+	VarianceSRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	VarianceSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	VarianceSRVDesc.Texture2D.MostDetailedMip = 0;
+	VarianceSRVDesc.Texture2D.MipLevels = 1;
+
+	hr = Device->CreateShaderResourceView(VarianceShadowTexture.Get(), &VarianceSRVDesc, VarianceShadowSRV.ReleaseAndGetAddressOf());
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create VSM SRV");
+	}
+
+	// 7. Viewport 설정
 	ShadowViewport.Width = static_cast<float>(Resolution);
 	ShadowViewport.Height = static_cast<float>(Resolution);
 	ShadowViewport.MinDepth = 0.0f;
@@ -75,6 +120,9 @@ void FShadowMapResource::Release()
 	ShadowTexture.Reset();
 	ShadowDSV.Reset();
 	ShadowSRV.Reset();
+	VarianceShadowTexture.Reset();
+	VarianceShadowRTV.Reset();
+	VarianceShadowSRV.Reset();
 }
 
 // =============================================================================

@@ -84,12 +84,14 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	ID3D11Buffer* InConstantBufferCamera,
 	ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InDepthOnlyVS,
+	ID3D11PixelShader* InDepthOnlyPS,
 	ID3D11InputLayout* InDepthOnlyInputLayout,
 	ID3D11VertexShader* InPointLightShadowVS,
 	ID3D11PixelShader* InPointLightShadowPS,
 	ID3D11InputLayout* InPointLightShadowInputLayout)
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel)
-	, DepthOnlyShader(InDepthOnlyVS)
+	, DepthOnlyVS(InDepthOnlyVS)
+	, DepthOnlyPS(InDepthOnlyPS)
 	, DepthOnlyInputLayout(InDepthOnlyInputLayout)
 	, PointLightShadowVS(InPointLightShadowVS)
 	, PointLightShadowPS(InPointLightShadowPS)
@@ -200,8 +202,7 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 
 	// 1. Shadow render target 설정
 	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
 	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
 	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -211,10 +212,10 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
-		DepthOnlyShader,
+		DepthOnlyVS,
 		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
-		nullptr,  // No pixel shader for depth-only
+		DepthOnlyPS,
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
@@ -285,10 +286,10 @@ void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
-		DepthOnlyShader,
+		DepthOnlyVS,
 		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
-		nullptr,  // No pixel shader for depth-only
+		DepthOnlyPS,  
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};

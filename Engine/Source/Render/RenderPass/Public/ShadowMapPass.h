@@ -26,6 +26,7 @@ public:
 		ID3D11Buffer* InConstantBufferCamera,
 		ID3D11Buffer* InConstantBufferModel,
 		ID3D11VertexShader* InDepthOnlyVS,
+		ID3D11PixelShader* InDepthOnlyPS,
 		ID3D11InputLayout* InDepthOnlyInputLayout,
 		ID3D11VertexShader* InPointLightShadowVS,
 		ID3D11PixelShader* InPointLightShadowPS,
@@ -171,7 +172,8 @@ private:
 
 private:
 	// Shaders
-	ID3D11VertexShader* DepthOnlyShader = nullptr;
+	ID3D11VertexShader* DepthOnlyVS = nullptr;
+	ID3D11PixelShader* DepthOnlyPS = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
 
 	// Point Light Shadow Shaders (with linear distance)
