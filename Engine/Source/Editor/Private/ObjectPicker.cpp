@@ -107,7 +107,7 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 
 				}
 				X = (-B - sqrtf(Det)) / A;
-				PointOnCylinder = WorldRay.Origin + WorldRay.Direction * X;
+				PointOnCylinder = WorldRayOrigin + WorldRayDirection * X;
 				Height = (PointOnCylinder - GizmoLocation).Dot(GizmoAxis);
 				if (Height <= GizmoHeight && Height >= 0)
 				{
@@ -229,7 +229,7 @@ bool UObjectPicker::IsRayTriangleCollided(UCamera* InActiveCamera, const FRay& R
 	float Determinant = E1.Dot(CrossE2Ray);
 
 	float NoInverse = 0.0001f; //0.0001이하면 determinant가 0이라고 판단=>역행렬 존재 X
-	if (abs(Determinant) <= NoInverse)
+	if (std::fabsf(Determinant) <= NoInverse)
 	{
 		return false;
 	}
@@ -269,16 +269,21 @@ bool UObjectPicker::IsRayTriangleCollided(UCamera* InActiveCamera, const FRay& R
 bool UObjectPicker::IsRayCollideWithPlane(const FRay& WorldRay, FVector PlanePoint, FVector Normal, FVector& PointOnPlane)
 {
 	FVector WorldRayOrigin{ WorldRay.Origin.X, WorldRay.Origin.Y ,WorldRay.Origin.Z };
+	FVector WorldRayDirection{ WorldRay.Direction.X, WorldRay.Direction.Y, WorldRay.Direction.Z };
 
-	if (abs(WorldRay.Direction.Dot3(Normal)) < 0.01f)
+	if (std::fabsf(WorldRayDirection.Dot(Normal)) < 0.01f)
+	{
 		return false;
+	}
 
-	float Distance = (PlanePoint - WorldRayOrigin).Dot(Normal) / WorldRay.Direction.Dot3(Normal);
+	float Distance = (PlanePoint - WorldRayOrigin).Dot(Normal) / WorldRayDirection.Dot(Normal);
 
 	if (Distance < 0)
+	{
 		return false;
-	PointOnPlane = WorldRay.Origin + WorldRay.Direction * Distance;
+	}
 
+	PointOnPlane = WorldRayOrigin + WorldRayDirection * Distance;
 
 	return true;
 }
