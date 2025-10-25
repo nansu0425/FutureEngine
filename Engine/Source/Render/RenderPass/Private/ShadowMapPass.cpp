@@ -8,6 +8,11 @@
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 
+#define MAX_LIGHT_NUM 8
+#define X_OFFSET 1024.0f
+#define Y_OFFSET 1024.0f
+#define SHADOW_MAP_RESOLUTION 1024.0f
+
 // Helper functions for matrix operations
 namespace ShadowMatrixHelper
 {
@@ -134,6 +139,8 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 
 	// 5. Point Light Shadow constant buffer 생성
 	PointLightShadowParamsBuffer = FRenderResourceFactory::CreateConstantBuffer<FPointLightShadowParams>();
+
+	ShadowAtlas.Initialize(Device, 8192);
 }
 
 FShadowMapPass::~FShadowMapPass()
@@ -150,40 +157,65 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
 	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
 
+	DeviceContext->ClearDepthStencilView(ShadowAtlas.ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	
 	// Phase 1: Directional Lights
 	for (auto DirLight : Context.DirectionalLights)
 	{
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
+			// 유효한 첫번째 Dir Light만 사용
 			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes);
+			break;
 		}
 	}
 
 	// Phase 2: Spot Lights
-	for (auto SpotLight : Context.SpotLights)
+	// 유효한 Spot Light를 수집한다. 8개가 상한이다.
+	TArray<USpotLightComponent*> ValidSpotLights;
+	for (USpotLightComponent* SpotLight : Context.SpotLights)
 	{
+		if (ValidSpotLights.size() >= MAX_LIGHT_NUM)
+			break;
+		
 		if (SpotLight->GetCastShadows() && SpotLight->GetLightEnabled())
 		{
-			RenderSpotShadowMap(SpotLight, Context.StaticMeshes);
+			ValidSpotLights.push_back(SpotLight);
 		}
+	}
+
+	for (int32 i = 0; i < ValidSpotLights.size(); i++)
+	{
+		RenderSpotShadowMap(ValidSpotLights[i], i, Context.StaticMeshes);
 	}
 
 	// Phase 3: Point Lights
-	for (auto PointLight : Context.PointLights)
+	TArray<UPointLightComponent*> ValidPointLights;
+	for (UPointLightComponent* PointLight : Context.PointLights)
 	{
+		if (ValidPointLights.size() >= MAX_LIGHT_NUM)
+			break;
+		
 		if (PointLight->GetCastShadows() && PointLight->GetLightEnabled())
 		{
-			RenderPointShadowMap(PointLight, Context.StaticMeshes);
+			ValidPointLights.push_back(PointLight);
 		}
+	}
+
+	for (int32 i = 0; i < ValidPointLights.size(); i++)
+	{
+		RenderPointShadowMap(ValidPointLights[i], i, Context.StaticMeshes);
 	}
 }
 
-void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes)
+void FShadowMapPass::RenderDirectionalShadowMap(
+	UDirectionalLightComponent* Light,
+	const TArray<UStaticMeshComponent*>& Meshes
+	)
 {
-	FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
-	if (!ShadowMap || !ShadowMap->IsValid())
-		return;
+	// FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
+	// if (!ShadowMap || !ShadowMap->IsValid())
+	// 	return;
 
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
@@ -200,10 +232,24 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 
 	// 1. Shadow render target 설정
 	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
 	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
-	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
-	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	
+	D3D11_VIEWPORT ShadowViewport;
+	
+	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.MinDepth = 0.0f;
+	ShadowViewport.MaxDepth = 1.0f;
+	ShadowViewport.TopLeftX = 0.0f;
+	ShadowViewport.TopLeftY = 0.0f;
+	
+	DeviceContext->RSSetViewports(1, &ShadowViewport);
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
 	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
@@ -253,12 +299,15 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 	// Note: RastState는 캐싱되므로 여기서 해제하지 않음 (Release()에서 일괄 해제)
 }
 
-void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes)
+void FShadowMapPass::RenderSpotShadowMap(
+	USpotLightComponent* Light,
+	uint32 AtlasIndex,
+	const TArray<UStaticMeshComponent*>& Meshes
+	)
 {
-	FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
-	if (!ShadowMap || !ShadowMap->IsValid())
-		return;
+	// FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
+	// if (!ShadowMap || !ShadowMap->IsValid())
+	// 	return;
 
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
@@ -272,13 +321,29 @@ void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 	UINT NumViewports = 1;
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
-	// 1. Shadow render target 설정
-	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
-	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
-	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	// // 1. Shadow render target 설정
+	// // Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+	ID3D11RenderTargetView* NullRTV = nullptr;
+	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+
+	D3D11_VIEWPORT ShadowViewport;
+
+	const static float Y_START = SHADOW_MAP_RESOLUTION;
+
+	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.MinDepth = 0.0f;
+	ShadowViewport.MaxDepth = 1.0f;
+	ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
+	ShadowViewport.TopLeftY = Y_START;
+	
+	DeviceContext->RSSetViewports(1, &ShadowViewport);
+	
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
 	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
 
@@ -327,12 +392,15 @@ void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 	// Note: RastState는 캐싱되므로 여기서 해제하지 않음 (Release()에서 일괄 해제)
 }
 
-void FShadowMapPass::RenderPointShadowMap(UPointLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes)
+void FShadowMapPass::RenderPointShadowMap(
+	UPointLightComponent* Light,
+	uint32 AtlasIndex,
+	const TArray<UStaticMeshComponent*>& Meshes
+	)
 {
-	FCubeShadowMapResource* ShadowMap = GetOrCreateCubeShadowMap(Light);
-	if (!ShadowMap || !ShadowMap->IsValid())
-		return;
+	// FCubeShadowMapResource* ShadowMap = GetOrCreateCubeShadowMap(Light);
+	// if (!ShadowMap || !ShadowMap->IsValid())
+	// 	return;
 
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
@@ -372,19 +440,37 @@ void FShadowMapPass::RenderPointShadowMap(UPointLightComponent* Light,
 	FMatrix ViewProj[6];
 	CalculatePointLightViewProj(Light, ViewProj);
 
+	// 하나의 Atlas에 모두 작성하므로
+	// RenderTarget은 변경될 일이 없어 먼저 Set한다.
+	ID3D11RenderTargetView* NullRTV = nullptr;
+	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	
 	// 4. 6개 면 렌더링 (+X, -X, +Y, -Y, +Z, -Z)
 	for (int Face = 0; Face < 6; Face++)
 	{
-		// 4-1. DSV 설정 (각 면)
-		ID3D11RenderTargetView* NullRTV = nullptr;
-		Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSVs[Face].Get());
-		DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
-		DeviceContext->ClearDepthStencilView(
-			ShadowMap->ShadowDSVs[Face].Get(),
-			D3D11_CLEAR_DEPTH,
-			1.0f,
-			0
-		);
+		// // 4-1. DSV 설정 (각 면)
+		// ID3D11RenderTargetView* NullRTV = nullptr;
+		// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSVs[Face].Get());
+		// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+		// DeviceContext->ClearDepthStencilView(
+		// 	ShadowMap->ShadowDSVs[Face].Get(),
+		// 	D3D11_CLEAR_DEPTH,
+		// 	1.0f,
+		// 	0
+		// );
+
+		D3D11_VIEWPORT ShadowViewport;
+
+		static const float Y_START = SHADOW_MAP_RESOLUTION * 2.0f;
+
+		ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.MinDepth = 0.0f;
+		ShadowViewport.MaxDepth = 1.0f;
+		ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
+		ShadowViewport.TopLeftY = Y_START + Y_OFFSET * Face;
+
+		DeviceContext->RSSetViewports(1, &ShadowViewport);
 
 		// 4-2. Constant buffer 업데이트 (각 면의 ViewProj)
 		FShadowViewProjConstant CBData;
@@ -703,6 +789,11 @@ FCubeShadowMapResource* FShadowMapPass::GetPointShadowMap(UPointLightComponent* 
 {
 	auto It = PointShadowMaps.find(Light);
 	return It != PointShadowMaps.end() ? It->second : nullptr;
+}
+
+FShadowMapResource* FShadowMapPass::GetShadowAtlas()
+{
+	return &ShadowAtlas;
 }
 
 void FShadowMapPass::RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj)
