@@ -958,7 +958,16 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom);
 
+		// Rotation Snap Settings
+		int32 LoadedRotationSnapEnabledInt = 1;
+		float LoadedRotationSnapAngle = DEFAULT_ROTATION_SNAP_ANGLE;
+		FJsonSerializer::ReadInt32(ViewportSystemJson, "RotationSnapEnabled", LoadedRotationSnapEnabledInt, 1);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "RotationSnapAngle", LoadedRotationSnapAngle);
+		bool LoadedRotationSnapEnabled = (LoadedRotationSnapEnabledInt != 0);
+
 		SharedOrthoZoom = LoadedSharedOrthoZoom;
+		bRotationSnapEnabled = LoadedRotationSnapEnabled;
+		RotationSnapAngle = LoadedRotationSnapAngle;
 
 		SetViewportLayout(static_cast<EViewportLayout>(LayoutInt));
 		SetActiveIndex(LoadedActiveIndex);
@@ -1057,6 +1066,8 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		ViewportSystemJson["SplitterV"] = IniSaveSharedV;
 		ViewportSystemJson["SplitterH"] = IniSaveSharedH;
 		ViewportSystemJson["SharedOrthoZoom"] = SharedOrthoZoom;
+		ViewportSystemJson["RotationSnapEnabled"] = bRotationSnapEnabled ? 1 : 0;
+		ViewportSystemJson["RotationSnapAngle"] = RotationSnapAngle;
 
 		// 2) 각 뷰포트 상태 저장
 		JSON ViewportsArray = json::Array();

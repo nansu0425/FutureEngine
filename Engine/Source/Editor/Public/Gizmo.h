@@ -62,6 +62,7 @@ public:
 	void SetComponentScale(const FVector& Scale) const { TargetComponent->SetWorldScale3D(Scale); }
 	void SetPreviousMouseLocation(const FVector& Location) { PreviousMouseLocation = Location; }
 	void SetCurrentRotationAngle(float Angle) { CurrentRotationAngle = Angle; }
+	void SetPreviousScreenPos(const FVector2& ScreenPos) { PreviousScreenPos = ScreenPos; }
 
 	void SetWorld() { bIsWorld = true; }
 	void SetLocal() { bIsWorld = false; }
@@ -84,8 +85,13 @@ public:
 	EGizmoMode GetGizmoMode() const { return GizmoMode; }
 	FVector GetGizmoAxis() const
 	{
-		FVector Axis[3]{ {1,0,0},{0,1,0},{0,0,1} };
-		return Axis[AxisIndex(GizmoDirection)];
+		switch (GizmoDirection)
+		{
+		case EGizmoDirection::Forward:	return {1, 0, 0};  // X축 회전 (YZ 평면)
+		case EGizmoDirection::Right:	return {0, 1, 0};  // Y축 회전 (XZ 평면)
+		case EGizmoDirection::Up:		return {0, 0, 1};  // Z축 회전 (XY 평면)
+		default:						return {0, 1, 0};
+		}
 	}
 
 	float GetTranslateRadius() const { return TranslateCollisionConfig.Radius * TranslateCollisionConfig.Scale; }
@@ -99,11 +105,11 @@ public:
 	bool IsInRadius(float Radius);
 	bool HasComponent() const { return TargetComponent; }
 	FVector GetPreviousMouseLocation() const { return PreviousMouseLocation; }
+	FVector2 GetPreviousScreenPos() const { return PreviousScreenPos; }
 	float GetCurrentRotationAngle() const { return CurrentRotationAngle; }
 	float GetCurrentRotationAngleDegrees() const { return FVector::GetRadianToDegree(CurrentRotationAngle); }
-	float GetSnappedRotationAngle() const
+	float GetSnappedRotationAngle(float SnapAngleDegrees) const
 	{
-		constexpr float SnapAngleDegrees = 10.0f;
 		const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
 		return std::round(CurrentRotationAngle / SnapAngleRadians) * SnapAngleRadians;
 	}
@@ -167,4 +173,8 @@ private:
 	FVector PreviousMouseLocation;
 	float CurrentRotationAngle = 0.0f;
 	FVector DragStartDirection;
+
+	// 스크린 공간 드래그 상태
+	FVector2 DragStartScreenPos;      // 드래그 시작 시 스크린 좌표
+	FVector2 PreviousScreenPos;       // 이전 프레임 스크린 좌표
 };

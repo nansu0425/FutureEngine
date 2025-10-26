@@ -404,7 +404,146 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 		// 구분자
 		ImGui::SameLine(0.0f, 10.0f);
-		ImGui::TextDisabled("|");
+		{
+			ImVec2 lineStart = ImGui::GetCursorScreenPos();
+			lineStart.y += 4.0f;
+			ImVec2 lineEnd = ImVec2(lineStart.x, lineStart.y + 16.0f);
+			ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, IM_COL32(70, 70, 70, 180), 1.0f);
+			ImGui::Dummy(ImVec2(1.0f, 24.0f));
+		}
+		ImGui::SameLine(0.0f, 10.0f);
+
+		// 회전 스냅 토글 버튼 (아이콘)
+		{
+			const float toggleButtonSize = 24.0f;
+			const float iconSize = 16.0f;
+
+			bool bSnapEnabled = ViewportManager.IsRotationSnapEnabled();
+
+			ImVec2 toggleButtonPos = ImGui::GetCursorScreenPos();
+			ImGui::InvisibleButton("##RotationSnapToggle", ImVec2(toggleButtonSize, toggleButtonSize));
+			bool bToggleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+			bool bToggleHovered = ImGui::IsItemHovered();
+
+			// 버튼 배경 그리기
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			ImU32 bgColor;
+			if (bSnapEnabled)
+			{
+				bgColor = bToggleHovered ? IM_COL32(40, 40, 40, 255) : IM_COL32(20, 20, 20, 255);
+			}
+			else
+			{
+				bgColor = bToggleHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
+			}
+			if (ImGui::IsItemActive())
+			{
+				bgColor = IM_COL32(50, 50, 50, 255);
+			}
+			drawList->AddRectFilled(toggleButtonPos, ImVec2(toggleButtonPos.x + toggleButtonSize, toggleButtonPos.y + toggleButtonSize), bgColor, 4.0f);
+
+			// 테두리
+			ImU32 borderColor = bSnapEnabled ? IM_COL32(150, 150, 150, 255) : IM_COL32(96, 96, 96, 255);
+			drawList->AddRect(toggleButtonPos, ImVec2(toggleButtonPos.x + toggleButtonSize, toggleButtonPos.y + toggleButtonSize), borderColor, 4.0f);
+
+			// 회전 아이콘 (중앙 정렬)
+			ImVec2 iconCenter = ImVec2(
+				toggleButtonPos.x + toggleButtonSize * 0.5f,
+				toggleButtonPos.y + toggleButtonSize * 0.5f
+			);
+			float radius = iconSize * 0.4f;
+			ImU32 iconColor = bSnapEnabled ? IM_COL32(220, 220, 220, 255) : IM_COL32(120, 120, 120, 255);
+			drawList->AddCircle(iconCenter, radius, iconColor, 12, 1.5f);
+			drawList->PathArcTo(iconCenter, radius + 2.0f, 0.0f, 1.5f, 8);
+			drawList->PathStroke(iconColor, 0, 1.5f);
+
+			if (bToggleClicked)
+			{
+				ViewportManager.SetRotationSnapEnabled(!bSnapEnabled);
+			}
+
+			if (bToggleHovered)
+			{
+				ImGui::SetTooltip("Toggle rotation snap");
+			}
+		}
+
+		ImGui::SameLine(0.0f, 4.0f);
+
+		// 회전 스냅 각도 선택 버튼 (각도 드랍다운)
+		{
+			char angleText[16];
+			snprintf(angleText, sizeof(angleText), "%.0f°", ViewportManager.GetRotationSnapAngle());
+
+			const float angleButtonHeight = 24.0f;
+			const float anglePadding = 8.0f;
+			const float angleTextWidth = ImGui::CalcTextSize(angleText).x;
+			const float angleButtonWidth = angleTextWidth + anglePadding * 2;
+
+			ImVec2 angleButtonPos = ImGui::GetCursorScreenPos();
+			ImGui::InvisibleButton("##RotationSnapAngle", ImVec2(angleButtonWidth, angleButtonHeight));
+			bool bAngleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+			bool bAngleHovered = ImGui::IsItemHovered();
+
+			// 버튼 배경 그리기
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			ImU32 bgColor = bAngleHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
+			if (ImGui::IsItemActive())
+			{
+				bgColor = IM_COL32(38, 38, 38, 255);
+			}
+			drawList->AddRectFilled(angleButtonPos, ImVec2(angleButtonPos.x + angleButtonWidth, angleButtonPos.y + angleButtonHeight), bgColor, 4.0f);
+			drawList->AddRect(angleButtonPos, ImVec2(angleButtonPos.x + angleButtonWidth, angleButtonPos.y + angleButtonHeight), IM_COL32(96, 96, 96, 255), 4.0f);
+
+			// 텍스트 그리기
+			ImVec2 textPos = ImVec2(
+				angleButtonPos.x + anglePadding,
+				angleButtonPos.y + (angleButtonHeight - ImGui::GetTextLineHeight()) * 0.5f
+			);
+			drawList->AddText(textPos, IM_COL32(220, 220, 220, 255), angleText);
+
+			if (bAngleClicked)
+			{
+				ImGui::OpenPopup("##RotationSnapAnglePopup");
+			}
+
+			// 각도 선택 팝업
+			if (ImGui::BeginPopup("##RotationSnapAnglePopup"))
+			{
+				ImGui::Text("Rotation Snap Angle");
+				ImGui::Separator();
+
+				float currentAngle = ViewportManager.GetRotationSnapAngle();
+				const float angles[] = { 5.0f, 10.0f, 15.0f, 22.5f, 30.0f, 45.0f, 60.0f, 90.0f };
+				const char* angleLabels[] = { "5°", "10°", "15°", "22.5°", "30°", "45°", "60°", "90°" };
+
+				for (int i = 0; i < IM_ARRAYSIZE(angles); ++i)
+				{
+					bool bIsSelected = (std::abs(currentAngle - angles[i]) < 0.1f);
+					if (ImGui::MenuItem(angleLabels[i], nullptr, bIsSelected))
+					{
+						ViewportManager.SetRotationSnapAngle(angles[i]);
+					}
+				}
+
+				ImGui::EndPopup();
+			}
+
+			if (bAngleHovered)
+			{
+				ImGui::SetTooltip("Choose rotation snap angle");
+			}
+		}
+
+		// 구분자
+		ImGui::SameLine(0.0f, 10.0f);
+		{
+			ImVec2 lineStart = ImGui::GetCursorScreenPos();
+			lineStart.y += 0.0f;
+			ImVec2 lineEnd = ImVec2(lineStart.x, lineStart.y + 24.0f);
+			ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, IM_COL32(70, 70, 70, 180), 1.0f);
+			ImGui::Dummy(ImVec2(1.0f, 24.0f));
+		}
 		ImGui::SameLine(0.0f, 10.0f);
 
 		// 카메라 설정 버튼 (모든 뷰 타입에서 표시)

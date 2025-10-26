@@ -2,6 +2,7 @@
 #include "Editor/Public/Gizmo.h"
 #include "Editor/Public/Camera.h"
 #include "Manager/Asset/Public/AssetManager.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Actor/Public/Actor.h"
 #include "Editor/Public/Editor.h"
@@ -334,7 +335,7 @@ static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
  * @param OutIndices 생성된 인덱스 배열 (출력)
  */
 static void GenerateAngleTickMarks(const FVector& Axis0, const FVector& Axis1,
-	float InnerRadius, float OuterRadius, float Thickness,
+	float InnerRadius, float OuterRadius, float Thickness, float SnapAngleDegrees,
 	TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	OutVertices.clear();
@@ -347,8 +348,9 @@ static void GenerateAngleTickMarks(const FVector& Axis0, const FVector& Axis1,
 	const int32 NumTickSegments = 2; // 눈금 단면의 세그먼트 수 (사각형)
 	uint32 BaseVertexIndex = 0;
 
-	// 360도 눈금 생성 (10도마다)
-	for (int32 Degree = 0; Degree < 360; Degree += 10)
+	// 360도 눈금 생성 (SnapAngleDegrees마다)
+	const int32 AngleStep = static_cast<int32>(SnapAngleDegrees);
+	for (int32 Degree = 0; Degree < 360; Degree += AngleStep)
 	{
 		const float AngleRad = FVector::GetDegreeToRadian(static_cast<float>(Degree));
 
@@ -666,14 +668,15 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				outerIB->Release();
 			}
 
-			// 각도 눈금 렌더링 (10도마다 작은 눈금, 90도마다 큰 눈금)
+			// 각도 눈금 렌더링 (스냅 각도마다 작은 눈금, 90도마다 큰 눈금)
 			{
 				TArray<FNormalVertex> tickVertices;
 				TArray<uint32> tickIndices;
 
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
 				GenerateAngleTickMarks(FVector(0, 0, 1), FVector(0, 1, 0),
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
-					RotateCollisionConfig.Thickness, tickVertices, tickIndices);
+					RotateCollisionConfig.Thickness, SnapAngle, tickVertices, tickIndices);
 
 				if (!tickIndices.empty())
 				{
@@ -694,9 +697,14 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				}
 			}
 
-			// 회전 각도 Arc 렌더링 (10도 단위로 스냅된 각도 사용)
-			const float SnappedAngle = GetSnappedRotationAngle();
-			if (std::abs(SnappedAngle) > 0.001f)
+			// 회전 각도 Arc 렌더링 (스냅이 켜져있으면 스냅된 각도, 아니면 현재 각도)
+			float DisplayAngle = CurrentRotationAngle;
+			if (UViewportManager::GetInstance().IsRotationSnapEnabled())
+			{
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
+				DisplayAngle = GetSnappedRotationAngle(SnapAngle);
+			}
+			if (std::abs(DisplayAngle) > 0.001f)
 			{
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
@@ -708,7 +716,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// X축 Ring은 YZ 평면에 정의됨 (AxisRots[0] = Identity)
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
+					DisplayAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -851,14 +859,15 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				outerIB->Release();
 			}
 
-			// 각도 눈금 렌더링 (10도마다 작은 눈금, 90도마다 큰 눈금)
+			// 각도 눈금 렌더링 (스냅 각도마다 작은 눈금, 90도마다 큰 눈금)
 			{
 				TArray<FNormalVertex> tickVertices;
 				TArray<uint32> tickIndices;
 
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
 				GenerateAngleTickMarks(FVector(0, 0, 1), FVector(0, 1, 0),
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
-					RotateCollisionConfig.Thickness, tickVertices, tickIndices);
+					RotateCollisionConfig.Thickness, SnapAngle, tickVertices, tickIndices);
 
 				if (!tickIndices.empty())
 				{
@@ -879,9 +888,14 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				}
 			}
 
-			// 회전 각도 Arc 렌더링 (10도 단위로 스냅된 각도 사용)
-			const float SnappedAngle = GetSnappedRotationAngle();
-			if (std::abs(SnappedAngle) > 0.001f)
+			// 회전 각도 Arc 렌더링 (스냅이 켜져있으면 스냅된 각도, 아니면 현재 각도)
+			float DisplayAngle = CurrentRotationAngle;
+			if (UViewportManager::GetInstance().IsRotationSnapEnabled())
+			{
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
+				DisplayAngle = GetSnappedRotationAngle(SnapAngle);
+			}
+			if (std::abs(DisplayAngle) > 0.001f)
 			{
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
@@ -893,7 +907,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// Y축 Ring도 YZ 평면에서 시작 후 AxisRots[1]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
+					DisplayAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -1036,14 +1050,15 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				outerIB->Release();
 			}
 
-			// 각도 눈금 렌더링 (10도마다 작은 눈금, 90도마다 큰 눈금)
+			// 각도 눈금 렌더링 (스냅 각도마다 작은 눈금, 90도마다 큰 눈금)
 			{
 				TArray<FNormalVertex> tickVertices;
 				TArray<uint32> tickIndices;
 
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
 				GenerateAngleTickMarks(FVector(0, 0, 1), FVector(0, 1, 0),
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
-					RotateCollisionConfig.Thickness, tickVertices, tickIndices);
+					RotateCollisionConfig.Thickness, SnapAngle, tickVertices, tickIndices);
 
 				if (!tickIndices.empty())
 				{
@@ -1064,9 +1079,14 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				}
 			}
 
-			// 회전 각도 Arc 렌더링 (10도 단위로 스냅된 각도 사용)
-			const float SnappedAngle = GetSnappedRotationAngle();
-			if (std::abs(SnappedAngle) > 0.001f)
+			// 회전 각도 Arc 렌더링 (스냅이 켜져있으면 스냅된 각도, 아니면 현재 각도)
+			float DisplayAngle = CurrentRotationAngle;
+			if (UViewportManager::GetInstance().IsRotationSnapEnabled())
+			{
+				const float SnapAngle = UViewportManager::GetInstance().GetRotationSnapAngle();
+				DisplayAngle = GetSnappedRotationAngle(SnapAngle);
+			}
+			if (std::abs(DisplayAngle) > 0.001f)
 			{
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
@@ -1078,7 +1098,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// Z축 Ring도 YZ 평면에서 시작 후 AxisRots[2]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
+					DisplayAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -1196,6 +1216,19 @@ void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
 	bIsDragging = true;
 	DragStartMouseLocation = CollisionPoint;
 	PreviousMouseLocation = CollisionPoint;  // 누적 각도 계산을 위한 초기화
+
+	// 스크린 공간 드래그 초기화 (뷰포트 로컬 좌표)
+	POINT MousePos;
+	GetCursorPos(&MousePos);
+	ScreenToClient(GetActiveWindow(), &MousePos);
+
+	const FRect& ViewportRect = UViewportManager::GetInstance().GetActiveViewportRect();
+	const FVector2 CurrentScreenPos(
+		static_cast<float>(MousePos.x) - static_cast<float>(ViewportRect.Left),
+		static_cast<float>(MousePos.y) - static_cast<float>(ViewportRect.Top)
+	);
+	PreviousScreenPos = CurrentScreenPos;
+	DragStartScreenPos = CurrentScreenPos;
 
 	// 드래그 시작 방향 계산 (Arc 렌더링의 시작점으로 사용)
 	FVector GizmoCenter = Primitives[static_cast<int>(GizmoMode)].Location;

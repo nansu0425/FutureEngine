@@ -126,6 +126,13 @@ public:
 	// Splitter dragging check
 	bool IsAnySplitterDragging() const;
 
+	// Rotation Snap
+	bool IsRotationSnapEnabled() const { return bRotationSnapEnabled; }
+	void SetRotationSnapEnabled(bool bEnabled) { bRotationSnapEnabled = bEnabled; }
+	float GetRotationSnapAngle() const { return RotationSnapAngle; }
+	void SetRotationSnapAngle(float InAngle) { RotationSnapAngle = InAngle; }
+	static constexpr float DEFAULT_ROTATION_SNAP_ANGLE = 10.0f;
+
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect
@@ -254,4 +261,8 @@ private:
 
 	// PIE가 활성화된 뷰포트 인덱스 (-1이면 모든 뷰포트에서 PIE, 0~3이면 해당 뷰포트에서만 PIE)
 	int32 PIEActiveViewportIndex = -1;
+
+	// Rotation Snap Settings
+	bool bRotationSnapEnabled = true;
+	float RotationSnapAngle = DEFAULT_ROTATION_SNAP_ANGLE;
 };
