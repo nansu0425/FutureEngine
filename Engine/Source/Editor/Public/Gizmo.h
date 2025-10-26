@@ -101,6 +101,12 @@ public:
 	FVector GetPreviousMouseLocation() const { return PreviousMouseLocation; }
 	float GetCurrentRotationAngle() const { return CurrentRotationAngle; }
 	float GetCurrentRotationAngleDegrees() const { return FVector::GetRadianToDegree(CurrentRotationAngle); }
+	float GetSnappedRotationAngle() const
+	{
+		constexpr float SnapAngleDegrees = 10.0f;
+		const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
+		return std::round(CurrentRotationAngle / SnapAngleRadians) * SnapAngleRadians;
+	}
 
 	// Quarter ring camera alignment
 	void CalculateQuarterRingDirections(UCamera* InCamera,

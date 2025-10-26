@@ -503,43 +503,54 @@ FQuaternion UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRa
 		// 이전 프레임 마우스 위치 가져오기
 		const FVector PreviousMouse = Gizmo.GetPreviousMouseLocation();
 
-		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
-		FVector PlaneOriginToPrevious = PreviousMouse - PlaneOrigin;
-		PlaneOriginToMouse.Normalize();
-		PlaneOriginToPrevious.Normalize();
+		// 마우스가 실제로 움직였는지 체크 (임계값: 0.001 units)
+		const float MouseMovementSq = (MouseWorld - PreviousMouse).LengthSquared();
+		constexpr float MovementThreshold = 0.001f * 0.001f;
 
-		// 이전 프레임 대비 델타 각도 계산
-		const float DotResult = PlaneOriginToPrevious.Dot(PlaneOriginToMouse);
-		float DeltaAngle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-
-		// 회전 방향 결정
-		const FVector CrossProduct = PlaneOriginToMouse.Cross(PlaneOriginToPrevious);
-		if (CrossProduct.Dot(WorldRotationAxis) < 0.0f)
+		if (MouseMovementSq > MovementThreshold)
 		{
-			DeltaAngle = -DeltaAngle;
+			FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
+			FVector PlaneOriginToPrevious = PreviousMouse - PlaneOrigin;
+			PlaneOriginToMouse.Normalize();
+			PlaneOriginToPrevious.Normalize();
+
+			// 이전 프레임 대비 델타 각도 계산
+			const float DotResult = PlaneOriginToPrevious.Dot(PlaneOriginToMouse);
+			float DeltaAngle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
+
+			// 회전 방향 결정
+			const FVector CrossProduct = PlaneOriginToMouse.Cross(PlaneOriginToPrevious);
+			if (CrossProduct.Dot(WorldRotationAxis) < 0.0f)
+			{
+				DeltaAngle = -DeltaAngle;
+			}
+
+			// 누적 각도 업데이트
+			float NewAngle = Gizmo.GetCurrentRotationAngle() + DeltaAngle;
+
+			// 360도 클램핑: -360도 ~ +360도 범위로 제한
+			constexpr float TwoPi = 2.0f * PI;
+			if (NewAngle > TwoPi)
+			{
+				NewAngle = fmodf(NewAngle, TwoPi);
+			}
+			else if (NewAngle < -TwoPi)
+			{
+				NewAngle = fmodf(NewAngle, -TwoPi);
+			}
+
+			Gizmo.SetCurrentRotationAngle(NewAngle);
+
+			// 이전 마우스 위치 업데이트
+			Gizmo.SetPreviousMouseLocation(MouseWorld);
 		}
-
-		// 누적 각도 업데이트
-		float NewAngle = Gizmo.GetCurrentRotationAngle() + DeltaAngle;
-
-		// 360도 클램핑: -360도 ~ +360도 범위로 제한
-		constexpr float TwoPi = 2.0f * PI;
-		if (NewAngle > TwoPi)
-		{
-			NewAngle = fmodf(NewAngle, TwoPi);
-		}
-		else if (NewAngle < -TwoPi)
-		{
-			NewAngle = fmodf(NewAngle, -TwoPi);
-		}
-
-		Gizmo.SetCurrentRotationAngle(NewAngle);
-
-		// 이전 마우스 위치 업데이트
-		Gizmo.SetPreviousMouseLocation(MouseWorld);
 
 		// 시작점부터의 총 회전량으로 Quaternion 계산
-		const FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(LocalGizmoAxis, Gizmo.GetCurrentRotationAngle());
+		// 10도 단위 스냅 처리
+		constexpr float SnapAngleDegrees = 10.0f;
+		const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
+		const float SnappedAngle = std::round(Gizmo.GetCurrentRotationAngle() / SnapAngleRadians) * SnapAngleRadians;
+		const FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(LocalGizmoAxis, SnappedAngle);
 		if (Gizmo.IsWorldMode())
 		{
 			return StartRotQuat * DeltaRotQuat;

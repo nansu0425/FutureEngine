@@ -137,8 +137,13 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 				FVector RadiusVector = CollisionPoint - GizmoLocation;
 				if (Gizmo.IsInRadius(RadiusVector.Length()))
 				{
-					// Quarter ring 각도 범위 체크 (90도만)
-					if (!Gizmo.IsDragging())
+					// 오쏘 뷰 + World 모드: Full Ring 피킹
+					const bool bIsOrtho = (InActiveCamera->GetCameraType() == ECameraType::ECT_Orthographic);
+					const bool bIsWorld = Gizmo.IsWorldMode();
+					const bool bShouldCheckQuarterRingAngle = !bIsOrtho || !bIsWorld;
+
+					// Quarter ring 각도 범위 체크
+					if (!Gizmo.IsDragging() && bShouldCheckQuarterRingAngle)
 					{
 						// 충돌점을 축 평면에 투영
 						FVector ToHit = CollisionPoint - GizmoLocation;

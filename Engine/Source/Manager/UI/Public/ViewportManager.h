@@ -49,10 +49,6 @@ public:
 	EViewModeIndex GetActiveViewportViewMode() const { return GetViewportViewMode(ActiveIndex); }
 	void SetActiveViewportViewMode(EViewModeIndex InMode) { SetViewportViewMode(ActiveIndex, InMode); }
 
-	// 카메라 배열 접근자
-	const TArray<UCamera*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
-	const TArray<UCamera*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
-
 	// 오쏘 뷰 공유 데이터 접근자
 	const TArray<FVector>& GetInitialOffsets() const { return InitialOffsets; }
 	const FVector& GetOrthoGraphicCameraPoint() const { return OrthoGraphicCameraPoint; }
@@ -168,9 +164,6 @@ private:
 
 	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
-
-	TArray<UCamera*> OrthoGraphicCameras;
-	TArray<UCamera*> PerspectiveCameras;
 
 	TArray<FVector> InitialOffsets;
 	FVector OrthoGraphicCameraPoint{ 0.0f, 0.0f, 0.0f }; // 모든 오쏘 뷰가 공유하는 중심점

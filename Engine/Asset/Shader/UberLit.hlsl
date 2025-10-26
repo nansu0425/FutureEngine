@@ -53,6 +53,7 @@ cbuffer ClusterSliceInfo : register(b4)
     uint Orthographic;
     uint2 padding;
 };
+
 cbuffer LightCountInfo : register(b5)
 {
     uint PointLightCount;
@@ -60,12 +61,10 @@ cbuffer LightCountInfo : register(b5)
     float2 Padding;
 };
 
-
 StructuredBuffer<int> PointLightIndices : register(t6);
 StructuredBuffer<int> SpotLightIndices : register(t7);
 StructuredBuffer<FPointLightInfo> PointLightInfos : register(t8);
 StructuredBuffer<FSpotLightInfo> SpotLightInfos : register(t9);
-
 
 uint GetDepthSliceIdx(float ViewZ)
 {
@@ -90,7 +89,6 @@ uint GetLightIndicesOffset(float3 WorldPos)
     
     return LightMaxCountPerCluster * ClusterIdx;
 }
-
 
 uint GetPointLightCount(uint LightIndicesOffset)
 {
@@ -151,7 +149,6 @@ cbuffer MaterialConstants : register(b2)
     uint MaterialFlags; // Which textures are available (bitfield)
     float Time;
 }
-
 
 // Textures
 Texture2D DiffuseTexture : register(t0);

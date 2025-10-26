@@ -305,18 +305,6 @@ void UViewportManager::Release()
 	}
 	Clients.clear();
 
-	for (UCamera*& Camera : OrthoGraphicCameras)
-	{
-		SafeDelete(Camera);
-	}
-	OrthoGraphicCameras.clear();
-
-	for (UCamera*& Camera : PerspectiveCameras)
-	{
-		SafeDelete(Camera);
-	}
-	PerspectiveCameras.clear();
-
 	InitialOffsets.clear();
 	ActiveRmbViewportIdx = -1;
 	ActiveIndex = 0;
@@ -1098,20 +1086,12 @@ void UViewportManager::SetEditorCameraSpeed(float InSpeed)
 {
 	EditorCameraSpeed = clamp(InSpeed, MIN_CAMERA_SPEED, MAX_CAMERA_SPEED);
 
-	// 모든 카메라에 전역 스피드 동기화
-	for (UCamera* Camera : PerspectiveCameras)
+	// 모든 ViewportClient의 카메라에 전역 스피드 동기화
+	for (FViewportClient* Client : Clients)
 	{
-		if (Camera)
+		if (Client && Client->GetCamera())
 		{
-			Camera->SetMoveSpeed(EditorCameraSpeed);
-		}
-	}
-
-	for (UCamera* Camera : OrthoGraphicCameras)
-	{
-		if (Camera)
-		{
-			Camera->SetMoveSpeed(EditorCameraSpeed);
+			Client->GetCamera()->SetMoveSpeed(EditorCameraSpeed);
 		}
 	}
 }
