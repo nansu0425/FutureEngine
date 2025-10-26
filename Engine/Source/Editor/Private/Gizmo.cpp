@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
+#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Editor/Public/Camera.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/UI/Public/ViewportManager.h"
@@ -1388,6 +1389,145 @@ void UGizmo::CalculateQuarterRingDirections(UCamera* InCamera, EGizmoDirection I
 	// 월드 공간 방향으로 출력
 	OutStartDir = bIsWorld ? LocalRenderAxis0 : GizmoRot.RotateVector(LocalRenderAxis0);
 	OutEndDir = bIsWorld ? LocalRenderAxis1 : GizmoRot.RotateVector(LocalRenderAxis1);
+}
+
+void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+{
+	if (!bIsDragging || GizmoMode != EGizmoMode::Rotate || !TargetComponent)
+	{
+		return;
+	}
+
+	const FVector GizmoLocation = GetGizmoLocation();
+	const FVector LocalGizmoAxis = GetGizmoAxis();
+	const FQuaternion StartRotQuat = GetDragStartActorRotationQuat();
+
+	// 월드 공간 회전축
+	FVector WorldRotationAxis = LocalGizmoAxis;
+	if (!IsWorldMode())
+	{
+		WorldRotationAxis = StartRotQuat.RotateVector(LocalGizmoAxis);
+	}
+
+	// 현재 회전 각도 계산 (스냅 적용)
+	float DisplayAngleRadians = GetCurrentRotationAngle();
+	if (UViewportManager::GetInstance().IsRotationSnapEnabled())
+	{
+		const float SnapAngleDegrees = UViewportManager::GetInstance().GetRotationSnapAngle();
+		const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
+		DisplayAngleRadians = std::round(GetCurrentRotationAngle() / SnapAngleRadians) * SnapAngleRadians;
+	}
+
+	// 렌더링과 동일하게 모든 축을 YZ 평면 기준으로 계산 후 회전 변환 적용
+	// GenerateCircleLineMesh(Z, Y)는 Z에서 시작하여 Z x Y = X축 주위로 회전
+	const FVector BaseAxis0 = FVector(0, 0, 1);  // Z (시작점)
+	const FVector BaseAxis1 = FVector(0, 1, 0);  // Y
+
+	// 각 축을 해당 평면으로 회전시키는 변환 (RenderGizmo의 AxisRots와 동일)
+	FQuaternion AxisRotation;
+	switch (GizmoDirection)
+	{
+	case EGizmoDirection::Forward:  // X축: YZ 평면 그대로
+		AxisRotation = FQuaternion::Identity();
+		break;
+	case EGizmoDirection::Right:    // Y축: Z축 중심 -90도 회전 (YZ -> XZ)
+		AxisRotation = FQuaternion::FromAxisAngle(FVector(0, 0, 1), FVector::GetDegreeToRadian(-90.0f));
+		break;
+	case EGizmoDirection::Up:       // Z축: Y축 중심 90도 회전 (YZ -> XY)
+		AxisRotation = FQuaternion::FromAxisAngle(FVector(0, 1, 0), FVector::GetDegreeToRadian(90.0f));
+		break;
+	default:
+		return;
+	}
+
+	// Local 모드면 컴포넌트 회전 적용
+	FQuaternion TotalRotation = AxisRotation;
+	if (!IsWorldMode())
+	{
+		TotalRotation = AxisRotation * StartRotQuat;
+	}
+
+	// YZ 평면에서 각도 위치의 방향 계산 (Z에서 시작)
+	const FVector LocalDirection = BaseAxis0 * cosf(DisplayAngleRadians) + BaseAxis1 * sinf(DisplayAngleRadians);
+
+	// 월드 공간으로 변환
+	const FVector AngleDirection = TotalRotation.RotateVector(LocalDirection);
+
+	// 회전 반지름 (기즈모 스케일 적용)
+	const float RotateRadius = GetRotateOuterRadius();
+
+	// 원 위의 점 (월드 공간)
+	const FVector PointOnCircle = GizmoLocation + AngleDirection * RotateRadius;
+
+	// 스크린 공간으로 투영
+	const FCameraConstants& CamConst = InCamera->GetFViewProjConstants();
+	const FMatrix ViewProj = CamConst.View * CamConst.Projection;
+
+	FVector4 GizmoScreenPos4 = FVector4(GizmoLocation, 1.0f) * ViewProj;
+	FVector4 PointScreenPos4 = FVector4(PointOnCircle, 1.0f) * ViewProj;
+
+	if (GizmoScreenPos4.W <= 0.0f || PointScreenPos4.W <= 0.0f)
+	{
+		return;
+	}
+
+	GizmoScreenPos4 *= 1.0f / GizmoScreenPos4.W;
+	PointScreenPos4 *= 1.0f / PointScreenPos4.W;
+
+	// NDC → 스크린 좌표
+	const FVector2 GizmoScreenPos(
+		(GizmoScreenPos4.X * 0.5f + 0.5f) * InViewport.Width + InViewport.TopLeftX,
+		((-GizmoScreenPos4.Y) * 0.5f + 0.5f) * InViewport.Height + InViewport.TopLeftY
+	);
+
+	const FVector2 PointScreenPos(
+		(PointScreenPos4.X * 0.5f + 0.5f) * InViewport.Width + InViewport.TopLeftX,
+		((-PointScreenPos4.Y) * 0.5f + 0.5f) * InViewport.Height + InViewport.TopLeftY
+	);
+
+	// 기즈모 중심에서 점으로 향하는 방향
+	FVector2 DirectionToPoint = PointScreenPos - GizmoScreenPos;
+	const float DistToPoint = DirectionToPoint.Length();
+	if (DistToPoint < 0.01f)
+	{
+		return;
+	}
+	DirectionToPoint = DirectionToPoint.GetNormalized();
+
+	// 텍스트 위치 (뷰포트 크기 비례 원 바깥으로 추가 오프셋)
+	// 스크린 공간 원 반지름에 비례하는 오프셋 계산
+	const float ScreenRadiusRatio = 0.3f;
+	const float TextOffset = DistToPoint * ScreenRadiusRatio;
+	const float TextX = PointScreenPos.X + DirectionToPoint.X * TextOffset;
+	const float TextY = PointScreenPos.Y + DirectionToPoint.Y * TextOffset;
+
+	// 텍스트 포맷 (UI와 일치하도록 각도 표시)
+	// 회전 입력 계산과 부호 일치시키기
+	float DisplayAngleDegrees = FVector::GetRadianToDegree(DisplayAngleRadians);
+
+	// X, Y축은 Editor.cpp의 Axis0/Axis1 정의와 부호가 반대이므로 보정
+	if (GizmoDirection == EGizmoDirection::Forward || GizmoDirection == EGizmoDirection::Right)
+	{
+		DisplayAngleDegrees = -DisplayAngleDegrees;
+	}
+
+	wchar_t AngleText[32];
+	(void)swprintf_s(AngleText, L"%.1f°", DisplayAngleDegrees);
+
+	// 텍스트 박스 (중앙 정렬)
+	constexpr float TextBoxWidth = 60.0f;
+	constexpr float TextBoxHeight = 20.0f;
+	D2D1_RECT_F TextRect = D2D1::RectF(
+		TextX - TextBoxWidth * 0.5f,
+		TextY - TextBoxHeight * 0.5f,
+		TextX + TextBoxWidth * 0.5f,
+		TextY + TextBoxHeight * 0.5f
+	);
+
+	// 노란색 텍스트
+	const D2D1_COLOR_F ColorYellow = D2D1::ColorF(1.0f, 1.0f, 0.0f);
+
+	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true);
 }
 
 /**

@@ -609,7 +609,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 					// 전역 카메라 이동 속도
 					float editorCameraSpeed = ViewportManager.GetEditorCameraSpeed();
-					if (ImGui::SliderFloat("Camera Speed", &editorCameraSpeed,
+					if (ImGui::DragFloat("Camera Speed", &editorCameraSpeed, 0.1f,
 						UViewportManager::MIN_CAMERA_SPEED, UViewportManager::MAX_CAMERA_SPEED, "%.1f"))
 					{
 						ViewportManager.SetEditorCameraSpeed(editorCameraSpeed);

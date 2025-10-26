@@ -2,6 +2,7 @@
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Axis.h"
+#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -167,7 +168,19 @@ void UEditor::Update()
 void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
 	BatchLines.Render();
-	FAxis::Render(InCamera, InViewport);
+
+	// D2D 오버레이 렌더링
+	FD2DOverlayManager& OverlayManager = FD2DOverlayManager::GetInstance();
+	OverlayManager.BeginCollect(InCamera, InViewport);
+
+	// FAxis 렌더링 명령 수집
+	FAxis::CollectDrawCommands(OverlayManager, InCamera, InViewport);
+
+	// Gizmo 회전 각도 오버레이 수집
+	Gizmo.CollectRotationAngleOverlay(OverlayManager, InCamera, InViewport);
+
+	// 배치 렌더링 실행
+	OverlayManager.FlushAndRender();
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
