@@ -36,7 +36,14 @@ void USceneHierarchyWidget::Update()
 
 void USceneHierarchyWidget::RenderWidget()
 {
-	ULevel* CurrentLevel = GWorld->GetLevel();
+	// 에디터 UI는 항상 Editor World를 참조해야 함
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (!EditorWorld)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = EditorWorld->GetLevel();
 
 	if (!CurrentLevel)
 	{
@@ -144,8 +151,7 @@ void USceneHierarchyWidget::RenderActorInfo(AActor* InActor, int32 InIndex)
 	ImGui::PushID(InIndex);
 
 	// 현재 선택된 Actor인지 확인
-	ULevel* CurrentLevel = GWorld->GetLevel();
-	bool bIsSelected = (CurrentLevel && GEditor->GetEditorModule()->GetSelectedActor() == InActor);
+	bool bIsSelected = (GEditor->GetEditorModule()->GetSelectedActor() == InActor);
 
 	// 선택된 Actor는 하이라이트
 	if (bIsSelected)

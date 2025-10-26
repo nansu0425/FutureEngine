@@ -166,25 +166,19 @@ void UEditor::Update()
 
 void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive())
-	{
-		return;
-	}
 	BatchLines.Render();
 	FAxis::Render(InCamera, InViewport);
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive())
-	{
-		return;
-	}
 	Gizmo.RenderGizmo(InCamera, InViewport);
 	
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
-	if (ULevel* CurrentLevel = GWorld->GetLevel())
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld && EditorWorld->GetLevel())
 	{
+		ULevel* CurrentLevel = EditorWorld->GetLevel();
 		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetLightComponents();
 		for (ULightComponent* LightComp : LightComponents)
 		{
@@ -205,11 +199,14 @@ void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 void UEditor::UpdateBatchLines()
 {
-	uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (!EditorWorld || !EditorWorld->GetLevel()) { return; }
+
+	uint64 ShowFlags = EditorWorld->GetLevel()->GetShowFlags();
 
 	if (ShowFlags & EEngineShowFlags::SF_Octree)
 	{
-		BatchLines.UpdateOctreeVertices(GWorld->GetLevel()->GetStaticOctree());
+		BatchLines.UpdateOctreeVertices(EditorWorld->GetLevel()->GetStaticOctree());
 	}
 	else
 	{
@@ -288,8 +285,15 @@ void UEditor::ProcessMouseInput()
 
 	// KTLWeek07: 활성 뷰포트의 정보 가져오기
 	auto& ViewportManager = UViewportManager::GetInstance();
-	FViewport* ActiveViewport = ViewportManager.GetViewports()[ViewportManager.GetActiveIndex()];
+	int32 ActiveViewportIndex = ViewportManager.GetActiveIndex();
+	FViewport* ActiveViewport = ViewportManager.GetViewports()[ActiveViewportIndex];
 	if (!ActiveViewport) { return; }
+
+	// PIE 뷰포트에서는 에디터 입력(오브젝트 선택, 기즈모 조작) 처리 안 함
+	if (GEditor->IsPIESessionActive() && ActiveViewportIndex == ViewportManager.GetPIEActiveViewportIndex())
+	{
+		return;
+	}
 
 	const D3D11_VIEWPORT& ViewportInfo = ActiveViewport->GetRenderRect();
 
@@ -381,11 +385,15 @@ void UEditor::ProcessMouseInput()
 
 		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 		{
-			if (GWorld->GetLevel()->GetShowFlags())
+			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
+			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
+
+			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			if (EditorWorld && EditorWorld->GetLevel() && EditorWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
 
-				ULevel* CurrentLevel = GWorld->GetLevel();
+				ULevel* CurrentLevel = EditorWorld->GetLevel();
 				ObjectPicker.FindCandidateFromOctree(CurrentLevel->GetStaticOctree(), WorldRay, Candidate);
 
 				TArray<UPrimitiveComponent*>& DynamicCandidates = CurrentLevel->GetDynamicPrimitives();
