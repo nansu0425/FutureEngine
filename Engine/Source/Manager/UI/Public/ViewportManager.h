@@ -51,6 +51,13 @@ public:
 
 	// 오쏘 뷰 공유 데이터 접근자
 	const TArray<FVector>& GetInitialOffsets() const { return InitialOffsets; }
+	void UpdateInitialOffset(int32 Index, const FVector& NewOffset)
+	{
+		if (Index >= 0 && Index < InitialOffsets.size())
+		{
+			InitialOffsets[Index] = NewOffset;
+		}
+	}
 	const FVector& GetOrthoGraphicCameraPoint() const { return OrthoGraphicCameraPoint; }
 	void SetOrthoGraphicCameraPoint(const FVector& InPoint) { OrthoGraphicCameraPoint = InPoint; }
 

@@ -899,9 +899,12 @@ void UEditor::FocusOnSelectedActor()
 			const float RightDist = ToCenter.Dot(Right);      // Right 방향 오프셋
 			const float UpDist = ToCenter.Dot(Up);            // Up 방향 오프셋
 
-			// 카메라를 Right/Up 방향으로 이동시켜 Center를 화면 중앙에 배치
-			// Forward 거리는 적당히 유지 (100 단위)
-			CameraTargetLocation[i] = CurrentLocation + Right * RightDist + Up * UpDist;
+			// 카메라를 Right/Up/Forward 방향으로 이동시켜 Center를 적절한 위치에 배치
+			// ForwardDist가 너무 작으면(오브젝트가 카메라 뒤에 있으면) 적절한 거리로 조정
+			const float MinForwardDist = BoundingRadius * 2.0f + 100.0f;
+			const float AdjustedForwardDist = (ForwardDist < MinForwardDist) ? MinForwardDist : ForwardDist;
+
+			CameraTargetLocation[i] = CurrentLocation + Right * RightDist + Up * UpDist + Forward * (AdjustedForwardDist - ForwardDist);
 
 			// 회전은 현재 유지
 			CameraTargetRotation[i] = CurrentRotation;
@@ -939,10 +942,12 @@ void UEditor::UpdateCameraAnimation()
 	CameraAnimationTime += DT;
 	float Progress = CameraAnimationTime / CAMERA_ANIMATION_DURATION;
 
+	bool bAnimationCompleted = false;
 	if (Progress >= 1.0f)
 	{
 		Progress = 1.0f;
 		bIsCameraAnimating = false;
+		bAnimationCompleted = true;
 	}
 
 	float SmoothProgress;
@@ -982,6 +987,57 @@ void UEditor::UpdateCameraAnimation()
 			// Orthographic: 회전도 보간 (ViewType 전환 등을 위해)
 			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
 			Cam->SetRotation(CurrentRotation);
+		}
+	}
+
+	// 애니메이션 완료 시 오쏘 뷰의 InitialOffsets 및 공유 센터 업데이트
+	if (bAnimationCompleted && AnimatingCameraType == ECameraType::ECT_Orthographic)
+	{
+		// 먼저 애니메이션 타겟 위치 기반으로 새로운 공유 센터 계산
+		// 첫 번째 오쏘 뷰를 기준으로 공유 센터 설정
+		FVector NewSharedCenter = FVector::ZeroVector();
+		bool bCenterCalculated = false;
+
+		for (int Index = 0; Index < Clients.size(); ++Index)
+		{
+			if (!Clients[Index]) continue;
+			UCamera* Cam = Clients[Index]->GetCamera();
+			if (!Cam || Cam->GetCameraType() != ECameraType::ECT_Orthographic) continue;
+
+			// ViewType에 따른 InitialOffsets 인덱스 결정
+			int32 OrthoIdx = -1;
+			switch (Clients[Index]->GetViewType())
+			{
+			case EViewType::OrthoTop: OrthoIdx = 0; break;
+			case EViewType::OrthoBottom: OrthoIdx = 1; break;
+			case EViewType::OrthoLeft: OrthoIdx = 2; break;
+			case EViewType::OrthoRight: OrthoIdx = 3; break;
+			case EViewType::OrthoFront: OrthoIdx = 4; break;
+			case EViewType::OrthoBack: OrthoIdx = 5; break;
+			}
+
+			if (OrthoIdx >= 0 && OrthoIdx < ViewportManager.GetInitialOffsets().size())
+			{
+				const FVector& OldOffset = ViewportManager.GetInitialOffsets()[OrthoIdx];
+				const FVector NewLocation = Cam->GetLocation();
+
+				// 첫 번째 오쏘 뷰 기준으로 새로운 공유 센터 계산
+				if (!bCenterCalculated)
+				{
+					NewSharedCenter = NewLocation - OldOffset;
+					bCenterCalculated = true;
+				}
+
+				// 새로운 오프셋 = 새 위치 - 새 공유 센터
+				FVector NewOffset = NewLocation - NewSharedCenter;
+				ViewportManager.UpdateInitialOffset(OrthoIdx, NewOffset);
+			}
+		}
+
+		// 공유 센터 업데이트
+		if (bCenterCalculated)
+		{
+			ViewportManager.SetOrthoGraphicCameraPoint(NewSharedCenter);
 		}
 	}
 }
