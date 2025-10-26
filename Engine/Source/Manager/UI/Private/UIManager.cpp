@@ -555,8 +555,6 @@ void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindo
                     ImVec2(NewX, InMenuBarHeight + OutlinerHeight));
                 InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, DetailHeight));
             }
-
-            UE_LOG("UIManager: 동적 레이아웃: 두 패널 초기 분할 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
         }
         else
         {
@@ -570,8 +568,6 @@ void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindo
                 FinalOutlinerHeight = std::clamp(CurrentOutlinerHeight, 200.0f,
                                                  InAvailableHeight - 200.0f);
                 FinalDetailHeight = InAvailableHeight - FinalOutlinerHeight;
-                UE_LOG("UIManager: Outliner 높이 변경 -> Detail 자동 조정 (Outliner: %.1f, Detail: %.1f)",
-                       FinalOutlinerHeight, FinalDetailHeight);
             }
             else if (bDetailHeightChanged)
             {
@@ -579,8 +575,6 @@ void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindo
                 FinalDetailHeight = std::clamp(CurrentDetailHeight, 200.0f,
                                                InAvailableHeight - 200.0f);
                 FinalOutlinerHeight = InAvailableHeight - FinalDetailHeight;
-                UE_LOG("UIManager: Detail 높이 변경 -> Outliner 자동 조정 (Outliner: %.1f, Detail: %.1f)",
-                       FinalOutlinerHeight, FinalDetailHeight);
             }
             else
             {
@@ -611,8 +605,6 @@ void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindo
             InDetailWindow->SetLastWindowPosition(
                 ImVec2(NewX, InMenuBarHeight + FinalOutlinerHeight));
             InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, FinalDetailHeight));
-
-            UE_LOG("UIManager: 동적 레이아웃: 두 패널 업데이트 (%.1fx%.1f)", InTargetWidth, InAvailableHeight);
         }
     }
     // Outliner만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
@@ -620,17 +612,12 @@ void UUIManager::ArrangeRightPanelsDynamic(UUIWindow* InOutlinerWindow, UUIWindo
     {
         InOutlinerWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
         InOutlinerWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
-
-        UE_LOG("UIManager: 동적 레이아웃: Outliner만 업데이트 (너비: %.1fx%.1f)", ActualWidth,
-               InAvailableHeight);
     }
     // Detail만 있는 경우: 저장된 너비 사용, Y 위치와 높이만 조정
     else if (InDetailWindow)
     {
         InDetailWindow->SetLastWindowPosition(ImVec2(NewX, InMenuBarHeight));
         InDetailWindow->SetLastWindowSize(ImVec2(ActualWidth, InAvailableHeight));
-
-        UE_LOG("UIManager: 동적 레이아웃: Detail만 업데이트 (너비: %.1fx%.1f)", ActualWidth, InAvailableHeight);
     }
 }
 
@@ -963,15 +950,11 @@ void UUIManager::ArrangeRightPanels()
     {
         TargetWidth = CurrentOutlinerSize.x;
         bOutlinerHeightChanged = abs(CurrentOutlinerSize.y - LastOutlinerSize.y) > Tolerance;
-        UE_LOG("UIManager: Outliner 사이즈 변경 감지: 새 너비: %.1f, 높이 변경: %d", TargetWidth,
-               bOutlinerHeightChanged);
     }
     else // bDetailSizeChanged
     {
         TargetWidth = CurrentDetailSize.x;
         bDetailHeightChanged = abs(CurrentDetailSize.y - LastDetailSize.y) > Tolerance;
-        UE_LOG("UIManager: Detail 사이즈 변경 감지: 새 너비: %.1f, 높이 변경: %d", TargetWidth,
-               bDetailHeightChanged);
     }
 
     // 이전 사이즈 업데이트

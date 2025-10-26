@@ -116,6 +116,9 @@ public:
 	static constexpr float MAX_CAMERA_SPEED = 70.0f;
 	static constexpr float DEFAULT_CAMERA_SPEED = 20.0f;
 
+	// Splitter dragging check
+	bool IsAnySplitterDragging() const;
+
 private:
 	// 내부 유틸
 	void SyncRectsToViewports() const; // 리프Rect → Viewport.Rect

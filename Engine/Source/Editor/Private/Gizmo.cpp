@@ -7,6 +7,8 @@
 #include "Editor/Public/Editor.h"
 #include "Global/Quaternion.h"
 
+IMPLEMENT_CLASS(UGizmo, UObject)
+
 namespace
 {
 	// Quarter ring mesh generation constants
@@ -15,9 +17,9 @@ namespace
 	constexpr float kQuarterRingEndAngle = 3.14159265f / 2.0f;  // 90 degrees
 
 	// Rotation finding tolerance
-	constexpr float kDotProductParallelThreshold = 0.999f;
-	constexpr float kDotProductOppositeThreshold = -0.999f;
-	constexpr float kAxisLengthSquaredEpsilon = 0.001f;
+	// constexpr float kDotProductParallelThreshold = 0.999f;
+	// constexpr float kDotProductOppositeThreshold = -0.999f;
+	// constexpr float kAxisLengthSquaredEpsilon = 0.001f;
 
 	// Gizmo axis definitions
 	// X ring: ZAxis × YAxis, Y ring: XAxis × ZAxis, Z ring: XAxis × YAxis
@@ -132,18 +134,23 @@ static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
 	OutVertices.clear();
 	OutIndices.clear();
 
-	if (AngleInRadians <= 0.0f)
+	if (std::abs(AngleInRadians) < 0.001f)
 	{
 		return;
 	}
 
-	// 세그먼트 수 계산 (각도에 비례)
-	const float AngleRatio = std::abs(AngleInRadians) / (2.0f * 3.14159265f);
+	// 세그먼트 수 계산 (각도에 비례, 360도 이상도 지원)
+	const float AbsAngle = std::abs(AngleInRadians);
+	const float AngleRatio = AbsAngle / (2.0f * 3.14159265f);
 	const int32 NumPoints = std::max(2, static_cast<int32>(kQuarterRingSegments * 4 * AngleRatio)) + 1;
 
 	// 회전축 계산 (Axis0 × Axis1)
 	FVector ZAxis = Axis0.Cross(Axis1);
 	ZAxis.Normalize();
+
+	// 항상 Axis0에서 시작 (언리얼 방식)
+	const FVector StartAxis = Axis0;
+	const float SignedAngle = AngleInRadians;
 
 	// 두 개의 링 생성 (Outer, Inner)
 	for (int32 RadiusIndex = 0; RadiusIndex < 2; ++RadiusIndex)
@@ -154,12 +161,13 @@ static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
 		for (int32 VertexIndex = 0; VertexIndex <= NumPoints; ++VertexIndex)
 		{
 			const float Percent = static_cast<float>(VertexIndex) / static_cast<float>(NumPoints);
-			const float Angle = Percent * std::abs(AngleInRadians);
+			const float Angle = Percent * AbsAngle;
 			const float AngleDeg = FVector::GetRadianToDegree(Angle);
 
-			// Axis0를 ZAxis 기준으로 회전
-			const FQuaternion RotQuat = FQuaternion::FromAxisAngle(ZAxis, -FVector::GetDegreeToRadian(AngleDeg));
-			FVector VertexDir = RotQuat.RotateVector(Axis0);
+			// 양수/음수에 따라 회전 방향만 반대로 (시작점은 동일)
+			const float RotationDirection = (SignedAngle >= 0.0f) ? -1.0f : 1.0f;
+			const FQuaternion RotQuat = FQuaternion::FromAxisAngle(ZAxis, RotationDirection * FVector::GetDegreeToRadian(AngleDeg));
+			FVector VertexDir = RotQuat.RotateVector(StartAxis);
 			VertexDir.Normalize();
 
 			const FVector VertexPosition = VertexDir * Radius;
@@ -373,33 +381,31 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	{
 		if (bIsRotateMode && bIsDragging && GizmoDirection == EGizmoDirection::Forward)
 		{
-			// 드래그 중인 축: Full Ring + 회전 각도 Arc
+			// 드래그 중인 축: Full Ring (투명하게) + 회전 각도 Arc (하이라이트)
 			P.VertexBuffer = AssetManager.GetVertexbuffer(EPrimitiveType::Ring);
 			P.NumVertices = AssetManager.GetNumVertices(EPrimitiveType::Ring);
 			P.IndexBuffer = nullptr;
 			P.NumIndices = 0;
 			P.Rotation = AxisRots[0] * BaseRot;
-			P.Color = ColorFor(EGizmoDirection::Forward);
+
+			// 링을 투명하게 (alpha 0.2)
+			FVector4 BaseColor = ColorFor(EGizmoDirection::Forward);
+			P.Color = FVector4(BaseColor.X, BaseColor.Y, BaseColor.Z, 0.2f);
 			Renderer.RenderEditorPrimitive(P, RenderState);
 
-			// 회전 각도 Arc 렌더링 (하이라이트)
+			// 회전 각도 Arc 렌더링 (밝은 흰색 하이라이트, 불투명)
 			if (std::abs(CurrentRotationAngle) > 0.001f)
 			{
-				constexpr int AxisIndex = 0;
-				const FQuaternion GizmoRot = bIsWorld ? FQuaternion::Identity() : DragStartActorRotationQuat;
-
-				FVector LocalAxis0 = bIsWorld ? kLocalAxis0[AxisIndex] : GizmoRot.RotateVector(kLocalAxis0[AxisIndex]);
-				FVector LocalAxis1 = bIsWorld ? kLocalAxis1[AxisIndex] : GizmoRot.RotateVector(kLocalAxis1[AxisIndex]);
-
-				FVector LocalRenderAxis0 = bIsWorld ? LocalAxis0 : GizmoRot.Inverse().RotateVector(LocalAxis0);
-				FVector LocalRenderAxis1 = bIsWorld ? LocalAxis1 : GizmoRot.Inverse().RotateVector(LocalAxis1);
-				LocalRenderAxis0.Normalize();
-				LocalRenderAxis1.Normalize();
-
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
-				GenerateRotationArcMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+
+				// Arc를 약간 더 두껍게 (링보다 살짝 크게)
+				const float ArcInnerRadius = RotateCollisionConfig.InnerRadius * 0.98f;
+				const float ArcOuterRadius = RotateCollisionConfig.OuterRadius * 1.02f;
+
+				// X축 Ring은 YZ 평면에 정의됨 (AxisRots[0] = Identity)
+				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
+					ArcInnerRadius, ArcOuterRadius,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -412,7 +418,8 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 					P.NumVertices = static_cast<uint32>(arcVertices.size());
 					P.IndexBuffer = arcIB;
 					P.NumIndices = static_cast<uint32>(arcIndices.size());
-					P.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+					P.Rotation = AxisRots[0] * BaseRot;  // 링과 동일한 회전 적용
+					P.Color = FVector4(1.0f, 1.0f, 0.9f, 1.0f);  // 밝은 노란색(거의 흰색), 불투명
 					Renderer.RenderEditorPrimitive(P, RenderState);
 
 					arcVB->Release();
@@ -491,33 +498,31 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	{
 		if (bIsRotateMode && bIsDragging && GizmoDirection == EGizmoDirection::Right)
 		{
-			// 드래그 중인 축: Full Ring + 회전 각도 Arc
+			// 드래그 중인 축: Full Ring (투명하게) + 회전 각도 Arc (하이라이트)
 			P.VertexBuffer = AssetManager.GetVertexbuffer(EPrimitiveType::Ring);
 			P.NumVertices = AssetManager.GetNumVertices(EPrimitiveType::Ring);
 			P.IndexBuffer = nullptr;
 			P.NumIndices = 0;
 			P.Rotation = AxisRots[1] * BaseRot;
-			P.Color = ColorFor(EGizmoDirection::Right);
+
+			// 링을 투명하게 (alpha 0.2)
+			FVector4 BaseColor = ColorFor(EGizmoDirection::Right);
+			P.Color = FVector4(BaseColor.X, BaseColor.Y, BaseColor.Z, 0.2f);
 			Renderer.RenderEditorPrimitive(P, RenderState);
 
-			// 회전 각도 Arc 렌더링
+			// 회전 각도 Arc 렌더링 (밝은 흰색 하이라이트, 불투명)
 			if (std::abs(CurrentRotationAngle) > 0.001f)
 			{
-				constexpr int AxisIndex = 1;
-				const FQuaternion GizmoRot = bIsWorld ? FQuaternion::Identity() : DragStartActorRotationQuat;
-
-				FVector LocalAxis0 = bIsWorld ? kLocalAxis0[AxisIndex] : GizmoRot.RotateVector(kLocalAxis0[AxisIndex]);
-				FVector LocalAxis1 = bIsWorld ? kLocalAxis1[AxisIndex] : GizmoRot.RotateVector(kLocalAxis1[AxisIndex]);
-
-				FVector LocalRenderAxis0 = bIsWorld ? LocalAxis0 : GizmoRot.Inverse().RotateVector(LocalAxis0);
-				FVector LocalRenderAxis1 = bIsWorld ? LocalAxis1 : GizmoRot.Inverse().RotateVector(LocalAxis1);
-				LocalRenderAxis0.Normalize();
-				LocalRenderAxis1.Normalize();
-
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
-				GenerateRotationArcMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+
+				// Arc를 약간 더 두껍게 (링보다 살짝 크게)
+				const float ArcInnerRadius = RotateCollisionConfig.InnerRadius * 0.98f;
+				const float ArcOuterRadius = RotateCollisionConfig.OuterRadius * 1.02f;
+
+				// Y축 Ring도 YZ 평면에서 시작 후 AxisRots[1]로 회전
+				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
+					ArcInnerRadius, ArcOuterRadius,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -530,7 +535,8 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 					P.NumVertices = static_cast<uint32>(arcVertices.size());
 					P.IndexBuffer = arcIB;
 					P.NumIndices = static_cast<uint32>(arcIndices.size());
-					P.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+					P.Rotation = AxisRots[1] * BaseRot;  // 링과 동일한 회전 적용
+					P.Color = FVector4(1.0f, 1.0f, 0.9f, 1.0f);  // 밝은 노란색(거의 흰색), 불투명
 					Renderer.RenderEditorPrimitive(P, RenderState);
 
 					arcVB->Release();
@@ -609,33 +615,31 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	{
 		if (bIsRotateMode && bIsDragging && GizmoDirection == EGizmoDirection::Up)
 		{
-			// 드래그 중인 축: Full Ring + 회전 각도 Arc
+			// 드래그 중인 축: Full Ring (투명하게) + 회전 각도 Arc (하이라이트)
 			P.VertexBuffer = AssetManager.GetVertexbuffer(EPrimitiveType::Ring);
 			P.NumVertices = AssetManager.GetNumVertices(EPrimitiveType::Ring);
 			P.IndexBuffer = nullptr;
 			P.NumIndices = 0;
 			P.Rotation = AxisRots[2] * BaseRot;
-			P.Color = ColorFor(EGizmoDirection::Up);
+
+			// 링을 투명하게 (alpha 0.2)
+			FVector4 BaseColor = ColorFor(EGizmoDirection::Up);
+			P.Color = FVector4(BaseColor.X, BaseColor.Y, BaseColor.Z, 0.2f);
 			Renderer.RenderEditorPrimitive(P, RenderState);
 
-			// 회전 각도 Arc 렌더링
+			// 회전 각도 Arc 렌더링 (밝은 흰색 하이라이트, 불투명)
 			if (std::abs(CurrentRotationAngle) > 0.001f)
 			{
-				constexpr int AxisIndex = 2;
-				const FQuaternion GizmoRot = bIsWorld ? FQuaternion::Identity() : DragStartActorRotationQuat;
-
-				FVector LocalAxis0 = bIsWorld ? kLocalAxis0[AxisIndex] : GizmoRot.RotateVector(kLocalAxis0[AxisIndex]);
-				FVector LocalAxis1 = bIsWorld ? kLocalAxis1[AxisIndex] : GizmoRot.RotateVector(kLocalAxis1[AxisIndex]);
-
-				FVector LocalRenderAxis0 = bIsWorld ? LocalAxis0 : GizmoRot.Inverse().RotateVector(LocalAxis0);
-				FVector LocalRenderAxis1 = bIsWorld ? LocalAxis1 : GizmoRot.Inverse().RotateVector(LocalAxis1);
-				LocalRenderAxis0.Normalize();
-				LocalRenderAxis1.Normalize();
-
 				TArray<FNormalVertex> arcVertices;
 				TArray<uint32> arcIndices;
-				GenerateRotationArcMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+
+				// Arc를 약간 더 두껍게 (링보다 살짝 크게)
+				const float ArcInnerRadius = RotateCollisionConfig.InnerRadius * 0.98f;
+				const float ArcOuterRadius = RotateCollisionConfig.OuterRadius * 1.02f;
+
+				// Z축 Ring도 YZ 평면에서 시작 후 AxisRots[2]로 회전
+				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
+					ArcInnerRadius, ArcOuterRadius,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -648,7 +652,8 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 					P.NumVertices = static_cast<uint32>(arcVertices.size());
 					P.IndexBuffer = arcIB;
 					P.NumIndices = static_cast<uint32>(arcIndices.size());
-					P.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+					P.Rotation = AxisRots[2] * BaseRot;  // 링과 동일한 회전 적용
+					P.Color = FVector4(1.0f, 1.0f, 0.9f, 1.0f);  // 밝은 노란색(거의 흰색), 불투명
 					Renderer.RenderEditorPrimitive(P, RenderState);
 
 					arcVB->Release();
@@ -752,6 +757,7 @@ void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
 {
 	bIsDragging = true;
 	DragStartMouseLocation = CollisionPoint;
+	PreviousMouseLocation = CollisionPoint;  // 누적 각도 계산을 위한 초기화
 
 	if (TargetComponent)
 	{

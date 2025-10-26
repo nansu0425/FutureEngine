@@ -81,11 +81,13 @@ private:
 	int32 LockedViewportIndexForDrag = -1;
 	bool bWasRightMouseDown = false;
 
-	const float MinScale = 0.01f;
+	// 최소 스케일 값 설정
+	static constexpr float MIN_SCALE_VALUE = 0.01f;
 
 	// Camera focus animation
 	bool bIsCameraAnimating = false;
 	float CameraAnimationTime = 0.0f;
+	ECameraType AnimatingCameraType = ECameraType::ECT_Perspective;
 	TArray<FVector> CameraStartLocation;
 	TArray<FVector> CameraStartRotation;
 	TArray<FVector> CameraTargetLocation;

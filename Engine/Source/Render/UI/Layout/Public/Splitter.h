@@ -50,6 +50,7 @@ public:
     // Helpers
     bool IsHandleHover(FPoint Coord) const;
     FRect GetHandleRect() const;
+    bool IsDragging() const { return bDragging || bCrossDragging; }
 
 private:
     bool bDragging = false;
