@@ -12,7 +12,7 @@
 #define NUM_SPOT_LIGHT 8
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
-static const float PI = 3.14159265f;
+static const float PI = 3.14159265358979323846f;
 
 // reflectance와 곱해지기 전
 // 표면에 도달한 빛의 조명 기여량

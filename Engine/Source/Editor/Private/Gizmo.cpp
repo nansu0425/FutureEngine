@@ -14,7 +14,7 @@ namespace
 	// Quarter ring mesh generation constants
 	constexpr int32 kQuarterRingSegments = 48;
 	constexpr float kQuarterRingStartAngle = 0.0f;
-	constexpr float kQuarterRingEndAngle = 3.14159265f / 2.0f;  // 90 degrees
+	constexpr float kQuarterRingEndAngle = PI / 2.0f;  // 90 degrees
 
 	// Rotation finding tolerance
 	// constexpr float kDotProductParallelThreshold = 0.999f;
@@ -118,17 +118,18 @@ static void CreateTempBuffers(const TArray<FNormalVertex>& InVertices, const TAr
 }
 
 /**
- * @brief 회전 각도를 시각화하는 Arc 메쉬를 동적으로 생성
+ * @brief 회전 각도 표시용 3D Arc 메쉬 생성
  * @param Axis0 시작 방향 벡터
- * @param Axis1 90도 방향 벡터
+ * @param Axis1 회전 평면을 정의하는 두 번째 축
  * @param InnerRadius 안쪽 반지름
  * @param OuterRadius 바깥 반지름
- * @param AngleInRadians 회전 각도 (라디안)
+ * @param Thickness 링의 3D 두께
+ * @param AngleInRadians 회전 각도 (라디안, 양수/음수 모두 지원, 360도 이상 가능)
  * @param OutVertices 생성된 정점 배열 (출력)
  * @param OutIndices 생성된 인덱스 배열 (출력)
  */
 static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
-	float InnerRadius, float OuterRadius, float AngleInRadians,
+	float InnerRadius, float OuterRadius, float Thickness, float AngleInRadians,
 	TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	OutVertices.clear();
@@ -141,133 +142,193 @@ static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
 
 	// 세그먼트 수 계산 (각도에 비례, 360도 이상도 지원)
 	const float AbsAngle = std::abs(AngleInRadians);
-	const float AngleRatio = AbsAngle / (2.0f * 3.14159265f);
-	const int32 NumPoints = std::max(2, static_cast<int32>(kQuarterRingSegments * 4 * AngleRatio)) + 1;
+	const float AngleRatio = AbsAngle / (2.0f * PI);
+	const int32 NumArcPoints = std::max(2, static_cast<int32>(kQuarterRingSegments * 4 * AngleRatio)) + 1;
+	const int32 NumThicknessSegments = 6; // 두께 방향 세그먼트 수
 
 	// 회전축 계산 (Axis0 × Axis1)
 	FVector ZAxis = Axis0.Cross(Axis1);
 	ZAxis.Normalize();
 
-	// 항상 Axis0에서 시작 (언리얼 방식)
+	// 항상 Axis0에서 시작
 	const FVector StartAxis = Axis0;
 	const float SignedAngle = AngleInRadians;
+	const float RotationDirection = (SignedAngle >= 0.0f) ? -1.0f : 1.0f;
 
-	// 두 개의 링 생성 (Outer, Inner)
-	for (int32 RadiusIndex = 0; RadiusIndex < 2; ++RadiusIndex)
+	// 링의 중심 반지름
+	const float MidRadius = (InnerRadius + OuterRadius) * 0.5f;
+	const float RingWidth = (OuterRadius - InnerRadius) * 0.5f;
+	const float HalfThickness = Thickness * 0.5f;
+
+	// 호(arc) 방향과 두께 방향으로 정점 생성
+	for (int32 ArcIdx = 0; ArcIdx < NumArcPoints; ++ArcIdx)
 	{
-		const float Radius = (RadiusIndex == 0) ? OuterRadius : InnerRadius;
+		const float ArcPercent = static_cast<float>(ArcIdx) / static_cast<float>(NumArcPoints - 1);
+		const float CurrentAngle = ArcPercent * AbsAngle;
+		const float CurrentAngleDeg = FVector::GetRadianToDegree(CurrentAngle);
 
-		// 각 정점 생성
-		for (int32 VertexIndex = 0; VertexIndex <= NumPoints; ++VertexIndex)
+		// 호 중심점의 방향
+		const FQuaternion ArcRotQuat = FQuaternion::FromAxisAngle(ZAxis, RotationDirection * FVector::GetDegreeToRadian(CurrentAngleDeg));
+		FVector ArcDir = ArcRotQuat.RotateVector(StartAxis);
+		ArcDir.Normalize();
+
+		// 호 중심점 위치
+		const FVector ArcCenter = ArcDir * MidRadius;
+
+		// 두께 방향 (ZAxis 방향)
+		const FVector ThicknessAxis = ZAxis;
+
+		// 너비 방향 (원의 반지름 방향)
+		const FVector WidthAxis = ArcDir;
+
+		// 두께 단면의 원형 정점들 생성
+		for (int32 ThickIdx = 0; ThickIdx < NumThicknessSegments; ++ThickIdx)
 		{
-			const float Percent = static_cast<float>(VertexIndex) / static_cast<float>(NumPoints);
-			const float Angle = Percent * AbsAngle;
-			const float AngleDeg = FVector::GetRadianToDegree(Angle);
+			const float ThickAngle = (2.0f * PI * ThickIdx) / NumThicknessSegments;
+			const float CosThick = std::cosf(ThickAngle);
+			const float SinThick = std::sinf(ThickAngle);
 
-			// 양수/음수에 따라 회전 방향만 반대로 (시작점은 동일)
-			const float RotationDirection = (SignedAngle >= 0.0f) ? -1.0f : 1.0f;
-			const FQuaternion RotQuat = FQuaternion::FromAxisAngle(ZAxis, RotationDirection * FVector::GetDegreeToRadian(AngleDeg));
-			FVector VertexDir = RotQuat.RotateVector(StartAxis);
-			VertexDir.Normalize();
+			// 단면 원의 위치
+			const FVector Offset = WidthAxis * (RingWidth * CosThick) + ThicknessAxis * (HalfThickness * SinThick);
+			const FVector VertexPos = ArcCenter + Offset;
 
-			const FVector VertexPosition = VertexDir * Radius;
-			FVector Normal = VertexPosition;
+			// 노멀은 단면 원의 바깥 방향
+			FVector Normal = Offset;
 			Normal.Normalize();
 
 			FNormalVertex Vertex;
-			Vertex.Position = VertexPosition;
+			Vertex.Position = VertexPos;
 			Vertex.Normal = Normal;
-			Vertex.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 노란색
-			Vertex.TexCoord = FVector2(Percent, static_cast<float>(RadiusIndex));
+			Vertex.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+			Vertex.TexCoord = FVector2(ArcPercent, static_cast<float>(ThickIdx) / NumThicknessSegments);
 
 			OutVertices.push_back(Vertex);
 		}
 	}
 
-	// 삼각형 인덱스 생성 (Quad strip)
-	const int32 InnerVertexStartIndex = NumPoints + 1;
-	for (int32 VertexIndex = 0; VertexIndex < NumPoints; ++VertexIndex)
+	// 인덱스 생성
+	for (int32 ArcIdx = 0; ArcIdx < NumArcPoints - 1; ++ArcIdx)
 	{
-		// 첫 번째 삼각형 (CCW)
-		OutIndices.push_back(VertexIndex);
-		OutIndices.push_back(VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex);
+		for (int32 ThickIdx = 0; ThickIdx < NumThicknessSegments; ++ThickIdx)
+		{
+			const int32 NextThickIdx = (ThickIdx + 1) % NumThicknessSegments;
 
-		// 두 번째 삼각형 (CCW)
-		OutIndices.push_back(VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex);
+			const int32 i0 = ArcIdx * NumThicknessSegments + ThickIdx;
+			const int32 i1 = ArcIdx * NumThicknessSegments + NextThickIdx;
+			const int32 i2 = (ArcIdx + 1) * NumThicknessSegments + ThickIdx;
+			const int32 i3 = (ArcIdx + 1) * NumThicknessSegments + NextThickIdx;
+
+			// 첫 번째 삼각형
+			OutIndices.push_back(i0);
+			OutIndices.push_back(i2);
+			OutIndices.push_back(i1);
+
+			// 두 번째 삼각형
+			OutIndices.push_back(i1);
+			OutIndices.push_back(i2);
+			OutIndices.push_back(i3);
+		}
 	}
 }
 
 /**
- * @brief QuarterRing 메쉬를 동적으로 생성 (UE DrawThickArc 방식)
+ * @brief QuarterRing 메쉬를 3D 토러스 형태로 생성
  * @param Axis0 시작 방향 벡터 (0도)
  * @param Axis1 끝 방향 벡터 (90도)
  * @param InnerRadius 안쪽 반지름
  * @param OuterRadius 바깥 반지름
+ * @param Thickness 링의 3D 두께
  * @param OutVertices 생성된 정점 배열 (출력)
  * @param OutIndices 생성된 인덱스 배열 (출력)
- * @note Axis0에서 시작하여 Axis1까지 90도 호(arc)를 생성하며, 두께는 InnerRadius와 OuterRadius의 차이로 결정됨
  */
 static void GenerateQuarterRingMesh(const FVector& Axis0, const FVector& Axis1,
-	float InnerRadius, float OuterRadius,
+	float InnerRadius, float OuterRadius, float Thickness,
 	TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	OutVertices.clear();
 	OutIndices.clear();
 
-	// 세그먼트 수 계산
-	const int32 NumPoints = static_cast<int32>(kQuarterRingSegments * (kQuarterRingEndAngle - kQuarterRingStartAngle) / (3.14159265f / 2.0f)) + 1;
+	// 세그먼트 수
+	const int32 NumArcPoints = static_cast<int32>(kQuarterRingSegments * (kQuarterRingEndAngle - kQuarterRingStartAngle) / (3.14159265f / 2.0f)) + 1;
+	const int32 NumThicknessSegments = 6; // 두께 방향 세그먼트 수
 
 	// 회전축 계산 (Axis0 × Axis1)
 	FVector ZAxis = Axis0.Cross(Axis1);
 	ZAxis.Normalize();
 
-	// 두 개의 링 생성 (Outer, Inner)
-	for (int32 RadiusIndex = 0; RadiusIndex < 2; ++RadiusIndex)
+	// 링의 중심 반지름
+	const float MidRadius = (InnerRadius + OuterRadius) * 0.5f;
+	const float RingWidth = (OuterRadius - InnerRadius) * 0.5f;
+	const float HalfThickness = Thickness * 0.5f;
+
+	// 호(arc) 방향과 두께 방향으로 정점 생성
+	for (int32 ArcIdx = 0; ArcIdx < NumArcPoints; ++ArcIdx)
 	{
-		const float Radius = (RadiusIndex == 0) ? OuterRadius : InnerRadius;
+		const float ArcPercent = static_cast<float>(ArcIdx) / static_cast<float>(NumArcPoints - 1);
+		const float ArcAngle = kQuarterRingStartAngle + ArcPercent * (kQuarterRingEndAngle - kQuarterRingStartAngle);
+		const float ArcAngleDeg = FVector::GetRadianToDegree(ArcAngle);
 
-		// 각 정점 생성
-		for (int32 VertexIndex = 0; VertexIndex <= NumPoints; ++VertexIndex)
+		// 호 중심점의 방향
+		const FQuaternion ArcRotQuat = FQuaternion::FromAxisAngle(ZAxis, -FVector::GetDegreeToRadian(ArcAngleDeg));
+		FVector ArcDir = ArcRotQuat.RotateVector(Axis0);
+		ArcDir.Normalize();
+
+		// 호 중심점 위치
+		const FVector ArcCenter = ArcDir * MidRadius;
+
+		// 두께 방향 (ZAxis 방향)
+		const FVector ThicknessAxis = ZAxis;
+
+		// 너비 방향 (원의 반지름 방향)
+		const FVector WidthAxis = ArcDir;
+
+		// 두께 단면의 원형 정점들 생성
+		for (int32 ThickIdx = 0; ThickIdx < NumThicknessSegments; ++ThickIdx)
 		{
-			const float Percent = static_cast<float>(VertexIndex) / static_cast<float>(NumPoints);
-			const float Angle = kQuarterRingStartAngle + Percent * (kQuarterRingEndAngle - kQuarterRingStartAngle);
-			const float AngleDeg = FVector::GetRadianToDegree(Angle);
+			const float ThickAngle = (2.0f * PI * ThickIdx) / NumThicknessSegments;
+			const float CosThick = std::cosf(ThickAngle);
+			const float SinThick = std::sinf(ThickAngle);
 
-			// Axis0를 ZAxis 기준으로 회전
-			const FQuaternion RotQuat = FQuaternion::FromAxisAngle(ZAxis, -FVector::GetDegreeToRadian(AngleDeg));
-			FVector VertexDir = RotQuat.RotateVector(Axis0);
-			VertexDir.Normalize();
+			// 단면 원의 위치 (WidthAxis와 ThicknessAxis로 정의되는 평면에서 원)
+			const FVector Offset = WidthAxis * (RingWidth * CosThick) + ThicknessAxis * (HalfThickness * SinThick);
+			const FVector VertexPos = ArcCenter + Offset;
 
-			const FVector VertexPosition = VertexDir * Radius;
-			FVector Normal = VertexPosition;
+			// 노멀은 단면 원의 바깥 방향
+			FVector Normal = Offset;
 			Normal.Normalize();
 
 			FNormalVertex Vertex;
-			Vertex.Position = VertexPosition;
+			Vertex.Position = VertexPos;
 			Vertex.Normal = Normal;
-			Vertex.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 노란색 (나중에 덮어씌워짐)
-			Vertex.TexCoord = FVector2(Percent, static_cast<float>(RadiusIndex));
+			Vertex.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+			Vertex.TexCoord = FVector2(ArcPercent, static_cast<float>(ThickIdx) / NumThicknessSegments);
 
 			OutVertices.push_back(Vertex);
 		}
 	}
 
-	// 삼각형 인덱스 생성 (Quad strip)
-	const int32 InnerVertexStartIndex = NumPoints + 1;
-	for (int32 VertexIndex = 0; VertexIndex < NumPoints; ++VertexIndex)
+	// 인덱스 생성 (각 호 세그먼트를 따라 원형 단면을 연결)
+	for (int32 ArcIdx = 0; ArcIdx < NumArcPoints - 1; ++ArcIdx)
 	{
-		// 첫 번째 삼각형 (CCW)
-		OutIndices.push_back(VertexIndex);
-		OutIndices.push_back(VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex);
+		for (int32 ThickIdx = 0; ThickIdx < NumThicknessSegments; ++ThickIdx)
+		{
+			const int32 NextThickIdx = (ThickIdx + 1) % NumThicknessSegments;
 
-		// 두 번째 삼각형 (CCW)
-		OutIndices.push_back(VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex + 1);
-		OutIndices.push_back(InnerVertexStartIndex + VertexIndex);
+			const int32 i0 = ArcIdx * NumThicknessSegments + ThickIdx;
+			const int32 i1 = ArcIdx * NumThicknessSegments + NextThickIdx;
+			const int32 i2 = (ArcIdx + 1) * NumThicknessSegments + ThickIdx;
+			const int32 i3 = (ArcIdx + 1) * NumThicknessSegments + NextThickIdx;
+
+			// 첫 번째 삼각형
+			OutIndices.push_back(i0);
+			OutIndices.push_back(i2);
+			OutIndices.push_back(i1);
+
+			// 두 번째 삼각형
+			OutIndices.push_back(i1);
+			OutIndices.push_back(i2);
+			OutIndices.push_back(i3);
+		}
 	}
 }
 
@@ -405,7 +466,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 				// X축 Ring은 YZ 평면에 정의됨 (AxisRots[0] = Identity)
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
-					ArcInnerRadius, ArcOuterRadius,
+					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -465,7 +526,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				TArray<FNormalVertex> vertices;
 				TArray<uint32> indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
 					vertices, indices);
 
 				ID3D11Buffer* tempVB = nullptr;
@@ -522,7 +583,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 				// Y축 Ring도 YZ 평면에서 시작 후 AxisRots[1]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
-					ArcInnerRadius, ArcOuterRadius,
+					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -582,7 +643,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				TArray<FNormalVertex> vertices;
 				TArray<uint32> indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
 					vertices, indices);
 
 				ID3D11Buffer* tempVB = nullptr;
@@ -639,7 +700,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 				// Z축 Ring도 YZ 평면에서 시작 후 AxisRots[2]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
-					ArcInnerRadius, ArcOuterRadius,
+					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
 					CurrentRotationAngle, arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
@@ -699,7 +760,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				TArray<FNormalVertex> vertices;
 				TArray<uint32> indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
-					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
 					vertices, indices);
 
 				ID3D11Buffer* tempVB = nullptr;

@@ -34,7 +34,8 @@ struct FGizmoRotateCollisionConfig
 	FGizmoRotateCollisionConfig() = default;
 
 	float OuterRadius = 1.0f;  // 링 큰 반지름
-	float InnerRadius = 0.9f;  // 링 굵기 r
+	float InnerRadius = 0.89f;  // 링 안쪽 반지름
+	float Thickness = 0.04f;   // 링의 3D 두께
 	float Scale = 2.0f;
 };
 

@@ -468,9 +468,9 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					ImGui::Text(bIsPerspective ? "Perspective Camera Settings" : "Orthographic Camera Settings");
 					ImGui::Separator();
 
-					// 전역 카메라 이동 속도 (모든 뷰포트 공유)
+					// 전역 카메라 이동 속도
 					float editorCameraSpeed = ViewportManager.GetEditorCameraSpeed();
-					if (ImGui::SliderFloat("Camera Speed (Global)", &editorCameraSpeed,
+					if (ImGui::SliderFloat("Camera Speed", &editorCameraSpeed,
 						UViewportManager::MIN_CAMERA_SPEED, UViewportManager::MAX_CAMERA_SPEED, "%.1f"))
 					{
 						ViewportManager.SetEditorCameraSpeed(editorCameraSpeed);

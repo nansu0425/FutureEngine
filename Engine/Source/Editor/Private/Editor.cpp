@@ -520,7 +520,20 @@ FQuaternion UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRa
 		}
 
 		// 누적 각도 업데이트
-		Gizmo.SetCurrentRotationAngle(Gizmo.GetCurrentRotationAngle() + DeltaAngle);
+		float NewAngle = Gizmo.GetCurrentRotationAngle() + DeltaAngle;
+
+		// 360도 클램핑: -360도 ~ +360도 범위로 제한
+		constexpr float TwoPi = 2.0f * PI;
+		if (NewAngle > TwoPi)
+		{
+			NewAngle = fmodf(NewAngle, TwoPi);
+		}
+		else if (NewAngle < -TwoPi)
+		{
+			NewAngle = fmodf(NewAngle, -TwoPi);
+		}
+
+		Gizmo.SetCurrentRotationAngle(NewAngle);
 
 		// 이전 마우스 위치 업데이트
 		Gizmo.SetPreviousMouseLocation(MouseWorld);
