@@ -82,34 +82,34 @@ FQuaternion FQuaternion::FromRotationMatrix(const FMatrix& M)
 FVector FQuaternion::ToEuler() const
 {
 	// UE Standard conversion: Quaternion → (Roll, Pitch, Yaw)
-	// Reference: UE5 Rotator.h FRotator(const FQuat& Quat)
+	// Reference: UE5 UnrealMath.cpp FQuat4f::Rotator()
 	FVector Euler;
 
 	// Gimbal Lock singularity detection (Pitch ±90°)
-	const float SingularityTest = X * Y + Z * W;
-	const float YawY = 2.f * (W * Z - X * Y);
+	const float SingularityTest = Z * X - W * Y;
+	const float YawY = 2.f * (W * Z + X * Y);
 	const float YawX = (1.f - 2.f * (Y * Y + Z * Z));
 
 	const float SINGULARITY_THRESHOLD = 0.4999995f;
 	const float RAD_TO_DEG = (180.f) / PI;
 
-	if (SingularityTest > SINGULARITY_THRESHOLD) // North pole singularity
-	{
-		Euler.Y = 90.f; // Pitch = 90°
-		Euler.Z = atan2f(YawY, YawX) * RAD_TO_DEG;
-		Euler.X = 0.f; // Roll is lost (Gimbal Lock)
-	}
-	else if (SingularityTest < -SINGULARITY_THRESHOLD) // South pole singularity
+	if (SingularityTest < -SINGULARITY_THRESHOLD) // South pole singularity
 	{
 		Euler.Y = -90.f; // Pitch = -90°
-		Euler.Z = atan2f(YawY, YawX) * RAD_TO_DEG;
+		Euler.Z = atan2f(-X, W) * RAD_TO_DEG * -2.f;
+		Euler.X = 0.f; // Roll is lost (Gimbal Lock)
+	}
+	else if (SingularityTest > SINGULARITY_THRESHOLD) // North pole singularity
+	{
+		Euler.Y = 90.f; // Pitch = 90°
+		Euler.Z = atan2f(X, W) * RAD_TO_DEG * 2.f;
 		Euler.X = 0.f; // Roll is lost (Gimbal Lock)
 	}
 	else // Normal case
 	{
 		Euler.Y = asinf(2.f * SingularityTest) * RAD_TO_DEG; // Pitch
 		Euler.Z = atan2f(YawY, YawX) * RAD_TO_DEG; // Yaw
-		Euler.X = atan2f(-2.f * (W * X - Y * Z), (1.f - 2.f * (X * X + Y * Y))) * RAD_TO_DEG; // Roll
+		Euler.X = atan2f(-2.f * (W * X + Y * Z), (1.f - 2.f * (X * X + Y * Y))) * RAD_TO_DEG; // Roll
 	}
 
 	return Euler;

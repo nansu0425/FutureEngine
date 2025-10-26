@@ -34,7 +34,8 @@ struct FGizmoRotateCollisionConfig
 	FGizmoRotateCollisionConfig() = default;
 
 	float OuterRadius = 1.0f;  // 링 큰 반지름
-	float InnerRadius = 0.9f;  // 링 굵기 r
+	float InnerRadius = 0.89f;  // 링 안쪽 반지름
+	float Thickness = 0.04f;   // 링의 3D 두께
 	float Scale = 2.0f;
 };
 
@@ -49,6 +50,7 @@ public:
 	~UGizmo() override;
 	void UpdateScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void CollectRotationAngleOverlay(class FD2DOverlayManager& Manager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void ChangeGizmoMode();
 	void SetGizmoMode(EGizmoMode Mode) { GizmoMode = Mode; }
 
@@ -61,6 +63,7 @@ public:
 	void SetComponentScale(const FVector& Scale) const { TargetComponent->SetWorldScale3D(Scale); }
 	void SetPreviousMouseLocation(const FVector& Location) { PreviousMouseLocation = Location; }
 	void SetCurrentRotationAngle(float Angle) { CurrentRotationAngle = Angle; }
+	void SetPreviousScreenPos(const FVector2& ScreenPos) { PreviousScreenPos = ScreenPos; }
 
 	void SetWorld() { bIsWorld = true; }
 	void SetLocal() { bIsWorld = false; }
@@ -83,8 +86,13 @@ public:
 	EGizmoMode GetGizmoMode() const { return GizmoMode; }
 	FVector GetGizmoAxis() const
 	{
-		FVector Axis[3]{ {1,0,0},{0,1,0},{0,0,1} };
-		return Axis[AxisIndex(GizmoDirection)];
+		switch (GizmoDirection)
+		{
+		case EGizmoDirection::Forward:	return {1, 0, 0};  // X축 회전 (YZ 평면)
+		case EGizmoDirection::Right:	return {0, 1, 0};  // Y축 회전 (XZ 평면)
+		case EGizmoDirection::Up:		return {0, 0, 1};  // Z축 회전 (XY 평면)
+		default:						return {0, 1, 0};
+		}
 	}
 
 	float GetTranslateRadius() const { return TranslateCollisionConfig.Radius * TranslateCollisionConfig.Scale; }
@@ -98,8 +106,14 @@ public:
 	bool IsInRadius(float Radius);
 	bool HasComponent() const { return TargetComponent; }
 	FVector GetPreviousMouseLocation() const { return PreviousMouseLocation; }
+	FVector2 GetPreviousScreenPos() const { return PreviousScreenPos; }
 	float GetCurrentRotationAngle() const { return CurrentRotationAngle; }
 	float GetCurrentRotationAngleDegrees() const { return FVector::GetRadianToDegree(CurrentRotationAngle); }
+	float GetSnappedRotationAngle(float SnapAngleDegrees) const
+	{
+		const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
+		return std::round(CurrentRotationAngle / SnapAngleRadians) * SnapAngleRadians;
+	}
 
 	// Quarter ring camera alignment
 	void CalculateQuarterRingDirections(UCamera* InCamera,
@@ -159,4 +173,9 @@ private:
 	// 회전 드래그 상태
 	FVector PreviousMouseLocation;
 	float CurrentRotationAngle = 0.0f;
+	FVector DragStartDirection;
+
+	// 스크린 공간 드래그 상태
+	FVector2 DragStartScreenPos;      // 드래그 시작 시 스크린 좌표
+	FVector2 PreviousScreenPos;       // 이전 프레임 스크린 좌표
 };

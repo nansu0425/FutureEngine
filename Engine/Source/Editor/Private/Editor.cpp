@@ -2,6 +2,7 @@
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Axis.h"
+#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -166,25 +167,31 @@ void UEditor::Update()
 
 void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive())
-	{
-		return;
-	}
 	BatchLines.Render();
-	FAxis::Render(InCamera, InViewport);
+
+	// D2D 오버레이 렌더링
+	FD2DOverlayManager& OverlayManager = FD2DOverlayManager::GetInstance();
+	OverlayManager.BeginCollect(InCamera, InViewport);
+
+	// FAxis 렌더링 명령 수집
+	FAxis::CollectDrawCommands(OverlayManager, InCamera, InViewport);
+
+	// Gizmo 회전 각도 오버레이 수집
+	Gizmo.CollectRotationAngleOverlay(OverlayManager, InCamera, InViewport);
+
+	// 배치 렌더링 실행
+	OverlayManager.FlushAndRender();
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	if (GEditor->IsPIESessionActive())
-	{
-		return;
-	}
 	Gizmo.RenderGizmo(InCamera, InViewport);
 	
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
-	if (ULevel* CurrentLevel = GWorld->GetLevel())
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld && EditorWorld->GetLevel())
 	{
+		ULevel* CurrentLevel = EditorWorld->GetLevel();
 		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetLightComponents();
 		for (ULightComponent* LightComp : LightComponents)
 		{
@@ -205,11 +212,14 @@ void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 
 void UEditor::UpdateBatchLines()
 {
-	uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (!EditorWorld || !EditorWorld->GetLevel()) { return; }
+
+	uint64 ShowFlags = EditorWorld->GetLevel()->GetShowFlags();
 
 	if (ShowFlags & EEngineShowFlags::SF_Octree)
 	{
-		BatchLines.UpdateOctreeVertices(GWorld->GetLevel()->GetStaticOctree());
+		BatchLines.UpdateOctreeVertices(EditorWorld->GetLevel()->GetStaticOctree());
 	}
 	else
 	{
@@ -288,8 +298,15 @@ void UEditor::ProcessMouseInput()
 
 	// KTLWeek07: 활성 뷰포트의 정보 가져오기
 	auto& ViewportManager = UViewportManager::GetInstance();
-	FViewport* ActiveViewport = ViewportManager.GetViewports()[ViewportManager.GetActiveIndex()];
+	int32 ActiveViewportIndex = ViewportManager.GetActiveIndex();
+	FViewport* ActiveViewport = ViewportManager.GetViewports()[ActiveViewportIndex];
 	if (!ActiveViewport) { return; }
+
+	// PIE 뷰포트에서는 에디터 입력(오브젝트 선택, 기즈모 조작) 처리 안 함
+	if (GEditor->IsPIESessionActive() && ActiveViewportIndex == ViewportManager.GetPIEActiveViewportIndex())
+	{
+		return;
+	}
 
 	const D3D11_VIEWPORT& ViewportInfo = ActiveViewport->GetRenderRect();
 
@@ -381,11 +398,15 @@ void UEditor::ProcessMouseInput()
 
 		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 		{
-			if (GWorld->GetLevel()->GetShowFlags())
+			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
+			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
+
+			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			if (EditorWorld && EditorWorld->GetLevel() && EditorWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
 
-				ULevel* CurrentLevel = GWorld->GetLevel();
+				ULevel* CurrentLevel = EditorWorld->GetLevel();
 				ObjectPicker.FindCandidateFromOctree(CurrentLevel->GetStaticOctree(), WorldRay, Candidate);
 
 				TArray<UPrimitiveComponent*>& DynamicCandidates = CurrentLevel->GetDynamicPrimitives();
@@ -485,48 +506,155 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 
 FQuaternion UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 {
-	FVector MouseWorld;
-	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
-	FVector LocalGizmoAxis = Gizmo.GetGizmoAxis();
-	FQuaternion StartRotQuat = Gizmo.GetDragStartActorRotationQuat();
+	const FVector GizmoLocation = Gizmo.GetGizmoLocation();
+	const FVector LocalGizmoAxis = Gizmo.GetGizmoAxis();
+	const FQuaternion StartRotQuat = Gizmo.GetDragStartActorRotationQuat();
 
-	// 평면 충돌 검사를 위한 월드 공간 축
+	// 월드 공간 회전축
 	FVector WorldRotationAxis = LocalGizmoAxis;
 	if (!Gizmo.IsWorldMode())
 	{
-		// Local 모드: 기즈모가 실제로 보이는 방향으로 평면 설정
 		WorldRotationAxis = StartRotQuat.RotateVector(LocalGizmoAxis);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, WorldRotationAxis, MouseWorld))
+	// 스크린 공간 회전 계산
+	// 활성 뷰포트 정보 가져오기
+	const FRect& ViewportRect = UViewportManager::GetInstance().GetActiveViewportRect();
+	const float ViewportWidth = static_cast<float>(ViewportRect.Width);
+	const float ViewportHeight = static_cast<float>(ViewportRect.Height);
+	const float ViewportLeft = static_cast<float>(ViewportRect.Left);
+	const float ViewportTop = static_cast<float>(ViewportRect.Top);
+
+	// 기즈모 중심을 스크린 공간으로 투영
+	const FCameraConstants& CamConst = InActiveCamera->GetFViewProjConstants();
+	const FMatrix ViewProj = CamConst.View * CamConst.Projection;
+	FVector4 GizmoScreenPos4 = FVector4(GizmoLocation, 1.0f) * ViewProj;
+
+	if (GizmoScreenPos4.W > 0.0f)
 	{
-		// 이전 프레임 마우스 위치 가져오기
-		const FVector PreviousMouse = Gizmo.GetPreviousMouseLocation();
+		// NDC로 변환
+		GizmoScreenPos4 *= (1.0f / GizmoScreenPos4.W);
 
-		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
-		FVector PlaneOriginToPrevious = PreviousMouse - PlaneOrigin;
-		PlaneOriginToMouse.Normalize();
-		PlaneOriginToPrevious.Normalize();
+		// NDC → 뷰포트 로컬 좌표 (뷰포트 내 상대 좌표)
+		const FVector2 GizmoLocalPos(
+			(GizmoScreenPos4.X * 0.5f + 0.5f) * ViewportWidth,
+			((-GizmoScreenPos4.Y) * 0.5f + 0.5f) * ViewportHeight
+		);
 
-		// 이전 프레임 대비 델타 각도 계산
-		const float DotResult = PlaneOriginToPrevious.Dot(PlaneOriginToMouse);
-		float DeltaAngle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
+		// 현재 마우스 스크린 좌표 (윈도우 전체 기준)
+		POINT MousePos;
+		GetCursorPos(&MousePos);
+		ScreenToClient(GetActiveWindow(), &MousePos);
 
-		// 회전 방향 결정
-		const FVector CrossProduct = PlaneOriginToMouse.Cross(PlaneOriginToPrevious);
-		if (CrossProduct.Dot(WorldRotationAxis) < 0.0f)
+		// 마우스를 뷰포트 로컬 좌표로 변환
+		const FVector2 CurrentScreenPos(
+			static_cast<float>(MousePos.x) - ViewportLeft,
+			static_cast<float>(MousePos.y) - ViewportTop
+		);
+
+		// 회전축의 스크린 공간 방향 계산
+		FVector2 TangentDir;
+
+		if (InActiveCamera->GetCameraType() == ECameraType::ECT_Orthographic)
 		{
-			DeltaAngle = -DeltaAngle;
+			// 직교 뷰: 회전 평면을 이루는 두 축의 끝점을 스크린에 투영
+			const FVector Axis0 = Gizmo.GetGizmoDirection() == EGizmoDirection::Forward ? FVector(0, 0, 1) :
+			                      Gizmo.GetGizmoDirection() == EGizmoDirection::Right ? FVector(0, 0, 1) :
+			                      FVector(1, 0, 0);
+			const FVector Axis1 = Gizmo.GetGizmoDirection() == EGizmoDirection::Forward ? FVector(0, 1, 0) :
+			                      Gizmo.GetGizmoDirection() == EGizmoDirection::Right ? FVector(1, 0, 0) :
+			                      FVector(0, 1, 0);
+
+			const FQuaternion RotQuat = Gizmo.IsWorldMode() ? FQuaternion::Identity() : Gizmo.GetDragStartActorRotationQuat();
+			const FVector RotatedAxis0 = RotQuat.RotateVector(Axis0);
+			const FVector RotatedAxis1 = RotQuat.RotateVector(Axis1);
+
+			FVector4 Axis0World4 = FVector4(GizmoLocation + RotatedAxis0 * 64.0f, 1.0f);
+			FVector4 Axis1World4 = FVector4(GizmoLocation + RotatedAxis1 * 64.0f, 1.0f);
+			FVector4 Axis0Screen4 = Axis0World4 * ViewProj;
+			FVector4 Axis1Screen4 = Axis1World4 * ViewProj;
+
+			FVector2 Axis0ScreenPos(0, 0);
+			FVector2 Axis1ScreenPos(0, 0);
+
+			if (Axis0Screen4.W > 0.0f)
+			{
+				Axis0Screen4 *= (1.0f / Axis0Screen4.W);
+				Axis0ScreenPos = FVector2(
+					(Axis0Screen4.X * 0.5f + 0.5f) * ViewportWidth,
+					((-Axis0Screen4.Y) * 0.5f + 0.5f) * ViewportHeight
+				);
+			}
+
+			if (Axis1Screen4.W > 0.0f)
+			{
+				Axis1Screen4 *= (1.0f / Axis1Screen4.W);
+				Axis1ScreenPos = FVector2(
+					(Axis1Screen4.X * 0.5f + 0.5f) * ViewportWidth,
+					((-Axis1Screen4.Y) * 0.5f + 0.5f) * ViewportHeight
+				);
+			}
+
+			FVector2 AxisScreenDir = (Axis1ScreenPos - Axis0ScreenPos).GetNormalized();
+			TangentDir = FVector2(-AxisScreenDir.Y, AxisScreenDir.X);
+		}
+		else
+		{
+			// 원근 뷰: 축 방향을 View 변환하여 스크린 방향 계산
+			FVector4 AxisDirView = FVector4(WorldRotationAxis, 0.0f) * CamConst.View;
+			FVector2 AxisScreenDir(AxisDirView.X, -AxisDirView.Y);
+			AxisScreenDir = AxisScreenDir.GetNormalized();
+			TangentDir = FVector2(-AxisScreenDir.Y, AxisScreenDir.X);
 		}
 
-		// 누적 각도 업데이트
-		Gizmo.SetCurrentRotationAngle(Gizmo.GetCurrentRotationAngle() + DeltaAngle);
+		// 스크린 공간 드래그 벡터 (정규화하지 않음)
+		const FVector2 PrevScreenPos = Gizmo.GetPreviousScreenPos();
+		const FVector2 DragDir = CurrentScreenPos - PrevScreenPos;
 
-		// 이전 마우스 위치 업데이트
-		Gizmo.SetPreviousMouseLocation(MouseWorld);
+		// 마우스가 실제로 움직였는지 체크
+		const float DragDistSq = DragDir.LengthSquared();
+		constexpr float MinDragDistSq = 0.1f * 0.1f;
 
-		// 시작점부터의 총 회전량으로 Quaternion 계산
-		const FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(LocalGizmoAxis, Gizmo.GetCurrentRotationAngle());
+		if (DragDistSq > MinDragDistSq)
+		{
+			// Dot Product로 회전 각도 계산
+			float PixelDelta = TangentDir.Dot(DragDir);
+
+			// 픽셀을 각도(라디안)로 변환 (언리얼에선 1픽셀 = 1도 사용, 어차피 감도 조절용 매직 넘버라 그대로 차용)
+			constexpr float PixelsToDegrees = 1.0f;
+			float DeltaAngleDegrees = PixelDelta * PixelsToDegrees;
+			float DeltaAngle = FVector::GetDegreeToRadian(DeltaAngleDegrees);
+
+			// 누적 각도 업데이트
+			float NewAngle = Gizmo.GetCurrentRotationAngle() + DeltaAngle;
+
+			// 360deg Clamp
+			constexpr float TwoPi = 2.0f * PI;
+			if (NewAngle > TwoPi)
+			{
+				NewAngle = fmodf(NewAngle, TwoPi);
+			}
+			else if (NewAngle < -TwoPi)
+			{
+				NewAngle = fmodf(NewAngle, -TwoPi);
+			}
+
+			Gizmo.SetCurrentRotationAngle(NewAngle);
+		}
+
+		// 현재 스크린 좌표 저장
+		Gizmo.SetPreviousScreenPos(CurrentScreenPos);
+
+		// 최종 회전 Quaternion 계산 (스냅 적용)
+		float FinalAngle = Gizmo.GetCurrentRotationAngle();
+		if (UViewportManager::GetInstance().IsRotationSnapEnabled())
+		{
+			const float SnapAngleDegrees = UViewportManager::GetInstance().GetRotationSnapAngle();
+			const float SnapAngleRadians = FVector::GetDegreeToRadian(SnapAngleDegrees);
+			FinalAngle = std::round(Gizmo.GetCurrentRotationAngle() / SnapAngleRadians) * SnapAngleRadians;
+		}
+
+		const FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(LocalGizmoAxis, FinalAngle);
 		if (Gizmo.IsWorldMode())
 		{
 			return StartRotQuat * DeltaRotQuat;
@@ -536,6 +664,7 @@ FQuaternion UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRa
 			return DeltaRotQuat * StartRotQuat;
 		}
 	}
+
 	return Gizmo.GetComponentRotation();
 }
 

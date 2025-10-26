@@ -1,11 +1,12 @@
 #pragma once
 
 class UCamera;
+class FD2DOverlayManager;
 struct ImDrawList;
 
 /**
  * @brief 뷰포트 좌하단에 표시되는 카메라 방향 축 위젯
- * 2D 오버레이로 렌더링
+ * D2DOverlayManager에 렌더링 명령 추가
  */
 class FAxis
 {
@@ -13,7 +14,7 @@ public:
 	FAxis();
 	virtual	~FAxis();
 
-	static void Render(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	static void CollectDrawCommands(FD2DOverlayManager& Manager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 private:
 	// 뷰포트 좌하단 오프셋

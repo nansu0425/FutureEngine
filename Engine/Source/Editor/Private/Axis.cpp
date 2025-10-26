@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Editor/Public/Axis.h"
+#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Editor/Public/Camera.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include <d2d1.h>
@@ -8,17 +9,9 @@ FAxis::FAxis() = default;
 
 FAxis::~FAxis() = default;
 
-void FAxis::Render(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+void FAxis::CollectDrawCommands(FD2DOverlayManager& Manager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
     if (!InCamera)
-    {
-	    return;
-    }
-
-    // D2D 리소스 가져오기
-    ID2D1RenderTarget* D2DRT = URenderer::GetInstance().GetDeviceResources()->GetD2DRenderTarget();
-
-    if (!D2DRT)
     {
 	    return;
     }
@@ -88,122 +81,76 @@ void FAxis::Render(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	D2D1_POINT_2F TextPosY = ViewToScreenWithOffset(ViewAxisY, TextOffset);
 	D2D1_POINT_2F TextPosZ = ViewToScreenWithOffset(ViewAxisZ, TextOffset);
 
-	// D2D 브러시 생성
-	ID2D1SolidColorBrush* BrushX = nullptr;
-	ID2D1SolidColorBrush* BrushY = nullptr;
-	ID2D1SolidColorBrush* BrushZ = nullptr;
-	ID2D1SolidColorBrush* BrushCenter = nullptr;
-
-	D2DRT->CreateSolidColorBrush(D2D1::ColorF(1.0f, 0.0f, 0.0f), &BrushX); // 빨강
-	D2DRT->CreateSolidColorBrush(D2D1::ColorF(0.0f, 1.0f, 0.0f), &BrushY); // 초록
-	D2DRT->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.4f, 1.0f), &BrushZ); // 파랑
-	D2DRT->CreateSolidColorBrush(D2D1::ColorF(0.2f, 0.2f, 0.2f), &BrushCenter); // 회색
-
-	// D2D 텍스트 포맷 생성
-	IDWriteFactory* DWriteFactory = URenderer::GetInstance().GetDeviceResources()->GetDWriteFactory();
-	IDWriteTextFormat* TextFormat = nullptr;
-	if (DWriteFactory)
-	{
-		DWriteFactory->CreateTextFormat(
-			L"Arial",
-			nullptr,
-			DWRITE_FONT_WEIGHT_BOLD,
-			DWRITE_FONT_STYLE_NORMAL,
-			DWRITE_FONT_STRETCH_NORMAL,
-			13.0f,
-			L"en-us",
-			&TextFormat
-		);
-
-		// 텍스트 중앙 정렬
-		if (TextFormat)
-		{
-			TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-			TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-		}
-	}
-
-	// D2D 렌더링 시작
-	D2DRT->BeginDraw();
+	// 색상 정의
+	const D2D1_COLOR_F ColorX = D2D1::ColorF(1.0f, 0.0f, 0.0f); // 빨강
+	const D2D1_COLOR_F ColorY = D2D1::ColorF(0.0f, 1.0f, 0.0f); // 초록
+	const D2D1_COLOR_F ColorZ = D2D1::ColorF(0.0f, 0.4f, 1.0f); // 파랑
+	const D2D1_COLOR_F ColorCenter = D2D1::ColorF(0.2f, 0.2f, 0.2f); // 회색
 
 	// X, Y, Z 축 라인 그리기
-	D2DRT->DrawLine(AxisCenter, AxisEndX, BrushX, LineThick);
-	D2DRT->DrawLine(AxisCenter, AxisEndY, BrushY, LineThick);
-	D2DRT->DrawLine(AxisCenter, AxisEndZ, BrushZ, LineThick);
+	Manager.AddLine(AxisCenter, AxisEndX, ColorX, LineThick);
+	Manager.AddLine(AxisCenter, AxisEndY, ColorY, LineThick);
+	Manager.AddLine(AxisCenter, AxisEndZ, ColorZ, LineThick);
 
 	// 중심점 그리기
-	D2D1_ELLIPSE OuterCircle = D2D1::Ellipse(AxisCenter, 3.0f, 3.0f);
-	D2D1_ELLIPSE InnerCircle = D2D1::Ellipse(AxisCenter, 1.5f, 1.5f);
-	D2DRT->FillEllipse(OuterCircle, BrushCenter);
-	D2DRT->FillEllipse(InnerCircle, BrushCenter);
+	Manager.AddEllipse(AxisCenter, 3.0f, 3.0f, ColorCenter, true);
+	Manager.AddEllipse(AxisCenter, 1.5f, 1.5f, ColorCenter, true);
 
 	// 축 레이블 텍스트 그리기
-	if (TextFormat)
+	constexpr float TextBoxSize = 16.0f;
+
+	// Ortho 뷰에서만 카메라를 정면으로 향하는 축 텍스트 숨김
+	const bool bIsOrtho = (InCamera->GetCameraType() == ECameraType::ECT_Orthographic);
+	constexpr float VisibilityThreshold = 0.98f;  // 거의 완전히 수직일 때만 숨김
+
+	// X축 텍스트
+	bool bShowX = true;
+	if (bIsOrtho && std::abs(ViewAxisX.Z) >= VisibilityThreshold)
 	{
-		constexpr float TextBoxSize = 16.0f;
-
-		// Ortho 뷰에서만 카메라를 정면으로 향하는 축 텍스트 숨김
-		const bool bIsOrtho = (InCamera->GetCameraType() == ECameraType::ECT_Orthographic);
-		constexpr float VisibilityThreshold = 0.98f;  // 거의 완전히 수직일 때만 숨김
-
-		// X축 텍스트
-		bool bShowX = true;
-		if (bIsOrtho && std::abs(ViewAxisX.Z) >= VisibilityThreshold)
-		{
-			bShowX = false;
-		}
-		if (bShowX)
-		{
-			D2D1_RECT_F RectX = D2D1::RectF(
-				TextPosX.x - TextBoxSize,
-				TextPosX.y - TextBoxSize,
-				TextPosX.x + TextBoxSize,
-				TextPosX.y + TextBoxSize
-			);
-			D2DRT->DrawText(L"X", 1, TextFormat, RectX, BrushX);
-		}
-
-		// Y축 텍스트
-		bool bShowY = true;
-		if (bIsOrtho && std::abs(ViewAxisY.Z) >= VisibilityThreshold)
-		{
-			bShowY = false;
-		}
-		if (bShowY)
-		{
-			D2D1_RECT_F RectY = D2D1::RectF(
-				TextPosY.x - TextBoxSize,
-				TextPosY.y - TextBoxSize,
-				TextPosY.x + TextBoxSize,
-				TextPosY.y + TextBoxSize
-			);
-			D2DRT->DrawText(L"Y", 1, TextFormat, RectY, BrushY);
-		}
-
-		// Z축 텍스트
-		bool bShowZ = true;
-		if (bIsOrtho && std::abs(ViewAxisZ.Z) >= VisibilityThreshold)
-		{
-			bShowZ = false;
-		}
-		if (bShowZ)
-		{
-			D2D1_RECT_F RectZ = D2D1::RectF(
-				TextPosZ.x - TextBoxSize,
-				TextPosZ.y - TextBoxSize,
-				TextPosZ.x + TextBoxSize,
-				TextPosZ.y + TextBoxSize
-			);
-			D2DRT->DrawText(L"Z", 1, TextFormat, RectZ, BrushZ);
-		}
+		bShowX = false;
+	}
+	if (bShowX)
+	{
+		D2D1_RECT_F RectX = D2D1::RectF(
+			TextPosX.x - TextBoxSize,
+			TextPosX.y - TextBoxSize,
+			TextPosX.x + TextBoxSize,
+			TextPosX.y + TextBoxSize
+		);
+		Manager.AddText(L"X", RectX, ColorX, 13.0f, true);
 	}
 
-	D2DRT->EndDraw();
+	// Y축 텍스트
+	bool bShowY = true;
+	if (bIsOrtho && std::abs(ViewAxisY.Z) >= VisibilityThreshold)
+	{
+		bShowY = false;
+	}
+	if (bShowY)
+	{
+		D2D1_RECT_F RectY = D2D1::RectF(
+			TextPosY.x - TextBoxSize,
+			TextPosY.y - TextBoxSize,
+			TextPosY.x + TextBoxSize,
+			TextPosY.y + TextBoxSize
+		);
+		Manager.AddText(L"Y", RectY, ColorY, 13.0f, true);
+	}
 
-	// 리소스 해제
-	if (TextFormat) TextFormat->Release();
-	if (BrushX) BrushX->Release();
-	if (BrushY) BrushY->Release();
-	if (BrushZ) BrushZ->Release();
-	if (BrushCenter) BrushCenter->Release();
+	// Z축 텍스트
+	bool bShowZ = true;
+	if (bIsOrtho && std::abs(ViewAxisZ.Z) >= VisibilityThreshold)
+	{
+		bShowZ = false;
+	}
+	if (bShowZ)
+	{
+		D2D1_RECT_F RectZ = D2D1::RectF(
+			TextPosZ.x - TextBoxSize,
+			TextPosZ.y - TextBoxSize,
+			TextPosZ.x + TextBoxSize,
+			TextPosZ.y + TextBoxSize
+		);
+		Manager.AddText(L"Z", RectZ, ColorZ, 13.0f, true);
+	}
 }

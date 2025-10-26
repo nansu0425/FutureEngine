@@ -238,6 +238,27 @@ struct FVector2
 	 * @brief 자신의 벡터의 각 성분을 제곱하여 더한 값을 반환하는 함수 (루트 사용 X)
 	 */
 	inline float LengthSquared() const { return (X * X) + (Y * Y); }
+
+	/**
+	 * @brief 벡터를 정규화한 새로운 벡터를 반환하는 함수
+	 */
+	inline FVector2 GetNormalized() const
+	{
+		const float Len = Length();
+		if (Len > 0.0f)
+		{
+			return {X / Len, Y / Len};
+		}
+		return {0.0f, 0.0f};
+	}
+
+	/**
+	 * @brief 두 벡터의 내적을 계산하는 함수
+	 */
+	inline float Dot(const FVector2& Other) const
+	{
+		return X * Other.X + Y * Other.Y;
+	}
 };
 
 FArchive& operator<<(FArchive& Ar, FVector2& Vector);

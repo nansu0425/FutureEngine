@@ -748,6 +748,21 @@ void UActorDetailWidget::RenderTransformEdit()
 		}
 	}
 
+	// 작은 값은 0으로 스냅 (부동소수점 오차 제거)
+	constexpr float ZeroSnapThreshold = 0.0001f;
+	if (std::abs(cachedRotation.X) < ZeroSnapThreshold)
+	{
+		cachedRotation.X = 0.0f;
+	}
+	if (std::abs(cachedRotation.Y) < ZeroSnapThreshold)
+	{
+		cachedRotation.Y = 0.0f;
+	}
+	if (std::abs(cachedRotation.Z) < ZeroSnapThreshold)
+	{
+		cachedRotation.Z = 0.0f;
+	}
+
 	float RotArray[3] = { cachedRotation.X, cachedRotation.Y, cachedRotation.Z };
 	bool RotChanged = false;
 
