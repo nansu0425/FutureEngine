@@ -53,12 +53,12 @@ private:
      */
     void SummedAreaFilterShadowMap(const FShadowMapResource* ShadowMap) const;
 
-    // 필터링 패스에서 사용하는 **임시 텍스처**의 고정 너비
-    // @note 필터링할 섀도우 맵의 실제 너비는 이 값(1024)보다 **작거나 같아야** 정상 작동합니다.
+    // 필터링 패스에서 사용하는 임시 텍스처의 고정 너비
+    // @note 필터링할 섀도우 맵의 실제 너비는 이 값(1024)보다 작거나 같아야 정상 작동합니다.
     static constexpr uint32 TEXTURE_WIDTH = 1024;
 
     // 필터링 패스에서 사용하는 **임시 텍스처**의 고정 높이
-    // @note 필터링할 섀도우 맵의 실제 높이는 이 값(1024)보다 **작거나 같아야** 정상 작동합니다.
+    // @note 필터링할 섀도우 맵의 실제 높이는 이 값(1024)보다 작거나 같아야 정상 작동합니다.
     static constexpr uint32 TEXTURE_HEIGHT = 1024;
 
     // Shadow map pass
