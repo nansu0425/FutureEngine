@@ -108,6 +108,9 @@ public:
 	// Camera Speed
 	float GetEditorCameraSpeed() const { return EditorCameraSpeed; }
 	void SetEditorCameraSpeed(float InSpeed);
+
+	// Shared Ortho Zoom
+	float GetSharedOrthoZoom() const { return SharedOrthoZoom; }
 	static constexpr float MIN_CAMERA_SPEED = 1.0f;
 	static constexpr float MAX_CAMERA_SPEED = 70.0f;
 	static constexpr float DEFAULT_CAMERA_SPEED = 20.0f;
@@ -192,7 +195,7 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
-	float SharedOrthoWidth = 50.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
+	float SharedOrthoZoom = 1000.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;
@@ -252,4 +255,3 @@ private:
 	// PIE가 활성화된 뷰포트 인덱스 (-1이면 모든 뷰포트에서 PIE, 0~3이면 해당 뷰포트에서만 PIE)
 	int32 PIEActiveViewportIndex = -1;
 };
-

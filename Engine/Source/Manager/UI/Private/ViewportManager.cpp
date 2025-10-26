@@ -208,43 +208,43 @@ void UViewportManager::Update()
 				if (Client && Client->IsOrtho())
 				{
 					// 오쏘 뷰: 휠로 줌 제어
-					constexpr float DollyStep = 10.0f;
-					constexpr float MinOrthoWidth = 10.0f;
-					constexpr float MaxOrthoWidth = 500.0f;
+					constexpr float ZoomStep = 50.0f;  // OrthoZoom 단위 조정
+					constexpr float MinOrthoZoom = 10.0f;
+					constexpr float MaxOrthoZoom = 10000.0f;
 
-					float NewOrthoWidth = SharedOrthoWidth - (WheelDelta * DollyStep);
+					float NewOrthoZoom = SharedOrthoZoom - (WheelDelta * ZoomStep);
 
 					// 점진적 제한 (최소값 근처에서 점점 느려지게)
-					if (NewOrthoWidth < MinOrthoWidth)
+					if (NewOrthoZoom < MinOrthoZoom)
 					{
-						float DistanceFromMin = SharedOrthoWidth - MinOrthoWidth;
+						float DistanceFromMin = SharedOrthoZoom - MinOrthoZoom;
 						if (DistanceFromMin > 0.0f)
 						{
-							float ProgressRatio = min(1.0f, DistanceFromMin / 20.0f);
-							SharedOrthoWidth = max(MinOrthoWidth, SharedOrthoWidth - (WheelDelta * DollyStep * ProgressRatio));
+							float ProgressRatio = min(1.0f, DistanceFromMin / 50.0f);
+							SharedOrthoZoom = max(MinOrthoZoom, SharedOrthoZoom - (WheelDelta * ZoomStep * ProgressRatio));
 						}
 						else
 						{
-							SharedOrthoWidth = MinOrthoWidth;
+							SharedOrthoZoom = MinOrthoZoom;
 						}
 					}
-					else if (NewOrthoWidth > MaxOrthoWidth)
+					else if (NewOrthoZoom > MaxOrthoZoom)
 					{
-						SharedOrthoWidth = MaxOrthoWidth;
+						SharedOrthoZoom = MaxOrthoZoom;
 					}
 					else
 					{
-						SharedOrthoWidth = NewOrthoWidth;
+						SharedOrthoZoom = NewOrthoZoom;
 					}
 
-					// 모든 오쏘 뷰에 SharedOrthoWidth 적용
+					// 모든 오쏘 뷰에 SharedOrthoZoom 적용
 					for (FViewportClient* OrthoClient : Clients)
 					{
 						if (OrthoClient && OrthoClient->IsOrtho())
 						{
 							if (UCamera* Cam = OrthoClient->GetCamera())
 							{
-								Cam->SetOrthoWidth(SharedOrthoWidth);
+								Cam->SetOrthoZoom(SharedOrthoZoom);
 							}
 						}
 					}
@@ -950,11 +950,15 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		int32 LoadedActiveIndex = 0;
 		float LoadedSplitterV = 0.5f;
 		float LoadedSplitterH = 0.5f;
+		float LoadedSharedOrthoZoom = 100.0f;
 
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 0);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom);
+
+		SharedOrthoZoom = LoadedSharedOrthoZoom;
 
 		SetViewportLayout(static_cast<EViewportLayout>(LayoutInt));
 		SetActiveIndex(LoadedActiveIndex);
@@ -1009,13 +1013,13 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 							float SavedFovY = Camera->GetFovY();
 							float SavedNearZ = Camera->GetNearZ();
 							float SavedFarZ = Camera->GetFarZ();
-							float SavedOrthoWidth = Camera->GetOrthoWidth();
+							float SavedOrthoZoom = Camera->GetOrthoZoom();
 							float SavedMoveSpeed = Camera->GetMoveSpeed();
 
 							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY);
 							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ);
 							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ);
-							FJsonSerializer::ReadFloat(CameraJson, "OrthoWidth", SavedOrthoWidth);
+							FJsonSerializer::ReadFloat(CameraJson, "OrthoZoom", SavedOrthoZoom);
 							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed);
 
 							Camera->SetLocation(SavedLocation);
@@ -1023,10 +1027,22 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 							Camera->SetFovY(SavedFovY);
 							Camera->SetNearZ(SavedNearZ);
 							Camera->SetFarZ(SavedFarZ);
-							Camera->SetOrthoWidth(SavedOrthoWidth);
+							Camera->SetOrthoZoom(SavedOrthoZoom);
 							Camera->SetMoveSpeed(SavedMoveSpeed);
 						}
 					}
+				}
+			}
+		}
+
+		// 로드 후 모든 Ortho 카메라에 SharedOrthoZoom 적용 (OrthoWidth 무시)
+		for (FViewportClient* Client : Clients)
+		{
+			if (Client && Client->IsOrtho())
+			{
+				if (UCamera* Cam = Client->GetCamera())
+				{
+					Cam->SetOrthoZoom(SharedOrthoZoom);
 				}
 			}
 		}
@@ -1040,6 +1056,7 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		ViewportSystemJson["ActiveIndex"] = GetActiveIndex();
 		ViewportSystemJson["SplitterV"] = IniSaveSharedV;
 		ViewportSystemJson["SplitterH"] = IniSaveSharedH;
+		ViewportSystemJson["SharedOrthoZoom"] = SharedOrthoZoom;
 
 		// 2) 각 뷰포트 상태 저장
 		JSON ViewportsArray = json::Array();
@@ -1066,7 +1083,7 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 				CameraJson["FovY"] = Camera->GetFovY();
 				CameraJson["NearZ"] = Camera->GetNearZ();
 				CameraJson["FarZ"] = Camera->GetFarZ();
-				CameraJson["OrthoWidth"] = Camera->GetOrthoWidth();
+				CameraJson["OrthoZoom"] = Camera->GetOrthoZoom();  // OrthoWidth 대신 OrthoZoom 저장
 				CameraJson["MoveSpeed"] = Camera->GetMoveSpeed();
 
 				ViewportJson["Camera"] = CameraJson;

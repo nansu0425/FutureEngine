@@ -47,9 +47,8 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
         // Top view: Looking down (-Z direction)
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
         ViewportCamera->SetLocation(FVector(0.0f, 0.0f, 100.0f));
         ViewportCamera->SetForward(FVector(0.0f, 0.0f, -1.0f));
         ViewportCamera->SetRight(FVector(0.0f, -1.0f, 0.0f));
@@ -66,10 +65,9 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
-        // Bottom view: Looking up (+Z direction) - X가 아래
-        ViewportCamera->SetRotation(FVector(0.0f, -90.0f, 0.0f));
-        ViewportCamera->SetLocation(FVector(0.0f, 0.0f, -50.0f));
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
+        // Bottom view: Looking up (+Z direction)
+        ViewportCamera->SetLocation(FVector(0.0f, 0.0f, -100.0f));
         ViewportCamera->SetForward(FVector(0.0f, 0.0f, 1.0f));
         ViewportCamera->SetRight(FVector(0.0f, 1.0f, 0.0f));
         ViewportCamera->SetUp(FVector(-1.0f, 0.0f, 0.0f));
@@ -85,11 +83,10 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
-        // Front view: Looking backward (-X direction) - Y가 왼쪽
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 180.0f));
-        ViewportCamera->SetLocation(FVector(100.0f, 0.0f, 0.0f));
-        ViewportCamera->SetForward(FVector(-1.0f, 0.0f, 0.0f));
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
+        // Front view: Looking forward (+X direction)
+        ViewportCamera->SetLocation(FVector(-100.0f, 0.0f, 0.0f));
+        ViewportCamera->SetForward(FVector(1.0f, 0.0f, 0.0f));
         ViewportCamera->SetRight(FVector(0.0f, -1.0f, 0.0f));
         ViewportCamera->SetUp(FVector(0.0f, 0.0f, 1.0f));
         break;
@@ -104,11 +101,10 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
-        // Back view: Looking forward (+X direction) - Y가 오른쪽
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
-        ViewportCamera->SetLocation(FVector(-100.0f, 0.0f, 0.0f));
-        ViewportCamera->SetForward(FVector(1.0f, 0.0f, 0.0f));
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
+        // Back view: Looking backward (-X direction)
+        ViewportCamera->SetLocation(FVector(100.0f, 0.0f, 0.0f));
+        ViewportCamera->SetForward(FVector(-1.0f, 0.0f, 0.0f));
         ViewportCamera->SetRight(FVector(0.0f, 1.0f, 0.0f));
         ViewportCamera->SetUp(FVector(0.0f, 0.0f, 1.0f));
         break;
@@ -123,9 +119,8 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
         // Right view: Looking right (+Y direction)
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, 0.0f));
         ViewportCamera->SetLocation(FVector(0.0f, -100.0f, 0.0f));
         ViewportCamera->SetForward(FVector(0.0f, 1.0f, 0.0f));
         ViewportCamera->SetRight(FVector(-1.0f, 0.0f, 0.0f));
@@ -142,10 +137,9 @@ void FViewportClient::SetViewType(EViewType InType)
 
         ViewportCamera->SetCameraType(ECameraType::ECT_Orthographic);
         ViewportCamera->SetFarZ(5000.0f);
-        ViewportCamera->SetOrthoWidth(50.0f);
+        ViewportCamera->SetOrthoZoom(UViewportManager::GetInstance().GetSharedOrthoZoom());
         // Left view: Looking left (-Y direction)
-        ViewportCamera->SetRotation(FVector(0.0f, 0.0f, -90.0f));
-        ViewportCamera->SetLocation(FVector(0.0f, 50.0f, 0.0f));
+        ViewportCamera->SetLocation(FVector(0.0f, 100.0f, 0.0f));
         ViewportCamera->SetForward(FVector(0.0f, -1.0f, 0.0f));
         ViewportCamera->SetRight(FVector(1.0f, 0.0f, 0.0f));
         ViewportCamera->SetUp(FVector(0.0f, 0.0f, 1.0f));

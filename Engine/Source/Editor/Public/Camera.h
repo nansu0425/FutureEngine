@@ -32,6 +32,8 @@ public:
 	void UpdateMatrixByPers();
 	void UpdateMatrixByOrth();
 
+	float GetOrthoUnitsPerPixel(float ViewportWidth) const;
+
 	/**
 	 * @brief Setter
 	 */
@@ -42,6 +44,7 @@ public:
 	void SetNearZ(const float InOtherNearZ) { NearZ = InOtherNearZ; }
 	void SetFarZ(const float InOtherFarZ) { FarZ = InOtherFarZ; }
 	void SetOrthoWidth(const float InOrthoWidth) { OrthoWidth = InOrthoWidth; }
+	void SetOrthoZoom(const float InOrthoZoom) { OrthoZoom = InOrthoZoom; }
 	void SetCameraType(const ECameraType InCameraType) { CameraType = InCameraType; }
 	void SetForward(const FVector& InForward) { Forward = InForward; }
 	void SetUp(const FVector& InUp) { Up = InUp; }
@@ -67,6 +70,7 @@ public:
 	float GetNearZ() const { return NearZ; }
 	float GetFarZ() const { return FarZ; }
 	float GetOrthoWidth() const { return OrthoWidth; }
+	float GetOrthoZoom() const { return OrthoZoom; }
 	ECameraType GetCameraType() const { return CameraType; }
 	ViewVolumeCuller& GetViewVolumeCuller() { return ViewVolumeCuller; }
 
@@ -109,6 +113,7 @@ private:
 	float NearZ = {};
 	float FarZ = {};
 	float OrthoWidth = {};
+	float OrthoZoom = 1000.0f; // 뷰포트 독립적 줌 레벨
 	ECameraType CameraType = {};
 
 	// 절두체 컬링을 이용한 최적화

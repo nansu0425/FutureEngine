@@ -544,11 +544,23 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 					}
 					else
 					{
-						// Orthographic: Zoom Level (OrthoWidth) 표시
-						float orthoWidth = Camera->GetOrthoWidth();
-						if (ImGui::DragFloat("Zoom Level", &orthoWidth, 10.0f, 10.0f, 10000.0f, "%.1f"))
+						// Orthographic: Zoom Level (OrthoZoom) 표시 및 SharedOrthoZoom 동기화
+						float orthoZoom = Camera->GetOrthoZoom();
+						if (ImGui::DragFloat("Zoom Level", &orthoZoom, 10.0f, 10.0f, 10000.0f, "%.1f"))
 						{
-							Camera->SetOrthoWidth(orthoWidth);
+							Camera->SetOrthoZoom(orthoZoom);
+
+							// 모든 Ortho 카메라에 동일한 줌 적용 (SharedOrthoZoom 갱신)
+							for (FViewportClient* OtherClient : ViewportManager.GetClients())
+							{
+								if (OtherClient && OtherClient->IsOrtho())
+								{
+									if (UCamera* OtherCam = OtherClient->GetCamera())
+									{
+										OtherCam->SetOrthoZoom(orthoZoom);
+									}
+								}
+							}
 						}
 
 						// 정보: Aspect는 자동 계산됨
