@@ -128,6 +128,8 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 	} break;
 	case EGizmoMode::Rotate:
 	{
+		EGizmoDirection Dirs[3] = { EGizmoDirection::Forward, EGizmoDirection::Right, EGizmoDirection::Up };
+
 		for (int a = 0; a < 3; a++)
 		{
 			if (IsRayCollideWithPlane(WorldRay, GizmoLocation, GizmoAxises[a], CollisionPoint))
@@ -135,6 +137,35 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 				FVector RadiusVector = CollisionPoint - GizmoLocation;
 				if (Gizmo.IsInRadius(RadiusVector.Length()))
 				{
+					// Quarter ring 각도 범위 체크 (90도만)
+					if (!Gizmo.IsDragging())
+					{
+						// 충돌점을 축 평면에 투영
+						FVector ToHit = CollisionPoint - GizmoLocation;
+						FVector Projected = ToHit - (GizmoAxises[a] * ToHit.Dot(GizmoAxises[a]));
+						float ProjLen = Projected.Length();
+						if (ProjLen < 0.001f)
+						{
+							continue;
+						}
+						Projected = Projected * (1.0f / ProjLen);
+
+						// Quarter ring 시작/끝 방향 즉시 계산 (언리얼 방식 - 뷰포트별)
+						FVector StartDir, EndDir;
+						Gizmo.CalculateQuarterRingDirections(InActiveCamera, Dirs[a], StartDir, EndDir);
+						StartDir.Normalize();
+						EndDir.Normalize();
+
+						// 충돌점이 StartDir와 EndDir 사이에 있는지 확인
+						float DotStart = Projected.Dot(StartDir);
+						float DotEnd = Projected.Dot(EndDir);
+
+						if (DotStart < 0.0f || DotEnd < 0.0f)
+						{
+							continue;
+						}
+					}
+
 					switch (a)
 					{
 					case 0:	Gizmo.SetGizmoDirection(EGizmoDirection::Forward);	return;

@@ -183,15 +183,13 @@ void UCamera::UpdateMatrixByOrth()
 
 	/**
 	 * @brief Projection 행렬 연산
-	 * 뷰포트 크기 변경 시 실제 view size 조정
-	 * OrthoWidth는 zoom level(base size)을 나타냄
-	 * Height 기준으로 고정하고 Width는 aspect에 따라 변경
+	 * OrthoWidth는 세로(Height) 방향의 월드 단위 크기
+	 * 가로는 Aspect 비율로 확장하여 정사각형 타일 유지
 	 */
 	const float SafeAspect = max(0.1f, Aspect);
 
-	// OrthoWidth를 "기준 높이"로 사용하고, aspect로 실제 width 계산
-	const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
-	const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+	const float OrthoHeight = OrthoWidth;
+	const float OrthoWidth_Actual = OrthoWidth * SafeAspect;
 
 	const float Left = -OrthoWidth_Actual * 0.5f;
 	const float Right = OrthoWidth_Actual * 0.5f;
@@ -228,8 +226,8 @@ const FCameraConstants UCamera::GetFViewProjConstantsInverse() const
 	{
 		// UpdateMatrixByOrth와 동일한 계산 방식 사용
 		const float SafeAspect = max(0.1f, Aspect);
-		const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
-		const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+		const float OrthoHeight = OrthoWidth;
+		const float OrthoWidth_Actual = OrthoWidth * SafeAspect;
 
 		const float Left = -OrthoWidth_Actual * 0.5f;
 		const float Right = OrthoWidth_Actual * 0.5f;

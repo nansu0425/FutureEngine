@@ -1115,3 +1115,35 @@ void UViewportManager::SetEditorCameraSpeed(float InSpeed)
 		}
 	}
 }
+
+bool UViewportManager::IsAnySplitterDragging() const
+{
+	// Recursively check if any splitter is currently being dragged
+	std::function<bool(SWindow*)> CheckSplitter = [&](SWindow* Window) -> bool
+	{
+		if (!Window) return false;
+
+		// Check if this window is a splitter and is dragging
+		if (SSplitter* Splitter = Window->AsSplitter())
+		{
+			if (Splitter->IsDragging())
+			{
+				return true;
+			}
+
+			// Recursively check children
+			if (CheckSplitter(Splitter->SideLT))
+			{
+				return true;
+			}
+			if (CheckSplitter(Splitter->SideRB))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	return CheckSplitter(Root) || CheckSplitter(QuadRoot);
+}

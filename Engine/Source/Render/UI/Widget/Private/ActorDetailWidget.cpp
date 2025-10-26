@@ -584,14 +584,9 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	// --- SceneComponent Transform Properties ---
 	USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedComponent);
-	if (!SceneComponent) { return; }
-
-	// Ctrl+` 단축키로 전체 World/Local 전환
-	const UInputManager& InputManager = UInputManager::GetInstance();
-	if (InputManager.IsKeyDown(EKeyInput::Ctrl) && InputManager.IsKeyPressed(EKeyInput::Backtick))
+	if (!SceneComponent)
 	{
-		bShowWorldLocation = !bShowWorldLocation;
-		bShowWorldRotation = !bShowWorldRotation;
+		return;
 	}
 
 	// Transform 헤더
