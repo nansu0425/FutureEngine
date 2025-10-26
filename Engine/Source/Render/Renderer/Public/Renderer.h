@@ -117,6 +117,8 @@ public:
 	FClusteredRenderingGridPass* GetClusteredRenderingGridPass() { return ClusteredRenderingGridPass; }
 	FShadowMapPass* GetShadowMapPass() const { return ShadowMapPass; }
 
+	const FRenderingContext& GetRenderingContext() const { return RenderingContext; }
+
 private:
 	/*
 	* @brief URenderer가 Initialize 메소드로 vertex shader, pixel shader들을 생성할 때, 해당 셰이더 파일의 용도와 최종 수정 시간을 기록합니다.
@@ -203,6 +205,8 @@ private:
 	
 	bool bIsResizing = false;
 	bool bFXAAEnabled = true;
+
+	FRenderingContext RenderingContext{};
 
 	TArray<class FRenderPass*> RenderPasses;
 

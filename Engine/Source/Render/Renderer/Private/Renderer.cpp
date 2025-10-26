@@ -839,7 +839,8 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	{
 		FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
 	}
-	FRenderingContext RenderingContext(
+
+	RenderingContext = FRenderingContext(
 
 		&ViewProj,
 		InViewport->GetViewportClient()->GetCamera(),
@@ -875,21 +876,36 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+			auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent);
+			
+			if (SpotLightComponent &&
+				SpotLightComponent->GetVisible() &&
+				SpotLightComponent->GetLightEnabled())
 			{
 				RenderingContext.SpotLights.push_back(SpotLightComponent);
 			}
-			else
+			else if (PointLightComponent &&
+				PointLightComponent->GetVisible() &&
+				PointLightComponent->GetLightEnabled())
 			{
 				RenderingContext.PointLights.push_back(PointLightComponent);
 			}
 		}
-		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+
+		auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent);
+		if (DirectionalLightComponent &&
+			DirectionalLightComponent->GetVisible() &&
+			DirectionalLightComponent->GetLightEnabled() &&
+			RenderingContext.DirectionalLights.empty())
 		{
 			RenderingContext.DirectionalLights.push_back(DirectionalLightComponent);
 		}
-		
-		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+
+		auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent);
+		if (AmbientLightComponent &&
+			AmbientLightComponent->GetVisible() &&
+			AmbientLightComponent->GetLightEnabled() &&
+			RenderingContext.AmbientLights.empty())
 		{
 			RenderingContext.AmbientLights.push_back(AmbientLightComponent);
 		}
