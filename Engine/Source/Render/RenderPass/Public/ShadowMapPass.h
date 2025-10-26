@@ -204,18 +204,7 @@ private:
 	TMap<UPointLightComponent*, ID3D11RasterizerState*> PointRasterizerStates;
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
-	struct FShadowViewProjConstant
-	{
-		FMatrix ViewProjection;
-	};
 	ID3D11Buffer* ShadowViewProjConstantBuffer = nullptr;
-
-	// Point Light Shadow constant buffer (PointLightShadowDepth.hlsl의 b2)
-	struct FPointLightShadowParams
-	{
-		FVector LightPosition;
-		float LightRange;
-	};
 	ID3D11Buffer* PointLightShadowParamsBuffer = nullptr;
 
 	FShadowMapResource ShadowAtlas{};

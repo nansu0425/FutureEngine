@@ -23,7 +23,6 @@ struct FIllumination
     float4 Specular;
 };
 
-
 // Constant Buffers
 cbuffer Model : register(b0)
 {
@@ -106,10 +105,15 @@ uint GetPointLightCount(uint LightIndicesOffset)
     return Count;
 }
 
+uint GetPointLightIndex(uint LightIndicesIndex)
+{
+    return PointLightIndices[LightIndicesIndex];
+}
+
 FPointLightInfo GetPointLight(uint LightIdx)
 {
-    uint LightInfoIdx = PointLightIndices[LightIdx];
-    return PointLightInfos[LightInfoIdx];
+    //uint LightInfoIdx = PointLightIndices[LightIdx];
+    return PointLightInfos[LightIdx];
 }
 
 uint GetSpotLightCount(uint LightIndicesOffset)
@@ -124,10 +128,16 @@ uint GetSpotLightCount(uint LightIndicesOffset)
     }
     return Count;
 }
+
+uint GetSpotLightIndex(uint LightIndicesIndex)
+{
+    return SpotLightIndices[LightIndicesIndex];
+}
+
 FSpotLightInfo GetSpotLight(uint LightIdx)
 {
-    uint LightInfoIdx = SpotLightIndices[LightIdx];
-    return SpotLightInfos[LightInfoIdx];
+    // uint LightInfoIdx = SpotLightIndices[LightIdx];
+    return SpotLightInfos[LightIdx];
 }
 
 cbuffer MaterialConstants : register(b2)
@@ -152,9 +162,9 @@ Texture2D AlphaTexture : register(t4);
 Texture2D BumpTexture : register(t5);
 
 // Shadow Maps
-Texture2D DirectionalShadowMap : register(t10);
-Texture2D SpotShadowMap : register(t11);
-TextureCube PointShadowMap : register(t12);
+Texture2D ShadowAtlas : register(t10);
+// Texture2D SpotShadowMap : register(t11);
+// TextureCube PointShadowMap : register(t12);
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
@@ -282,7 +292,7 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
 
     // PCF (Percentage Closer Filtering) for soft shadows
     float ShadowFactor = 0.0f;
-    float2 TexelSize = 1.0f / float2(2048.0f, 2048.0f); // Shadow map resolution
+    float2 TexelSize = 1.0f / float2(1024.0f, 1024.0f); // Shadow map resolution
 
     // 3x3 PCF kernel
     [unroll]
@@ -292,9 +302,15 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
         for (int y = -1; y <= 1; y++)
         {
             float2 Offset = float2(x, y) * TexelSize;
-            ShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(
+
+            // 현재는 Directional Light가 한장이라고 가정하여
+            // Shadow Atlas의 우측 상단을 가져온다고 가정
+            // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
+            // 별도로 위치를 지정해야 함.
+            float2 AtlasTexcoord =(ShadowTexCoord + Offset) * 0.125f;
+            ShadowFactor += ShadowAtlas.SampleCmpLevelZero(
                 ShadowSampler,
-                ShadowTexCoord + Offset,
+                AtlasTexcoord,
                 CurrentDepth
             );
         }
@@ -305,12 +321,16 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
     return ShadowFactor;
 }
 
-float CalculateSpotShadowFactor(FSpotLightInfo Light, float3 WorldPos)
+float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
 {
     // If shadow is disabled, return fully lit (1.0)
     if (Light.CastShadow == 0)
         return 1.0f;
 
+    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
+    if (LightIndex >= 8)
+        return 1.0f;
+    
     // Transform world position to light space
     float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
 
@@ -345,9 +365,16 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, float3 WorldPos)
         for (int y = -1; y <= 1; y++)
         {
             float2 Offset = float2(x, y) * TexelSize;
-            ShadowFactor += SpotShadowMap.SampleCmpLevelZero(
+            float2 AtlasTexcoord = (ShadowTexCoord + Offset) * 0.125f;
+
+            // Atlas에서 SpotLight는 세로 2번째 줄에 위치해 있음.
+            AtlasTexcoord.y += 0.125f;
+            // 몇 번째 Light인지로 가로축 위치를 정한다.
+            AtlasTexcoord.x += 0.125f * LightIndex;
+            
+            ShadowFactor += ShadowAtlas.SampleCmpLevelZero(
                 ShadowSampler,
-                ShadowTexCoord + Offset,
+                AtlasTexcoord,
                 CurrentDepth
             );
         }
@@ -378,10 +405,96 @@ static const float3 CubePCFOffsets[20] = {
     float3( 1.0,  1.0,  1.0), float3(-1.0, -1.0, -1.0)
 };
 
-float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
+float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
+{
+  float3 AbsDir = abs(Direction);
+  float2 UV;
+  uint FaceIndex;
+
+  // Major axis selection (DirectX standard)
+  if (AbsDir.x >= AbsDir.y && AbsDir.x >= AbsDir.z)
+  {
+      // X-axis dominant
+      if (Direction.x > 0.0f)  // +X face
+      {
+          FaceIndex = 0;
+          float ma = AbsDir.x;
+          float sc = -Direction.z;
+          float tc = -Direction.y;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+      else  // -X face
+      {
+          FaceIndex = 1;
+          float ma = AbsDir.x;
+          float sc = Direction.z;
+          float tc = -Direction.y;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+  }
+  else if (AbsDir.y >= AbsDir.z)
+  {
+      // Y-axis dominant
+      if (Direction.y > 0.0f)  // +Y face
+      {
+          FaceIndex = 2;
+          float ma = AbsDir.y;
+          float sc = Direction.x;
+          float tc = Direction.z;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+      else  // -Y face
+      {
+          FaceIndex = 3;
+          float ma = AbsDir.y;
+          float sc = Direction.x;
+          float tc = -Direction.z;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+  }
+  else
+  {
+      // Z-axis dominant
+      if (Direction.z > 0.0f)  // +Z face
+      {
+          FaceIndex = 4;
+          float ma = AbsDir.z;
+          float sc = Direction.x;
+          float tc = -Direction.y;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+      else  // -Z face
+      {
+          FaceIndex = 5;
+          float ma = AbsDir.z;
+          float sc = -Direction.x;
+          float tc = -Direction.y;
+          UV.x = (sc / ma + 1.0f) * 0.5f;
+          UV.y = (tc / ma + 1.0f) * 0.5f;
+      }
+  }
+
+  // Atlas UV 계산
+  float2 AtlasUV = UV * 0.125f;
+  AtlasUV.x += 0.125f * LightIndex;
+  AtlasUV.y += 0.25f + 0.125f * FaceIndex;
+
+  return AtlasUV;
+}
+
+float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 WorldPos)
 {
     // If shadow is disabled, return fully lit (1.0)
     if (Light.CastShadow == 0)
+        return 1.0f;
+
+    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
+    if (LightIndex >= 8)
         return 1.0f;
 
     // Calculate direction from light to pixel (for cube map sampling)
@@ -407,25 +520,56 @@ float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
 
     float ShadowFactor = 0.0f;
     float TotalSamples = 1.0f;  // Start with 1 for center sample
+    
+    float2 AtlasTexcoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex);
+    
+    //float StoredDistance = ShadowAtlas.Load(int3(AtlasTexcoord, 0)).r;
+    float StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
 
-    // Center sample
-    float StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, SampleDir, 0).r;
     ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
 
-    // Offset samples for soft shadow edges
     [unroll]
     for (int i = 0; i < 20; i++)
     {
         // Apply offset in tangent space around the sample direction
         float3 OffsetDir = normalize(SampleDir + CubePCFOffsets[i] * FilterRadius);
-
+        AtlasTexcoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex);
+        
         // Sample shadow map with offset direction
-        StoredDistance = PointShadowMap.SampleLevel(SamplerWrap, OffsetDir, 0).r;
+        StoredDistance = ShadowAtlas.Sample(
+            SamplerWrap,
+            AtlasTexcoord
+            ).r;
 
         // Compare and accumulate
         ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
         TotalSamples += 1.0f;
     }
+    
+    // Center sample
+    // float StoredDistance = PointShadowMap.SampleLevel(
+    //     SamplerWrap,
+    //     SampleDir,
+    //     0).r;
+    // ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+
+    // Offset samples for soft shadow edges
+    // [unroll]
+    // for (int i = 0; i < 20; i++)
+    // {
+    //     // Apply offset in tangent space around the sample direction
+    //     float3 OffsetDir = normalize(SampleDir + CubePCFOffsets[i] * FilterRadius);
+    //
+    //     // Sample shadow map with offset direction
+    //     StoredDistance = PointShadowMap.SampleLevel(
+    //         SamplerWrap,
+    //         OffsetDir,
+    //         0).r;
+    //
+    //     // Compare and accumulate
+    //     ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+    //     TotalSamples += 1.0f;
+    // }
 
     // Average all samples
     return ShadowFactor / TotalSamples;
@@ -468,7 +612,7 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     return Result;
 }
 
-FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
+FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
     FIllumination Result = (FIllumination) 0;
 
@@ -485,7 +629,7 @@ FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, floa
     float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
-    float ShadowFactor = CalculatePointShadowFactor(Info, WorldPos);
+    float ShadowFactor = CalculatePointShadowFactor(Info, LightIndex, WorldPos);
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * ShadowFactor;
@@ -504,7 +648,7 @@ FIllumination CalculatePointLight(FPointLightInfo Info, float3 WorldNormal, floa
     return Result;
 }
 
-FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
+FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 WorldNormal, float3 WorldPos, float3 ViewPos)
 {
     FIllumination Result = (FIllumination) 0;
     
@@ -540,7 +684,7 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     }
 
     // Shadow factor
-    float ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
+    float ShadowFactor = CalculateSpotShadowFactor(Info, LightIndex, WorldPos);
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
 
@@ -615,8 +759,9 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     [loop]
     for (uint i = 0; i < PointLightCount; i++)
     {
-        FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
-        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
+        uint LightIndex = GetPointLightIndex(LightIndicesOffset + i);
+        FPointLightInfo PointLight = GetPointLight(LightIndex);
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, LightIndex, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
 
     // 4.Spot Lights
@@ -624,8 +769,9 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     [loop]
     for (uint j = 0; j < SpotLightCount; j++)
     {
-        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
-        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
+        uint LightIndex = GetSpotLightIndex(LightIndicesOffset + j);
+        FSpotLightInfo SpotLight = GetSpotLight(LightIndex);
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, LightIndex, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
     
     // Assign to output
@@ -638,7 +784,7 @@ PS_INPUT Uber_VS(VS_INPUT Input)
 }
 
 // Pixel Shader
-PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
+PS_OUTPUT Uber_PS(PS_INPUT Input)
 {
     PS_OUTPUT Output;
     float4 finalPixel = float4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -695,8 +841,9 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     [loop]
     for (uint i = 0; i < PointLightCount ; i++)
     {
-        FPointLightInfo PointLight = GetPointLight(LightIndicesOffset + i);
-        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, N, Input.WorldPosition, ViewWorldLocation));
+        uint LightIndex = GetPointLightIndex(LightIndicesOffset + i);
+        FPointLightInfo PointLight = GetPointLight(LightIndex);
+        ADD_ILLUM(Illumination, CalculatePointLight(PointLight, LightIndex, N, Input.WorldPosition, ViewWorldLocation));
     }
 
     // 4. Spot Lights
@@ -704,8 +851,9 @@ PS_OUTPUT Uber_PS(PS_INPUT Input) : SV_TARGET
     [loop]
     for (uint j = 0; j < SpotLightCount ; j++)
     {
-        FSpotLightInfo SpotLight = GetSpotLight(LightIndicesOffset + j);
-        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, N, Input.WorldPosition, ViewWorldLocation));
+        uint LightIndex = GetSpotLightIndex(LightIndicesOffset + j);
+        FSpotLightInfo SpotLight = GetSpotLight(LightIndex);
+        ADD_ILLUM(Illumination, CalculateSpotLight(SpotLight, LightIndex, N, Input.WorldPosition, ViewWorldLocation));
     }
     
     finalPixel.rgb = Illumination.Ambient.rgb * ambientColor.rgb + Illumination.Diffuse.rgb * diffuseColor.rgb + Illumination.Specular.rgb * specularColor.rgb;

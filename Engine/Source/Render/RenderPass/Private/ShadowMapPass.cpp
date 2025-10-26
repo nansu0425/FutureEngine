@@ -7,6 +7,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/RenderPass/Public/ShadowData.h"
 
 #define MAX_LIGHT_NUM 8
 #define X_OFFSET 1024.0f
