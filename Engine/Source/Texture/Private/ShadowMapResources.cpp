@@ -70,7 +70,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 	VarianceTexDesc.SampleDesc.Count = 1;
 	VarianceTexDesc.SampleDesc.Quality = 0;
 	VarianceTexDesc.Usage = D3D11_USAGE_DEFAULT;
-	VarianceTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	VarianceTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	VarianceTexDesc.CPUAccessFlags = 0;
 	VarianceTexDesc.MiscFlags = 0;
 
@@ -104,8 +104,20 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 	{
 		throw std::runtime_error("Failed to create VSM SRV");
 	}
+	
+	// 7. VSM용 Unordered Access View(UAV) 생성
+	D3D11_UNORDERED_ACCESS_VIEW_DESC VarianceUAVDesc = {};
+	VarianceUAVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	VarianceUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	VarianceUAVDesc.Texture2D.MipSlice = 0;
 
-	// 7. SAT용 VSM Texture 생성
+	hr = Device->CreateUnorderedAccessView(VarianceShadowTexture.Get(), &VarianceUAVDesc, VarianceShadowUAV.ReleaseAndGetAddressOf());
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create VSM UAV");
+	}
+
+	// 8. SAT용 VSM Texture 생성
 	D3D11_TEXTURE2D_DESC SummedAreaVarianceTexDesc = {};
 	SummedAreaVarianceTexDesc.Width = Resolution;
 	SummedAreaVarianceTexDesc.Height = Resolution;
@@ -125,7 +137,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 		throw std::runtime_error("Failed to create SAT VSM texture");
 	}
 
-	// 8. SAT용 VSM RTV 생성
+	// 9. SAT용 VSM RTV 생성
 	D3D11_RENDER_TARGET_VIEW_DESC SummedAreaVarianceRTVDesc = {};
 	SummedAreaVarianceRTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 	SummedAreaVarianceRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -137,7 +149,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 		throw std::runtime_error("Failed to create SAT VSM RTV");
 	}
 
-	// 9. SAT용 VSM SRV 생성
+	// 10. SAT용 VSM SRV 생성
 	D3D11_SHADER_RESOURCE_VIEW_DESC SummedAreaVarianceSRVDesc = {};
 	SummedAreaVarianceSRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 	SummedAreaVarianceSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -150,7 +162,7 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 		throw std::runtime_error("Failed to create SAT VSM SRV");
 	}
 
-	// 10. SAT용 VSM UAV 생성
+	// 11. SAT용 VSM UAV 생성
 	D3D11_UNORDERED_ACCESS_VIEW_DESC SummedAreaVarianceUAVDesc = {};
 	SummedAreaVarianceUAVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 	SummedAreaVarianceUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
@@ -181,6 +193,7 @@ void FShadowMapResource::Release()
 	VarianceShadowTexture.Reset();
 	VarianceShadowRTV.Reset();
 	VarianceShadowSRV.Reset();
+	VarianceShadowUAV.Reset();
 
 	SummedAreaVarianceShadowTexture.Reset();
 	SummedAreaVarianceShadowRTV.Reset();

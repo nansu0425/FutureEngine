@@ -20,6 +20,7 @@ struct FShadowMapResource
 	ComPtr<ID3D11Texture2D> VarianceShadowTexture = nullptr;
 	ComPtr<ID3D11RenderTargetView> VarianceShadowRTV = nullptr;
 	ComPtr<ID3D11ShaderResourceView> VarianceShadowSRV = nullptr;
+	ComPtr<ID3D11UnorderedAccessView> VarianceShadowUAV = nullptr;
 	
 	ComPtr<ID3D11Texture2D> SummedAreaVarianceShadowTexture = nullptr;
 	ComPtr<ID3D11RenderTargetView> SummedAreaVarianceShadowRTV = nullptr;

@@ -49,7 +49,6 @@ void URenderer::Init(HWND InWindowHandle)
 	Pipeline = new UPipeline(GetDeviceContext());
 	ViewportClient = new FViewport();
 	
-	
 	// 렌더링 상태 및 리소스 생성
 	CreateDepthStencilState();
 	CreateBlendState();
@@ -66,6 +65,8 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDepthOnlyShader();
 	CreatePointLightShadowShader();
 	CreateSummedAreaTextureFilterShader();
+	CreateGaussianTextureFilterShader();
+	CreateBoxTextureFilterShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -74,7 +75,9 @@ void URenderer::Init(HWND InWindowHandle)
 		PointLightShadowVS, PointLightShadowPS, PointLightShadowInputLayout);
 	RenderPasses.push_back(ShadowMapPass);
 
-	ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, SummedAreaTextureFilterRowCS, SummedAreaTextureFilterColumnCS);
+	// ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, SummedAreaTextureFilterRowCS, SummedAreaTextureFilterColumnCS);
+	ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, GaussianTextureFilterRowCS, GaussianTextureFilterColumnCS);
+	// ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, BoxTextureFilterRowCS, BoxTextureFilterColumnCS);
 	RenderPasses.push_back(ShadowMapFilterPass);
 
 	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
@@ -479,6 +482,36 @@ void URenderer::CreateSummedAreaTextureFilterShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SUMMED_AREA_TEXTURE_FILTER);
 }
 
+void URenderer::CreateGaussianTextureFilterShader()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/GaussianTextureFilter.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	// 1. Row Scan Shader (Default)
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &GaussianTextureFilterRowCS, "mainCS", nullptr);
+
+	// 2. Column Scan Shader (with macro)
+	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &GaussianTextureFilterColumnCS, "mainCS", ColumnScanMacro);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::GAUSSIAN_TEXTURE_FILTER);
+}
+
+void URenderer::CreateBoxTextureFilterShader()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/BoxTextureFilter.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	// 1. Row Scan Shader (Default)
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &BoxTextureFilterRowCS, "mainCS", nullptr);
+
+	// 2. Column Scan Shader (with macro)
+	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &BoxTextureFilterColumnCS, "mainCS", ColumnScanMacro);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::BOX_TEXTURE_FILTER);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -524,127 +557,137 @@ void URenderer::HotReloadShaders()
 	{
 		switch (*Iter)
 		{
-			case ShaderUsage::DEFAULT:
-				SafeRelease(DefaultInputLayout);
-				SafeRelease(DefaultVertexShader);
-				SafeRelease(DefaultPixelShader);
-				CreateDefaultShader();
-				break;
-			case ShaderUsage::TEXTURE:
-				SafeRelease(TextureInputLayout);
-				SafeRelease(TextureVertexShader);
-				SafeRelease(TexturePixelShader);
-				CreateTextureShader();
-				for (FRenderPass* RenderPass : RenderPasses)
+		case ShaderUsage::DEFAULT:
+			SafeRelease(DefaultInputLayout);
+			SafeRelease(DefaultVertexShader);
+			SafeRelease(DefaultPixelShader);
+			CreateDefaultShader();
+			break;
+		case ShaderUsage::TEXTURE:
+			SafeRelease(TextureInputLayout);
+			SafeRelease(TextureVertexShader);
+			SafeRelease(TexturePixelShader);
+			CreateTextureShader();
+			for (FRenderPass* RenderPass : RenderPasses)
+			{
+				if (auto* BillboardPass = dynamic_cast<FBillboardPass*>(RenderPass))
 				{
-					if (auto* BillboardPass = dynamic_cast<FBillboardPass*>(RenderPass))
-					{
-						BillboardPass->SetInputLayout(TextureInputLayout);
-						BillboardPass->SetVertexShader(TextureVertexShader);
-						BillboardPass->SetPixelShader(TexturePixelShader);
-						break;
-					}
+					BillboardPass->SetInputLayout(TextureInputLayout);
+					BillboardPass->SetVertexShader(TextureVertexShader);
+					BillboardPass->SetPixelShader(TexturePixelShader);
+					break;
 				}
-				break;
-			case ShaderUsage::DECAL:
-				SafeRelease(DecalInputLayout);
-				SafeRelease(DecalVertexShader);
-				SafeRelease(DecalPixelShader);
-				CreateDecalShader();
-				for (FRenderPass* RenderPass : RenderPasses)
+			}
+			break;
+		case ShaderUsage::DECAL:
+			SafeRelease(DecalInputLayout);
+			SafeRelease(DecalVertexShader);
+			SafeRelease(DecalPixelShader);
+			CreateDecalShader();
+			for (FRenderPass* RenderPass : RenderPasses)
+			{
+				if (auto* DecalPass = dynamic_cast<FDecalPass*>(RenderPass))
 				{
-					if (auto* DecalPass = dynamic_cast<FDecalPass*>(RenderPass))
-					{
-						DecalPass->SetInputLayout(DecalInputLayout);
-						DecalPass->SetVertexShader(DecalVertexShader);
-						DecalPass->SetPixelShader(DecalPixelShader);
-						break;
-					}
+					DecalPass->SetInputLayout(DecalInputLayout);
+					DecalPass->SetVertexShader(DecalVertexShader);
+					DecalPass->SetPixelShader(DecalPixelShader);
+					break;
 				}
-				break;
-			case ShaderUsage::FOG:
-				SafeRelease(FogInputLayout);
-				SafeRelease(FogVertexShader);
-				SafeRelease(FogPixelShader);
-				CreateFogShader();
-				for (FRenderPass* RenderPass : RenderPasses)
+			}
+			break;
+		case ShaderUsage::FOG:
+			SafeRelease(FogInputLayout);
+			SafeRelease(FogVertexShader);
+			SafeRelease(FogPixelShader);
+			CreateFogShader();
+			for (FRenderPass* RenderPass : RenderPasses)
+			{
+				if (auto* FogPass = dynamic_cast<FFogPass*>(RenderPass))
 				{
-					if (auto* FogPass = dynamic_cast<FFogPass*>(RenderPass))
-					{
-						FogPass->SetInputLayout(FogInputLayout);
-						FogPass->SetVertexShader(FogVertexShader);
-						FogPass->SetPixelShader(FogPixelShader);
-						break;
-					}
+					FogPass->SetInputLayout(FogInputLayout);
+					FogPass->SetVertexShader(FogVertexShader);
+					FogPass->SetPixelShader(FogPixelShader);
+					break;
 				}
-				break;
-			case ShaderUsage::FXAA:
-				SafeRelease(FXAAInputLayout);
-				SafeRelease(FXAAVertexShader);
-				SafeRelease(FXAAPixelShader);
-				SafeRelease(FXAASamplerState);
-				CreateFXAAShader();
-				if (FXAAPass)
+			}
+			break;
+		case ShaderUsage::FXAA:
+			SafeRelease(FXAAInputLayout);
+			SafeRelease(FXAAVertexShader);
+			SafeRelease(FXAAPixelShader);
+			SafeRelease(FXAASamplerState);
+			CreateFXAAShader();
+			if (FXAAPass)
+			{
+				FXAAPass->SetInputLayout(FXAAInputLayout);
+				FXAAPass->SetVertexShader(FXAAVertexShader);
+				FXAAPass->SetPixelShader(FXAAPixelShader);
+				FXAAPass->SetSamplerState(FXAASamplerState);
+			}
+			break;
+		case ShaderUsage::STATICMESH:
+			SafeRelease(UberLitInputLayout);
+			SafeRelease(UberLitVertexShader);
+			SafeRelease(UberLitVertexShaderGouraud);
+			SafeRelease(UberLitPixelShader);
+			SafeRelease(UberLitPixelShaderGouraud);
+			SafeRelease(UberLitPixelShaderBlinnPhong);
+			SafeRelease(UberLitPixelShaderWorldNormal);
+			CreateStaticMeshShader();
+			for (FRenderPass* RenderPass : RenderPasses)
+			{
+				if (auto* StaticMeshPass = dynamic_cast<FStaticMeshPass*>(RenderPass))
 				{
-					FXAAPass->SetInputLayout(FXAAInputLayout);
-					FXAAPass->SetVertexShader(FXAAVertexShader);
-					FXAAPass->SetPixelShader(FXAAPixelShader);
-					FXAAPass->SetSamplerState(FXAASamplerState);
+					StaticMeshPass->SetInputLayout(UberLitInputLayout);
+					StaticMeshPass->SetVertexShader(UberLitVertexShader);
+					StaticMeshPass->SetPixelShader(UberLitPixelShader);
+					break;
 				}
-				break;
-			case ShaderUsage::STATICMESH:
-				SafeRelease(UberLitInputLayout);
-				SafeRelease(UberLitVertexShader);
-				SafeRelease(UberLitVertexShaderGouraud);
-				SafeRelease(UberLitPixelShader);
-				SafeRelease(UberLitPixelShaderGouraud);
-				SafeRelease(UberLitPixelShaderBlinnPhong);
-				SafeRelease(UberLitPixelShaderWorldNormal);
-				CreateStaticMeshShader();
-				for (FRenderPass* RenderPass : RenderPasses)
+			}
+			break;
+		case ShaderUsage::GIZMO:
+			SafeRelease(GizmoInputLayout);
+			SafeRelease(GizmoVS);
+			SafeRelease(GizmoPS);
+			CreateGizmoShader();
+			for (FRenderPass* RenderPass : RenderPasses)
+			{
+				if (auto* LightPass = dynamic_cast<FLightPass*>(RenderPass))
 				{
-					if (auto* StaticMeshPass = dynamic_cast<FStaticMeshPass*>(RenderPass))
-					{
-						StaticMeshPass->SetInputLayout(UberLitInputLayout);
-						StaticMeshPass->SetVertexShader(UberLitVertexShader);
-						StaticMeshPass->SetPixelShader(UberLitPixelShader);
-						break;
-					}
+					LightPass->SetInputLayout(GizmoInputLayout);
+					LightPass->SetVertexShader(GizmoVS);
+					LightPass->SetPixelShader(GizmoPS);
+					break;
 				}
-				break;
-			case ShaderUsage::GIZMO:
-				SafeRelease(GizmoInputLayout);
-				SafeRelease(GizmoVS);
-				SafeRelease(GizmoPS);
-				CreateGizmoShader();
-				for (FRenderPass* RenderPass : RenderPasses)
-				{
-					if (auto* LightPass = dynamic_cast<FLightPass*>(RenderPass))
-					{
-						LightPass->SetInputLayout(GizmoInputLayout);
-						LightPass->SetVertexShader(GizmoVS);
-						LightPass->SetPixelShader(GizmoPS);
-						break;
-					}
-				}
-				break;
-							case ShaderUsage::CLUSTERED_RENDERING_GRID:
-								SafeRelease(ClusteredRenderingGridInputLayout);
-								SafeRelease(ClusteredRenderingGridVS);
-								SafeRelease(ClusteredRenderingGridPS);
-								CreateClusteredRenderingGrid();
-								if (ClusteredRenderingGridPass)
-								{
-									ClusteredRenderingGridPass->SetVertexShader(ClusteredRenderingGridVS);
-									ClusteredRenderingGridPass->SetPixelShader(ClusteredRenderingGridPS);
-									ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
-								}
-								break;
-							case ShaderUsage::SUMMED_AREA_TEXTURE_FILTER:
-								SafeRelease(SummedAreaTextureFilterRowCS);
-								SafeRelease(SummedAreaTextureFilterColumnCS);
-								CreateSummedAreaTextureFilterShader();
-								break;
+			}
+			break;
+		case ShaderUsage::CLUSTERED_RENDERING_GRID:
+			SafeRelease(ClusteredRenderingGridInputLayout);
+			SafeRelease(ClusteredRenderingGridVS);
+			SafeRelease(ClusteredRenderingGridPS);
+			CreateClusteredRenderingGrid();
+			if (ClusteredRenderingGridPass)
+			{
+				ClusteredRenderingGridPass->SetVertexShader(ClusteredRenderingGridVS);
+				ClusteredRenderingGridPass->SetPixelShader(ClusteredRenderingGridPS);
+				ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
+			}
+			break;
+		case ShaderUsage::SUMMED_AREA_TEXTURE_FILTER:
+			SafeRelease(SummedAreaTextureFilterRowCS);
+			SafeRelease(SummedAreaTextureFilterColumnCS);
+			CreateSummedAreaTextureFilterShader();
+			break;
+		case ShaderUsage::GAUSSIAN_TEXTURE_FILTER:
+			SafeRelease(GaussianTextureFilterRowCS);
+			SafeRelease(GaussianTextureFilterColumnCS);
+			CreateGaussianTextureFilterShader();
+			break;
+		case ShaderUsage::BOX_TEXTURE_FILTER:
+			SafeRelease(BoxTextureFilterRowCS);
+			SafeRelease(BoxTextureFilterColumnCS);
+			CreateBoxTextureFilterShader();
+			break;
 		}
 	}
 }
@@ -697,6 +740,12 @@ void URenderer::ReleaseDefaultShader()
 
 	SafeRelease(SummedAreaTextureFilterRowCS);
 	SafeRelease(SummedAreaTextureFilterColumnCS);
+
+	SafeRelease(GaussianTextureFilterRowCS);
+	SafeRelease(GaussianTextureFilterColumnCS);
+
+	SafeRelease(BoxTextureFilterRowCS);
+	SafeRelease(BoxTextureFilterColumnCS);
 }
 
 void URenderer::ReleaseDepthStencilState()

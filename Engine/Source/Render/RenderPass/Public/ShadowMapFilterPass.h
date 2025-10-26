@@ -46,7 +46,7 @@ private:
      * @note 주로 박스(Box) 필터나 가우시안(Gaussian) 블러 같은 일반적인 분리형 필터에 사용됩니다.
      * @todo 미구현 기능
      */
-    void FilterShadowMap(const FShadowMapResource* ShadowMap) const {}
+    void FilterShadowMap(const FShadowMapResource* ShadowMap) const;
     
     /**
      * @brief 섀도우 맵에 Summed Area Table (SAT) 기반 필터링을 수행합니다.
@@ -60,6 +60,10 @@ private:
     // 필터링 패스에서 사용하는 **임시 텍스처**의 고정 높이
     // @note 필터링할 섀도우 맵의 실제 높이는 이 값(1024)보다 작거나 같아야 정상 작동합니다.
     static constexpr uint32 TEXTURE_HEIGHT = 1024;
+
+    static constexpr uint32 THREAD_BLOCK_SIZE_X = 16;
+    
+    static constexpr uint32 THREAD_BLOCK_SIZE_Y = 16;
 
     // Shadow map pass
     FShadowMapPass* ShadowMapPass;

@@ -641,8 +641,8 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
     // float ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
-    // float ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
-    float ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
+    float ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
+    // float ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * ShadowFactor;

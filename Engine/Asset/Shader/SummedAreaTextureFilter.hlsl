@@ -3,17 +3,17 @@
  * @brief Summed Area 계산용 Hillis-Steele 병렬 누적 합 (Inclusive Scan) - Row/Column 통합 셰이더
  *
  * @details
- * C++(Host)에서 셰이더 컴파일 시 매크로 정의 여부에 따라 동작이 변경됩니다.
+ * C++(Host)에서 셰이더 컴파일 시 매크로 정의 여부에 따라 동작이 변경된다.
  *
  * 1. ROW SCAN (매크로 미정의 시 - Default)
- * - 입력 텍스처의 각 '행(Row)'을 기준으로 누적 합을 계산합니다.
+ * - 입력 텍스처의 각 '행(Row)'을 기준으로 누적 합을 계산한다.
  * - C++ Dispatch: Dispatch(1, TextureHeight, 1)
  * - 스레드 그룹: [numthreads(THREAD_BLOCK_SIZE, 1, 1)] (1 그룹 = 1 행)
  * - GroupID.y = RowIndex, GroupIndex = ColumnIndex
  * - 가정: TextureWidth <= THREAD_BLOCK_SIZE
  *
  * 2. COLUMN SCAN (SCAN_DIRECTION_COLUMN 매크로 정의 시)
- * - 입력 텍스처의 각 '열(Column)'을 기준으로 누적 합을 계산합니다.
+ * - 입력 텍스처의 각 '열(Column)'을 기준으로 누적 합을 계산한다.
  * - C++ Dispatch: Dispatch(TextureWidth, 1, 1)
  * - 스레드 그룹: [numthreads(THREAD_BLOCK_SIZE, 1, 1)] (1 그룹 = 1 열)
  * - GroupID.x = ColumnIndex, GroupIndex = RowIndex
@@ -21,7 +21,7 @@
  *
  * <주의사항>
  * 이 셰이더는 스캔하는 방향의 텍스처 크기가 
- * THREAD_BLOCK_SIZE (예: 1024)보다 작거나 같다고 가정합니다.
+ * THREAD_BLOCK_SIZE (예: 1024)보다 작거나 같다고 가정한다.
  * 
  * @author geb0598
  * @date 2025-10-26
@@ -60,21 +60,21 @@ void mainCS(
 
 #ifdef SCAN_DIRECTION_COLUMN
     // --- Column Scan 모드 ---
-    // 1개 스레드 그룹이 1개의 '열'을 처리합니다.
+    // 1개 스레드 그룹이 1개의 '열'을 처리
     // C++ Dispatch: Dispatch(TextureWidth, 1, 1)
     
     Row = ThreadIndex;          // 스레드 인덱스(0~1023)가 '행' 인덱스가 됩니다.
     Column = GroupID.x;         // 그룹 ID(X)가 '열' 인덱스가 됩니다.
-    MaxElementsInThisPass = TextureHeight; // 경계 검사는 '높이'를 기준으로 합니다.
+    MaxElementsInThisPass = TextureHeight; // 경계 검사는 '높이' 기준
 
 #else
     // --- Row Scan 모드 (Default) ---
-    // 1개 스레드 그룹이 1개의 '행'을 처리합니다.
+    // 1개 스레드 그룹이 1개의 '행'을 처리
     // C++ Dispatch: Dispatch(1, TextureHeight, 1)
 
-    Row = GroupID.y;            // 그룹 ID(Y)가 '행' 인덱스가 됩니다.
-    Column = ThreadIndex;       // 스레드 인덱스(0~1023)가 '열' 인덱스가 됩니다.
-    MaxElementsInThisPass = TextureWidth;  // 경계 검사는 '너비'를 기준으로 합니다.
+    Row = GroupID.y;            // 그룹 ID(Y)가 '행' 인덱스
+    Column = ThreadIndex;       // 스레드 인덱스(0~1023)가 '열' 인덱스
+    MaxElementsInThisPass = TextureWidth;  // 경계 검사는 '너비'를 기준
     
 #endif
 

@@ -83,7 +83,8 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
 			FShadowMapResource* ShadowMap = ShadowMapPass->GetDirectionalShadowMap(DirLight);
-			SummedAreaFilterShadowMap(ShadowMap);	
+			FilterShadowMap(ShadowMap);
+			// SummedAreaFilterShadowMap(ShadowMap);	
 		}
 	}
 
@@ -93,7 +94,8 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 		if (SpotLight->GetCastShadows() && SpotLight->GetLightEnabled())
 		{
 			FShadowMapResource* ShadowMap = ShadowMapPass->GetSpotShadowMap(SpotLight);
-			SummedAreaFilterShadowMap(ShadowMap);	
+			FilterShadowMap(ShadowMap);
+			// SummedAreaFilterShadowMap(ShadowMap);	
 		}
 	}
 
@@ -109,15 +111,48 @@ void FShadowMapFilterPass::Release()
 	TemporarySRV.Reset();
 }
 
-void FShadowMapFilterPass::SummedAreaFilterShadowMap(const FShadowMapResource* ShadowMap) const
+void FShadowMapFilterPass::FilterShadowMap(const FShadowMapResource* ShadowMap) const
 {
 	if (!ShadowMap || !ShadowMap->IsValid())
 	{
 		return;
 	}
 
-	const auto& Renderer = URenderer::GetInstance();
-	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
+	// 텍스처 정보 업데이트
+	FTextureInfo TextureInfo;
+	TextureInfo.TextureWidth = ShadowMap->Resolution;
+	TextureInfo.TextureHeight = ShadowMap->Resolution;
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferTextureInfo.Get(), TextureInfo);
+	Pipeline->SetConstantBuffer(0, EShaderType::CS, ConstantBufferTextureInfo.Get());
+
+	uint32 NumGroupsX = (ShadowMap->Resolution + THREAD_BLOCK_SIZE_X - 1) / THREAD_BLOCK_SIZE_X;
+	uint32 NumGroupsY = (ShadowMap->Resolution + THREAD_BLOCK_SIZE_Y - 1) / THREAD_BLOCK_SIZE_Y;
+
+	// --- 1. Row 방향 필터링 ---
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, ShadowMap->VarianceShadowSRV.Get());
+	Pipeline->SetUnorderedAccessView(0, TemporaryUAV.Get());
+
+	Pipeline->DispatchCS(TextureFilterRowCS, NumGroupsX, NumGroupsY, 1);
+
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, nullptr);
+	Pipeline->SetUnorderedAccessView(0, nullptr);
+
+	// --- 2. Column 방향 필터링 ---
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, TemporarySRV.Get());
+	Pipeline->SetUnorderedAccessView(0, ShadowMap->VarianceShadowUAV.Get());
+
+	Pipeline->DispatchCS(TextureFilterColumnCS, NumGroupsX, NumGroupsY, 1);
+
+	Pipeline->SetShaderResourceView(0, EShaderType::CS, nullptr);
+	Pipeline->SetUnorderedAccessView(0, nullptr);	
+}
+
+void FShadowMapFilterPass::SummedAreaFilterShadowMap(const FShadowMapResource* ShadowMap) const
+{
+	if (!ShadowMap || !ShadowMap->IsValid())
+	{
+		return;
+	}
 
 	// 텍스처 정보 업데이트
 	FTextureInfo TextureInfo;
