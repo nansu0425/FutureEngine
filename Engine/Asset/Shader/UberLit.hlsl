@@ -23,7 +23,6 @@ struct FIllumination
     float4 Specular;
 };
 
-
 // Constant Buffers
 cbuffer Model : register(b0)
 {
@@ -156,8 +155,19 @@ Texture2D DirectionalShadowMap : register(t10);
 Texture2D SpotShadowMap : register(t11);
 TextureCube PointShadowMap : register(t12);
 
+// Variance Shadow Maps
+Texture2D DirectionalVarianceShadowMap : register(t13);
+Texture2D SpotVarianceShadowMap : register(t14);
+// TextureCube PointVarianceShadowMap : register(t15);
+
+// Summed Area Variance Shadow Maps
+Texture2D SummedAreaDirectionalVarianceShadowMap : register(t16);
+Texture2D SummedAreaSpotVarianceShadowMap : register(t17);
+// TextureCube SummedAreaPointVarianceShadowMap : register(t18);
+
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
+// SamplerState VarianceShadowSampler : register(s2);
 
 // Material flags
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
@@ -250,6 +260,10 @@ float3x3 Inverse3x3(float3x3 M)
     
     return inv;
 }
+
+/*-----------------------------------------------------------------------------
+    PCF (Point Closer Filtering)
+ -----------------------------------------------------------------------------*/
 
 // Shadow Calculation Functions
 float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
@@ -431,7 +445,306 @@ float CalculatePointShadowFactor(FPointLightInfo Light, float3 WorldPos)
     return ShadowFactor / TotalSamples;
 }
 
-// Lighting Calculation Functions
+/*-----------------------------------------------------------------------------
+    VSM (Variance Shadow Map) Filtering
+ -----------------------------------------------------------------------------*/
+
+float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // Transform world position to light space
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+
+    // Perspective divide (to NDC space)
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    // Check if position is outside light frustum
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    // Convert NDC to texture coordinates ([-1,1] -> [0,1])
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
+
+    // Current pixel depth in light space
+    float CurrentDepth = LightSpacePos.z;
+
+    // Sample moments from depth texture
+    float2 Moments = DirectionalVarianceShadowMap.Sample(SamplerWrap, ShadowTexCoord);
+
+    // First Moment: E(X)
+    float M1 = Moments.x;
+
+    // Second Moment: E(X^2)
+    float M2 = Moments.y;
+
+    // Variance (max for numerical stability)
+    float Variance = max(0.00001f, M2 - M1 * M1);
+
+    // If current depth is smaller than first moment, return 1.0f
+    if (CurrentDepth <= M1)
+    {
+        return 1.0f;
+    }
+
+    // Chebyshev's Inequality
+    // P(X > t) <= P_max = Var(X) / (Var(X) + (t - E(X))^2)
+    float Difference = CurrentDepth - M1;
+
+    // P_max
+    float ShadowFactor = Variance / (Variance + Difference * Difference);
+
+    return ShadowFactor;
+}
+
+float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // Transform world position to light space
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+
+    // Perspective divide (to NDC space)
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    // Check if position is outside light frustum
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    // Convert NDC to texture coordinates ([-1,1] -> [0,1])
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
+
+    // Current pixel depth in light space
+    float CurrentDepth = LightSpacePos.z;
+
+    // Sample moments from depth texture
+    float2 Moments = SpotVarianceShadowMap.Sample(SamplerWrap, ShadowTexCoord);
+
+    // First Moment: E(X)
+    float M1 = Moments.x;
+
+    // Second Moment: E(X^2)
+    float M2 = Moments.y;
+
+    // Variance (max for numerical stability)
+    float Variance = max(0.00001f, M2 - M1 * M1);
+
+    // If current depth is smaller than first moment, return 1.0f
+    if (CurrentDepth <= M1)
+    {
+        return 1.0f;
+    }
+
+    // Chebyshev's Inequality
+    // P(X > t) <= P_max = Var(X) / (Var(X) + (t - E(X))^2)
+    float Difference = CurrentDepth - M1;
+
+    // P_max
+    float ShadowFactor = Variance / (Variance + Difference * Difference);
+
+    return ShadowFactor;
+}
+
+/*-----------------------------------------------------------------------------
+    SAVSM (Summed Area Variance Shadow Map) Filtering
+ -----------------------------------------------------------------------------*/
+
+/**
+ * @brief Summed Area Table(SAT)을 쿼리하여 사각 영역의 평균 모멘트를 계산합니다.
+ * @param SummedAreaTexture 쿼리할 Summed Area Variance Shadow Map
+ * @param CenterUV 필터링할 영역의 중심 UV 좌표
+ * @param FilterRadiusUV 필터링할 영역의 반지름 (UV 공간)
+ * @param TexelSize 텍스처 1픽셀의 UV 크기 (1.0f / 텍스처 크기)
+ * @return float2(Average E(X), Average E(X^2))
+ */
+float2 SampleSummedAreaVarianceShadowMap(Texture2D SummedAreaTexture, float2 CenterUV, float2 FilterRadiusUV, float2 TexelSize)
+{
+    // 1. 필털링할 영역의 사각 경계(UV)를 계산
+    float2 UV_TopRight = CenterUV + FilterRadiusUV;
+    float2 UV_BottomLeft = CenterUV - FilterRadiusUV;
+
+    // 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산
+    // SAT(x, y) = [0, 0]부터 [x, y]까지의 합
+    float2 UV_A = float2(UV_BottomLeft.x - TexelSize.x, UV_BottomLeft.y - TexelSize.y); // A = (x1 -1, y1 -1)
+    float2 UV_B = float2(UV_TopRight.x, UV_BottomLeft.y - TexelSize.y);                 // B = (x2, y1 - 1)
+    float2 UV_C = float2(UV_BottomLeft.x - TexelSize.x, UV_TopRight.y);                 // C = (x1 - 1, y2)
+    float2 UV_D = float2(UV_TopRight.x, UV_TopRight.y);                                 // D = (x2, y2)
+
+    // 3. SAT 텍스쳐 샘플링
+    // TODO: SamplerClamp 또는 SamplerBorder 대체
+    float2 Moments_A = SummedAreaTexture.SampleLevel(SamplerWrap, UV_A, 0);
+    float2 Moments_B = SummedAreaTexture.SampleLevel(SamplerWrap, UV_B, 0);
+    float2 Moments_C = SummedAreaTexture.SampleLevel(SamplerWrap, UV_C, 0);
+    float2 Moments_D = SummedAreaTexture.SampleLevel(SamplerWrap, UV_D, 0);
+
+    // 4. 포함-배제 원칙 (Inclusion-Exclusion)
+    float2 SummedMoments = Moments_D - Moments_B - Moments_C + Moments_A;
+
+    // 5. 필터 영역의 넓이를 계산 (UV 공간 -> 픽셀 공간)
+    // 필터 반경 R인 커널은 (2R+1) x (2R+1) 크기를 가집니다.
+    float2 SideLengths = (FilterRadiusUV / TexelSize) * 2.0f + 1.0f;
+    float FilterArea = SideLengths.x * SideLengths.y;
+
+    if (FilterArea < 1.0f)
+    {
+        FilterArea = 1.0f; // 0으로 나누는 것을 방지
+    }
+
+    // 6. 합계를 넓이로 나누어 평균 모멘트 계산
+    return SummedMoments / FilterArea;
+}
+
+float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // --- 1. 월드 -> 라이트 공간 -> UV 변환 (VSM과 동일) ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y
+
+    float CurrentDepth = LightSpacePos.z;
+
+    // --- 2. SAVSM 샘플링 ---
+    
+    // 텍스처 크기 및 텍셀 크기 계산
+    uint Width, Height;
+    SummedAreaDirectionalVarianceShadowMap.GetDimensions(Width, Height);
+    float2 TexelSize = float2(1.0f / Width, 1.0f / Height);
+
+    // 필터 커널 크기 정의 (예: 4x4 픽셀 반경)
+    // 이 값은 씬 상수나 거리에 따라 동적으로 조절할 수 있습니다.
+    float KernelRadiusPixels = 4.0f;
+    float2 FilterRadiusUV = KernelRadiusPixels * TexelSize;
+
+    // SAVSM 헬퍼 함수를 호출하여 평균 모멘트를 가져옵니다.
+    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(SummedAreaDirectionalVarianceShadowMap,
+                                        ShadowTexCoord,
+                                        FilterRadiusUV,
+                                        TexelSize);
+
+    // --- 3. 체비쇼프 부등식 적용 (VSM과 동일) ---
+    
+    // First Moment: E(X)
+    float M1 = AverageMoments.x;
+
+    // Second Moment: E(X^2)
+    float M2 = AverageMoments.y;
+
+    // Variance (수치 안정성을 위해 max 사용)
+    float Variance = max(0.00001f, M2 - M1 * M1);
+
+    // Light Bleeding 방지: 현재 픽셀이 평균적인 그림자보다 앞에 있음
+    if (CurrentDepth <= M1)
+    {
+        return 1.0f;
+    }
+
+    // Chebyshev's Inequality
+    float Difference = CurrentDepth - M1;
+    float ShadowFactor = Variance / (Variance + Difference * Difference);
+
+    // [0, 1] 범위로 클램핑 (선택적이지만 권장됨)
+    return saturate(ShadowFactor);
+}
+
+float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, float3 WorldPos)
+{
+    // If shadow is disabled, return fully lit (1.0)
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // --- 1. 월드 -> 라이트 공간 -> UV 변환 (VSM과 동일) ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
+    {
+        return 1.0f; // Outside shadow map, assume lit
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y
+
+    float CurrentDepth = LightSpacePos.z;
+
+    // --- 2. SAVSM 샘플링 ---
+    
+    // 텍스처 크기 및 텍셀 크기 계산
+    uint Width, Height;
+    SummedAreaSpotVarianceShadowMap.GetDimensions(Width, Height);
+    float2 TexelSize = float2(1.0f / Width, 1.0f / Height);
+
+    // 필터 커널 크기 정의 (예: 4x4 픽셀 반경)
+    float KernelRadiusPixels = 4.0f;
+    float2 FilterRadiusUV = KernelRadiusPixels * TexelSize;
+
+    // SAVSM 헬퍼 함수를 호출하여 평균 모멘트를 가져옵니다.
+    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(SummedAreaSpotVarianceShadowMap,
+                                        ShadowTexCoord,
+                                        FilterRadiusUV,
+                                        TexelSize);
+
+    // --- 3. 체비쇼프 부등식 적용 (VSM과 동일) ---
+    
+    float M1 = AverageMoments.x;
+    float M2 = AverageMoments.y;
+    float Variance = max(0.00001f, M2 - M1 * M1);
+
+    if (CurrentDepth <= M1)
+    {
+        return 1.0f;
+    }
+
+    float Difference = CurrentDepth - M1;
+    float ShadowFactor = Variance / (Variance + Difference * Difference);
+
+    return saturate(ShadowFactor);
+}
+
+/*-----------------------------------------------------------------------------
+    Lighting Calculation Functions
+ -----------------------------------------------------------------------------*/
+
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
     return info.Color * info.Intensity;
@@ -449,7 +762,9 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     float NdotL = saturate(dot(WorldNormal, LightDir));
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
-    float ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+    // float ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+    // float ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
+    float ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * ShadowFactor;
@@ -540,7 +855,10 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     }
 
     // Shadow factor
-    float ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
+    // float ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
+    // float ShadowFactor = CalculateSpotVarianceShadowFactor(Info, WorldPos);
+    float ShadowFactor = CalculateSpotSummedAreaVarianceShadowFactor(Info, WorldPos);
+    
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
 

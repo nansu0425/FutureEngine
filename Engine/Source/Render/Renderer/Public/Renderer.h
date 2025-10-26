@@ -8,14 +8,15 @@
 #include "Render/Renderer/Public/Pipeline.h"
 #include "Render/RenderPass/Public/FXAAPass.h"
 
-class FViewport;
-class UCamera;
-class UPipeline;
-class FViewportClient;
+class FClusteredRenderingGridPass;
 class FFXAAPass;
 class FLightPass;
-class FClusteredRenderingGridPass;
+class FShadowMapFilterPass;
 class FShadowMapPass;
+class FViewport;
+class FViewportClient;
+class UCamera;
+class UPipeline;
 
 // URenderer 내부에서 셰이더들은 용도에 따라 분류될 수 있음.
 // 용도별로 Create Shader 메소드가 존재함. (e.g. CreateStaticmeshShader)
@@ -29,6 +30,7 @@ enum class ShaderUsage
 	STATICMESH,
 	GIZMO,
 	CLUSTERED_RENDERING_GRID,
+	SUMMED_AREA_TEXTURE_FILTER,
 	SHADOWMAP
 };
 
@@ -61,6 +63,7 @@ public:
 	void CreateClusteredRenderingGrid();
 	void CreateDepthOnlyShader();
 	void CreatePointLightShadowShader();
+	void CreateSummedAreaTextureFilterShader();
 
 	// HotReload
 	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
@@ -193,6 +196,10 @@ private:
 	ID3D11PixelShader* DepthOnlyPixelShader = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
 
+	// Shadow Map Filtering Shaders
+	ID3D11ComputeShader* SummedAreaTextureFilterRowCS = nullptr;
+	ID3D11ComputeShader* SummedAreaTextureFilterColumnCS = nullptr;
+
 	// Point Light Shadow Shaders (with linear distance output)
 	ID3D11VertexShader* PointLightShadowVS = nullptr;
 	ID3D11PixelShader* PointLightShadowPS = nullptr;
@@ -211,6 +218,7 @@ private:
 	FLightPass* LightPass = nullptr;
 	FClusteredRenderingGridPass* ClusteredRenderingGridPass = nullptr;
 	FShadowMapPass* ShadowMapPass = nullptr;
+	FShadowMapFilterPass* ShadowMapFilterPass = nullptr;
 
 	// For Hot Reloading Shaders
 	TMap<std::wstring, TSet<ShaderUsage>> ShaderFileUsageMap;

@@ -9,6 +9,8 @@ class UPipeline;
 class FRenderPass
 {
 public:
+    FRenderPass(UPipeline* InPipeline)
+        : Pipeline(InPipeline), ConstantBufferCamera(nullptr), ConstantBufferModel(nullptr) {}
     FRenderPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel)
         : Pipeline(InPipeline), ConstantBufferCamera(InConstantBufferCamera), ConstantBufferModel(InConstantBufferModel) {}
 

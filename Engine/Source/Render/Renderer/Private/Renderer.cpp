@@ -2,39 +2,39 @@
 #include <algorithm>
 #include "Component/Mesh/Public/StaticMesh.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Component/Public/AmbientLightComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/DirectionalLightComponent.h"
 #include "Component/Public/HeightFogComponent.h"
 #include "Component/Public/PointLightComponent.h"
-#include "Component/Public/SpotLightComponent.h"
-#include "Component/Public/DirectionalLightComponent.h"
-#include "Component/Public/AmbientLightComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Editor.h"
-#include "Render/UI/Viewport/Public/Viewport.h"
-#include "Render/UI/Viewport/Public/ViewportClient.h"
+#include "Global/Octree.h"
 #include "Level/Public/Level.h"
 #include "Manager/UI/Public/UIManager.h"
+#include "Manager/UI/Public/ViewportManager.h"
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
+#include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
 #include "Render/RenderPass/Public/FXAAPass.h"
 #include "Render/RenderPass/Public/FogPass.h"
+#include "Render/RenderPass/Public/LightPass.h"
 #include "Render/RenderPass/Public/PointLightPass.h"
 #include "Render/RenderPass/Public/RenderPass.h"
-#include "Render/RenderPass/Public/LightPass.h"
-#include "Render/RenderPass/Public/StaticMeshPass.h"
+#include "Render/RenderPass/Public/SceneDepthPass.h"
+#include "Render/RenderPass/Public/ShadowMapFilterPass.h"
 #include "Render/RenderPass/Public/ShadowMapPass.h"
+#include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/Renderer/Public/Renderer.h"
-#include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
-
-#include "Render/RenderPass/Public/SceneDepthPass.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
-#include "Manager/UI/Public/ViewportManager.h"
-#include "Global/Octree.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+#include "Render/UI/Viewport/Public/ViewportClient.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
@@ -65,6 +65,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateClusteredRenderingGrid();
 	CreateDepthOnlyShader();
 	CreatePointLightShadowShader();
+	CreateSummedAreaTextureFilterShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -72,6 +73,9 @@ void URenderer::Init(HWND InWindowHandle)
 		DepthOnlyVertexShader, DepthOnlyPixelShader, DepthOnlyInputLayout,
 		PointLightShadowVS, PointLightShadowPS, PointLightShadowInputLayout);
 	RenderPasses.push_back(ShadowMapPass);
+
+	ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, SummedAreaTextureFilterRowCS, SummedAreaTextureFilterColumnCS);
+	RenderPasses.push_back(ShadowMapFilterPass);
 
 	LightPass = new FLightPass(Pipeline, ConstantBufferViewProj, GizmoInputLayout, GizmoVS, GizmoPS, DefaultDepthStencilState);
 	RenderPasses.push_back(LightPass);
@@ -460,6 +464,21 @@ void URenderer::CreatePointLightShadowShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
 }
 
+void URenderer::CreateSummedAreaTextureFilterShader()
+{
+	const std::wstring ShaderFilePathString = L"Asset/Shader/SummedAreaTextureFilter.hlsl";
+	const std::filesystem::path ShaderPath(ShaderFilePathString);
+
+	// 1. Row Scan Shader (Default)
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &SummedAreaTextureFilterRowCS, "mainCS", nullptr);
+
+	// 2. Column Scan Shader (with macro)
+	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
+	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &SummedAreaTextureFilterColumnCS, "mainCS", ColumnScanMacro);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SUMMED_AREA_TEXTURE_FILTER);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -609,18 +628,23 @@ void URenderer::HotReloadShaders()
 					}
 				}
 				break;
-			case ShaderUsage::CLUSTERED_RENDERING_GRID:
-				SafeRelease(ClusteredRenderingGridInputLayout);
-				SafeRelease(ClusteredRenderingGridVS);
-				SafeRelease(ClusteredRenderingGridPS);
-				CreateClusteredRenderingGrid();
-				if (ClusteredRenderingGridPass)
-				{
-					ClusteredRenderingGridPass->SetVertexShader(ClusteredRenderingGridVS);
-					ClusteredRenderingGridPass->SetPixelShader(ClusteredRenderingGridPS);
-					ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
-				}
-				break;
+							case ShaderUsage::CLUSTERED_RENDERING_GRID:
+								SafeRelease(ClusteredRenderingGridInputLayout);
+								SafeRelease(ClusteredRenderingGridVS);
+								SafeRelease(ClusteredRenderingGridPS);
+								CreateClusteredRenderingGrid();
+								if (ClusteredRenderingGridPass)
+								{
+									ClusteredRenderingGridPass->SetVertexShader(ClusteredRenderingGridVS);
+									ClusteredRenderingGridPass->SetPixelShader(ClusteredRenderingGridPS);
+									ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
+								}
+								break;
+							case ShaderUsage::SUMMED_AREA_TEXTURE_FILTER:
+								SafeRelease(SummedAreaTextureFilterRowCS);
+								SafeRelease(SummedAreaTextureFilterColumnCS);
+								CreateSummedAreaTextureFilterShader();
+								break;
 		}
 	}
 }
@@ -670,6 +694,9 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(PointLightShadowVS);
 	SafeRelease(PointLightShadowPS);
 	SafeRelease(PointLightShadowInputLayout);
+
+	SafeRelease(SummedAreaTextureFilterRowCS);
+	SafeRelease(SummedAreaTextureFilterColumnCS);
 }
 
 void URenderer::ReleaseDepthStencilState()

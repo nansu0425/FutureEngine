@@ -151,7 +151,8 @@ void FRenderResourceFactory::CreatePixelShader(const wstring& InFilePath, ID3D11
 	SafeRelease(ErrorBlob);
 }
 
-void FRenderResourceFactory::CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader, const char* InEntryPoint)
+void FRenderResourceFactory::CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader,
+	const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros)
 {
 	ID3DBlob* ShaderBlob = nullptr;
 	ID3DBlob* ErrorBlob = nullptr;
@@ -159,7 +160,7 @@ void FRenderResourceFactory::CreateComputeShader(const wstring& InFilePath, ID3D
 #ifdef _DEBUG
 	Flag = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-	HRESULT Result = D3DCompileFromFile(InFilePath.data(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "cs_5_0", Flag, 0, &ShaderBlob, &ErrorBlob);
+	HRESULT Result = D3DCompileFromFile(InFilePath.data(), InMacros, D3D_COMPILE_STANDARD_FILE_INCLUDE, InEntryPoint, "cs_5_0", Flag, 0, &ShaderBlob, &ErrorBlob);
 	if (FAILED(Result))
 	{
 		if (ErrorBlob) { OutputDebugStringA(static_cast<char*>(ErrorBlob->GetBufferPointer())); SafeRelease(ErrorBlob); }

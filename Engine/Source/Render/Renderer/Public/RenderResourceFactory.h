@@ -18,8 +18,9 @@ public:
 	static ID3D11Buffer* CreateIndexBuffer(const void* InIndices, uint32 InByteWidth);
 	static void CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** InPixelShader);
 	static void CreatePixelShader(const wstring& InFilePath, ID3D11PixelShader** InPixelShader,
-							  const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros = nullptr);
-	static void CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader, const char* InEntryPoint = "main");
+		const char* InEntryPoint, const D3D_SHADER_MACRO* InMacros = nullptr);
+	static void CreateComputeShader(const wstring& InFilePath, ID3D11ComputeShader** OutComputeShader,
+		const char* InEntryPoint = "main", const D3D_SHADER_MACRO* InMacros = nullptr);
 	static ID3D11SamplerState* CreateSamplerState(D3D11_FILTER InFilter, D3D11_TEXTURE_ADDRESS_MODE InAddressMode);
 	static ID3D11SamplerState* CreateFXAASamplerState();
 	static ID3D11RasterizerState* GetRasterizerState(const FRenderState& InRenderState);
