@@ -166,4 +166,5 @@ private:
 	// 회전 드래그 상태
 	FVector PreviousMouseLocation;
 	float CurrentRotationAngle = 0.0f;
+	FVector DragStartDirection;
 };

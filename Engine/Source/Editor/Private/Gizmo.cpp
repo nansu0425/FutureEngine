@@ -207,12 +207,13 @@ static void GenerateCircleLineMesh(const FVector& Axis0, const FVector& Axis1,
  * @param OuterRadius 바깥 반지름
  * @param Thickness 링의 3D 두께
  * @param AngleInRadians 회전 각도 (라디안, 양수/음수 모두 지원, 360도 이상 가능)
+ * @param StartDirection Arc의 시작 방향 벡터 (기즈모 중심 기준)
  * @param OutVertices 생성된 정점 배열 (출력)
  * @param OutIndices 생성된 인덱스 배열 (출력)
  */
 static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
 	float InnerRadius, float OuterRadius, float Thickness, float AngleInRadians,
-	TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices)
+	const FVector& StartDirection, TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	OutVertices.clear();
 	OutIndices.clear();
@@ -232,8 +233,17 @@ static void GenerateRotationArcMesh(const FVector& Axis0, const FVector& Axis1,
 	FVector ZAxis = Axis0.Cross(Axis1);
 	ZAxis.Normalize();
 
-	// 항상 Axis0에서 시작
-	const FVector StartAxis = Axis0;
+	// StartDirection이 제공되면 사용, 아니면 Axis0에서 시작
+	FVector StartAxis = Axis0;
+	if (StartDirection.LengthSquared() > 0.001f)
+	{
+		// StartDirection을 회전 평면에 투영
+		FVector ProjectedStart = StartDirection - ZAxis * StartDirection.Dot(ZAxis);
+		if (ProjectedStart.LengthSquared() > 0.001f)
+		{
+			StartAxis = ProjectedStart.GetNormalized();
+		}
+	}
 	const float SignedAngle = AngleInRadians;
 	const float RotationDirection = (SignedAngle >= 0.0f) ? -1.0f : 1.0f;
 
@@ -698,7 +708,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// X축 Ring은 YZ 평면에 정의됨 (AxisRots[0] = Identity)
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, arcVertices, arcIndices);
+					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -883,7 +893,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// Y축 Ring도 YZ 평면에서 시작 후 AxisRots[1]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, arcVertices, arcIndices);
+					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -1068,7 +1078,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				// Z축 Ring도 YZ 평면에서 시작 후 AxisRots[2]로 회전
 				GenerateRotationArcMesh(FVector(0, 0, 1), FVector(0, 1, 0),
 					ArcInnerRadius, ArcOuterRadius, RotateCollisionConfig.Thickness,
-					SnappedAngle, arcVertices, arcIndices);
+					SnappedAngle, FVector(0,0,0), arcVertices, arcIndices);
 
 				if (!arcIndices.empty())
 				{
@@ -1186,6 +1196,10 @@ void UGizmo::OnMouseDragStart(FVector& CollisionPoint)
 	bIsDragging = true;
 	DragStartMouseLocation = CollisionPoint;
 	PreviousMouseLocation = CollisionPoint;  // 누적 각도 계산을 위한 초기화
+
+	// 드래그 시작 방향 계산 (Arc 렌더링의 시작점으로 사용)
+	FVector GizmoCenter = Primitives[static_cast<int>(GizmoMode)].Location;
+	DragStartDirection = (CollisionPoint - GizmoCenter).GetNormalized();
 
 	if (TargetComponent)
 	{
