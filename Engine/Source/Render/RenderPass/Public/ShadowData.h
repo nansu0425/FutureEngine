@@ -11,3 +11,14 @@ struct FPointLightShadowParams
     FVector LightPosition;
     float LightRange;
 };
+
+struct FShadowAtlasTilePos
+{
+    uint32 UV[2];
+    uint32 Padding[2];
+};
+
+struct FShadowAtlasPointLightTilePos
+{
+    uint32 UV[6][2];
+};

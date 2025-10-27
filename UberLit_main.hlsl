@@ -13,8 +13,6 @@
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
 static const float PI = 3.14159265358979323846f;
-#define ATLASTILECOUNT 8.0f
-#define ATLASGRIDSIZE 1.0f / ATLASTILECOUNT
 
 // reflectance와 곱해지기 전
 // 표면에 도달한 빛의 조명 기여량
@@ -162,9 +160,6 @@ Texture2D BumpTexture : register(t5);
 
 // Shadow Maps
 Texture2D ShadowAtlas : register(t10);
-StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePos : register(t11);
-StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePos : register(t12);
-StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : register(t13);
 // Texture2D SpotShadowMap : register(t11);
 // TextureCube PointShadowMap : register(t12);
 
@@ -309,11 +304,7 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
             // Shadow Atlas의 우측 상단을 가져온다고 가정
             // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
             // 별도로 위치를 지정해야 함.
-            float2 AtlasTexcoord =(ShadowTexCoord + Offset) * ATLASGRIDSIZE;
-            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasDirectionalLightTilePos[0];
-            AtlasTexcoord.x += ATLASGRIDSIZE * AtlasTilePos.UV.x;
-            AtlasTexcoord.y += ATLASGRIDSIZE * AtlasTilePos.UV.y;
-            
+            float2 AtlasTexcoord =(ShadowTexCoord + Offset) * 0.125f;
             ShadowFactor += ShadowAtlas.SampleCmpLevelZero(
                 ShadowSampler,
                 AtlasTexcoord,
@@ -371,11 +362,12 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 Wo
         for (int y = -1; y <= 1; y++)
         {
             float2 Offset = float2(x, y) * TexelSize;
-            float2 AtlasTexcoord = (ShadowTexCoord + Offset) * ATLASGRIDSIZE;
+            float2 AtlasTexcoord = (ShadowTexCoord + Offset) * 0.125f;
 
-            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasSpotLightTilePos[LightIndex];
-            AtlasTexcoord.x += ATLASGRIDSIZE * AtlasTilePos.UV.x;
-            AtlasTexcoord.y += ATLASGRIDSIZE * AtlasTilePos.UV.y;
+            // Atlas에서 SpotLight는 세로 2번째 줄에 위치해 있음.
+            AtlasTexcoord.y += 0.125f;
+            // 몇 번째 Light인지로 가로축 위치를 정한다.
+            AtlasTexcoord.x += 0.125f * LightIndex;
             
             ShadowFactor += ShadowAtlas.SampleCmpLevelZero(
                 ShadowSampler,
@@ -412,13 +404,13 @@ static const float3 CubePCFOffsets[20] = {
 
 float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
 {
-    float3 AbsDir = abs(Direction);
-    float2 UV;
-    uint FaceIndex;
+  float3 AbsDir = abs(Direction);
+  float2 UV;
+  uint FaceIndex;
 
-    // Major axis selection (DirectX standard)
-    if (AbsDir.x >= AbsDir.y && AbsDir.x >= AbsDir.z)
-    {
+  // Major axis selection (DirectX standard)
+  if (AbsDir.x >= AbsDir.y && AbsDir.x >= AbsDir.z)
+  {
       // X-axis dominant
       if (Direction.x > 0.0f)  // +X face
       {
@@ -438,9 +430,9 @@ float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
           UV.x = (sc / ma + 1.0f) * 0.5f;
           UV.y = (tc / ma + 1.0f) * 0.5f;
       }
-    }
-    else if (AbsDir.y >= AbsDir.z)
-    {
+  }
+  else if (AbsDir.y >= AbsDir.z)
+  {
       // Y-axis dominant
       if (Direction.y > 0.0f)  // +Y face
       {
@@ -460,9 +452,9 @@ float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
           UV.x = (sc / ma + 1.0f) * 0.5f;
           UV.y = (tc / ma + 1.0f) * 0.5f;
       }
-    }
-    else
-    {
+  }
+  else
+  {
       // Z-axis dominant
       if (Direction.z > 0.0f)  // +Z face
       {
@@ -482,16 +474,14 @@ float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
           UV.x = (sc / ma + 1.0f) * 0.5f;
           UV.y = (tc / ma + 1.0f) * 0.5f;
       }
-    }
+  }
 
-    // Atlas UV 계산
-    float2 AtlasUV = UV * ATLASGRIDSIZE;
+  // Atlas UV 계산
+  float2 AtlasUV = UV * 0.125f;
+  AtlasUV.x += 0.125f * LightIndex;
+  AtlasUV.y += 0.25f + 0.125f * FaceIndex;
 
-    FShadowAtlasPointLightTilePos AtlasTilePos = ShadowAtlasPointLightTilePos[LightIndex];
-    AtlasUV.x += ATLASGRIDSIZE * AtlasTilePos.UV[FaceIndex].x;
-    AtlasUV.y += ATLASGRIDSIZE * AtlasTilePos.UV[FaceIndex].y;
-
-    return AtlasUV;
+  return AtlasUV;
 }
 
 float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 WorldPos)
