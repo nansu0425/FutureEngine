@@ -23,22 +23,26 @@ FShadowMapFilterPass::~FShadowMapFilterPass()
 void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 {
 	// --- 1. Directional Lights ---
-	for (auto DirLight : Context.DirectionalLights)
+	for (uint32 i = 0; i < Context.DirectionalLights.size(); ++i)
 	{
+		auto DirLight = Context.DirectionalLights[i];
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
-			FShadowMapResource* ShadowMap = ShadowMapPass->GetDirectionalShadowMap(DirLight);
-			FilterShadowMap(DirLight, ShadowMap);
+			FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
+			FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(i);
+			FilterShadowAtlasMap(DirLight, ShadowMap, AtlasTilePos.UV[0] * TEXTURE_WIDTH, AtlasTilePos.UV[1] * TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 		}
 	}
 
 	// --- 2. SpotLights ---
-	for (auto SpotLight : Context.SpotLights)
+	for (uint32 i = 0; i < Context.SpotLights.size(); ++i)
 	{
+		auto SpotLight = Context.SpotLights[i];
 		if (SpotLight->GetCastShadows() && SpotLight->GetLightEnabled())
 		{
-			FShadowMapResource* ShadowMap = ShadowMapPass->GetSpotShadowMap(SpotLight);
-			FilterShadowMap(SpotLight, ShadowMap);
+			FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
+			FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetSpotAtlasTilePos(i);
+			FilterShadowAtlasMap(SpotLight, ShadowMap, AtlasTilePos.UV[0] * TEXTURE_WIDTH, AtlasTilePos.UV[1] * TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 		}
 	}
 
@@ -68,7 +72,8 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 			TextureFilterMap[EShadowModeIndex::SMI_VSM_BOX]->FilterTexture(
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
-				NumGroupsX, NumGroupsY, NumGroupsZ
+				NumGroupsX, NumGroupsY, NumGroupsZ,
+				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT
 			);
 			break;
 		}
@@ -80,7 +85,8 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 			TextureFilterMap[EShadowModeIndex::SMI_VSM_GAUSSIAN]->FilterTexture(
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
-				NumGroupsX, NumGroupsY, NumGroupsZ
+				NumGroupsX, NumGroupsY, NumGroupsZ,
+				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT
 			);
 			break;
 		}
@@ -90,7 +96,8 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 			TextureFilterMap[EShadowModeIndex::SMI_SAVSM]->FilterTexture(
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
-				NumGroups
+				NumGroups,
+				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT
 			);
 			break;
 		}
@@ -98,4 +105,57 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 		// 필터링 없음
 		break;
 	}
+}
+
+void FShadowMapFilterPass::FilterShadowAtlasMap(const ULightComponentBase* LightComponent,
+	const FShadowMapResource* ShadowMap, uint32 RegionStartX, uint32 RegionStartY, uint32 RegionWidth, uint32 RegionHeight)
+{
+	if (!ShadowMap || !ShadowMap->IsValid())
+	{
+		return;
+	}
+
+	switch (LightComponent->GetShadowModeIndex())
+	{
+	case EShadowModeIndex::SMI_VSM_BOX:
+		{
+			uint32 NumGroupsX = (RegionWidth + THREAD_BLOCK_SIZE_X - 1) / THREAD_BLOCK_SIZE_X;
+			uint32 NumGroupsY = (RegionHeight + THREAD_BLOCK_SIZE_Y - 1) / THREAD_BLOCK_SIZE_Y;
+			uint32 NumGroupsZ = 1;
+			TextureFilterMap[EShadowModeIndex::SMI_VSM_BOX]->FilterTexture(
+				ShadowMap->VarianceShadowSRV.Get(),
+				ShadowMap->VarianceShadowUAV.Get(),
+				NumGroupsX, NumGroupsY, NumGroupsZ,
+				RegionStartX, RegionStartY, RegionWidth, RegionHeight
+			);
+			break;
+		}
+	case EShadowModeIndex::SMI_VSM_GAUSSIAN:
+		{
+			uint32 NumGroupsX = (RegionWidth + THREAD_BLOCK_SIZE_X - 1) / THREAD_BLOCK_SIZE_X;
+			uint32 NumGroupsY = (RegionHeight + THREAD_BLOCK_SIZE_Y - 1) / THREAD_BLOCK_SIZE_Y;
+			uint32 NumGroupsZ = 1;
+			TextureFilterMap[EShadowModeIndex::SMI_VSM_GAUSSIAN]->FilterTexture(
+				ShadowMap->VarianceShadowSRV.Get(),
+				ShadowMap->VarianceShadowUAV.Get(),
+				NumGroupsX, NumGroupsY, NumGroupsZ,
+				RegionStartX, RegionStartY, RegionWidth, RegionHeight
+			);
+			break;
+		}
+	case EShadowModeIndex::SMI_SAVSM:
+		{
+			uint32 NumGroups = RegionWidth;
+			TextureFilterMap[EShadowModeIndex::SMI_SAVSM]->FilterTexture(
+				ShadowMap->VarianceShadowSRV.Get(),
+				ShadowMap->VarianceShadowUAV.Get(),
+				NumGroups,
+				RegionStartX, RegionStartY, RegionWidth, RegionHeight
+			);
+			break;
+		}
+	default:
+		// 필터링 없음
+		break;
+	}	
 }

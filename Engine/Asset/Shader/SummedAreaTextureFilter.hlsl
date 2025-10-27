@@ -7,17 +7,17 @@
  *
  * 1. ROW SCAN (매크로 미정의 시 - Default)
  * - 입력 텍스처의 각 '행(Row)'을 기준으로 누적 합을 계산한다.
- * - C++ Dispatch: Dispatch(1, TextureHeight, 1)
+ * - C++ Dispatch: Dispatch(1, RegionHeight, 1)
  * - 스레드 그룹: [numthreads(THREAD_BLOCK_SIZE, 1, 1)] (1 그룹 = 1 행)
  * - GroupID.y = RowIndex, GroupIndex = ColumnIndex
- * - 가정: TextureWidth <= THREAD_BLOCK_SIZE
+ * - 가정: RegionWidth <= THREAD_BLOCK_SIZE
  *
  * 2. COLUMN SCAN (SCAN_DIRECTION_COLUMN 매크로 정의 시)
  * - 입력 텍스처의 각 '열(Column)'을 기준으로 누적 합을 계산한다.
- * - C++ Dispatch: Dispatch(TextureWidth, 1, 1)
+ * - C++ Dispatch: Dispatch(RegionWidth, 1, 1)
  * - 스레드 그룹: [numthreads(THREAD_BLOCK_SIZE, 1, 1)] (1 그룹 = 1 열)
  * - GroupID.x = ColumnIndex, GroupIndex = RowIndex
- * - 가정: TextureHeight <= THREAD_BLOCK_SIZE
+ * - 가정: RegionHeight <= THREAD_BLOCK_SIZE
  *
  * <주의사항>
  * 이 셰이더는 스캔하는 방향의 텍스처 크기가 
@@ -36,11 +36,16 @@ RWTexture2D<float2> OutputTexture : register(u0);
 
 groupshared float2 SharedMemory[THREAD_BLOCK_SIZE];
 
-// cbuffer TextureInfo : register(b0)
-// {
-//     uint TextureWidth;
-//     uint TextureHeight;
-// }
+// 텍스처 크기 정보
+cbuffer TextureInfo : register(b0)
+{
+    uint RegionStartX;
+    uint RegionStartY;
+    uint RegionWidth;
+    uint RegionHeight;
+    uint TextureWidth;  
+    uint TextureHeight; 
+}
 
 [numthreads(THREAD_BLOCK_SIZE, 1, 1)]
 void mainCS(
@@ -49,9 +54,6 @@ void mainCS(
     uint GroupIndex : SV_GroupIndex
     )
 {
-    uint TextureWidth, TextureHeight;
-    InputTexture.GetDimensions(TextureWidth, TextureHeight);
-
     // --- 1. 인덱스 계산 ---
     
     // 그룹 내 현재 스레드의 1D 인덱스 (0 ~ 1023)
@@ -66,18 +68,18 @@ void mainCS(
     // 1개 스레드 그룹이 1개의 '열'을 처리
     // C++ Dispatch: Dispatch(TextureWidth, 1, 1)
     
-    Row = ThreadIndex;          // 스레드 인덱스(0~1023)가 '행' 인덱스가 됩니다.
-    Column = GroupID.x;         // 그룹 ID(X)가 '열' 인덱스가 됩니다.
-    MaxElementsInThisPass = TextureHeight; // 경계 검사는 '높이' 기준
+    Row = ThreadIndex + RegionStartY; // 스레드 인덱스(상대 주소) + StartY가 '행' 인덱스가
+    Column = GroupID.x + RegionStartX; // 그룹 ID(X)가 '열' 인덱스가 됩니다.
+    MaxElementsInThisPass = RegionHeight; // 경계 검사는 '높이' 기준
 
 #else
     // --- Row Scan 모드 (Default) ---
     // 1개 스레드 그룹이 1개의 '행'을 처리
     // C++ Dispatch: Dispatch(1, TextureHeight, 1)
 
-    Row = GroupID.y;            // 그룹 ID(Y)가 '행' 인덱스
-    Column = ThreadIndex;       // 스레드 인덱스(0~1023)가 '열' 인덱스
-    MaxElementsInThisPass = TextureWidth;  // 경계 검사는 '너비'를 기준
+    Row = GroupID.y + RegionStartY; // 그룹 ID(Y)가 '행' 인덱스
+    Column = ThreadIndex + RegionStartX; // 스레드 인덱스(상대주소) + StartX가 '열' 인덱스
+    MaxElementsInThisPass = RegionWidth; // 경계 검사는 '너비'를 기준
     
 #endif
 

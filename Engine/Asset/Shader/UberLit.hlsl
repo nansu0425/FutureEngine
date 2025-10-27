@@ -169,9 +169,10 @@ Texture2D BumpTexture : register(t5);
 
 // Shadow Maps
 Texture2D ShadowAtlas : register(t10);
-StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePos : register(t11);
-StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePos : register(t12);
-StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : register(t13);
+Texture2D VarianceShadowAtlas : register(t11);
+StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePos : register(t12);
+StructuredBuffer<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePos : register(t13);
+StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : register(t14);
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
@@ -607,7 +608,7 @@ float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, floa
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        ShadowAtlas,
+        VarianceShadowAtlas,
         ShadowAtlasDirectionalLightTilePos[0].UV
     );
 }
@@ -624,7 +625,7 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        ShadowAtlas,
+        VarianceShadowAtlas,
         ShadowAtlasSpotLightTilePos[LightIndex].UV
     );
 }
@@ -736,7 +737,7 @@ float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo L
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        ShadowAtlas,
+        VarianceShadowAtlas,
         ShadowAtlasDirectionalLightTilePos[0].UV
     );
 }
@@ -753,7 +754,7 @@ float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, uint Lig
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        ShadowAtlas,
+        VarianceShadowAtlas,
         ShadowAtlasSpotLightTilePos[LightIndex].UV
     );
 }

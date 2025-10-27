@@ -232,6 +232,9 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
 	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
 
+	
+	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	DeviceContext->ClearRenderTargetView(ShadowAtlas.VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowAtlas.ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	
 	// Phase 1: Directional Lights
@@ -308,17 +311,7 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// 1. Shadow render target 설정
-	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	// Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
-
-	// // Clear the render target view (for VSM/SAVSM)
-	// const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
-	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	// TODO_NOTE 여기서 새로운 아틀라스용 쉐도우 맵을 바인딩해야 함
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
 	
 	D3D11_VIEWPORT ShadowViewport;
 	
@@ -404,17 +397,7 @@ void FShadowMapPass::RenderSpotShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// // 1. Shadow render target 설정
-	// // Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	// Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
-
-	// // Clear the render target view (for VSM/SAVSM)
-	// const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
-	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	// TODO_NOTE 여기서 새로운 아틀라스용 쉐도우 맵을 바인딩해야 함
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
 
 	D3D11_VIEWPORT ShadowViewport;
 
@@ -536,16 +519,6 @@ void FShadowMapPass::RenderPointShadowMap(
 	for (int Face = 0; Face < 6; Face++)
 	{
 		// // 4-1. DSV 설정 (각 면)
-		// ID3D11RenderTargetView* NullRTV = nullptr;
-		// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSVs[Face].Get());
-		// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
-		// DeviceContext->ClearDepthStencilView(
-		// 	ShadowMap->ShadowDSVs[Face].Get(),
-		// 	D3D11_CLEAR_DEPTH,
-		// 	1.0f,
-		// 	0
-		// );
-
 		D3D11_VIEWPORT ShadowViewport;
 
 		static const float Y_START = SHADOW_MAP_RESOLUTION * 2.0f;
@@ -615,7 +588,7 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 		ShadowAtlasDirectionalLightTilePosArray
 		);
 	Pipeline->SetShaderResourceView(
-		11,
+		12,
 		EShaderType::VS | EShaderType::PS,
 		ShadowAtlasDirectionalLightTilePosStructuredSRV
 		);
@@ -625,7 +598,7 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 		ShadowAtlasSpotLightTilePosArray
 		);
 	Pipeline->SetShaderResourceView(
-		12,
+		13,
 		EShaderType::VS | EShaderType::PS,
 		ShadowAtlasSpotLightTilePosStructuredSRV
 		);
@@ -635,7 +608,7 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 		ShadowAtlasPointLightTilePosArray
 		);
 	Pipeline->SetShaderResourceView(
-		13,
+		14,
 		EShaderType::VS | EShaderType::PS,
 		ShadowAtlasPointLightTilePosStructuredSRV
 		);
@@ -739,10 +712,7 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	float Far = LightSpaceMax.Z + Padding;
 
 	// Near는 음수가 되면 안됨 (orthographic에서는 괜찮지만, 안전을 위해)
-	if (Near < 0.1f)
-	{
-		Near = 0.1f;
-	}
+	Near = std::max(Near, 0.1f);
 
 	OutProj = ShadowMatrixHelper::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
 }
@@ -917,6 +887,21 @@ FCubeShadowMapResource* FShadowMapPass::GetPointShadowMap(UPointLightComponent* 
 FShadowMapResource* FShadowMapPass::GetShadowAtlas()
 {
 	return &ShadowAtlas;
+}
+
+FShadowAtlasTilePos FShadowMapPass::GetDirectionalAtlasTilePos(uint32 Index) const
+{
+	return ShadowAtlasDirectionalLightTilePosArray[Index];
+}
+
+FShadowAtlasTilePos FShadowMapPass::GetSpotAtlasTilePos(uint32 Index) const
+{
+	return ShadowAtlasSpotLightTilePosArray[Index];
+}
+
+FShadowAtlasPointLightTilePos FShadowMapPass::GetPointAtlasTilePos(uint32 Index) const
+{
+	return ShadowAtlasPointLightTilePosArray[Index];
 }
 
 void FShadowMapPass::RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj)

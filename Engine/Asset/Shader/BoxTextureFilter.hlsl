@@ -25,35 +25,35 @@ Texture2D<float2> InputTexture : register(t0);
 RWTexture2D<float2> OutputTexture : register(u0);
 
 // 텍스처 크기 정보
-// cbuffer TextureInfo : register(b0)
-// {
-//     uint TextureWidth;  
-//     uint TextureHeight; 
-// }
+cbuffer TextureInfo : register(b0)
+{
+    uint RegionStartX;
+    uint RegionStartY;
+    uint RegionWidth;  
+    uint RegionHeight;
+    uint TextureWidth;
+    uint TextureHeight;
+}
 
 [numthreads(THREAD_BLOCK_SIZE_X, THREAD_BLOCK_SIZE_Y, 1)]
 void mainCS(
     uint3 DispatchThreadID : SV_DispatchThreadID
     )
 {
-    uint TextureWidth, TextureHeight;
-    InputTexture.GetDimensions(TextureWidth, TextureHeight);
-
-    // --- 1. 인덱스 계산 ---
-    
-    // 현재 스레드가 처리할 픽셀의 2D 좌표
-    uint2 PixelCoord = DispatchThreadID.xy;
-
     // 텍스처 경계 검사 (cbuffer 값 사용)
-    if (PixelCoord.x >= TextureWidth || PixelCoord.y >= TextureHeight)
+    if (DispatchThreadID.x >= RegionWidth || DispatchThreadID.y >= RegionHeight)
     {
         return;
     }
+    
+    // --- 1. 인덱스 계산 ---
+    
+    // 현재 스레드가 처리할 픽셀의 2D 좌표
+    uint2 PixelCoord = DispatchThreadID.xy + uint2(RegionStartX, RegionStartY);
 
     // --- 2. 박스 필터 컨볼루션 (평균 계산) ---
     
     float2 AccumulatedValue = float2(0.0f, 0.0f);
-    // TotalWeight는 루프 밖에서 상수로 계산 가능
 
     // KernelRadius에 따라 -R 부터 +R 까지 샘플링
     for (int i = -KERNEL_RADIUS; i <= KERNEL_RADIUS; ++i)
@@ -65,10 +65,7 @@ void mainCS(
         // --- Vertical Pass 모드 ---
         // Y(행) 방향으로 샘플링
         
-        // C++의 clamp()와 동일. 경계 밖을 샘플링하지 않도록 방지.
-        int SampleRow = (int)PixelCoord.y + CurrentOffset;
-        if (SampleRow < 0) SampleRow = 0;
-        if (SampleRow >= TextureHeight) SampleRow = TextureHeight - 1;
+        int SampleRow = clamp((int)PixelCoord.y + CurrentOffset, RegionStartY, RegionStartY + RegionHeight - 1);
         
         SampleCoord = uint2(PixelCoord.x, (uint)SampleRow);
 
@@ -76,10 +73,7 @@ void mainCS(
         // --- Horizontal Pass 모드 (Default) ---
         // X(열) 방향으로 샘플링
         
-        // C++의 clamp()와 동일.
-        int SampleCol = (int)PixelCoord.x + CurrentOffset;
-        if (SampleCol < 0) SampleCol = 0;
-        if (SampleCol >= TextureWidth) SampleCol = TextureWidth - 1;
+        int SampleCol = clamp((int)PixelCoord.x + CurrentOffset, RegionStartX, RegionStartX + RegionWidth - 1);
 
         SampleCoord = uint2((uint)SampleCol, PixelCoord.y);
         

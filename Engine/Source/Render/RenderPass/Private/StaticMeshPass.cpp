@@ -16,40 +16,6 @@ FStaticMeshPass::FStaticMeshPass(UPipeline* InPipeline, ID3D11Buffer* InConstant
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	ConstantBufferMaterial = FRenderResourceFactory::CreateConstantBuffer<FMaterialConstants>();
-
-	// D3D11_BUFFER_DESC BufferDesc = {};
-	//
-	// //BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	// BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	// BufferDesc.ByteWidth = (UINT)(16 * sizeof(FShadowViewProjConstant));
-	// BufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	// BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	// BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	// BufferDesc.StructureByteStride = sizeof(FShadowViewProjConstant);
-	//
-	// // 초기 데이터
-	//
-	// HRESULT hr = URenderer::GetInstance().GetDevice()->CreateBuffer(
-	// 	&BufferDesc,
-	// 	nullptr,
-	// 	&ShadowViewProjStructuredBuffer
-	// 	);
-	//
-	// assert(SUCCEEDED(hr));
-	//
-	// D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-	// SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-	// SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	// SRVDesc.Buffer.FirstElement = 0;
-	// SRVDesc.Buffer.NumElements = (UINT)16;
-	//
-	// hr = URenderer::GetInstance().GetDevice()->CreateShaderResourceView(
-	// 	ShadowViewProjStructuredBuffer,
-	// 	&SRVDesc,
-	// 	&ShadowViewProjStructuredSRV
-	// 	);
-	//
-	// assert(SUCCEEDED(hr));
 }
 
 void FStaticMeshPass::Execute(FRenderingContext& Context)
@@ -77,51 +43,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	// Bind shadow map and comparison sampler (s1 slot, t10 slot)
 	Pipeline->SetSamplerState(1, EShaderType::PS, Renderer.GetShadowComparisonSampler());
 
-	// // Bind directional light shadow map if available
-	// if (!Context.DirectionalLights.empty() && Context.DirectionalLights[0]->GetCastShadows())
-	// {
-	// 	UDirectionalLightComponent* DirLight = Context.DirectionalLights[0];
-	// 	FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
-	// 	if (ShadowPass)
-	// 	{
-	// 		FShadowMapResource* ShadowMap = ShadowPass->GetDirectionalShadowMap(DirLight);
-	// 		if (ShadowMap && ShadowMap->IsValid())
-	// 		{
-	// 			Pipeline->SetShaderResourceView(10, EShaderType::PS, ShadowMap->ShadowSRV.Get());
-	// 		}
-	// 	}
-	// }
-	//
-	// // Bind spot light shadow map if available
-	// if (!Context.SpotLights.empty() && Context.SpotLights[0]->GetCastShadows())
-	// {
-	// 	USpotLightComponent* SpotLight = Context.SpotLights[0];
-	// 	FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
-	// 	if (ShadowPass)
-	// 	{
-	// 		FShadowMapResource* ShadowMap = ShadowPass->GetSpotShadowMap(SpotLight);
-	// 		if (ShadowMap && ShadowMap->IsValid())
-	// 		{
-	// 			Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowMap->ShadowSRV.Get());
-	// 		}
-	// 	}
-	// }
-	//
-	// // Bind point light shadow map if available (cube map)
-	// if (!Context.PointLights.empty() && Context.PointLights[0]->GetCastShadows())
-	// {
-	// 	UPointLightComponent* PointLight = Context.PointLights[0];
-	// 	FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
-	// 	if (ShadowPass)
-	// 	{
-	// 		FCubeShadowMapResource* CubeShadowMap = ShadowPass->GetPointShadowMap(PointLight);
-	// 		if (CubeShadowMap && CubeShadowMap->IsValid())
-	// 		{
-	// 			Pipeline->SetShaderResourceView(12, EShaderType::PS, CubeShadowMap->ShadowSRV.Get());
-	// 		}
-	// 	}
-	// }
-	
 	FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
 	if (ShadowPass)
 	{
@@ -129,6 +50,7 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 		if (ShadowAtlas && ShadowAtlas->IsValid())
 		{
 			Pipeline->SetShaderResourceView(10, EShaderType::PS, ShadowAtlas->ShadowSRV.Get());
+			Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowAtlas->VarianceShadowSRV.Get());
 		}
 	}
 
@@ -136,19 +58,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 	Pipeline->SetConstantBuffer(1, EShaderType::VS | EShaderType::PS, ConstantBufferCamera);
 
-	// TArray<FShadowViewProjConstant> SpotLightViewProjs(8, FShadowViewProjConstant());
-	//
-	// for (int i = 0; i < min(Context.SpotLights.size(), (size_t)8); i++)
-	// {
-	// 	USpotLightComponent* SpotLight = Context.SpotLights[i];
-	//
-	// 	FShadowViewProjConstant LightViewProj = {SpotLight->GetShadowViewProjection()};
-	// 	SpotLightViewProjs[i] = LightViewProj;
-	// }
-	//
-	// FRenderResourceFactory::UpdateStructuredBuffer(ShadowViewProjStructuredBuffer, SpotLightViewProjs);
-	// Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowViewProjStructuredSRV);
-	//
 	if (!(Context.ShowFlags & EEngineShowFlags::SF_StaticMesh)) { return; }
 	TArray<UStaticMeshComponent*>& MeshComponents = Context.StaticMeshes;
 	sort(MeshComponents.begin(), MeshComponents.end(),
@@ -272,14 +181,12 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	}
 	Pipeline->SetConstantBuffer(2, EShaderType::PS, nullptr);
 
-	// TODO_NOTE
 	// Unbind shadow maps to prevent resource hazards
-	Pipeline->SetShaderResourceView(10, EShaderType::PS, nullptr);  // Directional shadow map
-	Pipeline->SetShaderResourceView(11, EShaderType::PS, nullptr);  // Spot shadow map
-	Pipeline->SetShaderResourceView(12, EShaderType::PS, nullptr);  // Point shadow map (cube)
-	Pipeline->SetShaderResourceView(13, EShaderType::PS, nullptr);  // Directional variance shadow map
-	Pipeline->SetShaderResourceView(14, EShaderType::PS, nullptr);  // Spot variance shadow map
-	// Pipeline->SetShaderResourceView(15, EShaderType::PS, nullptr);  // Point variance shadow map (cube)
+	Pipeline->SetShaderResourceView(10, EShaderType::PS, nullptr);  // Shadow Atlas
+	Pipeline->SetShaderResourceView(11, EShaderType::PS, nullptr);  // Variance Shadow Atlas
+	Pipeline->SetShaderResourceView(12, EShaderType::PS, nullptr);  // Directional Light Tile Position
+	Pipeline->SetShaderResourceView(13, EShaderType::PS, nullptr);  // Spotlight Tile Position
+	Pipeline->SetShaderResourceView(14, EShaderType::PS, nullptr);  // Point Light Tile Position
 
 	// --- RTVs Reset ---
 	
@@ -295,6 +202,4 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 void FStaticMeshPass::Release()
 {
 	SafeRelease(ConstantBufferMaterial);
-	//SafeRelease(ShadowViewProjStructuredBuffer);
-	//SafeRelease(ShadowViewProjStructuredSRV);
 }

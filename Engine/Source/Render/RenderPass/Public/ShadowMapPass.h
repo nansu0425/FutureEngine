@@ -62,6 +62,30 @@ public:
 
 	FShadowMapResource* GetShadowAtlas();
 
+	/**
+	 * @brief Directional Light의 Atlas Tile 위치를 가져옵니다.
+	 * @param Index Directional Light의 인덱스
+	 * @return Directional Light의 Atlas Tile 위치
+	 * @todo ShadowMapPass에 저장되어있는 인덱스와 외부에서 활용되는 인덱스 일치여부 확인
+	 */
+	FShadowAtlasTilePos GetDirectionalAtlasTilePos(uint32 Index) const;
+
+	/**
+	 * @brief Spotlight의 Atlas Tile 위치를 가져옵니다.
+	 * @param Index Spotlight의 인덱스
+	 * @return Spotlight의 Atlas Tile 위치
+	 * @todo ShadowMapPass에 저장되어있는 인덱스와 외부에서 활용되는 인덱스 일치여부 확인
+	 */
+	FShadowAtlasTilePos GetSpotAtlasTilePos(uint32 Index) const;
+
+	/**
+	 * @brief Point Light의 Atlas Tile 위치를 가져옵니다.
+	 * @param Index Point Light의 인덱스
+	 * @return Point Light의 Atlas Tile 위치
+	 * @todo ShadowMapPass에 저장되어있는 인덱스와 외부에서 활용되는 인덱스 일치여부 확인
+	 */
+	FShadowAtlasPointLightTilePos GetPointAtlasTilePos(uint32 Index) const;
+
 private:
 	// --- Directional Light Shadow Rendering ---
 	/**

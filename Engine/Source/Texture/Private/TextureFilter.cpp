@@ -10,39 +10,54 @@
 FTextureFilter::FTextureFilter(const FString& InShaderPath)
 {
     CreateShader(InShaderPath);
+    CreateConstantBuffer();
     CreateTexture(DEFAULT_TEXTURE_WIDTH, DEFAULT_TEXTURE_HEIGHT);
 }
 
 FTextureFilter::~FTextureFilter() = default;
 
-void FTextureFilter::FilterTexture(ID3D11ShaderResourceView* InTexture, ID3D11UnorderedAccessView* OutTexture,
-    uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
+void FTextureFilter::FilterTexture(
+    ID3D11ShaderResourceView* InTexture,
+    ID3D11UnorderedAccessView* OutTexture,
+    uint32 ThreadGroupCountX,
+    uint32 ThreadGroupCountY,
+    uint32 ThreadGroupCountZ,
+    uint32 RegionStartX,
+    uint32 RegionStartY,
+    uint32 RegionWidth,
+    uint32 RegionHeight
+    )
 {
     ID3D11DeviceContext* DeviceContext = URenderer::GetInstance().GetDeviceContext();
     UPipeline Pipeline(DeviceContext);
 
-    // Get texture description to check the size
     Microsoft::WRL::ComPtr<ID3D11Resource> Resource;
-    InTexture->GetResource(Resource.GetAddressOf());
+    InTexture->GetResource(Resource.ReleaseAndGetAddressOf());
     Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture2D;
     HRESULT hr = Resource.As(&Texture2D);
-    if(FAILED(hr))
-	{
-		return;
-	}
+    if (FAILED(hr))
+    {
+        return;    
+    }
 
     D3D11_TEXTURE2D_DESC Desc;
     Texture2D->GetDesc(&Desc);
-
     ResizeTexture(Desc.Width, Desc.Height);
-
-    // --- 1. Row direction filtering ---
-    const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    if (TemporaryUAV) 
-    {
-        DeviceContext->ClearUnorderedAccessViewFloat(TemporaryUAV.Get(), ClearColor);
-    }
     
+    // --- 1. 상수 버퍼 업데이트 ---
+    FTextureInfo TextureInfo = {};
+    TextureInfo.StartX = RegionStartX;
+    TextureInfo.StartY = RegionStartY;
+    TextureInfo.RegionWidth = RegionWidth;
+    TextureInfo.RegionHeight = RegionHeight;
+    TextureInfo.TextureWidth = Desc.Width;
+    TextureInfo.TextureHeight = Desc.Height;
+
+    FRenderResourceFactory::UpdateConstantBufferData(TextureInfoConstantBuffer.Get(), TextureInfo);
+
+    Pipeline.SetConstantBuffer(0, EShaderType::CS, TextureInfoConstantBuffer.Get());
+
+    // --- 2. Row 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, InTexture);
     Pipeline.SetUnorderedAccessView(0, TemporaryUAV.Get());
 
@@ -50,13 +65,8 @@ void FTextureFilter::FilterTexture(ID3D11ShaderResourceView* InTexture, ID3D11Un
 
     Pipeline.SetShaderResourceView(0, EShaderType::CS, nullptr);
     Pipeline.SetUnorderedAccessView(0, nullptr);
-
-    // --- 2. Column direction filtering ---
-    if (OutTexture)
-    {
-        DeviceContext->ClearUnorderedAccessViewFloat(OutTexture, ClearColor);
-    }
     
+    // --- 3. Column 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, TemporarySRV.Get());
     Pipeline.SetUnorderedAccessView(0, OutTexture);
 
@@ -66,35 +76,46 @@ void FTextureFilter::FilterTexture(ID3D11ShaderResourceView* InTexture, ID3D11Un
     Pipeline.SetUnorderedAccessView(0, nullptr);
 }
 
-void FTextureFilter::FilterTexture(ID3D11ShaderResourceView* InTexture, ID3D11UnorderedAccessView* OutTexture,
-    uint32 ThreadGroupCount)
+void FTextureFilter::FilterTexture(
+    ID3D11ShaderResourceView* InTexture,
+    ID3D11UnorderedAccessView* OutTexture,
+    uint32 ThreadGroupCount,
+    uint32 RegionStartX,
+    uint32 RegionStartY,
+    uint32 RegionWidth,
+    uint32 RegionHeight
+    )
 {
     ID3D11DeviceContext* DeviceContext = URenderer::GetInstance().GetDeviceContext();
     UPipeline Pipeline(DeviceContext);
 
-    // Get texture description to check the size
     Microsoft::WRL::ComPtr<ID3D11Resource> Resource;
-    InTexture->GetResource(Resource.GetAddressOf());
+    InTexture->GetResource(Resource.ReleaseAndGetAddressOf());
     Microsoft::WRL::ComPtr<ID3D11Texture2D> Texture2D;
     HRESULT hr = Resource.As(&Texture2D);
-    if(FAILED(hr))
+    if (FAILED(hr))
     {
-        return;
+        return;    
     }
 
     D3D11_TEXTURE2D_DESC Desc;
     Texture2D->GetDesc(&Desc);
-
     ResizeTexture(Desc.Width, Desc.Height);
-
-    const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-    // --- 1. Row direction filtering ---
-    if (TemporaryUAV) 
-    {
-        DeviceContext->ClearUnorderedAccessViewFloat(TemporaryUAV.Get(), ClearColor);
-    }
     
+    // --- 1. 상수 버퍼 업데이트 ---
+    FTextureInfo TextureInfo = {};
+    TextureInfo.StartX = RegionStartX;
+    TextureInfo.StartY = RegionStartY;
+    TextureInfo.RegionWidth = RegionWidth;
+    TextureInfo.RegionHeight = RegionHeight;
+    TextureInfo.TextureWidth = Desc.Width;
+    TextureInfo.TextureHeight = Desc.Height;
+
+    FRenderResourceFactory::UpdateConstantBufferData(TextureInfoConstantBuffer.Get(), TextureInfo);
+
+    Pipeline.SetConstantBuffer(0, EShaderType::CS, TextureInfoConstantBuffer.Get());
+
+    // --- 2. Row 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, InTexture);
     Pipeline.SetUnorderedAccessView(0, TemporaryUAV.Get());
 
@@ -102,20 +123,15 @@ void FTextureFilter::FilterTexture(ID3D11ShaderResourceView* InTexture, ID3D11Un
 
     Pipeline.SetShaderResourceView(0, EShaderType::CS, nullptr);
     Pipeline.SetUnorderedAccessView(0, nullptr);
-
-    // --- 2. Column direction filtering ---
-    if (OutTexture)
-    {
-        DeviceContext->ClearUnorderedAccessViewFloat(OutTexture, ClearColor);
-    }
-
+    
+    // --- 3. Column 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, TemporarySRV.Get());
     Pipeline.SetUnorderedAccessView(0, OutTexture);
 
     Pipeline.DispatchCS(ComputeShaderColumn.Get(), ThreadGroupCount, 1, 1);
 
     Pipeline.SetShaderResourceView(0, EShaderType::CS, nullptr);
-    Pipeline.SetUnorderedAccessView(0, nullptr);
+    Pipeline.SetUnorderedAccessView(0, nullptr); 
 }
 
 void FTextureFilter::CreateShader(const FString& InShaderPath)
@@ -133,6 +149,11 @@ void FTextureFilter::CreateShader(const FString& InShaderPath)
     // 2. Column Scan Shader (with macro)
     D3D_SHADER_MACRO ColDefines[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
     FRenderResourceFactory::CreateComputeShader(ShaderPath.wstring(), ComputeShaderColumn.GetAddressOf(), "mainCS", ColDefines);
+}
+
+void FTextureFilter::CreateConstantBuffer()
+{
+    TextureInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FTextureInfo>();
 }
 
 void FTextureFilter::CreateTexture(uint32 InWidth, uint32 InHeight)
