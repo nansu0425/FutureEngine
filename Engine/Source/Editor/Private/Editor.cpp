@@ -2,7 +2,6 @@
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Axis.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -19,6 +18,7 @@
 #include "Component/Public/DirectionalLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
 #include "Manager/UI/Public/ViewportManager.h"
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/ui/Viewport/Public/ViewportClient.h"
 #include "Render/UI/Viewport/Public/Viewport.h"
 
@@ -165,11 +165,9 @@ void UEditor::Update()
 	ProcessMouseInput();
 }
 
-void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+void UEditor::Collect2DRender(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	BatchLines.Render();
-
-	// D2D 오버레이 렌더링
+	// D2D 드로잉 정보 수집 시작
 	FD2DOverlayManager& OverlayManager = FD2DOverlayManager::GetInstance();
 	OverlayManager.BeginCollect(InCamera, InViewport);
 
@@ -179,8 +177,14 @@ void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	// Gizmo 회전 각도 오버레이 수집
 	Gizmo.CollectRotationAngleOverlay(OverlayManager, InCamera, InViewport);
 
-	// 배치 렌더링 실행
-	OverlayManager.FlushAndRender();
+	// StatOverlay 렌더링 명령 수집
+	UStatOverlay::GetInstance().Render();
+}
+
+void UEditor::RenderEditorGeometry()
+{
+	// 3D 지오메트리 렌더링 (Grid 등, FXAA 전 SceneColor에 렌더링)
+	BatchLines.Render();
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
@@ -402,6 +406,7 @@ void UEditor::ProcessMouseInput()
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
 
 			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			UPrimitiveComponent* PrimitiveCollided = nullptr;
 			if (EditorWorld && EditorWorld->GetLevel() && EditorWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
@@ -417,19 +422,43 @@ void UEditor::ProcessMouseInput()
 
 				TStatId StatId("Picking");
 				FScopeCycleCounter PickCounter(StatId);
-				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
+				PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
 				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
 				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
+			}
+
+			// 피킹 결과에 따라 Actor와 Component 선택
+			if (Gizmo.GetGizmoDirection() == EGizmoDirection::None)
+			{
+				if (ActorPicked && PrimitiveCollided)
+				{
+					UActorComponent* ComponentToSelect = PrimitiveCollided;
+
+					// Visualization 컴포넌트가 피킹된 경우, 부모 컴포넌트를 선택
+					if (PrimitiveCollided->IsVisualizationComponent())
+					{
+						if (USceneComponent* ScenePrim = Cast<USceneComponent>(PrimitiveCollided))
+						{
+							if (USceneComponent* Parent = ScenePrim->GetAttachParent())
+							{
+								// 부모 컴포넌트를 선택
+								ComponentToSelect = Parent;
+							}
+						}
+					}
+
+					SelectActorAndComponent(ActorPicked, ComponentToSelect);
+				}
+				else
+				{
+					SelectActor(nullptr);
+				}
 			}
 		}
 
 		if (Gizmo.GetGizmoDirection() == EGizmoDirection::None)
 		{
-			if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
-			{
-				SelectActor(ActorPicked);
-			}
 			if (PreviousGizmoDirection != EGizmoDirection::None)
 			{
 				Gizmo.OnMouseRelease(PreviousGizmoDirection);
@@ -774,6 +803,16 @@ void UEditor::SelectActor(AActor* InActor)
 	else { SelectComponent(nullptr); }
 }
 
+void UEditor::SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent)
+{
+	if (InActor != SelectedActor)
+	{
+		SelectedActor = InActor;
+	}
+
+	SelectComponent(InComponent);
+}
+
 void UEditor::SelectComponent(UActorComponent* InComponent)
 {
 	if (InComponent == SelectedComponent) return;
@@ -882,29 +921,24 @@ void UEditor::FocusOnSelectedActor()
 		}
 		else
 		{
-			// Orthographic: Center를 화면 중앙에 오도록 카메라 위치 조정
-			const FVector CurrentLocation = Cam->GetLocation();
+			// Orthographic: 물체 중심으로 카메라 이동 (단순하게)
 			const FVector CurrentRotation = Cam->GetRotation();
 
 			// 카메라 기저 벡터 (Forward, Right, Up)
 			const FVector Forward = Cam->GetForward();
-			const FVector Right = Cam->GetRight();
-			const FVector Up = Cam->GetUp();
 
-			// 현재 카메라에서 Center까지의 벡터
-			const FVector ToCenter = Center - CurrentLocation;
-
-			// Center가 카메라 좌표계에서 얼마나 떨어져 있는지 계산
-			const float ForwardDist = ToCenter.Dot(Forward);  // Forward 방향 거리
-			const float RightDist = ToCenter.Dot(Right);      // Right 방향 오프셋
-			const float UpDist = ToCenter.Dot(Up);            // Up 방향 오프셋
-
-			// 카메라를 Right/Up 방향으로 이동시켜 Center를 화면 중앙에 배치
-			// Forward 거리는 적당히 유지 (100 단위)
-			CameraTargetLocation[i] = CurrentLocation + Right * RightDist + Up * UpDist;
+			// 물체 중심에서 Forward 반대 방향으로 일정 거리만큼 떨어진 위치
+			const float CameraDistance = BoundingRadius * 2.0f + 100.0f;
+			CameraTargetLocation[i] = Center - Forward * CameraDistance;
 
 			// 회전은 현재 유지
 			CameraTargetRotation[i] = CurrentRotation;
+
+			// OrthoZoom 조정: 물체가 화면에 꽉 차도록
+			// AABB의 최대 크기를 기준으로 적절한 줌 레벨 설정
+			const float MaxSize = max(AABBSize.X, max(AABBSize.Y, AABBSize.Z));
+			const float TargetZoom = MaxSize * 1.5f; // 여유 공간 포함
+			Cam->SetOrthoZoom(TargetZoom);
 		}
 	}
 
@@ -939,10 +973,12 @@ void UEditor::UpdateCameraAnimation()
 	CameraAnimationTime += DT;
 	float Progress = CameraAnimationTime / CAMERA_ANIMATION_DURATION;
 
+	bool bAnimationCompleted = false;
 	if (Progress >= 1.0f)
 	{
 		Progress = 1.0f;
 		bIsCameraAnimating = false;
+		bAnimationCompleted = true;
 	}
 
 	float SmoothProgress;
@@ -982,6 +1018,57 @@ void UEditor::UpdateCameraAnimation()
 			// Orthographic: 회전도 보간 (ViewType 전환 등을 위해)
 			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
 			Cam->SetRotation(CurrentRotation);
+		}
+	}
+
+	// 애니메이션 완료 시 오쏘 뷰의 InitialOffsets 및 공유 센터 업데이트
+	if (bAnimationCompleted && AnimatingCameraType == ECameraType::ECT_Orthographic)
+	{
+		// 먼저 애니메이션 타겟 위치 기반으로 새로운 공유 센터 계산
+		// 첫 번째 오쏘 뷰를 기준으로 공유 센터 설정
+		FVector NewSharedCenter = FVector::ZeroVector();
+		bool bCenterCalculated = false;
+
+		for (int Index = 0; Index < Clients.size(); ++Index)
+		{
+			if (!Clients[Index]) continue;
+			UCamera* Cam = Clients[Index]->GetCamera();
+			if (!Cam || Cam->GetCameraType() != ECameraType::ECT_Orthographic) continue;
+
+			// ViewType에 따른 InitialOffsets 인덱스 결정
+			int32 OrthoIdx = -1;
+			switch (Clients[Index]->GetViewType())
+			{
+			case EViewType::OrthoTop: OrthoIdx = 0; break;
+			case EViewType::OrthoBottom: OrthoIdx = 1; break;
+			case EViewType::OrthoLeft: OrthoIdx = 2; break;
+			case EViewType::OrthoRight: OrthoIdx = 3; break;
+			case EViewType::OrthoFront: OrthoIdx = 4; break;
+			case EViewType::OrthoBack: OrthoIdx = 5; break;
+			}
+
+			if (OrthoIdx >= 0 && OrthoIdx < ViewportManager.GetInitialOffsets().size())
+			{
+				const FVector& OldOffset = ViewportManager.GetInitialOffsets()[OrthoIdx];
+				const FVector NewLocation = Cam->GetLocation();
+
+				// 첫 번째 오쏘 뷰 기준으로 새로운 공유 센터 계산
+				if (!bCenterCalculated)
+				{
+					NewSharedCenter = NewLocation - OldOffset;
+					bCenterCalculated = true;
+				}
+
+				// 새로운 오프셋 = 새 위치 - 새 공유 센터
+				FVector NewOffset = NewLocation - NewSharedCenter;
+				ViewportManager.UpdateInitialOffset(OrthoIdx, NewOffset);
+			}
+		}
+
+		// 공유 센터 업데이트
+		if (bCenterCalculated)
+		{
+			ViewportManager.SetOrthoGraphicCameraPoint(NewSharedCenter);
 		}
 	}
 }

@@ -233,6 +233,71 @@ void USceneComponent::SetWorldRotation(const FQuaternion& NewRotation)
 	}
 }
 
+void USceneComponent::SetWorldRotationPreservingChildren(const FVector& NewRotation)
+{
+	SetWorldRotationPreservingChildren(FQuaternion::FromEuler(NewRotation));
+}
+
+void USceneComponent::SetWorldRotationPreservingChildren(const FQuaternion& NewRotation)
+{
+	// Child component들의 world rotation 저장
+	TArray<TPair<USceneComponent*, FQuaternion>> ChildWorldRotations;
+	ChildWorldRotations.reserve(AttachChildren.size());
+
+	for (USceneComponent* Child : AttachChildren)
+	{
+		if (Child)
+		{
+			ChildWorldRotations.emplace_back(Child, Child->GetWorldRotationAsQuaternion());
+		}
+	}
+
+	// 본인의 world rotation 변경
+	SetWorldRotation(NewRotation);
+
+	// Child component들의 world rotation 복원
+	for (const auto& Pair : ChildWorldRotations)
+	{
+		USceneComponent* Child = Pair.first;
+		const FQuaternion& ChildWorldRotation = Pair.second;
+
+		if (Child)
+		{
+			Child->SetWorldRotation(ChildWorldRotation);
+		}
+	}
+}
+
+void USceneComponent::SetRelativeRotationPreservingChildren(const FQuaternion& NewRotation)
+{
+	// Child component들의 world rotation 저장
+	TArray<TPair<USceneComponent*, FQuaternion>> ChildWorldRotations;
+	ChildWorldRotations.reserve(AttachChildren.size());
+
+	for (USceneComponent* Child : AttachChildren)
+	{
+		if (Child)
+		{
+			ChildWorldRotations.emplace_back(Child, Child->GetWorldRotationAsQuaternion());
+		}
+	}
+
+	// 본인의 relative rotation 변경
+	SetRelativeRotation(NewRotation);
+
+	// Child component들의 world rotation 복원
+	for (const auto& Pair : ChildWorldRotations)
+	{
+		USceneComponent* Child = Pair.first;
+		const FQuaternion& ChildWorldRotation = Pair.second;
+
+		if (Child)
+		{
+			Child->SetWorldRotation(ChildWorldRotation);
+		}
+	}
+}
+
 void USceneComponent::SetWorldScale3D(const FVector& NewScale)
 {
     if (AttachParent)

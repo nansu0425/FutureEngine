@@ -59,7 +59,7 @@ public:
 	 */
 	void SetLocation(const FVector& Location);
 	void SetGizmoDirection(EGizmoDirection Direction) { GizmoDirection = Direction; }
-	void SetComponentRotation(const FQuaternion& Rotation) const { TargetComponent->SetWorldRotation(Rotation); }
+	void SetComponentRotation(const FQuaternion& Rotation) const { TargetComponent->SetWorldRotationPreservingChildren(Rotation); }
 	void SetComponentScale(const FVector& Scale) const { TargetComponent->SetWorldScale3D(Scale); }
 	void SetPreviousMouseLocation(const FVector& Location) { PreviousMouseLocation = Location; }
 	void SetCurrentRotationAngle(float Angle) { CurrentRotationAngle = Angle; }

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Editor/Public/Camera.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/UI/Public/ViewportManager.h"
@@ -1529,10 +1529,13 @@ void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* I
 		TextY + TextBoxHeight * 0.5f
 	);
 
+	// 반투명 회색 배경
+	const D2D1_COLOR_F ColorGrayBG = D2D1::ColorF(0.2f, 0.2f, 0.2f, 0.7f);
+	Manager.AddRectangle(TextRect, ColorGrayBG, true);
+
 	// 노란색 텍스트
 	const D2D1_COLOR_F ColorYellow = D2D1::ColorF(1.0f, 1.0f, 0.0f);
-
-	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true);
+	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true, true, L"Consolas");
 }
 
 /**

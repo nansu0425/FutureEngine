@@ -406,8 +406,8 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		ImGui::SameLine(0.0f, 10.0f);
 		{
 			ImVec2 lineStart = ImGui::GetCursorScreenPos();
-			lineStart.y += 4.0f;
-			ImVec2 lineEnd = ImVec2(lineStart.x, lineStart.y + 16.0f);
+			lineStart.y += 0.0f;
+			ImVec2 lineEnd = ImVec2(lineStart.x, lineStart.y + 24.0f);
 			ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, IM_COL32(70, 70, 70, 180), 1.0f);
 			ImGui::Dummy(ImVec2(1.0f, 24.0f));
 		}

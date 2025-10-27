@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Editor/Public/Axis.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Editor/Public/Camera.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include <d2d1.h>
+
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 
 FAxis::FAxis() = default;
 
@@ -117,7 +118,7 @@ void FAxis::CollectDrawCommands(FD2DOverlayManager& Manager, UCamera* InCamera, 
 			TextPosX.x + TextBoxSize,
 			TextPosX.y + TextBoxSize
 		);
-		Manager.AddText(L"X", RectX, ColorX, 13.0f, true);
+		Manager.AddText(L"X", RectX, ColorX, 13.0f, true, true, L"Consolas");
 	}
 
 	// Y축 텍스트
@@ -134,7 +135,7 @@ void FAxis::CollectDrawCommands(FD2DOverlayManager& Manager, UCamera* InCamera, 
 			TextPosY.x + TextBoxSize,
 			TextPosY.y + TextBoxSize
 		);
-		Manager.AddText(L"Y", RectY, ColorY, 13.0f, true);
+		Manager.AddText(L"Y", RectY, ColorY, 13.0f, true, true, L"Consolas");
 	}
 
 	// Z축 텍스트
@@ -151,6 +152,6 @@ void FAxis::CollectDrawCommands(FD2DOverlayManager& Manager, UCamera* InCamera, 
 			TextPosZ.x + TextBoxSize,
 			TextPosZ.y + TextBoxSize
 		);
-		Manager.AddText(L"Z", RectZ, ColorZ, 13.0f, true);
+		Manager.AddText(L"Z", RectZ, ColorZ, 13.0f, true, true, L"Consolas");
 	}
 }

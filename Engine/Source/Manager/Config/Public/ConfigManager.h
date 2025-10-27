@@ -109,7 +109,13 @@ public:
 		LastUsedLevelPath = InLevelPath;
 	}
 
-	//void SetViewportCameraData(int InIndex, const FViewportCameraData& InData) { ViewportCameraSettings[InIndex] = InData; }
+	// 카메라 설정 저장 / 로드
+	void SaveViewportCameraSettings(const JSON& InViewportSystemJson);
+	JSON LoadViewportCameraSettings();
+
+	// 뷰포트 레이아웃 저장 / 로드
+	void SaveViewportLayoutSettings(const JSON& InViewportLayoutJson);
+	JSON LoadViewportLayoutSettings();
 
 private:
 	// ini 파일에 저장
@@ -121,6 +127,7 @@ private:
 	float RightSplitterRatio;
 	FString LastUsedLevelPath;
 
-	// Json으로 Level에 같이 저장
-	//FViewportCameraData ViewportCameraSettings[4];
+	// 설정 저장용
+	FString ViewportCameraSettingsJson;
+	FString ViewportLayoutSettingsJson;
 };

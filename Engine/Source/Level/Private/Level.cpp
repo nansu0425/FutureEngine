@@ -48,17 +48,6 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		uint32 NextUUID = 0;
 		FJsonSerializer::ReadUint32(InOutHandle, "NextUUID", NextUUID);
 
-		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
-		// TODO: ViewportManager를 통한 카메라 설정 로드 기능 구현 필요
-		// ViewportManager를 통한 카메라/뷰포트 상태 로드
-		UViewportManager& ViewportManager = UViewportManager::GetInstance();
-		ViewportManager.SerializeViewports(true, InOutHandle);
-		// JSON PerspectiveCameraData;
-		// if (FJsonSerializer::ReadArray(InOutHandle, "PerspectiveCamera", PerspectiveCameraData))
-		// {
-		// 		// ViewportManager를 통해 각 ViewportClient의 Camera에 설정 적용
-		// }
-		
 		JSON ActorsJson;
 		if (FJsonSerializer::ReadObject(InOutHandle, "Actors", ActorsJson))
 		{
@@ -80,13 +69,6 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// NOTE: 레벨 로드 시 NextUUID를 변경하면 UUID 충돌이 발생하므로 관련 기능 구현을 보류합니다.
 		InOutHandle["NextUUID"] = 0;
 
-		// FutureEngine 철학: 카메라 설정은 ViewportManager가 관리
-		// TODO: ViewportManager를 통해 모든 ViewportClient의 Camera 설정을 JSON으로 저장하는 기능 구현 필요
-		// InOutHandle["PerspectiveCamera"] = ViewportManager::GetInstance().GetAllCameraSettingsAsJson();
-		
-		// ViewportManager를 통한 카메라/뷰포트 상태 저장
-		UViewportManager& ViewportManager = UViewportManager::GetInstance();
-		ViewportManager.SerializeViewports(false, InOutHandle);
 		JSON ActorsJson = json::Object();
 		for (AActor* Actor : LevelActors)
 		{

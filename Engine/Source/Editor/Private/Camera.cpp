@@ -61,7 +61,7 @@ FVector UCamera::UpdateInput()
 		{
 			// 오쏘 뷰: 마우스 드래그로만 패닝
 			const FVector MouseDelta = UInputManager::GetInstance().GetMouseDelta();
-			const float PanSpeed = 0.25f; // 패닝 속도 계수 (절반으로 감소)
+			const float PanSpeed = 0.1f; // 패닝 속도 계수
 			FVector PanDelta = Right * -MouseDelta.X * PanSpeed + Up * MouseDelta.Y * PanSpeed;
 			RelativeLocation += PanDelta; // 좌우는 반대, 상하는 동일
 			MovementDelta = PanDelta;
