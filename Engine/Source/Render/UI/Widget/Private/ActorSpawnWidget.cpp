@@ -78,6 +78,7 @@ void UActorSpawnWidget::SpawnActors()
 		SelectedActorClassName.ToString().data(), NumberOfSpawn);
 
 	// 지정된 개수만큼 액터 생성
+	AActor* LastSpawnedActor = nullptr;
 	for (int32 i = 0; i < NumberOfSpawn; i++)
 	{
 		AActor* NewActor = GWorld->SpawnActor(ActorClasses[SelectedActorClassIndex]);
@@ -96,11 +97,19 @@ void UActorSpawnWidget::SpawnActors()
 			NewActor->SetActorScale3D(FVector(RandomScale, RandomScale, RandomScale));
 
 			UE_LOG("ControlPanel: (%.2f, %.2f, %.2f) 지점에 Actor를 배치했습니다", RandomX, RandomY, RandomZ);
+
+			LastSpawnedActor = NewActor;
 		}
 		else
 		{
 			UE_LOG("ControlPanel: Actor 배치에 실패했습니다 %d", i);
 		}
+	}
+
+	// 마지막으로 생성된 Actor를 선택
+	if (LastSpawnedActor)
+	{
+		GEditor->GetEditorModule()->SelectActor(LastSpawnedActor);
 	}
 }
 

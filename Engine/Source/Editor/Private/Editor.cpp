@@ -406,6 +406,7 @@ void UEditor::ProcessMouseInput()
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
 
 			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			UPrimitiveComponent* PrimitiveCollided = nullptr;
 			if (EditorWorld && EditorWorld->GetLevel() && EditorWorld->GetLevel()->GetShowFlags())
 			{
 				TArray<UPrimitiveComponent*> Candidate;
@@ -421,19 +422,43 @@ void UEditor::ProcessMouseInput()
 
 				TStatId StatId("Picking");
 				FScopeCycleCounter PickCounter(StatId);
-				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
+				PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
 				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
 				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
+			}
+
+			// 피킹 결과에 따라 Actor와 Component 선택
+			if (Gizmo.GetGizmoDirection() == EGizmoDirection::None)
+			{
+				if (ActorPicked && PrimitiveCollided)
+				{
+					UActorComponent* ComponentToSelect = PrimitiveCollided;
+
+					// Visualization 컴포넌트가 피킹된 경우, 부모 컴포넌트를 선택
+					if (PrimitiveCollided->IsVisualizationComponent())
+					{
+						if (USceneComponent* ScenePrim = Cast<USceneComponent>(PrimitiveCollided))
+						{
+							if (USceneComponent* Parent = ScenePrim->GetAttachParent())
+							{
+								// 부모 컴포넌트를 선택
+								ComponentToSelect = Parent;
+							}
+						}
+					}
+
+					SelectActorAndComponent(ActorPicked, ComponentToSelect);
+				}
+				else
+				{
+					SelectActor(nullptr);
+				}
 			}
 		}
 
 		if (Gizmo.GetGizmoDirection() == EGizmoDirection::None)
 		{
-			if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
-			{
-				SelectActor(ActorPicked);
-			}
 			if (PreviousGizmoDirection != EGizmoDirection::None)
 			{
 				Gizmo.OnMouseRelease(PreviousGizmoDirection);
@@ -776,6 +801,16 @@ void UEditor::SelectActor(AActor* InActor)
 	SelectedActor = InActor;
 	if (SelectedActor) { SelectComponent(InActor->GetRootComponent()); }
 	else { SelectComponent(nullptr); }
+}
+
+void UEditor::SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent)
+{
+	if (InActor != SelectedActor)
+	{
+		SelectedActor = InActor;
+	}
+
+	SelectComponent(InComponent);
 }
 
 void UEditor::SelectComponent(UActorComponent* InComponent)

@@ -41,6 +41,7 @@ public:
 	void SelectActor(AActor* InActor);
 	AActor* GetSelectedActor() const { return SelectedActor; }
 	void SelectComponent(UActorComponent* InComponent);
+	void SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent);
 	void FocusOnSelectedActor();
 	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
 

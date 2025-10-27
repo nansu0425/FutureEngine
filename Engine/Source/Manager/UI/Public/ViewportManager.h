@@ -112,6 +112,14 @@ public:
 	}
 	void SerializeViewports(const bool bInIsLoading, JSON& InOutHandle);
 
+	// 뷰포트 레이아웃 저장/로드
+	void SaveViewportLayoutToConfig();
+	void LoadViewportLayoutFromConfig();
+
+	// 카메라 설정 저장/로드
+	void SaveCameraSettingsToConfig();
+	void LoadCameraSettingsFromConfig();
+
 	// Camera Speed
 	float GetEditorCameraSpeed() const { return EditorCameraSpeed; }
 	void SetEditorCameraSpeed(float InSpeed);
