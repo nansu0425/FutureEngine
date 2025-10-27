@@ -954,15 +954,15 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 0);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV, 0.5f);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH, 0.5f);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
 
 		// Rotation Snap Settings
 		int32 LoadedRotationSnapEnabledInt = 1;
 		float LoadedRotationSnapAngle = DEFAULT_ROTATION_SNAP_ANGLE;
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "RotationSnapEnabled", LoadedRotationSnapEnabledInt, 1);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "RotationSnapAngle", LoadedRotationSnapAngle);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "RotationSnapAngle", LoadedRotationSnapAngle, DEFAULT_ROTATION_SNAP_ANGLE);
 		bool LoadedRotationSnapEnabled = (LoadedRotationSnapEnabledInt != 0);
 
 		SharedOrthoZoom = LoadedSharedOrthoZoom;
@@ -1025,11 +1025,11 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 							float SavedOrthoZoom = Camera->GetOrthoZoom();
 							float SavedMoveSpeed = Camera->GetMoveSpeed();
 
-							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY);
-							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ);
-							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ);
-							FJsonSerializer::ReadFloat(CameraJson, "OrthoZoom", SavedOrthoZoom);
-							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed);
+							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY, SavedFovY);
+							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ, SavedNearZ);
+							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ, SavedFarZ);
+							FJsonSerializer::ReadFloat(CameraJson, "OrthoZoom", SavedOrthoZoom, SavedOrthoZoom);
+							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed, SavedMoveSpeed);
 
 							Camera->SetLocation(SavedLocation);
 							Camera->SetRotation(SavedRotation);

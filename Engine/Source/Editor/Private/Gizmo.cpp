@@ -346,11 +346,16 @@ static void GenerateAngleTickMarks(const FVector& Axis0, const FVector& Axis1,
 	FVector ZAxis = Axis0.Cross(Axis1);
 	ZAxis.Normalize();
 
-	const int32 NumTickSegments = 2; // 눈금 단면의 세그먼트 수 (사각형)
 	uint32 BaseVertexIndex = 0;
 
 	// 360도 눈금 생성 (SnapAngleDegrees마다)
-	const int32 AngleStep = static_cast<int32>(SnapAngleDegrees);
+	int32 AngleStep = static_cast<int32>(SnapAngleDegrees);
+	if (AngleStep <= 0)
+	{
+		AngleStep = 10;
+		UViewportManager::GetInstance().SetRotationSnapAngle(static_cast<float>(AngleStep));
+	}
+
 	for (int32 Degree = 0; Degree < 360; Degree += AngleStep)
 	{
 		const float AngleRad = FVector::GetDegreeToRadian(static_cast<float>(Degree));
