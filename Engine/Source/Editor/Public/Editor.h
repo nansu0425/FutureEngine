@@ -29,7 +29,8 @@ public:
 	~UEditor();
 
 	void Update();
-	void RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void RenderEditorGeometry();
+	void Collect2DRender(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }

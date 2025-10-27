@@ -35,6 +35,7 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Octree.h"
+#include "Render/Renderer/Public/D2DOverlayManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 
@@ -738,22 +739,17 @@ void URenderer::Update()
         }
 
 		// PIE가 활성화된 뷰포트가 아닌 경우에만 에디터 도구 렌더링
-		bool bIsPIEViewport = (GEditor->IsPIESessionActive() &&
-		                       ViewportIndex == UViewportManager::GetInstance().GetPIEActiveViewportIndex());
+		bool bIsPIEViewport = GEditor->IsPIESessionActive() &&
+			ViewportIndex == UViewportManager::GetInstance().GetPIEActiveViewportIndex();
 		if (!bIsPIEViewport)
 		{
-			{
-				TIME_PROFILE(RenderEditor)
-				GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
-			}
-			// Gizmo는 최종적으로 렌더
+			// Grid, Gizmo 렌더링 (3D, FXAA 적용 대상)
+			GEditor->GetEditorModule()->RenderEditorGeometry();
 			GEditor->GetEditorModule()->RenderGizmo(CurrentCamera, LocalViewport);
 		}
     }
 
-    // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
-	// FXAAPass->Execute의 RenderingContext는 쓰레기 값
-	// TODO : 포스트 프로세스 패스를 따로 파야할지도
+    // FXAA는 SceneColor → 백버퍼로 복사
     if (bFXAAEnabled)
     {
         ID3D11RenderTargetView* nullRTV[] = { nullptr };
@@ -763,13 +759,37 @@ void URenderer::Update()
         FXAAPass->Execute(RenderingContext);
     }
 
+    // D2D 오버레이는 FXAA 후 각 뷰포트마다 독립적으로 렌더링
+    for (size_t ViewportIndex = 0; ViewportIndex < Viewports.size(); ++ViewportIndex)
+    {
+        FViewport* Viewport = Viewports[ViewportIndex];
+        if (!Viewport)
+        {
+            continue;
+        }
+
+        if (Viewport->GetRect().Width < 50 || Viewport->GetRect().Height < 50)
+        {
+            continue;
+        }
+
+        bool bIsPIEViewport = GEditor->IsPIESessionActive() &&
+                               ViewportIndex == UViewportManager::GetInstance().GetPIEActiveViewportIndex();
+        if (!bIsPIEViewport)
+        {
+            FRect SingleWindowRect = Viewport->GetRect();
+            const int32 ViewportToolBarHeight = 32;
+            D3D11_VIEWPORT LocalViewport = { static_cast<float>(SingleWindowRect.Left),static_cast<float>(SingleWindowRect.Top) + ViewportToolBarHeight, static_cast<float>(SingleWindowRect.Width), static_cast<float>(SingleWindowRect.Height) - ViewportToolBarHeight, 0.0f, 1.0f };
+            UCamera* CurrentCamera = Viewport->GetViewportClient()->GetCamera();
+
+            GEditor->GetEditorModule()->Collect2DRender(CurrentCamera, LocalViewport);
+            TIME_PROFILE(FlushAndRender)
+            FD2DOverlayManager::GetInstance().FlushAndRender();
+        }
+    }
     {
         TIME_PROFILE(UUIManager)
         UUIManager::GetInstance().Render();
-    }
-    {
-        TIME_PROFILE(UStatOverlay)
-        UStatOverlay::GetInstance().Render();
     }
 
     RenderEnd();

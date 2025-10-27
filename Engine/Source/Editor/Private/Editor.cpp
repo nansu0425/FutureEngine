@@ -165,11 +165,9 @@ void UEditor::Update()
 	ProcessMouseInput();
 }
 
-void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+void UEditor::Collect2DRender(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-	BatchLines.Render();
-
-	// D2D 오버레이 렌더링
+	// D2D 드로잉 정보 수집 시작
 	FD2DOverlayManager& OverlayManager = FD2DOverlayManager::GetInstance();
 	OverlayManager.BeginCollect(InCamera, InViewport);
 
@@ -179,8 +177,14 @@ void UEditor::RenderEditor(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	// Gizmo 회전 각도 오버레이 수집
 	Gizmo.CollectRotationAngleOverlay(OverlayManager, InCamera, InViewport);
 
-	// 배치 렌더링 실행
-	OverlayManager.FlushAndRender();
+	// StatOverlay 렌더링 명령 수집
+	UStatOverlay::GetInstance().Render();
+}
+
+void UEditor::RenderEditorGeometry()
+{
+	// 3D 지오메트리 렌더링 (Grid 등, FXAA 전 SceneColor에 렌더링)
+	BatchLines.Render();
 }
 
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
@@ -882,32 +886,24 @@ void UEditor::FocusOnSelectedActor()
 		}
 		else
 		{
-			// Orthographic: Center를 화면 중앙에 오도록 카메라 위치 조정
-			const FVector CurrentLocation = Cam->GetLocation();
+			// Orthographic: 물체 중심으로 카메라 이동 (단순하게)
 			const FVector CurrentRotation = Cam->GetRotation();
 
 			// 카메라 기저 벡터 (Forward, Right, Up)
 			const FVector Forward = Cam->GetForward();
-			const FVector Right = Cam->GetRight();
-			const FVector Up = Cam->GetUp();
 
-			// 현재 카메라에서 Center까지의 벡터
-			const FVector ToCenter = Center - CurrentLocation;
-
-			// Center가 카메라 좌표계에서 얼마나 떨어져 있는지 계산
-			const float ForwardDist = ToCenter.Dot(Forward);  // Forward 방향 거리
-			const float RightDist = ToCenter.Dot(Right);      // Right 방향 오프셋
-			const float UpDist = ToCenter.Dot(Up);            // Up 방향 오프셋
-
-			// 카메라를 Right/Up/Forward 방향으로 이동시켜 Center를 적절한 위치에 배치
-			// ForwardDist가 너무 작으면(오브젝트가 카메라 뒤에 있으면) 적절한 거리로 조정
-			const float MinForwardDist = BoundingRadius * 2.0f + 100.0f;
-			const float AdjustedForwardDist = (ForwardDist < MinForwardDist) ? MinForwardDist : ForwardDist;
-
-			CameraTargetLocation[i] = CurrentLocation + Right * RightDist + Up * UpDist + Forward * (AdjustedForwardDist - ForwardDist);
+			// 물체 중심에서 Forward 반대 방향으로 일정 거리만큼 떨어진 위치
+			const float CameraDistance = BoundingRadius * 2.0f + 100.0f;
+			CameraTargetLocation[i] = Center - Forward * CameraDistance;
 
 			// 회전은 현재 유지
 			CameraTargetRotation[i] = CurrentRotation;
+
+			// OrthoZoom 조정: 물체가 화면에 꽉 차도록
+			// AABB의 최대 크기를 기준으로 적절한 줌 레벨 설정
+			const float MaxSize = max(AABBSize.X, max(AABBSize.Y, AABBSize.Z));
+			const float TargetZoom = MaxSize * 1.5f; // 여유 공간 포함
+			Cam->SetOrthoZoom(TargetZoom);
 		}
 	}
 

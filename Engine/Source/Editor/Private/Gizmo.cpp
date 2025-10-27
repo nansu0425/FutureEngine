@@ -1532,7 +1532,7 @@ void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* I
 	// 노란색 텍스트
 	const D2D1_COLOR_F ColorYellow = D2D1::ColorF(1.0f, 1.0f, 0.0f);
 
-	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true);
+	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true, true, L"Consolas");
 }
 
 /**

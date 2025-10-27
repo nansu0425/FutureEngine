@@ -34,7 +34,7 @@ public:
 	/**
 	 * @brief 텍스트 렌더링 명령 추가
 	 */
-	void AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize = 13.0f, bool bBold = true);
+	void AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize = 13.0f, bool bBold = true, bool bCentered = true, const wchar_t* FontName = L"Arial");
 
 	/**
 	 * @brief 수집된 모든 렌더링 명령을 실행하고 클리어
@@ -71,6 +71,8 @@ private:
 		D2D1_COLOR_F Color;
 		float FontSize;
 		bool bBold;
+		bool bCentered;
+		std::wstring FontName;
 	};
 
 	std::vector<FLineCommand> LineCommands;
