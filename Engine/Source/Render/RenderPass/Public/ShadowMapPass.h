@@ -2,6 +2,7 @@
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Texture/Public/ShadowMapResources.h"
 #include "Global/Types.h"
+#include "Render/RenderPass/Public/ShadowData.h"
 
 class ULightComponent;
 class UDirectionalLightComponent;
@@ -95,6 +96,8 @@ private:
 		uint32 AtlasIndex,
 		const TArray<UStaticMeshComponent*>& Meshes
 		);
+
+	void SetShadowAtlasTilePositionStructuredBuffer();
 
 	// --- Helper Functions ---
 	/**
@@ -206,6 +209,19 @@ private:
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
 	ID3D11Buffer* ShadowViewProjConstantBuffer = nullptr;
 	ID3D11Buffer* PointLightShadowParamsBuffer = nullptr;
+
+	TArray<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePosArray;
+	TArray<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePosArray;
+	TArray<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePosArray;
+	
+	ID3D11Buffer* ShadowAtlasDirectionalLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasDirectionalLightTilePosStructuredSRV = nullptr;
+	
+	ID3D11Buffer* ShadowAtlasSpotLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasSpotLightTilePosStructuredSRV = nullptr;
+	
+	ID3D11Buffer* ShadowAtlasPointLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasPointLightTilePosStructuredSRV = nullptr;
 
 	FShadowMapResource ShadowAtlas{};
 };

@@ -58,15 +58,4 @@ struct FSpotLightInfo
     float ShadowSharpen;
 };
 
-struct FShadowAtlasTilePos
-{
-    uint2 UV;
-    uint2 Padding;
-};
-
-struct FShadowAtlasPointLightTilePos
-{
-    uint2 UV[6];
-};
-
 #endif
