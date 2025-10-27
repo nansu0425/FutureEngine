@@ -274,19 +274,35 @@ void ULevelTabBarWidget::RenderWidget()
 					{
 						if (ImGui::MenuItem("Ambient Light"))
 						{
-							EditorWorld->SpawnActor(AAmbientLight::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(AAmbientLight::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						if (ImGui::MenuItem("Directional Light"))
 						{
-							EditorWorld->SpawnActor(ADirectionalLight::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(ADirectionalLight::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						if (ImGui::MenuItem("Point Light"))
 						{
-							EditorWorld->SpawnActor(APointLight::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(APointLight::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						if (ImGui::MenuItem("Spot Light"))
 						{
-							EditorWorld->SpawnActor(ASpotLight::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(ASpotLight::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						ImGui::EndMenu();
 					}
@@ -296,11 +312,19 @@ void ULevelTabBarWidget::RenderWidget()
 					{
 						if (ImGui::MenuItem("Decal Actor"))
 						{
-							EditorWorld->SpawnActor(ADecalActor::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(ADecalActor::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						if (ImGui::MenuItem("Decal Spot Light Actor"))
 						{
-							EditorWorld->SpawnActor(ADecalSpotLightActor::StaticClass());
+							AActor* NewActor = EditorWorld->SpawnActor(ADecalSpotLightActor::StaticClass());
+							if (NewActor)
+							{
+								GEditor->GetEditorModule()->SelectActor(NewActor);
+							}
 						}
 						ImGui::EndMenu();
 					}
@@ -333,7 +357,11 @@ void ULevelTabBarWidget::RenderWidget()
 
 							if (ImGui::MenuItem(ClassName.c_str()))
 							{
-								EditorWorld->SpawnActor(ActorClass);
+								AActor* NewActor = EditorWorld->SpawnActor(ActorClass);
+								if (NewActor)
+								{
+									GEditor->GetEditorModule()->SelectActor(NewActor);
+								}
 							}
 						}
 						ImGui::EndMenu();

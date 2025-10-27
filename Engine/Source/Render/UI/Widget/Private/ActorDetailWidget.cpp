@@ -403,7 +403,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 {
 	ImGui::SameLine();
 
-	const char* ButtonText = "ADD COMPONENT";
+	const char* ButtonText = "Add Component";
 	float ButtonWidth = ImGui::CalcTextSize(ButtonText).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - ButtonWidth);
 
@@ -411,7 +411,6 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 	{
 		ImGui::OpenPopup("AddComponentPopup");
 	}
-	
 
     ImGui::SetNextWindowContentSize(ImVec2(200.0f, 0.0f)); 
 	if (ImGui::BeginPopup("AddComponentPopup"))
@@ -497,7 +496,7 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 			NewSceneComponent->AttachToComponent(InSelectedActor->GetRootComponent());
 			UE_LOG_SUCCESS("'%s'를 액터의 루트에 추가했습니다.", NewComponent->GetName().ToString().data());
 		}
-		
+
 		NewSceneComponent->SetRelativeLocation(FVector::Zero());
 		NewSceneComponent->SetRelativeRotation(FQuaternion::Identity());
 		NewSceneComponent->SetRelativeScale3D({1, 1, 1});
@@ -506,6 +505,9 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	{
 		UE_LOG_SUCCESS("Non-Scene Component '%s'를 액터에 추가했습니다.", NewComponent->GetName().ToString().data());
 	}
+
+	// 새로 추가된 컴포넌트를 자동으로 선택
+	GEditor->GetEditorModule()->SelectComponent(NewComponent);
 }
 
 void UActorDetailWidget::StartRenamingActor(AActor* InActor)
@@ -841,11 +843,11 @@ void UActorDetailWidget::RenderTransformEdit()
 		cachedRotation.Z = RotArray[2];
 		if (bShowWorldRotation)
 		{
-			SceneComponent->SetWorldRotation(cachedRotation);
+			SceneComponent->SetWorldRotationPreservingChildren(cachedRotation);
 		}
 		else
 		{
-			SceneComponent->SetRelativeRotation(FQuaternion::FromEuler(cachedRotation));
+			SceneComponent->SetRelativeRotationPreservingChildren(FQuaternion::FromEuler(cachedRotation));
 		}
 	}
 
@@ -1045,8 +1047,14 @@ void UActorDetailWidget::DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLo
 }
 
 void UActorDetailWidget::SetSelectedComponent(UActorComponent* InComponent)
-{ 
+{
 	SelectedComponent = InComponent;
+
+	// CachedSelectedActor도 업데이트하여 RenderWidget()에서 덮어쓰지 않도록 함
+	if (InComponent)
+	{
+		CachedSelectedActor = InComponent->GetOwner();
+	}
 }
 
 void UActorDetailWidget::LoadComponentClasses()

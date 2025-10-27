@@ -2,6 +2,7 @@
 #include "UIWindow.h"
 
 class AActor;
+class UActorDetailWidget;
 
 /**
  * @brief Scene 관리를 위한 Window
@@ -19,5 +20,6 @@ public:
 	void OnSelectedComponentChanged(UActorComponent* Component) override;
 
 private:
+	UActorDetailWidget* ActorDetailWidget = nullptr;
 	UWidget* ComponentSpecificWidget = nullptr;
 };

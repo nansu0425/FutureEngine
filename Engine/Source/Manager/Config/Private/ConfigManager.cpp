@@ -48,6 +48,8 @@ void UConfigManager::LoadEditorSetting()
 			else if (Key == "LeftSplitterRatio") LeftSplitterRatio = std::stof(Value);
 			else if (Key == "RightSplitterRatio") RightSplitterRatio = std::stof(Value);
 			else if (Key == "LastUsedLevelPath") LastUsedLevelPath = Value;
+			else if (Key == "ViewportCameraSettings") ViewportCameraSettingsJson = Value;
+			else if (Key == "ViewportLayoutSettings") ViewportLayoutSettingsJson = Value;
 		}
 		catch (const std::exception&) {}
 	}
@@ -64,6 +66,14 @@ void UConfigManager::SaveEditorSetting()
 		Ofs << "LeftSplitterRatio=" << LeftSplitterRatio << "\n";
 		Ofs << "RightSplitterRatio=" << RightSplitterRatio << "\n";
 		Ofs << "LastUsedLevelPath=" << LastUsedLevelPath << "\n";
+		if (!ViewportCameraSettingsJson.empty())
+		{
+			Ofs << "ViewportCameraSettings=" << ViewportCameraSettingsJson << "\n";
+		}
+		if (!ViewportLayoutSettingsJson.empty())
+		{
+			Ofs << "ViewportLayoutSettings=" << ViewportLayoutSettingsJson << "\n";
+		}
 	}
 }
 
@@ -79,4 +89,48 @@ void UConfigManager::SetCameraSettingsFromJson(const JSON& InData)
 {
 	// 카메라 설정은 ViewportManager를 통해 처리되어야 함
 	// 이 함수는 하위 호환성을 위해 유지되지만 아무 작업도 수행하지 않음
+}
+
+void UConfigManager::SaveViewportCameraSettings(const JSON& InViewportSystemJson)
+{
+	ViewportCameraSettingsJson = InViewportSystemJson.dump();
+}
+
+JSON UConfigManager::LoadViewportCameraSettings()
+{
+	if (ViewportCameraSettingsJson.empty())
+	{
+		return json::Object();
+	}
+
+	try
+	{
+		return JSON::Load(ViewportCameraSettingsJson);
+	}
+	catch (const std::exception&)
+	{
+		return json::Object();
+	}
+}
+
+void UConfigManager::SaveViewportLayoutSettings(const JSON& InViewportLayoutJson)
+{
+	ViewportLayoutSettingsJson = InViewportLayoutJson.dump();
+}
+
+JSON UConfigManager::LoadViewportLayoutSettings()
+{
+	if (ViewportLayoutSettingsJson.empty())
+	{
+		return json::Object();
+	}
+
+	try
+	{
+		return JSON::Load(ViewportLayoutSettingsJson);
+	}
+	catch (const std::exception&)
+	{
+		return json::Object();
+	}
 }

@@ -27,7 +27,7 @@ UDetailWindow::UDetailWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	UActorDetailWidget* ActorDetailWidget = NewObject<UActorDetailWidget>();
+	ActorDetailWidget = NewObject<UActorDetailWidget>();
 	AddWidget(ActorDetailWidget);
 	UActorTerminationWidget* ActorTerminationWidget = NewObject<UActorTerminationWidget>();
 	ActorTerminationWidget->SetActorDetailWidget(ActorDetailWidget);
@@ -45,9 +45,16 @@ void UDetailWindow::Initialize()
 // @brief 새로운 Actor가 피킹된 경우 소유한 컴포넌트 전용 Widget을 표시한다
 void UDetailWindow::OnSelectedComponentChanged(UActorComponent* Component)
 {
+	// ActorDetailWidget에 선택된 컴포넌트 전달
+	if (ActorDetailWidget)
+	{
+		ActorDetailWidget->SetSelectedComponent(Component);
+	}
+
+	// 컴포넌트별 전용 위젯 관리
 	DeleteWidget(ComponentSpecificWidget);
 	ComponentSpecificWidget = nullptr;
-	
+
 	if (Component)
 	{
 		UClass* WidgetClass = Component->GetSpecificWidgetClass();

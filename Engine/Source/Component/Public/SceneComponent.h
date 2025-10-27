@@ -41,6 +41,9 @@ public:
     void SetWorldLocation(const FVector& NewLocation);
     void SetWorldRotation(const FVector& NewRotation);
     void SetWorldRotation(const FQuaternion& NewRotation);
+    void SetWorldRotationPreservingChildren(const FVector& NewRotation);
+    void SetWorldRotationPreservingChildren(const FQuaternion& NewRotation);
+    void SetRelativeRotationPreservingChildren(const FQuaternion& NewRotation);
     void SetWorldScale3D(const FVector& NewScale);
 
 private:

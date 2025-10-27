@@ -1,7 +1,5 @@
 #pragma once
 #include "Core/Public/Object.h"
-#include <d2d1.h>
-#include <dwrite.h>
 
 enum class EStatType : uint8
 {
@@ -25,34 +23,34 @@ public:
 	void Release();
 	void Render();
 
-	// Stat control methods
-	void ShowFPS() { IsStatEnabled(EStatType::FPS) ? DisableStat(EStatType::FPS) : EnableStat(EStatType::FPS); }
-	void ShowMemory() { IsStatEnabled(EStatType::Memory) ? DisableStat(EStatType::Memory) : EnableStat(EStatType::Memory); }
-	void ShowPicking() { IsStatEnabled(EStatType::Picking) ? DisableStat(EStatType::Picking) : EnableStat(EStatType::Picking); }
-	void ShowTime() { IsStatEnabled(EStatType::Time) ? DisableStat(EStatType::Time) : EnableStat(EStatType::Time); }
-	void ShowDecal() { IsStatEnabled(EStatType::Decal) ? DisableStat(EStatType::Decal) : EnableStat(EStatType::Decal); }
-	void ShowAll() { IsStatEnabled(EStatType::All) ? DisableStat(EStatType::All) : EnableStat(EStatType::All); }
+	// Stat control methods (토글)
+	void ToggleFPS() { IsStatEnabled(EStatType::FPS) ? DisableStat(EStatType::FPS) : EnableStat(EStatType::FPS); }
+	void ToggleMemory() { IsStatEnabled(EStatType::Memory) ? DisableStat(EStatType::Memory) : EnableStat(EStatType::Memory); }
+	void TogglePicking() { IsStatEnabled(EStatType::Picking) ? DisableStat(EStatType::Picking) : EnableStat(EStatType::Picking); }
+	void ToggleTime() { IsStatEnabled(EStatType::Time) ? DisableStat(EStatType::Time) : EnableStat(EStatType::Time); }
+	void ToggleDecal() { IsStatEnabled(EStatType::Decal) ? DisableStat(EStatType::Decal) : EnableStat(EStatType::Decal); }
+	void ToggleAll() { IsStatEnabled(EStatType::All) ? DisableStat(EStatType::All) : EnableStat(EStatType::All); }
+
+	// Stat control methods (명시적 켜기/끄기)
+	void ShowFPS() { EnableStat(EStatType::FPS); }
+	void ShowMemory() { EnableStat(EStatType::Memory); }
+	void ShowPicking() { EnableStat(EStatType::Picking); }
+	void ShowTime() { EnableStat(EStatType::Time); }
+	void ShowDecal() { EnableStat(EStatType::Decal); }
+	void ShowAll() { EnableStat(EStatType::All); }
+	void HideAll() { SetStatType(EStatType::None); }
 
 	// API to update stats
 	void RecordPickingStats(float ElapsedMS);
 	void RecordDecalStats(uint32 InRenderedDecal, uint32 InCollidedCompCount);
 	
 private:
-	void RenderFPS(ID2D1DeviceContext* d2dCtx);
-	void RenderMemory(ID2D1DeviceContext* d2dCtx);
-	void RenderPicking(ID2D1DeviceContext* d2dCtx);
-	void RenderDecalInfo(ID2D1DeviceContext* D2DCtx);
-	void RenderTimeInfo(ID2D1DeviceContext* d2dCtx);
-	void RenderText(ID2D1DeviceContext* d2dCtx, const FString& Text, float X, float Y, float R, float G, float B);
-	template <typename T>
-	inline void SafeRelease(T*& ptr)
-	{
-		if (ptr)
-		{
-			ptr->Release();
-			ptr = nullptr;
-		}
-	}
+	void RenderFPS();
+	void RenderMemory();
+	void RenderPicking();
+	void RenderDecalInfo();
+	void RenderTimeInfo();
+	void RenderText(const FString& Text, float X, float Y, float R, float G, float B);
 
 	// FPS Stats
 	float CurrentFPS = 0.0f;
@@ -79,8 +77,4 @@ private:
 	void DisableStat(EStatType InStatType);
 	void SetStatType(EStatType InStatType);
 	bool IsStatEnabled(EStatType InStatType) const;
-
-	IDWriteTextFormat* TextFormat = nullptr;
-	
-	IDWriteFactory* DWriteFactory = nullptr;
 };

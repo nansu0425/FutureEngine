@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
 void FD2DOverlayManager::BeginCollect(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
@@ -9,6 +9,7 @@ void FD2DOverlayManager::BeginCollect(UCamera* InCamera, const D3D11_VIEWPORT& I
 
 	LineCommands.clear();
 	EllipseCommands.clear();
+	RectangleCommands.clear();
 	TextCommands.clear();
 }
 
@@ -33,7 +34,16 @@ void FD2DOverlayManager::AddEllipse(const D2D1_POINT_2F& Center, float RadiusX, 
 	EllipseCommands.push_back(Cmd);
 }
 
-void FD2DOverlayManager::AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize, bool bBold)
+void FD2DOverlayManager::AddRectangle(const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, bool bFilled)
+{
+	FRectangleCommand Cmd;
+	Cmd.Rect = Rect;
+	Cmd.Color = Color;
+	Cmd.bFilled = bFilled;
+	RectangleCommands.push_back(Cmd);
+}
+
+void FD2DOverlayManager::AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize, bool bBold, bool bCentered, const wchar_t* FontName)
 {
 	FTextCommand Cmd;
 	Cmd.Text = Text;
@@ -41,6 +51,8 @@ void FD2DOverlayManager::AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, c
 	Cmd.Color = Color;
 	Cmd.FontSize = FontSize;
 	Cmd.bBold = bBold;
+	Cmd.bCentered = bCentered;
+	Cmd.FontName = FontName;
 	TextCommands.push_back(Cmd);
 }
 
@@ -89,6 +101,25 @@ void FD2DOverlayManager::FlushAndRender()
 		}
 	}
 
+	// 모든 사각형 그리기
+	for (const FRectangleCommand& Cmd : RectangleCommands)
+	{
+		ID2D1SolidColorBrush* Brush = nullptr;
+		D2DRT->CreateSolidColorBrush(Cmd.Color, &Brush);
+		if (Brush)
+		{
+			if (Cmd.bFilled)
+			{
+				D2DRT->FillRectangle(Cmd.Rect, Brush);
+			}
+			else
+			{
+				D2DRT->DrawRectangle(Cmd.Rect, Brush);
+			}
+			Brush->Release();
+		}
+	}
+
 	// 모든 텍스트 그리기
 	if (DWriteFactory && !TextCommands.empty())
 	{
@@ -96,7 +127,7 @@ void FD2DOverlayManager::FlushAndRender()
 		{
 			IDWriteTextFormat* TextFormat = nullptr;
 			DWriteFactory->CreateTextFormat(
-				L"Arial",
+				Cmd.FontName.c_str(),
 				nullptr,
 				Cmd.bBold ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
 				DWRITE_FONT_STYLE_NORMAL,
@@ -108,8 +139,16 @@ void FD2DOverlayManager::FlushAndRender()
 
 			if (TextFormat)
 			{
-				TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-				TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+				if (Cmd.bCentered)
+				{
+					TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+					TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+				}
+				else
+				{
+					TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+					TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+				}
 
 				ID2D1SolidColorBrush* Brush = nullptr;
 				D2DRT->CreateSolidColorBrush(Cmd.Color, &Brush);
@@ -130,5 +169,6 @@ void FD2DOverlayManager::FlushAndRender()
 	// 명령 버퍼 클리어
 	LineCommands.clear();
 	EllipseCommands.clear();
+	RectangleCommands.clear();
 	TextCommands.clear();
 }

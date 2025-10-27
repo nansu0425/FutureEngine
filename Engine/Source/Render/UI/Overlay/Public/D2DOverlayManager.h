@@ -1,5 +1,4 @@
 #pragma once
-#include <d2d1.h>
 
 class UCamera;
 
@@ -32,9 +31,14 @@ public:
 	void AddEllipse(const D2D1_POINT_2F& Center, float RadiusX, float RadiusY, const D2D1_COLOR_F& Color, bool bFilled = true);
 
 	/**
+	 * @brief 사각형 렌더링 명령 추가
+	 */
+	void AddRectangle(const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, bool bFilled = true);
+
+	/**
 	 * @brief 텍스트 렌더링 명령 추가
 	 */
-	void AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize = 13.0f, bool bBold = true);
+	void AddText(const wchar_t* Text, const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, float FontSize = 13.0f, bool bBold = true, bool bCentered = true, const wchar_t* FontName = L"Arial");
 
 	/**
 	 * @brief 수집된 모든 렌더링 명령을 실행하고 클리어
@@ -64,6 +68,13 @@ private:
 		bool bFilled;
 	};
 
+	struct FRectangleCommand
+	{
+		D2D1_RECT_F Rect;
+		D2D1_COLOR_F Color;
+		bool bFilled;
+	};
+
 	struct FTextCommand
 	{
 		std::wstring Text;
@@ -71,10 +82,13 @@ private:
 		D2D1_COLOR_F Color;
 		float FontSize;
 		bool bBold;
+		bool bCentered;
+		std::wstring FontName;
 	};
 
 	std::vector<FLineCommand> LineCommands;
 	std::vector<FEllipseCommand> EllipseCommands;
+	std::vector<FRectangleCommand> RectangleCommands;
 	std::vector<FTextCommand> TextCommands;
 
 	UCamera* CurrentCamera = nullptr;
