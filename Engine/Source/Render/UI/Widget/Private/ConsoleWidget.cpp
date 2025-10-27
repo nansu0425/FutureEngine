@@ -92,38 +92,51 @@ void UConsoleWidget::RenderWidget()
 
 	// 로그 출력 영역 미리 예약
 	const float ReservedHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-	if (ImGui::BeginChild("LogOutput", ImVec2(0, -ReservedHeight), ImGuiChildFlags_NavFlattened,
-	                      ImGuiWindowFlags_HorizontalScrollbar))
+
+	// 모든 로그를 하나의 텍스트로 합치기 (복사용)
+	// 로그 타입 프리픽스 추가
+	static FString CombinedLogText;
+	CombinedLogText.clear();
+	for (const auto& LogEntry : LogItems)
 	{
-		// 로그 리스트 출력
-		for (const auto& LogEntry : LogItems)
-		{
-			// ELogType을 기반으로 색상 결정
-			ImVec4 Color = GetColorByLogType(LogEntry.Type);
-			bool bShouldApplyColor = (LogEntry.Type != ELogType::Info);
-
-			if (bShouldApplyColor)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Text, Color);
-			}
-
-			ImGui::TextUnformatted(LogEntry.Message.c_str());
-
-			if (bShouldApplyColor)
-			{
-				ImGui::PopStyleColor();
-			}
-		}
-
-		// Auto Scroll
-		if (bIsScrollToBottom || (bIsAutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()))
-		{
-			ImGui::SetScrollHereY(1.0f);
-		}
-		bIsScrollToBottom = false;
+		CombinedLogText += GetLogTypePrefix(LogEntry.Type);
+		CombinedLogText += " ";
+		CombinedLogText += LogEntry.Message;
+		CombinedLogText += "\n";
 	}
 
-	ImGui::EndChild();
+	// InputTextMultiline을 읽기 전용 모드로 사용하여 메모장처럼 드래그 복사 가능
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
+
+	// 라인 높이 조정 (FramePadding.y 값 증가)
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f)); // 패딩 증가
+
+	// 임시 버퍼 생
+	static std::vector<char> LogBuffer;
+	LogBuffer.resize(CombinedLogText.length() + 1024); // 여유 공간 확보
+	memcpy(LogBuffer.data(), CombinedLogText.c_str(), CombinedLogText.length() + 1);
+
+	// 전체 너비 사용
+	const float AvailableWidth = ImGui::GetContentRegionAvail().x;
+
+	ImGui::InputTextMultiline(
+		"##LogOutput",
+		LogBuffer.data(),
+		LogBuffer.size(),
+		ImVec2(AvailableWidth, -ReservedHeight),
+		ImGuiInputTextFlags_ReadOnly
+	);
+
+	ImGui::PopStyleVar();
+	ImGui::PopStyleColor(2);
+
+	// Auto Scroll 처리
+	if (bIsScrollToBottom)
+	{
+		ImGui::SetScrollHereY(1.0f);
+		bIsScrollToBottom = false;
+	}
 	ImGui::Separator();
 
 	// Input Command with History Navigation
@@ -176,30 +189,62 @@ void UConsoleWidget::ClearLog()
 /**
  * @brief ELogType에 따른 색상 반환
  */
-ImVec4 UConsoleWidget::GetColorByLogType(ELogType InType)
+// ImVec4 UConsoleWidget::GetColorByLogType(ELogType InType)
+// {
+// 	switch (InType)
+// 	{
+// 	case ELogType::Info:
+// 		return {1.0f, 1.0f, 1.0f, 1.0f}; // 흰색
+// 	case ELogType::Warning:
+// 		return {1.0f, 1.0f, 0.4f, 1.0f}; // 노란색
+// 	case ELogType::Error:
+// 	case ELogType::TerminalError:
+// 		return {1.0f, 0.4f, 0.4f, 1.0f}; // 빨간색
+// 	case ELogType::Success:
+// 	case ELogType::UELog:
+// 		return {0.4f, 1.0f, 0.4f, 1.0f}; // 초록색
+// 	case ELogType::System:
+// 		return {0.7f, 0.7f, 0.7f, 1.0f}; // 회색
+// 	case ELogType::Debug:
+// 		return {0.4f, 0.6f, 1.0f, 1.0f}; // 파란색
+// 	case ELogType::Terminal:
+// 		return {0.6f, 0.8f, 1.0f, 1.0f}; // 하늘색
+// 	case ELogType::Command:
+// 		return {1.0f, 0.8f, 0.6f, 1.0f}; // 주황색
+// 	default:
+// 		return {1.0f, 1.0f, 1.0f, 1.0f}; // 기본 흰색
+// 	}
+// }
+
+/**
+ * @brief ELogType에 따른 프리픽스 문자열 반환
+ */
+const char* UConsoleWidget::GetLogTypePrefix(ELogType InType)
 {
 	switch (InType)
 	{
 	case ELogType::Info:
-		return {1.0f, 1.0f, 1.0f, 1.0f}; // 흰색
+		return "[INFO]";
 	case ELogType::Warning:
-		return {1.0f, 1.0f, 0.4f, 1.0f}; // 노란색
+		return "[WARN]";
 	case ELogType::Error:
+		return "[ERRO]";
 	case ELogType::TerminalError:
-		return {1.0f, 0.4f, 0.4f, 1.0f}; // 빨간색
+		return "[TERR]";
 	case ELogType::Success:
+		return "[SUCC]";
 	case ELogType::UELog:
-		return {0.4f, 1.0f, 0.4f, 1.0f}; // 초록색
+		return "[ULOG]";
 	case ELogType::System:
-		return {0.7f, 0.7f, 0.7f, 1.0f}; // 회색
+		return "[SYST]";
 	case ELogType::Debug:
-		return {0.4f, 0.6f, 1.0f, 1.0f}; // 파란색
+		return "[DBUG]";
 	case ELogType::Terminal:
-		return {0.6f, 0.8f, 1.0f, 1.0f}; // 하늘색
+		return "[TERM]";
 	case ELogType::Command:
-		return {1.0f, 0.8f, 0.6f, 1.0f}; // 주황색
+		return "[COMM]";
 	default:
-		return {1.0f, 1.0f, 1.0f, 1.0f}; // 기본 흰색
+		return "[INFO]";
 	}
 }
 
@@ -262,6 +307,12 @@ void UConsoleWidget::AddLogInternal(ELogType InType, const char* fmt, va_list In
 	LogEntry.Message = FString(Buffer);
 	delete[] Buffer;
 
+	// 200개 초과 시 가장 오래된 로그 제거
+	if (LogItems.size() >= 200)
+	{
+		LogItems.pop_front();
+	}
+
 	LogItems.push_back(LogEntry);
 
 	// Auto Scroll
@@ -297,6 +348,12 @@ void UConsoleWidget::AddSystemLog(const char* InText, bool bInIsError)
 	if (!LogEntry.Message.empty() && LogEntry.Message.back() == '\n')
 	{
 		LogEntry.Message.pop_back();
+	}
+
+	// 200개 초과 시 가장 오래된 로그 제거
+	if (LogItems.size() >= 200)
+	{
+		LogItems.pop_front();
 	}
 
 	LogItems.push_back(LogEntry);
@@ -406,6 +463,13 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 				FLogEntry LogEntry;
 				LogEntry.Type = ELogType::UELog;
 				LogEntry.Message = FString(Result.FormattedMessage);
+
+				// deque 크기 제한
+				if (LogItems.size() >= 200)
+				{
+					LogItems.pop_front();
+				}
+
 				LogItems.push_back(LogEntry);
 				bIsScrollToBottom = true;
 			}
@@ -415,6 +479,13 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 				FLogEntry ErrorEntry;
 				ErrorEntry.Type = ELogType::Error;
 				ErrorEntry.Message = "UELogParser: UE_LOG 파싱 오류: " + FString(Result.ErrorMessage);
+
+				// deque 크기 제한
+				if (LogItems.size() >= 200)
+				{
+					LogItems.pop_front();
+				}
+
 				LogItems.push_back(ErrorEntry);
 				bIsScrollToBottom = true;
 			}
@@ -424,6 +495,13 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 			FLogEntry ErrorEntry;
 			ErrorEntry.Type = ELogType::Error;
 			ErrorEntry.Message = "UELogParser: 예외 발생: " + FString(e.what());
+
+			// deque 크기 제한
+			if (LogItems.size() >= 200)
+			{
+				LogItems.pop_front();
+			}
+
 			LogItems.push_back(ErrorEntry);
 			bIsScrollToBottom = true;
 		}
@@ -432,6 +510,13 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 			FLogEntry ErrorEntry;
 			ErrorEntry.Type = ELogType::Error;
 			ErrorEntry.Message = "UELogParser: 알 수 없는 오류가 발생했습니다.";
+
+			// deque 크기 제한
+			if (LogItems.size() >= 200)
+			{
+				LogItems.pop_front();
+			}
+
 			LogItems.push_back(ErrorEntry);
 			bIsScrollToBottom = true;
 		}

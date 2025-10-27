@@ -20,7 +20,7 @@ UConsoleWindow::UConsoleWindow()
 	: ConsoleWidget(nullptr)
 	, AnimationState(EConsoleAnimationState::Hidden)
 	, AnimationProgress(0.0f)
-	, AnimationDuration(0.25f)
+	, AnimationDuration(0.15f)
 	, BottomMargin(10.0f)
 {
 	// 콘솔 윈도우 기본 설정
@@ -194,7 +194,7 @@ void UConsoleWindow::ApplyAnimatedLayout(float MenuBarOffset)
 
 	ImVec2 TargetPos(WorkPos.x, ConsoleTopY);
 	ImGui::SetNextWindowPos(TargetPos, ImGuiCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, AnimatedHeight), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(WorkSize.x, AnimatedHeight), ImGuiCond_Always);
 }
 
 /**
