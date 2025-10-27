@@ -64,9 +64,6 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateClusteredRenderingGrid();
 	CreateDepthOnlyShader();
 	CreatePointLightShadowShader();
-	CreateSummedAreaTextureFilterShader();
-	CreateGaussianTextureFilterShader();
-	CreateBoxTextureFilterShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -75,8 +72,8 @@ void URenderer::Init(HWND InWindowHandle)
 		PointLightShadowVS, PointLightShadowPS, PointLightShadowInputLayout);
 	RenderPasses.push_back(ShadowMapPass);
 
-	// ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, SummedAreaTextureFilterRowCS, SummedAreaTextureFilterColumnCS);
-	ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, GaussianTextureFilterRowCS, GaussianTextureFilterColumnCS);
+	ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline);
+	// ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, GaussianTextureFilterRowCS, GaussianTextureFilterColumnCS);
 	// ShadowMapFilterPass = new FShadowMapFilterPass(ShadowMapPass, Pipeline, BoxTextureFilterRowCS, BoxTextureFilterColumnCS);
 	RenderPasses.push_back(ShadowMapFilterPass);
 
@@ -467,51 +464,6 @@ void URenderer::CreatePointLightShadowShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
 }
 
-void URenderer::CreateSummedAreaTextureFilterShader()
-{
-	const std::wstring ShaderFilePathString = L"Asset/Shader/SummedAreaTextureFilter.hlsl";
-	const std::filesystem::path ShaderPath(ShaderFilePathString);
-
-	// 1. Row Scan Shader (Default)
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &SummedAreaTextureFilterRowCS, "mainCS", nullptr);
-
-	// 2. Column Scan Shader (with macro)
-	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &SummedAreaTextureFilterColumnCS, "mainCS", ColumnScanMacro);
-
-	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SUMMED_AREA_TEXTURE_FILTER);
-}
-
-void URenderer::CreateGaussianTextureFilterShader()
-{
-	const std::wstring ShaderFilePathString = L"Asset/Shader/GaussianTextureFilter.hlsl";
-	const std::filesystem::path ShaderPath(ShaderFilePathString);
-
-	// 1. Row Scan Shader (Default)
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &GaussianTextureFilterRowCS, "mainCS", nullptr);
-
-	// 2. Column Scan Shader (with macro)
-	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &GaussianTextureFilterColumnCS, "mainCS", ColumnScanMacro);
-
-	RegisterShaderReloadCache(ShaderPath, ShaderUsage::GAUSSIAN_TEXTURE_FILTER);
-}
-
-void URenderer::CreateBoxTextureFilterShader()
-{
-	const std::wstring ShaderFilePathString = L"Asset/Shader/BoxTextureFilter.hlsl";
-	const std::filesystem::path ShaderPath(ShaderFilePathString);
-
-	// 1. Row Scan Shader (Default)
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &BoxTextureFilterRowCS, "mainCS", nullptr);
-
-	// 2. Column Scan Shader (with macro)
-	D3D_SHADER_MACRO ColumnScanMacro[] = { "SCAN_DIRECTION_COLUMN", "1", nullptr, nullptr };
-	FRenderResourceFactory::CreateComputeShader(ShaderFilePathString, &BoxTextureFilterColumnCS, "mainCS", ColumnScanMacro);
-
-	RegisterShaderReloadCache(ShaderPath, ShaderUsage::BOX_TEXTURE_FILTER);
-}
-
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -673,21 +625,6 @@ void URenderer::HotReloadShaders()
 				ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
 			}
 			break;
-		case ShaderUsage::SUMMED_AREA_TEXTURE_FILTER:
-			SafeRelease(SummedAreaTextureFilterRowCS);
-			SafeRelease(SummedAreaTextureFilterColumnCS);
-			CreateSummedAreaTextureFilterShader();
-			break;
-		case ShaderUsage::GAUSSIAN_TEXTURE_FILTER:
-			SafeRelease(GaussianTextureFilterRowCS);
-			SafeRelease(GaussianTextureFilterColumnCS);
-			CreateGaussianTextureFilterShader();
-			break;
-		case ShaderUsage::BOX_TEXTURE_FILTER:
-			SafeRelease(BoxTextureFilterRowCS);
-			SafeRelease(BoxTextureFilterColumnCS);
-			CreateBoxTextureFilterShader();
-			break;
 		}
 	}
 }
@@ -737,15 +674,6 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(PointLightShadowVS);
 	SafeRelease(PointLightShadowPS);
 	SafeRelease(PointLightShadowInputLayout);
-
-	SafeRelease(SummedAreaTextureFilterRowCS);
-	SafeRelease(SummedAreaTextureFilterColumnCS);
-
-	SafeRelease(GaussianTextureFilterRowCS);
-	SafeRelease(GaussianTextureFilterColumnCS);
-
-	SafeRelease(BoxTextureFilterRowCS);
-	SafeRelease(BoxTextureFilterColumnCS);
 }
 
 void URenderer::ReleaseDepthStencilState()

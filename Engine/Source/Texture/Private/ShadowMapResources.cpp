@@ -117,63 +117,6 @@ void FShadowMapResource::Initialize(ID3D11Device* Device, uint32 InResolution)
 		throw std::runtime_error("Failed to create VSM UAV");
 	}
 
-	// 8. SAT용 VSM Texture 생성
-	D3D11_TEXTURE2D_DESC SummedAreaVarianceTexDesc = {};
-	SummedAreaVarianceTexDesc.Width = Resolution;
-	SummedAreaVarianceTexDesc.Height = Resolution;
-	SummedAreaVarianceTexDesc.MipLevels = 1;
-	SummedAreaVarianceTexDesc.ArraySize = 1;
-	SummedAreaVarianceTexDesc.Format = DXGI_FORMAT_R32G32_TYPELESS;
-	SummedAreaVarianceTexDesc.SampleDesc.Count = 1;
-	SummedAreaVarianceTexDesc.SampleDesc.Quality = 0;
-	SummedAreaVarianceTexDesc.Usage = D3D11_USAGE_DEFAULT;
-	SummedAreaVarianceTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	SummedAreaVarianceTexDesc.CPUAccessFlags = 0;
-	SummedAreaVarianceTexDesc.MiscFlags = 0;
-
-	hr = Device->CreateTexture2D(&SummedAreaVarianceTexDesc, nullptr, SummedAreaVarianceShadowTexture.ReleaseAndGetAddressOf());
-	if (FAILED(hr))
-	{
-		throw std::runtime_error("Failed to create SAT VSM texture");
-	}
-
-	// 9. SAT용 VSM RTV 생성
-	D3D11_RENDER_TARGET_VIEW_DESC SummedAreaVarianceRTVDesc = {};
-	SummedAreaVarianceRTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-	SummedAreaVarianceRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	SummedAreaVarianceRTVDesc.Texture2D.MipSlice = 0;
-
-	hr = Device->CreateRenderTargetView(SummedAreaVarianceShadowTexture.Get(), &SummedAreaVarianceRTVDesc, SummedAreaVarianceShadowRTV.ReleaseAndGetAddressOf());
-	if (FAILED(hr))
-	{
-		throw std::runtime_error("Failed to create SAT VSM RTV");
-	}
-
-	// 10. SAT용 VSM SRV 생성
-	D3D11_SHADER_RESOURCE_VIEW_DESC SummedAreaVarianceSRVDesc = {};
-	SummedAreaVarianceSRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-	SummedAreaVarianceSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	SummedAreaVarianceSRVDesc.Texture2D.MostDetailedMip = 0;
-	SummedAreaVarianceSRVDesc.Texture2D.MipLevels = 1;
-
-	hr = Device->CreateShaderResourceView(SummedAreaVarianceShadowTexture.Get(), &SummedAreaVarianceSRVDesc, SummedAreaVarianceShadowSRV.ReleaseAndGetAddressOf());
-	if (FAILED(hr))
-	{
-		throw std::runtime_error("Failed to create SAT VSM SRV");
-	}
-
-	// 11. SAT용 VSM UAV 생성
-	D3D11_UNORDERED_ACCESS_VIEW_DESC SummedAreaVarianceUAVDesc = {};
-	SummedAreaVarianceUAVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-	SummedAreaVarianceUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-	SummedAreaVarianceUAVDesc.Texture2D.MipSlice = 0;
-
-	hr = Device->CreateUnorderedAccessView(SummedAreaVarianceShadowTexture.Get(), &SummedAreaVarianceUAVDesc, SummedAreaVarianceShadowUAV.ReleaseAndGetAddressOf());
-	if (FAILED(hr))
-	{
-		throw std::runtime_error("Failed to create SAT VSM UAV");
-	}
-
 	// Viewport 설정
 	ShadowViewport.Width = static_cast<float>(Resolution);
 	ShadowViewport.Height = static_cast<float>(Resolution);
@@ -194,11 +137,6 @@ void FShadowMapResource::Release()
 	VarianceShadowRTV.Reset();
 	VarianceShadowSRV.Reset();
 	VarianceShadowUAV.Reset();
-
-	SummedAreaVarianceShadowTexture.Reset();
-	SummedAreaVarianceShadowRTV.Reset();
-	SummedAreaVarianceShadowSRV.Reset();
-	SummedAreaVarianceShadowUAV.Reset();
 }
 
 // =============================================================================

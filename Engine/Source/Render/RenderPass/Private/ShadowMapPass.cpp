@@ -204,6 +204,10 @@ void FShadowMapPass::RenderDirectionalShadowMap(UDirectionalLightComponent* Ligh
 	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
 	Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
 	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+
+	// Clear the render target view (for VSM/SAVSM)
+	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
@@ -277,6 +281,10 @@ void FShadowMapPass::RenderSpotShadowMap(USpotLightComponent* Light,
 	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
 	Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
 	DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+
+	// Clear the render target view (for VSM/SAVSM)
+	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)

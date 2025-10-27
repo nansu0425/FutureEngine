@@ -160,11 +160,6 @@ Texture2D DirectionalVarianceShadowMap : register(t13);
 Texture2D SpotVarianceShadowMap : register(t14);
 // TextureCube PointVarianceShadowMap : register(t15);
 
-// Summed Area Variance Shadow Maps
-Texture2D SummedAreaDirectionalVarianceShadowMap : register(t16);
-Texture2D SummedAreaSpotVarianceShadowMap : register(t17);
-// TextureCube SummedAreaPointVarianceShadowMap : register(t18);
-
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
 // SamplerState VarianceShadowSampler : register(s2);
@@ -321,7 +316,7 @@ float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewP
 // Shadow Calculation Functions
 float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
-    float2 TexelSize = 1.0f / float2(2048.0f, 2048.0f); // Shadow map resolution
+    float2 TexelSize = 1.0f / float2(1024.0f, 1024.0f); // Shadow map resolution
     return CalculatePercentageCloserShadowFactor(
         Light.CastShadow,
         Light.LightViewProjection,
@@ -605,7 +600,7 @@ float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo L
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        SummedAreaDirectionalVarianceShadowMap
+        DirectionalVarianceShadowMap
     );
 }
 
@@ -615,7 +610,7 @@ float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, float3 W
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        SummedAreaSpotVarianceShadowMap
+        SpotVarianceShadowMap
     );
 }
 
@@ -640,9 +635,19 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     float NdotL = saturate(dot(WorldNormal, LightDir));
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
-    // float ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
-    float ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
-    // float ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
+    float ShadowFactor = 1.0f;
+    if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
+    {
+        ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_SAVSM)
+    {
+        ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
+    }
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * ShadowFactor;
@@ -733,9 +738,19 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     }
 
     // Shadow factor
-    // float ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
-    // float ShadowFactor = CalculateSpotVarianceShadowFactor(Info, WorldPos);
-    float ShadowFactor = CalculateSpotSummedAreaVarianceShadowFactor(Info, WorldPos);
+    float ShadowFactor = 1.0f;
+    if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateSpotShadowFactor(Info, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
+    {
+        ShadowFactor = CalculateSpotVarianceShadowFactor(Info, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_SAVSM)
+    {
+        ShadowFactor = CalculateSpotSummedAreaVarianceShadowFactor(Info, WorldPos);
+    }
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
 
@@ -752,7 +767,6 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, float3 WorldNormal, float3
     
     return Result;
 }
-
 
 float3 ComputeNormalMappedWorldNormal(float2 UV, float3 WorldNormal, float4 WorldTangent)
 {

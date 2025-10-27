@@ -30,12 +30,8 @@ enum class ShaderUsage
 	STATICMESH,
 	GIZMO,
 	CLUSTERED_RENDERING_GRID,
-	SUMMED_AREA_TEXTURE_FILTER,
-	GAUSSIAN_TEXTURE_FILTER,
-	BOX_TEXTURE_FILTER,
 	SHADOWMAP
 };
-
 
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
@@ -65,9 +61,6 @@ public:
 	void CreateClusteredRenderingGrid();
 	void CreateDepthOnlyShader();
 	void CreatePointLightShadowShader();
-	void CreateSummedAreaTextureFilterShader();
-	void CreateGaussianTextureFilterShader();
-	void CreateBoxTextureFilterShader();
 
 	// HotReload
 	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
@@ -199,16 +192,6 @@ private:
 	ID3D11VertexShader* DepthOnlyVertexShader = nullptr;
 	ID3D11PixelShader* DepthOnlyPixelShader = nullptr;
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
-
-	// Shadow Map Filtering Shaders
-	ID3D11ComputeShader* SummedAreaTextureFilterRowCS = nullptr;
-	ID3D11ComputeShader* SummedAreaTextureFilterColumnCS = nullptr;
-	ID3D11ComputeShader* GaussianTextureFilterRowCS = nullptr;
-	ID3D11ComputeShader* GaussianTextureFilterColumnCS = nullptr;
-
-	// Box Texture Filtering Shaders
-	ID3D11ComputeShader* BoxTextureFilterRowCS = nullptr;
-	ID3D11ComputeShader* BoxTextureFilterColumnCS = nullptr;
 
 	// Point Light Shadow Shaders (with linear distance output)
 	ID3D11VertexShader* PointLightShadowVS = nullptr;

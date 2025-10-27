@@ -41,17 +41,20 @@ Texture2D<float2> InputTexture : register(t0);
 RWTexture2D<float2> OutputTexture : register(u0);
 
 // 텍스처 크기 정보
-cbuffer TextureInfo : register(b0)
-{
-    uint TextureWidth;  
-    uint TextureHeight; 
-}
+// cbuffer TextureInfo : register(b0)
+// {
+//     uint TextureWidth;  
+//     uint TextureHeight; 
+// }
 
 [numthreads(THREAD_BLOCK_SIZE_X, THREAD_BLOCK_SIZE_Y, 1)]
 void mainCS(
     uint3 DispatchThreadID : SV_DispatchThreadID
     )
 {
+    uint TextureWidth, TextureHeight;
+    InputTexture.GetDimensions(TextureWidth, TextureHeight);
+
     // --- 1. 인덱스 계산 ---
     
     // 현재 스레드가 처리할 픽셀의 2D 좌표

@@ -151,6 +151,18 @@ enum class EViewModeIndex : uint32
 	VMI_WorldNormal
 };
 
+UENUM()
+enum class EShadowModeIndex : uint32
+{
+	SMI_UnFiltered = 0,
+	SMI_PCF,
+	SMI_VSM,
+	SMI_VSM_BOX,
+	SMI_VSM_GAUSSIAN,
+	SMI_SAVSM
+};
+DECLARE_ENUM_REFLECTION(EShadowModeIndex)
+
 /**
  * @brief Level Show Flag Enum
  */

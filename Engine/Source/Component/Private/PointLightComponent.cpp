@@ -88,10 +88,10 @@ FPointLightInfo UPointLightComponent::GetPointlightInfo() const
 
 	// Shadow parameters
 	Info.CastShadow = GetCastShadows() ? 1u : 0u;
+	Info.ShadowModeIndex = static_cast<uint32>(GetShadowModeIndex());
 	Info.ShadowBias = GetShadowBias();
 	Info.ShadowSlopeBias = GetShadowSlopeBias();
 	Info.ShadowSharpen = GetShadowSharpen();
-	Info.Padding = FVector2(0.0f, 0.0f);  // Padding for 16-byte alignment
 
 	return Info;
 }

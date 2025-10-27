@@ -220,6 +220,29 @@ void USpotLightComponentWidget::RenderWidget()
             ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
         }
 
+		// Shadow Mode
+		EShadowModeIndex CurrentShadowMode = SpotLightComponent->GetShadowModeIndex();
+		const char* ShadowModeNames[] = { "UnFiltered", "PCF", "VSM", "VSM_BOX", "VSM_GAUSSIAN", "SAVSM" };
+		const char* CurrentShadowModeName = ShadowModeNames[static_cast<int>(CurrentShadowMode)];
+
+		if (ImGui::BeginCombo("Shadow Mode", CurrentShadowModeName))
+		{
+			for (int i = 0; i < IM_ARRAYSIZE(ShadowModeNames); ++i)
+			{
+				bool bIsSelected = (CurrentShadowMode == static_cast<EShadowModeIndex>(i));
+				if (ImGui::Selectable(ShadowModeNames[i], bIsSelected))
+				{
+					SpotLightComponent->SetShadowModeIndex(static_cast<EShadowModeIndex>(i));
+				}
+
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
         float NearPlane = SpotLightComponent->GetNearPlane();
         if (ImGui::DragFloat("NearPlane", &NearPlane, 0.1f, 0.0f, 1.0f))
         {

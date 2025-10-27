@@ -55,7 +55,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 			{
 				Pipeline->SetShaderResourceView(10, EShaderType::PS, ShadowMap->ShadowSRV.Get());
 				Pipeline->SetShaderResourceView(13, EShaderType::PS, ShadowMap->VarianceShadowSRV.Get());
-				Pipeline->SetShaderResourceView(16, EShaderType::PS, ShadowMap->SummedAreaVarianceShadowSRV.Get());
 			}
 		}
 	}
@@ -72,7 +71,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 			{
 				Pipeline->SetShaderResourceView(11, EShaderType::PS, ShadowMap->ShadowSRV.Get());
 				Pipeline->SetShaderResourceView(14, EShaderType::PS, ShadowMap->VarianceShadowSRV.Get());
-				Pipeline->SetShaderResourceView(17, EShaderType::PS, ShadowMap->SummedAreaVarianceShadowSRV.Get());
 			}
 		}
 	}
@@ -226,8 +224,6 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(13, EShaderType::PS, nullptr);  // Directional variance shadow map
 	Pipeline->SetShaderResourceView(14, EShaderType::PS, nullptr);  // Spot variance shadow map
 	// Pipeline->SetShaderResourceView(15, EShaderType::PS, nullptr);  // Point variance shadow map (cube)
-	Pipeline->SetShaderResourceView(16, EShaderType::PS, nullptr);  // Directional summed area variance shadow map
-	Pipeline->SetShaderResourceView(17, EShaderType::PS, nullptr);  // Spot summed area variance shadow map
 
 	// --- RTVs Reset ---
 	

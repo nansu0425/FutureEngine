@@ -36,11 +36,11 @@ RWTexture2D<float2> OutputTexture : register(u0);
 
 groupshared float2 SharedMemory[THREAD_BLOCK_SIZE];
 
-cbuffer TextureInfo : register(b0)
-{
-    uint TextureWidth;
-    uint TextureHeight;
-}
+// cbuffer TextureInfo : register(b0)
+// {
+//     uint TextureWidth;
+//     uint TextureHeight;
+// }
 
 [numthreads(THREAD_BLOCK_SIZE, 1, 1)]
 void mainCS(
@@ -49,6 +49,9 @@ void mainCS(
     uint GroupIndex : SV_GroupIndex
     )
 {
+    uint TextureWidth, TextureHeight;
+    InputTexture.GetDimensions(TextureWidth, TextureHeight);
+
     // --- 1. 인덱스 계산 ---
     
     // 그룹 내 현재 스레드의 1D 인덱스 (0 ~ 1023)

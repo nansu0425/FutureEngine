@@ -79,6 +79,7 @@ FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
     // Shadow parameters
     Info.LightViewProjection = CachedShadowViewProjection; // Updated by ShadowMapPass
     Info.CastShadow = GetCastShadows() ? 1u : 0u;
+    Info.ShadowModeIndex = static_cast<uint32>(GetShadowModeIndex());
     Info.ShadowBias = GetShadowBias();
     Info.ShadowSlopeBias = GetShadowSlopeBias();
     Info.ShadowSharpen = GetShadowSharpen();

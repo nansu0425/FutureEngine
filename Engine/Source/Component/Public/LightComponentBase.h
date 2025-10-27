@@ -68,6 +68,10 @@ public:
         Shadow Features
      -----------------------------------------------------------------------------*/
 public:
+    EShadowModeIndex GetShadowModeIndex() const { return ShadowModeIndex; }
+
+    void SetShadowModeIndex(EShadowModeIndex InShadowModeIndex) { ShadowModeIndex = InShadowModeIndex; }
+    
     /** @brief 이 라이트가 shadow를 cast할지 여부를 반환합니다. */
     bool GetCastShadows() const { return bCastShadows; }
 
@@ -85,8 +89,12 @@ protected:
     FVector LightColor = { 1.0f, 1.0f, 1.0f };
 
     bool bVisible = true;
+    
     bool bLightEnabled = true; // 조명 계산 포함 여부 (Outliner Visible과 독립)
 
+    /** 현재 그림자의 종류 */
+    EShadowModeIndex ShadowModeIndex = EShadowModeIndex::SMI_UnFiltered;
+    
     /** 이 라이트가 shadow를 cast할지 여부 */
     bool bCastShadows = true;
 };

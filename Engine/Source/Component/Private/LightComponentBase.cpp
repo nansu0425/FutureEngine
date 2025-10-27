@@ -14,16 +14,19 @@ void ULightComponentBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         FVector LoadedColor = LightColor;
         FString VisibleString;
         FString LightEnabledString;
+        int32 LoadedShadowModeIndex; 
         FString CastShadowsString;
         FJsonSerializer::ReadFloat(InOutHandle, "Intensity", LoadedIntensity);
         FJsonSerializer::ReadVector(InOutHandle, "LightColor", LoadedColor);
         FJsonSerializer::ReadString(InOutHandle, "bVisible", VisibleString, "true");
         FJsonSerializer::ReadString(InOutHandle, "bLightEnabled", LightEnabledString, "true");
+        FJsonSerializer::ReadInt32(InOutHandle, "ShadowModeIndex", LoadedShadowModeIndex);
         FJsonSerializer::ReadString(InOutHandle, "bCastShadows", CastShadowsString, "true");
         SetIntensity(LoadedIntensity);
         SetLightColor(LoadedColor);
         SetVisible(VisibleString == "true");
         SetLightEnabled(LightEnabledString == "true");
+        SetShadowModeIndex(static_cast<EShadowModeIndex>(LoadedShadowModeIndex));
         SetCastShadows(CastShadowsString == "true");
     }
     else
@@ -32,6 +35,7 @@ void ULightComponentBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         InOutHandle["LightColor"] = FJsonSerializer::VectorToJson(LightColor);
         InOutHandle["bVisible"] = GetVisible() ? "true" : "false";
         InOutHandle["bLightEnabled"] = GetLightEnabled() ? "true" : "false";
+        InOutHandle["ShadowModeIndex"] = static_cast<uint32>(ShadowModeIndex);
         InOutHandle["bCastShadows"] = GetCastShadows() ? "true" : "false";
     }
 }
@@ -43,6 +47,7 @@ UObject* ULightComponentBase::Duplicate()
     LightComponentBase->LightColor = LightColor;
     LightComponentBase->bVisible = bVisible;
     LightComponentBase->bLightEnabled = bLightEnabled;
+    LightComponentBase->ShadowModeIndex = ShadowModeIndex;
     LightComponentBase->bCastShadows = bCastShadows;
     return LightComponentBase;
 }
