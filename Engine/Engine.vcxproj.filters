@@ -512,6 +512,9 @@
     <ClCompile Include="Source\Texture\Private\ShadowMapResources.cpp">
       <Filter>Source\Texture\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\Renderer\Private\D2DOverlayManager.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\ShadowData.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\StatusBarWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Global\BVH.h">
@@ -1022,6 +1025,9 @@
     <ClInclude Include="Source\Texture\Public\ShadowMapResources.h">
       <Filter>Source\Texture\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\Renderer\Public\D2DOverlayManager.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\ShadowData.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\StatusBarWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\ClusteredRenderingCS.hlsli">
