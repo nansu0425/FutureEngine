@@ -347,6 +347,51 @@ FVector FMatrix::VectorMultiply(const FVector& V, const FMatrix& M)
 	return result;
 }
 
+// Create an orthographic projection matrix (Left-Handed)
+FMatrix FMatrix::CreateOrthoLH(float Left, float Right, float Bottom, float Top, float Near, float Far)
+{
+	FMatrix Result;
+	Result.Data[0][0] = 2.0f / (Right - Left);
+	Result.Data[0][1] = 0.0f;
+	Result.Data[0][2] = 0.0f;
+	Result.Data[0][3] = 0.0f;
+
+	Result.Data[1][0] = 0.0f;
+	Result.Data[1][1] = 2.0f / (Top - Bottom);
+	Result.Data[1][2] = 0.0f;
+	Result.Data[1][3] = 0.0f;
+
+	Result.Data[2][0] = 0.0f;
+	Result.Data[2][1] = 0.0f;
+	Result.Data[2][2] = 1.0f / (Far - Near);
+	Result.Data[2][3] = 0.0f;
+
+	Result.Data[3][0] = (Left + Right) / (Left - Right);
+	Result.Data[3][1] = (Top + Bottom) / (Bottom - Top);
+	Result.Data[3][2] = Near / (Near - Far);
+	Result.Data[3][3] = 1.0f;
+
+	return Result;
+}
+
+FMatrix FMatrix::CreateLookAtLH(const FVector& Eye, const FVector& Target, const FVector& Up)
+{
+	FVector ZAxis = (Target - Eye).GetNormalized();
+	FVector XAxis = Up.Cross(ZAxis).GetNormalized();
+	FVector YAxis = ZAxis.Cross(XAxis);
+
+	FMatrix Result;
+	Result.Data[0][0] = XAxis.X;  Result.Data[0][1] = YAxis.X;  Result.Data[0][2] = ZAxis.X;  Result.Data[0][3] = 0.0f;
+	Result.Data[1][0] = XAxis.Y;  Result.Data[1][1] = YAxis.Y;  Result.Data[1][2] = ZAxis.Y;  Result.Data[1][3] = 0.0f;
+	Result.Data[2][0] = XAxis.Z;  Result.Data[2][1] = YAxis.Z;  Result.Data[2][2] = ZAxis.Z;  Result.Data[2][3] = 0.0f;
+	Result.Data[3][0] = -XAxis.Dot(Eye);
+	Result.Data[3][1] = -YAxis.Dot(Eye);
+	Result.Data[3][2] = -ZAxis.Dot(Eye);
+	Result.Data[3][3] = 1.0f;
+
+	return Result;
+}
+
 FMatrix FMatrix::Transpose() const
 {
 	// 1. 4개 행을 SIMD 레지스터에 로드

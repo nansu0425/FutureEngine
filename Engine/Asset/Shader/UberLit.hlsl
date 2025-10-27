@@ -40,6 +40,18 @@ cbuffer Camera : register(b1)
     float FarClip;
 }
 
+cbuffer MaterialConstants : register(b2)
+{
+    float4 Ka; // Ambient color
+    float4 Kd; // Diffuse color
+    float4 Ks; // Specular color
+    float Ns;  // Specular exponent
+    float Ni;  // Index of refraction
+    float D;   // Dissolve factor
+    uint MaterialFlags; // Which textures are available (bitfield)
+    float Time;
+}
+
 cbuffer GlobalLightConstant : register(b3)
 {
     FAmbientLightInfo Ambient;
@@ -62,6 +74,15 @@ cbuffer LightCountInfo : register(b5)
     uint SpotLightCount;
     float2 Padding;
 };
+
+cbuffer CascadeShadowMapData : register(b6)
+{
+    row_major float4x4 CascadeView;      // 64 bytes
+    row_major float4x4 CascadeProj[8];   // 512 bytes
+    float4 SplitDistance[8];    // 128 bytes (HLSL: each float is 16-byte aligned)
+    uint SplitNum;             // 16 bytes (with padding)
+    // Total: 720 bytes
+}
 
 StructuredBuffer<int> PointLightIndices : register(t6);
 StructuredBuffer<int> SpotLightIndices : register(t7);
@@ -138,18 +159,6 @@ FSpotLightInfo GetSpotLight(uint LightIdx)
 {
     // uint LightInfoIdx = SpotLightIndices[LightIdx];
     return SpotLightInfos[LightIdx];
-}
-
-cbuffer MaterialConstants : register(b2)
-{
-    float4 Ka; // Ambient color
-    float4 Kd; // Diffuse color
-    float4 Ks; // Specular color
-    float Ns;  // Specular exponent
-    float Ni;  // Index of refraction
-    float D;   // Dissolve factor
-    uint MaterialFlags; // Which textures are available (bitfield)
-    float Time;
 }
 
 // Textures
@@ -270,8 +279,22 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
     if (Light.CastShadow == 0)
         return 1.0f;
 
+    float CameraViewZ = mul(float4(WorldPos, 1.0f), View).z;
+
+    int SubFrustumNum;
+    for (SubFrustumNum = 0; SubFrustumNum < SplitNum; SubFrustumNum++)
+    {
+        if (CameraViewZ <= SplitDistance[SubFrustumNum].r)
+            break;
+    }
+
+    // If beyond all cascades, assume fully lit
+    if (SubFrustumNum >= SplitNum)
+        return 1.0f;
+
     // Transform world position to light space
-    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), CascadeView);
+    LightSpacePos = mul(LightSpacePos, CascadeProj[SubFrustumNum]);
 
     // Perspective divide (to NDC space)
     LightSpacePos.xyz /= LightSpacePos.w;
@@ -310,7 +333,7 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
             // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
             // 별도로 위치를 지정해야 함.
             float2 AtlasTexcoord =(ShadowTexCoord + Offset) * ATLASGRIDSIZE;
-            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasDirectionalLightTilePos[0];
+            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasDirectionalLightTilePos[SubFrustumNum];
             AtlasTexcoord.x += ATLASGRIDSIZE * AtlasTilePos.UV.x;
             AtlasTexcoord.y += ATLASGRIDSIZE * AtlasTilePos.UV.y;
             
