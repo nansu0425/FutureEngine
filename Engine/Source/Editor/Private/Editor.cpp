@@ -921,24 +921,21 @@ void UEditor::FocusOnSelectedActor()
 		}
 		else
 		{
-			// Orthographic: 물체 중심으로 카메라 이동 (단순하게)
-			const FVector CurrentRotation = Cam->GetRotation();
-
-			// 카메라 기저 벡터 (Forward, Right, Up)
+			// Orthographic: 물체 중심으로 카메라 이동 + 줌 고정값으로 리셋
 			const FVector Forward = Cam->GetForward();
 
-			// 물체 중심에서 Forward 반대 방향으로 일정 거리만큼 떨어진 위치
-			const float CameraDistance = BoundingRadius * 2.0f + 100.0f;
-			CameraTargetLocation[i] = Center - Forward * CameraDistance;
+			// 현재 카메라에서 물체 중심까지의 Forward 방향 투영 거리 계산
+			const FVector ToCenterVec = Center - CameraStartLocation[i];
+			const float DistanceToCenter = ToCenterVec.Dot(Forward);
+
+			// 물체 중심을 바라보도록 카메라 위치 조정 (Forward 방향 유지)
+			CameraTargetLocation[i] = Center - Forward * abs(DistanceToCenter);
 
 			// 회전은 현재 유지
-			CameraTargetRotation[i] = CurrentRotation;
+			CameraTargetRotation[i] = CameraStartRotation[i];
 
-			// OrthoZoom 조정: 물체가 화면에 꽉 차도록
-			// AABB의 최대 크기를 기준으로 적절한 줌 레벨 설정
-			const float MaxSize = max(AABBSize.X, max(AABBSize.Y, AABBSize.Z));
-			const float TargetZoom = MaxSize * 1.5f; // 여유 공간 포함
-			Cam->SetOrthoZoom(TargetZoom);
+			// OrthoZoom을 기본값(500)으로 리셋
+			Cam->SetOrthoZoom(500.0f);
 		}
 	}
 
@@ -1008,14 +1005,10 @@ void UEditor::UpdateCameraAnimation()
 		FVector CurrentLocation = CameraStartLocation[Index] + (CameraTargetLocation[Index] - CameraStartLocation[Index]) * SmoothProgress;
 		Cam->SetLocation(CurrentLocation);
 
+		// Perspective 카메라만 회전 애니메이션 적용
+		// Orthographic 카메라는 회전이 고정되어야 함
 		if (Cam->GetCameraType() == ECameraType::ECT_Perspective)
 		{
-			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
-			Cam->SetRotation(CurrentRotation);
-		}
-		else
-		{
-			// Orthographic: 회전도 보간 (ViewType 전환 등을 위해)
 			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
 			Cam->SetRotation(CurrentRotation);
 		}

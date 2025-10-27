@@ -208,7 +208,7 @@ private:
 	EViewportLayout ViewportLayout = EViewportLayout::Single;
 
 	// 활성뷰포트 인덱스
-	int32 ActiveIndex = 0;
+	int32 ActiveIndex = 2;
 
 	// 마지막으로 클릭한 뷰포트 인덱스 (PIE 시작 시 사용)
 	int32 LastClickedViewportIndex = 0;
@@ -217,7 +217,7 @@ private:
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
-	float SharedOrthoZoom = 1000.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
+	float SharedOrthoZoom = 500.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;
