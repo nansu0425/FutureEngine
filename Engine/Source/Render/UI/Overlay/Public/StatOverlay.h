@@ -1,7 +1,5 @@
 #pragma once
 #include "Core/Public/Object.h"
-#include <d2d1.h>
-#include <dwrite.h>
 
 enum class EStatType : uint8
 {

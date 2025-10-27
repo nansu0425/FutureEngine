@@ -32,10 +32,9 @@
 #include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 
 #include "Render/RenderPass/Public/SceneDepthPass.h"
-#include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Global/Octree.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(URenderer, UObject)
 

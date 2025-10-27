@@ -2,7 +2,6 @@
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Axis.h"
-#include "Render/Renderer/Public/D2DOverlayManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -19,6 +18,7 @@
 #include "Component/Public/DirectionalLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
 #include "Manager/UI/Public/ViewportManager.h"
+#include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/ui/Viewport/Public/ViewportClient.h"
 #include "Render/UI/Viewport/Public/Viewport.h"
 

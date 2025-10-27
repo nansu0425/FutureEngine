@@ -1,5 +1,4 @@
 #pragma once
-#include <d2d1.h>
 
 class UCamera;
 
@@ -30,6 +29,11 @@ public:
 	 * @brief 원 렌더링 명령 추가
 	 */
 	void AddEllipse(const D2D1_POINT_2F& Center, float RadiusX, float RadiusY, const D2D1_COLOR_F& Color, bool bFilled = true);
+
+	/**
+	 * @brief 사각형 렌더링 명령 추가
+	 */
+	void AddRectangle(const D2D1_RECT_F& Rect, const D2D1_COLOR_F& Color, bool bFilled = true);
 
 	/**
 	 * @brief 텍스트 렌더링 명령 추가
@@ -64,6 +68,13 @@ private:
 		bool bFilled;
 	};
 
+	struct FRectangleCommand
+	{
+		D2D1_RECT_F Rect;
+		D2D1_COLOR_F Color;
+		bool bFilled;
+	};
+
 	struct FTextCommand
 	{
 		std::wstring Text;
@@ -77,6 +88,7 @@ private:
 
 	std::vector<FLineCommand> LineCommands;
 	std::vector<FEllipseCommand> EllipseCommands;
+	std::vector<FRectangleCommand> RectangleCommands;
 	std::vector<FTextCommand> TextCommands;
 
 	UCamera* CurrentCamera = nullptr;
