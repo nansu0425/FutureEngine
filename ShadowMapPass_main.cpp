@@ -7,6 +7,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/RenderPass/Public/ShadowData.h"
 
 #define MAX_LIGHT_NUM 8
 #define X_OFFSET 1024.0f
@@ -89,14 +90,12 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	ID3D11Buffer* InConstantBufferCamera,
 	ID3D11Buffer* InConstantBufferModel,
 	ID3D11VertexShader* InDepthOnlyVS,
-	ID3D11PixelShader* InDepthOnlyPS,
 	ID3D11InputLayout* InDepthOnlyInputLayout,
 	ID3D11VertexShader* InPointLightShadowVS,
 	ID3D11PixelShader* InPointLightShadowPS,
 	ID3D11InputLayout* InPointLightShadowInputLayout)
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel)
-	, DepthOnlyVS(InDepthOnlyVS)
-	, DepthOnlyPS(InDepthOnlyPS)
+	, DepthOnlyShader(InDepthOnlyVS)
 	, DepthOnlyInputLayout(InDepthOnlyInputLayout)
 	, PointLightShadowVS(InPointLightShadowVS)
 	, PointLightShadowPS(InPointLightShadowPS)
@@ -143,79 +142,6 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	PointLightShadowParamsBuffer = FRenderResourceFactory::CreateConstantBuffer<FPointLightShadowParams>();
 
 	ShadowAtlas.Initialize(Device, 8192);
-
-	D3D11_BUFFER_DESC BufferDesc = {};
-	
-	//BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	BufferDesc.ByteWidth = (UINT)(8 * sizeof(FShadowAtlasTilePos));
-	BufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	BufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	BufferDesc.StructureByteStride = sizeof(FShadowAtlasTilePos);
-	
-	// 초기 데이터
-	
-	hr = URenderer::GetInstance().GetDevice()->CreateBuffer(
-		&BufferDesc,
-		nullptr,
-		&ShadowAtlasDirectionalLightTilePosStructuredBuffer
-		);
-	
-	assert(SUCCEEDED(hr));
-
-	hr = URenderer::GetInstance().GetDevice()->CreateBuffer(
-		&BufferDesc,
-		nullptr,
-		&ShadowAtlasSpotLightTilePosStructuredBuffer
-		);
-	
-	assert(SUCCEEDED(hr));
-
-	BufferDesc.ByteWidth = (UINT)(8 * sizeof(FShadowAtlasPointLightTilePos));
-	BufferDesc.StructureByteStride = sizeof(FShadowAtlasPointLightTilePos);
-	
-	hr = URenderer::GetInstance().GetDevice()->CreateBuffer(
-		&BufferDesc,
-		nullptr,
-		&ShadowAtlasPointLightTilePosStructuredBuffer
-		);
-	
-	assert(SUCCEEDED(hr));
-	
-	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	SRVDesc.Buffer.FirstElement = 0;
-	SRVDesc.Buffer.NumElements = (UINT)8;
-	
-	hr = URenderer::GetInstance().GetDevice()->CreateShaderResourceView(
-		ShadowAtlasDirectionalLightTilePosStructuredBuffer,
-		&SRVDesc,
-		&ShadowAtlasDirectionalLightTilePosStructuredSRV
-		);
-
-	assert(SUCCEEDED(hr));
-
-	hr = URenderer::GetInstance().GetDevice()->CreateShaderResourceView(
-		ShadowAtlasSpotLightTilePosStructuredBuffer,
-		&SRVDesc,
-		&ShadowAtlasSpotLightTilePosStructuredSRV
-		);
-	
-	assert(SUCCEEDED(hr));
-
-	hr = URenderer::GetInstance().GetDevice()->CreateShaderResourceView(
-		ShadowAtlasPointLightTilePosStructuredBuffer,
-		&SRVDesc,
-		&ShadowAtlasPointLightTilePosStructuredSRV
-		);
-	
-	assert(SUCCEEDED(hr));
-
-	ShadowAtlasDirectionalLightTilePosArray.resize(8);
-	ShadowAtlasPointLightTilePosArray.resize(8);
-	ShadowAtlasSpotLightTilePosArray.resize(8);
 }
 
 FShadowMapPass::~FShadowMapPass()
@@ -281,8 +207,6 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	{
 		RenderPointShadowMap(ValidPointLights[i], i, Context.StaticMeshes);
 	}
-
-	SetShadowAtlasTilePositionStructuredBuffer();
 }
 
 void FShadowMapPass::RenderDirectionalShadowMap(
@@ -309,14 +233,11 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 
 	// 1. Shadow render target 설정
 	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	// Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
-
-	// // Clear the render target view (for VSM/SAVSM)
-	// const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
 	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// TODO_NOTE 여기서 새로운 아틀라스용 쉐도우 맵을 바인딩해야 함
 	ID3D11RenderTargetView* NullRTV = nullptr;
 	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
 	
@@ -331,18 +252,16 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	
 	DeviceContext->RSSetViewports(1, &ShadowViewport);
 
-	ShadowAtlasDirectionalLightTilePosArray[0] = {{0, 0}};
-
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
 	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
-		DepthOnlyVS,
+		DepthOnlyShader,
 		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
-		DepthOnlyPS,
+		nullptr,  // No pixel shader for depth-only
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
@@ -405,14 +324,11 @@ void FShadowMapPass::RenderSpotShadowMap(
 
 	// // 1. Shadow render target 설정
 	// // Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
-	// Pipeline->SetRenderTargets(1, ShadowMap->VarianceShadowRTV.GetAddressOf(), ShadowMap->ShadowDSV.Get());
-
-	// // Clear the render target view (for VSM/SAVSM)
-	// const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// DeviceContext->ClearRenderTargetView(ShadowMap->VarianceShadowRTV.Get(), ClearColor);
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
 	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// TODO_NOTE 여기서 새로운 아틀라스용 쉐도우 맵을 바인딩해야 함
 	ID3D11RenderTargetView* NullRTV = nullptr;
 	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
 
@@ -426,8 +342,6 @@ void FShadowMapPass::RenderSpotShadowMap(
 	ShadowViewport.MaxDepth = 1.0f;
 	ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
 	ShadowViewport.TopLeftY = Y_START;
-
-	ShadowAtlasSpotLightTilePosArray[AtlasIndex] = {{AtlasIndex, 1}};
 	
 	DeviceContext->RSSetViewports(1, &ShadowViewport);
 	
@@ -437,10 +351,10 @@ void FShadowMapPass::RenderSpotShadowMap(
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
-		DepthOnlyVS,
+		DepthOnlyShader,
 		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
-		DepthOnlyPS,  
+		nullptr,  // No pixel shader for depth-only
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
@@ -559,9 +473,6 @@ void FShadowMapPass::RenderPointShadowMap(
 
 		DeviceContext->RSSetViewports(1, &ShadowViewport);
 
-		ShadowAtlasPointLightTilePosArray[AtlasIndex].UV[Face][0] = AtlasIndex;
-		ShadowAtlasPointLightTilePosArray[AtlasIndex].UV[Face][1] = 2 + Face;
-
 		// 4-2. Constant buffer 업데이트 (각 면의 ViewProj)
 		FShadowViewProjConstant CBData;
 		CBData.ViewProjection = ViewProj[Face];
@@ -606,39 +517,6 @@ void FShadowMapPass::RenderPointShadowMap(
 
 	// Note: 6개 ViewProj를 PointLightComponent에 저장하는 것은 비효율적이므로,
 	// Shader에서 Light position 기반으로 direction을 계산하도록 구현
-}
-
-void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
-{
-	FRenderResourceFactory::UpdateStructuredBuffer(
-		ShadowAtlasDirectionalLightTilePosStructuredBuffer,
-		ShadowAtlasDirectionalLightTilePosArray
-		);
-	Pipeline->SetShaderResourceView(
-		11,
-		EShaderType::VS | EShaderType::PS,
-		ShadowAtlasDirectionalLightTilePosStructuredSRV
-		);
-
-	FRenderResourceFactory::UpdateStructuredBuffer(
-		ShadowAtlasSpotLightTilePosStructuredBuffer,
-		ShadowAtlasSpotLightTilePosArray
-		);
-	Pipeline->SetShaderResourceView(
-		12,
-		EShaderType::VS | EShaderType::PS,
-		ShadowAtlasSpotLightTilePosStructuredSRV
-		);
-
-	FRenderResourceFactory::UpdateStructuredBuffer(
-		ShadowAtlasPointLightTilePosStructuredBuffer,
-		ShadowAtlasPointLightTilePosArray
-		);
-	Pipeline->SetShaderResourceView(
-		13,
-		EShaderType::VS | EShaderType::PS,
-		ShadowAtlasPointLightTilePosStructuredSRV
-		);
 }
 
 void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
@@ -1027,15 +905,6 @@ void FShadowMapPass::Release()
 		PointLightShadowParamsBuffer = nullptr;
 	}
 
-	ShadowAtlas.Release();
-
-	SafeRelease(ShadowAtlasDirectionalLightTilePosStructuredBuffer);
-	SafeRelease(ShadowAtlasSpotLightTilePosStructuredBuffer);
-	SafeRelease(ShadowAtlasPointLightTilePosStructuredBuffer);
-	
-	SafeRelease(ShadowAtlasDirectionalLightTilePosStructuredSRV);
-	SafeRelease(ShadowAtlasSpotLightTilePosStructuredSRV);
-	SafeRelease(ShadowAtlasPointLightTilePosStructuredSRV);
 	// Shader와 InputLayout은 Renderer가 소유하므로 여기서 해제하지 않음
 }
 

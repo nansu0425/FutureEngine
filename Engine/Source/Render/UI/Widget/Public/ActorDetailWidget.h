@@ -32,6 +32,10 @@ private:
 	UActorComponent*  SelectedComponent = nullptr;
 	AActor* CachedSelectedActor = nullptr;
 
+	// Transform display mode (true: World/Absolute, false: Local/Relative)
+	bool bShowWorldLocation = false;
+	bool bShowWorldRotation = false;
+
 	// Helper functions
 	void RenderActorHeader(AActor* InSelectedActor);
 	void RenderComponents(AActor* InSelectedActor);

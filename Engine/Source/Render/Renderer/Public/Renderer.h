@@ -78,7 +78,7 @@ public:
 	// Render
 	void Update();
 	void RenderBegin() const;
-	void RenderLevel(FViewport* InViewport);
+	void RenderLevel(FViewport* InViewport, int32 ViewportIndex);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
@@ -116,6 +116,8 @@ public:
 	FLightPass* GetLightPass() { return LightPass; }
 	FClusteredRenderingGridPass* GetClusteredRenderingGridPass() { return ClusteredRenderingGridPass; }
 	FShadowMapPass* GetShadowMapPass() const { return ShadowMapPass; }
+
+	const FRenderingContext& GetRenderingContext() const { return RenderingContext; }
 
 private:
 	/*
@@ -204,6 +206,8 @@ private:
 	
 	bool bIsResizing = false;
 	bool bFXAAEnabled = true;
+
+	FRenderingContext RenderingContext{};
 
 	TArray<class FRenderPass*> RenderPasses;
 

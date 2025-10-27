@@ -49,10 +49,6 @@ public:
 	EViewModeIndex GetActiveViewportViewMode() const { return GetViewportViewMode(ActiveIndex); }
 	void SetActiveViewportViewMode(EViewModeIndex InMode) { SetViewportViewMode(ActiveIndex, InMode); }
 
-	// 카메라 배열 접근자
-	const TArray<UCamera*>& GetOrthographicCameras() const { return OrthoGraphicCameras; }
-	const TArray<UCamera*>& GetPerspectiveCameras() const { return PerspectiveCameras; }
-
 	// 오쏘 뷰 공유 데이터 접근자
 	const TArray<FVector>& GetInitialOffsets() const { return InitialOffsets; }
 	const FVector& GetOrthoGraphicCameraPoint() const { return OrthoGraphicCameraPoint; }
@@ -112,9 +108,30 @@ public:
 	// Camera Speed
 	float GetEditorCameraSpeed() const { return EditorCameraSpeed; }
 	void SetEditorCameraSpeed(float InSpeed);
+
+	// Shared Ortho Zoom
+	float GetSharedOrthoZoom() const { return SharedOrthoZoom; }
 	static constexpr float MIN_CAMERA_SPEED = 1.0f;
 	static constexpr float MAX_CAMERA_SPEED = 70.0f;
 	static constexpr float DEFAULT_CAMERA_SPEED = 20.0f;
+
+	// PIE Active Viewport
+	int32 GetPIEActiveViewportIndex() const { return PIEActiveViewportIndex; }
+	void SetPIEActiveViewportIndex(int32 InIndex) { PIEActiveViewportIndex = InIndex; }
+
+	// Last Clicked Viewport
+	int32 GetLastClickedViewportIndex() const { return LastClickedViewportIndex; }
+	void SetLastClickedViewportIndex(int32 InIndex) { LastClickedViewportIndex = InIndex; }
+
+	// Splitter dragging check
+	bool IsAnySplitterDragging() const;
+
+	// Rotation Snap
+	bool IsRotationSnapEnabled() const { return bRotationSnapEnabled; }
+	void SetRotationSnapEnabled(bool bEnabled) { bRotationSnapEnabled = bEnabled; }
+	float GetRotationSnapAngle() const { return RotationSnapAngle; }
+	void SetRotationSnapAngle(float InAngle) { RotationSnapAngle = InAngle; }
+	static constexpr float DEFAULT_ROTATION_SNAP_ANGLE = 10.0f;
 
 private:
 	// 내부 유틸
@@ -166,9 +183,6 @@ private:
 	TArray<FViewport*> Viewports;
 	TArray<FViewportClient*> Clients;
 
-	TArray<UCamera*> OrthoGraphicCameras;
-	TArray<UCamera*> PerspectiveCameras;
-
 	TArray<FVector> InitialOffsets;
 	FVector OrthoGraphicCameraPoint{ 0.0f, 0.0f, 0.0f }; // 모든 오쏘 뷰가 공유하는 중심점
 
@@ -181,11 +195,14 @@ private:
 	// 활성뷰포트 인덱스
 	int32 ActiveIndex = 0;
 
+	// 마지막으로 클릭한 뷰포트 인덱스 (PIE 시작 시 사용)
+	int32 LastClickedViewportIndex = 0;
+
 	//EViewportChange ViewportChange = EViewportChange::Single;
 
 	float SharedFovY = 150.0f;
 	float SharedY = 0.5f;
-	float SharedOrthoWidth = 100.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
+	float SharedOrthoZoom = 1000.0f; // 모든 오쏘 뷰가 공유하는 줌 레벨
 
 	float IniSaveSharedV = 0.5f;
 	float IniSaveSharedH = 0.5f;
@@ -241,5 +258,11 @@ private:
 	FViewportAnimation ViewportAnimation;
 
 	float EditorCameraSpeed = DEFAULT_CAMERA_SPEED;
-};
 
+	// PIE가 활성화된 뷰포트 인덱스 (-1이면 모든 뷰포트에서 PIE, 0~3이면 해당 뷰포트에서만 PIE)
+	int32 PIEActiveViewportIndex = -1;
+
+	// Rotation Snap Settings
+	bool bRotationSnapEnabled = true;
+	float RotationSnapAngle = DEFAULT_ROTATION_SNAP_ANGLE;
+};

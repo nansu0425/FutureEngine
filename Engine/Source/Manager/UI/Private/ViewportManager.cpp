@@ -208,43 +208,43 @@ void UViewportManager::Update()
 				if (Client && Client->IsOrtho())
 				{
 					// 오쏘 뷰: 휠로 줌 제어
-					constexpr float DollyStep = 10.0f;
-					constexpr float MinOrthoWidth = 10.0f;
-					constexpr float MaxOrthoWidth = 500.0f;
+					constexpr float ZoomStep = 50.0f;  // OrthoZoom 단위 조정
+					constexpr float MinOrthoZoom = 10.0f;
+					constexpr float MaxOrthoZoom = 10000.0f;
 
-					float NewOrthoWidth = SharedOrthoWidth - (WheelDelta * DollyStep);
+					float NewOrthoZoom = SharedOrthoZoom - (WheelDelta * ZoomStep);
 
 					// 점진적 제한 (최소값 근처에서 점점 느려지게)
-					if (NewOrthoWidth < MinOrthoWidth)
+					if (NewOrthoZoom < MinOrthoZoom)
 					{
-						float DistanceFromMin = SharedOrthoWidth - MinOrthoWidth;
+						float DistanceFromMin = SharedOrthoZoom - MinOrthoZoom;
 						if (DistanceFromMin > 0.0f)
 						{
-							float ProgressRatio = min(1.0f, DistanceFromMin / 20.0f);
-							SharedOrthoWidth = max(MinOrthoWidth, SharedOrthoWidth - (WheelDelta * DollyStep * ProgressRatio));
+							float ProgressRatio = min(1.0f, DistanceFromMin / 50.0f);
+							SharedOrthoZoom = max(MinOrthoZoom, SharedOrthoZoom - (WheelDelta * ZoomStep * ProgressRatio));
 						}
 						else
 						{
-							SharedOrthoWidth = MinOrthoWidth;
+							SharedOrthoZoom = MinOrthoZoom;
 						}
 					}
-					else if (NewOrthoWidth > MaxOrthoWidth)
+					else if (NewOrthoZoom > MaxOrthoZoom)
 					{
-						SharedOrthoWidth = MaxOrthoWidth;
+						SharedOrthoZoom = MaxOrthoZoom;
 					}
 					else
 					{
-						SharedOrthoWidth = NewOrthoWidth;
+						SharedOrthoZoom = NewOrthoZoom;
 					}
 
-					// 모든 오쏘 뷰에 SharedOrthoWidth 적용
+					// 모든 오쏘 뷰에 SharedOrthoZoom 적용
 					for (FViewportClient* OrthoClient : Clients)
 					{
 						if (OrthoClient && OrthoClient->IsOrtho())
 						{
 							if (UCamera* Cam = OrthoClient->GetCamera())
 							{
-								Cam->SetOrthoWidth(SharedOrthoWidth);
+								Cam->SetOrthoZoom(SharedOrthoZoom);
 							}
 						}
 					}
@@ -304,18 +304,6 @@ void UViewportManager::Release()
 		SafeDelete(Client);
 	}
 	Clients.clear();
-
-	for (UCamera*& Camera : OrthoGraphicCameras)
-	{
-		SafeDelete(Camera);
-	}
-	OrthoGraphicCameras.clear();
-
-	for (UCamera*& Camera : PerspectiveCameras)
-	{
-		SafeDelete(Camera);
-	}
-	PerspectiveCameras.clear();
 
 	InitialOffsets.clear();
 	ActiveRmbViewportIdx = -1;
@@ -962,11 +950,24 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		int32 LoadedActiveIndex = 0;
 		float LoadedSplitterV = 0.5f;
 		float LoadedSplitterH = 0.5f;
+		float LoadedSharedOrthoZoom = 100.0f;
 
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 0);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV, 0.5f);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH, 0.5f);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
+
+		// Rotation Snap Settings
+		int32 LoadedRotationSnapEnabledInt = 1;
+		float LoadedRotationSnapAngle = DEFAULT_ROTATION_SNAP_ANGLE;
+		FJsonSerializer::ReadInt32(ViewportSystemJson, "RotationSnapEnabled", LoadedRotationSnapEnabledInt, 1);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "RotationSnapAngle", LoadedRotationSnapAngle, DEFAULT_ROTATION_SNAP_ANGLE);
+		bool LoadedRotationSnapEnabled = (LoadedRotationSnapEnabledInt != 0);
+
+		SharedOrthoZoom = LoadedSharedOrthoZoom;
+		bRotationSnapEnabled = LoadedRotationSnapEnabled;
+		RotationSnapAngle = LoadedRotationSnapAngle;
 
 		SetViewportLayout(static_cast<EViewportLayout>(LayoutInt));
 		SetActiveIndex(LoadedActiveIndex);
@@ -1021,24 +1022,36 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 							float SavedFovY = Camera->GetFovY();
 							float SavedNearZ = Camera->GetNearZ();
 							float SavedFarZ = Camera->GetFarZ();
-							float SavedOrthoWidth = Camera->GetOrthoWidth();
+							float SavedOrthoZoom = Camera->GetOrthoZoom();
 							float SavedMoveSpeed = Camera->GetMoveSpeed();
 
-							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY);
-							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ);
-							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ);
-							FJsonSerializer::ReadFloat(CameraJson, "OrthoWidth", SavedOrthoWidth);
-							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed);
+							FJsonSerializer::ReadFloat(CameraJson, "FovY", SavedFovY, SavedFovY);
+							FJsonSerializer::ReadFloat(CameraJson, "NearZ", SavedNearZ, SavedNearZ);
+							FJsonSerializer::ReadFloat(CameraJson, "FarZ", SavedFarZ, SavedFarZ);
+							FJsonSerializer::ReadFloat(CameraJson, "OrthoZoom", SavedOrthoZoom, SavedOrthoZoom);
+							FJsonSerializer::ReadFloat(CameraJson, "MoveSpeed", SavedMoveSpeed, SavedMoveSpeed);
 
 							Camera->SetLocation(SavedLocation);
 							Camera->SetRotation(SavedRotation);
 							Camera->SetFovY(SavedFovY);
 							Camera->SetNearZ(SavedNearZ);
 							Camera->SetFarZ(SavedFarZ);
-							Camera->SetOrthoWidth(SavedOrthoWidth);
+							Camera->SetOrthoZoom(SavedOrthoZoom);
 							Camera->SetMoveSpeed(SavedMoveSpeed);
 						}
 					}
+				}
+			}
+		}
+
+		// 로드 후 모든 Ortho 카메라에 SharedOrthoZoom 적용 (OrthoWidth 무시)
+		for (FViewportClient* Client : Clients)
+		{
+			if (Client && Client->IsOrtho())
+			{
+				if (UCamera* Cam = Client->GetCamera())
+				{
+					Cam->SetOrthoZoom(SharedOrthoZoom);
 				}
 			}
 		}
@@ -1052,6 +1065,9 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		ViewportSystemJson["ActiveIndex"] = GetActiveIndex();
 		ViewportSystemJson["SplitterV"] = IniSaveSharedV;
 		ViewportSystemJson["SplitterH"] = IniSaveSharedH;
+		ViewportSystemJson["SharedOrthoZoom"] = SharedOrthoZoom;
+		ViewportSystemJson["RotationSnapEnabled"] = bRotationSnapEnabled ? 1 : 0;
+		ViewportSystemJson["RotationSnapAngle"] = RotationSnapAngle;
 
 		// 2) 각 뷰포트 상태 저장
 		JSON ViewportsArray = json::Array();
@@ -1078,7 +1094,7 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 				CameraJson["FovY"] = Camera->GetFovY();
 				CameraJson["NearZ"] = Camera->GetNearZ();
 				CameraJson["FarZ"] = Camera->GetFarZ();
-				CameraJson["OrthoWidth"] = Camera->GetOrthoWidth();
+				CameraJson["OrthoZoom"] = Camera->GetOrthoZoom();  // OrthoWidth 대신 OrthoZoom 저장
 				CameraJson["MoveSpeed"] = Camera->GetMoveSpeed();
 
 				ViewportJson["Camera"] = CameraJson;
@@ -1098,20 +1114,44 @@ void UViewportManager::SetEditorCameraSpeed(float InSpeed)
 {
 	EditorCameraSpeed = clamp(InSpeed, MIN_CAMERA_SPEED, MAX_CAMERA_SPEED);
 
-	// 모든 카메라에 전역 스피드 동기화
-	for (UCamera* Camera : PerspectiveCameras)
+	// 모든 ViewportClient의 카메라에 전역 스피드 동기화
+	for (FViewportClient* Client : Clients)
 	{
-		if (Camera)
+		if (Client && Client->GetCamera())
 		{
-			Camera->SetMoveSpeed(EditorCameraSpeed);
+			Client->GetCamera()->SetMoveSpeed(EditorCameraSpeed);
 		}
 	}
+}
 
-	for (UCamera* Camera : OrthoGraphicCameras)
+bool UViewportManager::IsAnySplitterDragging() const
+{
+	// Recursively check if any splitter is currently being dragged
+	std::function<bool(SWindow*)> CheckSplitter = [&](SWindow* Window) -> bool
 	{
-		if (Camera)
+		if (!Window) return false;
+
+		// Check if this window is a splitter and is dragging
+		if (SSplitter* Splitter = Window->AsSplitter())
 		{
-			Camera->SetMoveSpeed(EditorCameraSpeed);
+			if (Splitter->IsDragging())
+			{
+				return true;
+			}
+
+			// Recursively check children
+			if (CheckSplitter(Splitter->SideLT))
+			{
+				return true;
+			}
+			if (CheckSplitter(Splitter->SideRB))
+			{
+				return true;
+			}
 		}
-	}
+
+		return false;
+	};
+
+	return CheckSplitter(Root) || CheckSplitter(QuadRoot);
 }

@@ -714,8 +714,11 @@ void URenderer::Update()
 
     RenderBegin();
 
-    for (FViewport* Viewport : UViewportManager::GetInstance().GetViewports())
+    TArray<FViewport*>& Viewports = UViewportManager::GetInstance().GetViewports();
+    for (int32 ViewportIndex = 0; ViewportIndex < Viewports.size(); ++ViewportIndex)
     {
+        FViewport* Viewport = Viewports[ViewportIndex];
+
     	// TODO(KHJ): 해당 해결책은 근본적인 해결법이 아니며 실제 Viewport 세팅의 문제를 확인할 필요가 있음
     	// 너무 작은 뷰포트는 건너뛰기 (애니메이션 중 artefact 방지)
 		// 50픽셀 미만의 뷰포트는 렌더링하지 않음
@@ -730,21 +733,28 @@ void URenderer::Update()
     	GetDeviceContext()->RSSetViewports(1, &LocalViewport);
 		Viewport->SetRenderRect(LocalViewport);
         UCamera* CurrentCamera = Viewport->GetViewportClient()->GetCamera();
-    	
+
         CurrentCamera->Update(LocalViewport);
-    	
+
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
         Pipeline->SetConstantBuffer(1, EShaderType::VS, ConstantBufferViewProj);
         {
             TIME_PROFILE(RenderLevel)
-            RenderLevel(Viewport);
+            RenderLevel(Viewport, ViewportIndex);
         }
+
+		// PIE가 활성화된 뷰포트가 아닌 경우에만 에디터 도구 렌더링
+		bool bIsPIEViewport = (GEditor->IsPIESessionActive() &&
+		                       ViewportIndex == UViewportManager::GetInstance().GetPIEActiveViewportIndex());
+		if (!bIsPIEViewport)
 		{
-			TIME_PROFILE(RenderEditor)
-			GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
+			{
+				TIME_PROFILE(RenderEditor)
+				GEditor->GetEditorModule()->RenderEditor(CurrentCamera, LocalViewport);
+			}
+			// Gizmo는 최종적으로 렌더
+			GEditor->GetEditorModule()->RenderGizmo(CurrentCamera, LocalViewport);
 		}
-        // Gizmo는 최종적으로 렌더
-        GEditor->GetEditorModule()->RenderGizmo(CurrentCamera, LocalViewport);
     }
 
     // 모든 지오메트리 패스가 끝난 직후, UI/오버레이를 그리기 전 실행
@@ -808,9 +818,13 @@ void URenderer::RenderBegin() const
     DeviceResources->UpdateViewport();
 }
 
-void URenderer::RenderLevel(FViewport* InViewport)
+void URenderer::RenderLevel(FViewport* InViewport, int32 ViewportIndex)
 {
-	const ULevel* CurrentLevel = GWorld->GetLevel();
+	// 뷰포트별로 렌더링할 World 결정 (PIE active viewport면 PIE World, 아니면 Editor World)
+	UWorld* WorldToRender = GEditor->GetWorldForViewport(ViewportIndex);
+	if (!WorldToRender) { return; }
+
+	const ULevel* CurrentLevel = WorldToRender->GetLevel();
 	if (!CurrentLevel) { return; }
 
 	const FCameraConstants& ViewProj = InViewport->GetViewportClient()->GetCamera()->GetFViewProjConstants();
@@ -819,7 +833,7 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	if (!bCullingEnabled)
 	{
 		// 1) 옥트리(정적 프리미티브) 전부 수집
-		if (FOctree* StaticOctree = GWorld->GetLevel()->GetStaticOctree())
+		if (FOctree* StaticOctree = WorldToRender->GetLevel()->GetStaticOctree())
 		{
 			TArray<UPrimitiveComponent*> AllStatics;
 			StaticOctree->GetAllPrimitives(AllStatics);
@@ -832,7 +846,7 @@ void URenderer::RenderLevel(FViewport* InViewport)
 			}
 		}
 		// 2) 동적 프리미티브 전부 수집
-		TArray<UPrimitiveComponent*>& DynamicPrimitives = GWorld->GetLevel()->GetDynamicPrimitives();
+		TArray<UPrimitiveComponent*>& DynamicPrimitives = WorldToRender->GetLevel()->GetDynamicPrimitives();
 		for (UPrimitiveComponent* Primitive : DynamicPrimitives)
 		{
 			if (Primitive && Primitive->IsVisible())
@@ -845,7 +859,8 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	{
 		FinalVisiblePrims = InViewport->GetViewportClient()->GetCamera()->GetViewVolumeCuller().GetRenderableObjects();
 	}
-	FRenderingContext RenderingContext(
+
+	RenderingContext = FRenderingContext(
 
 		&ViewProj,
 		InViewport->GetViewportClient()->GetCamera(),
@@ -881,21 +896,36 @@ void URenderer::RenderLevel(FViewport* InViewport)
 	{
 		if (auto PointLightComponent = Cast<UPointLightComponent>(LightComponent))
 		{
-			if (auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent))
+			auto SpotLightComponent = Cast<USpotLightComponent>(LightComponent);
+			
+			if (SpotLightComponent &&
+				SpotLightComponent->GetVisible() &&
+				SpotLightComponent->GetLightEnabled())
 			{
 				RenderingContext.SpotLights.push_back(SpotLightComponent);
 			}
-			else
+			else if (PointLightComponent &&
+				PointLightComponent->GetVisible() &&
+				PointLightComponent->GetLightEnabled())
 			{
 				RenderingContext.PointLights.push_back(PointLightComponent);
 			}
 		}
-		if (auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent))
+
+		auto DirectionalLightComponent = Cast<UDirectionalLightComponent>(LightComponent);
+		if (DirectionalLightComponent &&
+			DirectionalLightComponent->GetVisible() &&
+			DirectionalLightComponent->GetLightEnabled() &&
+			RenderingContext.DirectionalLights.empty())
 		{
 			RenderingContext.DirectionalLights.push_back(DirectionalLightComponent);
 		}
-		
-		if (auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent))
+
+		auto AmbientLightComponent = Cast<UAmbientLightComponent>(LightComponent);
+		if (AmbientLightComponent &&
+			AmbientLightComponent->GetVisible() &&
+			AmbientLightComponent->GetLightEnabled() &&
+			RenderingContext.AmbientLights.empty())
 		{
 			RenderingContext.AmbientLights.push_back(AmbientLightComponent);
 		}

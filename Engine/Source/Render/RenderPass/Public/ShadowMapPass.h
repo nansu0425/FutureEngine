@@ -2,6 +2,7 @@
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Texture/Public/ShadowMapResources.h"
 #include "Global/Types.h"
+#include "Render/RenderPass/Public/ShadowData.h"
 
 class ULightComponent;
 class UDirectionalLightComponent;
@@ -59,6 +60,8 @@ public:
 	 */
 	FCubeShadowMapResource* GetPointShadowMap(UPointLightComponent* Light);
 
+	FShadowMapResource* GetShadowAtlas();
+
 private:
 	// --- Directional Light Shadow Rendering ---
 	/**
@@ -66,8 +69,10 @@ private:
 	 * @param Light Directional light component
 	 * @param Meshes 렌더링할 static mesh 목록
 	 */
-	void RenderDirectionalShadowMap(UDirectionalLightComponent* Light,
-		const TArray<UStaticMeshComponent*>& Meshes);
+	void RenderDirectionalShadowMap(
+		UDirectionalLightComponent* Light,
+		const TArray<UStaticMeshComponent*>& Meshes
+		);
 
 	// --- Spot Light Shadow Rendering ---
 	/**
@@ -75,8 +80,11 @@ private:
 	 * @param Light Spot light component
 	 * @param Meshes 렌더링할 static mesh 목록
 	 */
-	void RenderSpotShadowMap(USpotLightComponent* Light,
-		const TArray<UStaticMeshComponent*>& Meshes);
+	void RenderSpotShadowMap(
+		USpotLightComponent* Light,
+		uint32 AtlasIndex,
+		const TArray<UStaticMeshComponent*>& Meshes
+		);
 
 	// --- Point Light Shadow Rendering (6 faces) ---
 	/**
@@ -84,8 +92,13 @@ private:
 	 * @param Light Point light component
 	 * @param Meshes 렌더링할 static mesh 목록
 	 */
-	void RenderPointShadowMap(UPointLightComponent* Light,
-		const TArray<UStaticMeshComponent*>& Meshes);
+	void RenderPointShadowMap(
+		UPointLightComponent* Light,
+		uint32 AtlasIndex,
+		const TArray<UStaticMeshComponent*>& Meshes
+		);
+
+	void SetShadowAtlasTilePositionStructuredBuffer();
 
 	// --- Helper Functions ---
 	/**
@@ -196,17 +209,21 @@ private:
 	TMap<UPointLightComponent*, ID3D11RasterizerState*> PointRasterizerStates;
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
-	struct FShadowViewProjConstant
-	{
-		FMatrix ViewProjection;
-	};
 	ID3D11Buffer* ShadowViewProjConstantBuffer = nullptr;
-
-	// Point Light Shadow constant buffer (PointLightShadowDepth.hlsl의 b2)
-	struct FPointLightShadowParams
-	{
-		FVector LightPosition;
-		float LightRange;
-	};
 	ID3D11Buffer* PointLightShadowParamsBuffer = nullptr;
+
+	TArray<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePosArray;
+	TArray<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePosArray;
+	TArray<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePosArray;
+	
+	ID3D11Buffer* ShadowAtlasDirectionalLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasDirectionalLightTilePosStructuredSRV = nullptr;
+	
+	ID3D11Buffer* ShadowAtlasSpotLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasSpotLightTilePosStructuredSRV = nullptr;
+	
+	ID3D11Buffer* ShadowAtlasPointLightTilePosStructuredBuffer = nullptr;
+	ID3D11ShaderResourceView* ShadowAtlasPointLightTilePosStructuredSRV = nullptr;
+
+	FShadowMapResource ShadowAtlas{};
 };

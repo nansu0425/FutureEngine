@@ -25,6 +25,7 @@ void UInputManager::InitializeKeyMapping()
 	VirtualKeyMap['D'] = EKeyInput::D;
 	VirtualKeyMap['Q'] = EKeyInput::Q;
 	VirtualKeyMap['E'] = EKeyInput::E;
+	VirtualKeyMap['R'] = EKeyInput::R;
 	VirtualKeyMap['F'] = EKeyInput::F;
 
 	// 화살표 키 매핑

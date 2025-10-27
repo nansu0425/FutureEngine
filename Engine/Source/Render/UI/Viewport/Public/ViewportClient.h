@@ -70,4 +70,7 @@ private:
     // 뷰/입력 상태
     FPoint		ViewSize{ 0, 0 };
     FPoint		LastDrag{ 0, 0 };
+
+    // Orthographic 뷰포트의 기준 높이 (픽셀 밀도 유지용)
+    mutable float OrthoReferenceHeight = 0.0f;
 };

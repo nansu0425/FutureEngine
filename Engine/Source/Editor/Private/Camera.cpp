@@ -109,6 +109,14 @@ void UCamera::Update(const D3D11_VIEWPORT& InViewport)
 	if (InViewport.Width > 0.f && InViewport.Height > 0.f)
 	{
 		SetAspect(InViewport.Width / InViewport.Height);
+
+		// Orthographic 모드
+		if (CameraType == ECameraType::ECT_Orthographic)
+		{
+			const float UnitsPerPixel = GetOrthoUnitsPerPixel(InViewport.Width);
+			const float CalculatedOrthoWidth = UnitsPerPixel * InViewport.Width / 2.0f;
+			SetOrthoWidth(CalculatedOrthoWidth);
+		}
 	}
 
 	switch (CameraType)
@@ -171,6 +179,27 @@ void UCamera::UpdateMatrixByPers()
 	CameraConstants.FarClip = FarZ;
 }
 
+/**
+ * @brief 언리얼 엔진 방식의 Ortho Units Per Pixel 계산
+ * 뷰포트 크기를 정규화하여 OrthoWidth가 뷰포트 크기에 비례하도록 함
+ * ComputeOrthoZoomFactor를 사용
+ * r.Editor.AlignedOrthoZoom = 1 (기본값) 적용
+ * Factor = ViewportWidth / 500
+ * UnitsPerPixel = (OrthoZoom / (ViewportWidth * 15)) * Factor
+ *               = (OrthoZoom / (ViewportWidth * 15)) * (ViewportWidth / 500)
+ *               = OrthoZoom / 7500  (ViewportWidth가 약분됨!)
+ * @param ViewportWidth 
+ * @return 
+ */
+float UCamera::GetOrthoUnitsPerPixel(float ViewportWidth) const
+{
+	constexpr float CAMERA_ZOOM_DIV = 15.0f;
+	constexpr float ORTHO_ZOOM_FACTOR_BASE = 500.0f;
+
+	const float ZoomFactor = ViewportWidth / ORTHO_ZOOM_FACTOR_BASE;
+	return (OrthoZoom / (ViewportWidth * CAMERA_ZOOM_DIV)) * ZoomFactor;
+}
+
 void UCamera::UpdateMatrixByOrth()
 {
 	/**
@@ -183,20 +212,25 @@ void UCamera::UpdateMatrixByOrth()
 
 	/**
 	 * @brief Projection 행렬 연산
-	 * 뷰포트 크기 변경 시 실제 view size 조정
-	 * OrthoWidth는 zoom level(base size)을 나타냄
-	 * Height 기준으로 고정하고 Width는 aspect에 따라 변경
+	 * OrthoZoom을 기반으로 뷰포트 크기에 비례하는 OrthoWidth 계산
+	 * 뷰포트가 리사이즈되어도 물체의 화면상 크기가 일정하게 유지됨
 	 */
 	const float SafeAspect = max(0.1f, Aspect);
 
-	// OrthoWidth를 "기준 높이"로 사용하고, aspect로 실제 width 계산
-	const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
-	const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+	// 언리얼 방식: OrthoWidth가 뷰포트 너비에 비례하도록 계산
+	// 이렇게 하면 Projection Matrix의 1/OrthoWidth가 뷰포트 크기를 상쇄시킴
+	// 최종 계산은 Update()에서 뷰포트 크기를 알 때 수행됨 (여기서는 OrthoWidth 사용)
 
-	const float Left = -OrthoWidth_Actual * 0.5f;
-	const float Right = OrthoWidth_Actual * 0.5f;
-	const float Bottom = -OrthoHeight * 0.5f;
-	const float Top = OrthoHeight * 0.5f;
+	// OrthoWidth는 이미 외부(ViewportManager 또는 Update)에서 설정되었다고 가정
+	const float OrthoHeight = OrthoWidth / SafeAspect;  // UE: AspectRatio로 Height 계산
+
+	const float HalfOrthoWidth = OrthoWidth * 0.5f;
+	const float HalfOrthoHeight = OrthoHeight * 0.5f;
+
+	const float Left = -HalfOrthoWidth;
+	const float Right = HalfOrthoWidth;
+	const float Bottom = -HalfOrthoHeight;
+	const float Top = HalfOrthoHeight;
 
 	FMatrix P = FMatrix::Identity();
 	P.Data[0][0] = 2.0f / (Right - Left);
@@ -228,13 +262,15 @@ const FCameraConstants UCamera::GetFViewProjConstantsInverse() const
 	{
 		// UpdateMatrixByOrth와 동일한 계산 방식 사용
 		const float SafeAspect = max(0.1f, Aspect);
-		const float OrthoHeight = OrthoWidth; // 높이는 zoom level 그대로
-		const float OrthoWidth_Actual = OrthoHeight * SafeAspect; // 폭은 aspect 비율로 확장
+		const float OrthoHeight = OrthoWidth / SafeAspect;  // AspectRatio로 Height 계산
 
-		const float Left = -OrthoWidth_Actual * 0.5f;
-		const float Right = OrthoWidth_Actual * 0.5f;
-		const float Bottom = -OrthoHeight * 0.5f;
-		const float Top = OrthoHeight * 0.5f;
+		const float HalfOrthoWidth = OrthoWidth * 0.5f;
+		const float HalfOrthoHeight = OrthoHeight * 0.5f;
+
+		const float Left = -HalfOrthoWidth;
+		const float Right = HalfOrthoWidth;
+		const float Bottom = -HalfOrthoHeight;
+		const float Top = HalfOrthoHeight;
 
 		FMatrix P = FMatrix::Identity();
 		// A^{-1} (대각)

@@ -8,6 +8,7 @@
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/RenderPass/Public/ShadowMapPass.h"
 
 IMPLEMENT_CLASS(UPointLightComponentWidget, UWidget)
 
@@ -263,23 +264,41 @@ void UPointLightComponentWidget::RenderWidget()
      * 임시로 NormalSRV 출력
      */
 
-    ImTextureID TextureID = (ImTextureID)URenderer::GetInstance().GetDeviceResources()->GetNormalSRV();
-    if (URenderer::GetInstance().GetDeviceResources()->GetNormalSRV())
+    ID3D11ShaderResourceView* ShadowSRV = URenderer::GetInstance().GetShadowMapPass()->GetShadowAtlas()->ShadowSRV.Get();
+    ImTextureID TextureID = (ImTextureID)ShadowSRV;
+    if (ShadowSRV)
     {
-        // 원하는 출력 크기 설정
-        ImVec2 ImageSize(256, 256); 
-    
-        // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
-        // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
-        ImGui::Image(TextureID, 
-                     ImageSize, 
-                     ImVec2(0, 0), ImVec2(1, 1), 
-                     ImVec4(1, 1, 1, 1), 
-                     ImVec4(0, 0, 0, 0)); 
-
-        if (ImGui::IsItemHovered())
+        FRenderingContext RenderingContext = URenderer::GetInstance().GetRenderingContext();
+        int32 PointLightIdx = 0;
+        for (UPointLightComponent* PointLight : RenderingContext.PointLights)
         {
-            ImGui::SetTooltip("광원의 Shadow Map 출력");
+            if (PointLightComponent == PointLight)
+                break;
+            PointLightIdx++;
+        }
+
+        const static int32 IDX_MAX = 8;
+        
+        if (PointLightIdx < IDX_MAX)
+        {
+            // 원하는 출력 크기 설정
+            ImVec2 ImageSize(256, 256 * 6); 
+    
+            // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
+            // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
+            ImGui::Image(TextureID, 
+                         ImageSize, 
+                         ImVec2(0.125f * static_cast<float>(PointLightIdx), 0.25f),
+                         ImVec2(0.125f * static_cast<float>(PointLightIdx + 1), 1.0f
+
+                         ), 
+                         ImVec4(1, 1, 1, 1), 
+                         ImVec4(0, 0, 0, 0)); 
+
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("광원의 Shadow Map 출력");
+            }
         }
     }
 

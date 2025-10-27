@@ -13,7 +13,7 @@ namespace Time
 	constexpr int32 FPS_SAMPLE_COUNT = 60;
 }
 
-constexpr float PI = 3.141592f;
+constexpr float PI = 3.14159265358979323846f;
 constexpr uint64 KILO = 1024;
 constexpr uint64 MEGA = 1024 * 1024;
 constexpr float MATH_EPSILON = 1e-6f;
