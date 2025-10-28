@@ -10,6 +10,7 @@
 
 class FClusteredRenderingGridPass;
 class FFXAAPass;
+class FHitProxyPass;
 class FLightPass;
 class FShadowMapFilterPass;
 class FShadowMapPass;
@@ -30,7 +31,8 @@ enum class ShaderUsage
 	STATICMESH,
 	GIZMO,
 	CLUSTERED_RENDERING_GRID,
-	SHADOWMAP
+	SHADOWMAP,
+	HITPROXY
 };
 
 /**
@@ -61,6 +63,8 @@ public:
 	void CreateClusteredRenderingGrid();
 	void CreateDepthOnlyShader();
 	void CreatePointLightShadowShader();
+	void CreateHitProxyShader();
+	void RenderHitProxyPass(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 	// HotReload
 	/** @brief 런타임 중 VS, PS 셰이더 파일이 변경되었는지 확인하고, 변경된 파일을 사용하는 Shader Usage들을 반환합니다.*/
@@ -201,6 +205,12 @@ private:
 	ID3D11VertexShader* PointLightShadowVS = nullptr;
 	ID3D11PixelShader* PointLightShadowPS = nullptr;
 	ID3D11InputLayout* PointLightShadowInputLayout = nullptr;
+
+	// HitProxy Shader
+	ID3D11VertexShader* HitProxyVS = nullptr;
+	ID3D11PixelShader* HitProxyPS = nullptr;
+	ID3D11InputLayout* HitProxyInputLayout = nullptr;
+	FHitProxyPass* HitProxyPass = nullptr;
 
 	uint32 Stride = 0;
 

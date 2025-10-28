@@ -49,7 +49,7 @@ public:
      -----------------------------------------------------------------------------*/
 public:
     FVector GetForwardVector() const;
-    void RenderLightDirectionGizmo(UCamera* InCamera);
+    void RenderLightDirectionGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
     FDirectionalLightInfo GetDirectionalLightInfo() const;
 
     // Shadow mapping

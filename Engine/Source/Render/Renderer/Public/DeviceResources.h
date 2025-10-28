@@ -21,6 +21,10 @@ public:
 	// Scene Color Texture, rtv, srv
 	void CreateSceneColorTarget();
 	void ReleaseSceneColorTarget();
+
+	// HitProxy Texture, rtv, srv
+	void CreateHitProxyTarget();
+	void ReleaseHitProxyTarget();
 	
 	// Direct2D/DirectWrite
 	void CreateFactories();
@@ -41,6 +45,10 @@ public:
 	ID3D11RenderTargetView* GetSceneColorRenderTargetView() const {return SceneColorTextureRTV; }
 	ID3D11ShaderResourceView* GetSceneColorShaderResourceView() const{return SceneColorTextureSRV; }
 	ID3D11Texture2D* GetSceneColorTexture() const {return SceneColorTexture; }
+
+	ID3D11RenderTargetView* GetHitProxyRenderTargetView() const {return HitProxyTextureRTV; }
+	ID3D11ShaderResourceView* GetHitProxyShaderResourceView() const {return HitProxyTextureSRV; }
+	ID3D11Texture2D* GetHitProxyTexture() const {return HitProxyTexture; }
 	
 	const D3D11_VIEWPORT& GetViewportInfo() const { return ViewportInfo; }
 	uint32 GetWidth() const { return Width; }
@@ -80,7 +88,11 @@ private:
 	ID3D11Texture2D* SceneColorTexture = nullptr;
 	ID3D11RenderTargetView* SceneColorTextureRTV = nullptr;
 	ID3D11ShaderResourceView* SceneColorTextureSRV = nullptr;
-	
+
+	ID3D11Texture2D* HitProxyTexture = nullptr;
+	ID3D11RenderTargetView* HitProxyTextureRTV = nullptr;
+	ID3D11ShaderResourceView* HitProxyTextureSRV = nullptr;
+
 	D3D11_VIEWPORT ViewportInfo = {};
 
 	uint32 Width = 0;

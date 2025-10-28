@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Component/Public/AmbientLightComponent.h"
+
 #include "Render/UI/Widget/Public/AmbientLightComponentWidget.h"
 
 IMPLEMENT_CLASS(UAmbientLightComponent, ULightComponent)
@@ -56,7 +57,7 @@ void UAmbientLightComponent::EnsureVisualizationIcon()
 	Icon->AttachToComponent(this);
 	Icon->SetIsVisualizationComponent(true);
 	Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/SkyLight.png"));
-	Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+	Icon->SetRelativeScale3D(FVector(5.f, 5.f, 5.f));
 	Icon->SetScreenSizeScaled(true);
 
 	VisualizationIcon = Icon;

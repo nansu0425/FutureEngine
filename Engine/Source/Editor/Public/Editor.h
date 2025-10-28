@@ -32,6 +32,7 @@ public:
 	void RenderEditorGeometry();
 	void Collect2DRender(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void RenderGizmoForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
@@ -68,6 +69,10 @@ private:
 	{
 		return A * (1 - Alpha) + B * Alpha;
 	}
+
+	// Focus Target Calculation
+	bool GetComponentFocusTarget(UActorComponent* Component, FVector& OutCenter, float& OutRadius);
+	bool GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutRadius);
 
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터
@@ -106,6 +111,6 @@ private:
 	TArray<FVector> CameraStartRotation;
 	TArray<FVector> CameraTargetLocation;
 	TArray<FVector> CameraTargetRotation;
-	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
+	static constexpr float CAMERA_ANIMATION_DURATION = 0.3f;
 	void UpdateCameraAnimation();
 };

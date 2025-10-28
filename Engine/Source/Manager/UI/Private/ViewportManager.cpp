@@ -261,7 +261,7 @@ void UViewportManager::Update()
 				else if (Client && !Client->IsOrtho() && InputManager.IsKeyDown(EKeyInput::MouseRight))
 				{
 					// Perspective 뷰: 우클릭 중 휠로 이동 속도 조절
-					constexpr float SpeedStep = 5.0f;
+					constexpr float SpeedStep = 3.0f;
 					float NewSpeed = EditorCameraSpeed + (WheelDelta * SpeedStep);
 					SetEditorCameraSpeed(NewSpeed);
 				}

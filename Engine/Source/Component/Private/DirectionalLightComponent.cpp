@@ -1,6 +1,6 @@
 #include "pch.h"
-
 #include "Component/Public/DirectionalLightComponent.h"
+
 #include "Render/UI/Widget/Public/DirectionalLightComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Render/Renderer/Public/Renderer.h"
@@ -24,7 +24,7 @@ UDirectionalLightComponent::UDirectionalLightComponent()
     LightDirectionArrow.NumVertices = ResourceManager.GetNumVertices(EPrimitiveType::Arrow);
     LightDirectionArrow.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     LightDirectionArrow.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
-    LightDirectionArrow.bShouldAlwaysVisible = true;
+    LightDirectionArrow.bShouldAlwaysVisible = false;
 
     //EnsureVisualizationIcon();
 }
@@ -71,7 +71,7 @@ void UDirectionalLightComponent::EnsureVisualizationIcon()
     Icon->AttachToComponent(this);
     Icon->SetIsVisualizationComponent(true);
     Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
-    Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+    Icon->SetRelativeScale3D(FVector(5.f,5.f,5.f));
     Icon->SetScreenSizeScaled(true);
 
     VisualizationIcon = Icon;
@@ -110,18 +110,45 @@ FVector UDirectionalLightComponent::GetForwardVector() const
     return FinalRotation.RotateVector(FVector::ForwardVector());
 }
 
-void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera)
+void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
     if (!InCamera) return;
 
     FVector LightLocation = GetWorldLocation();
     FQuaternion LightRotation = GetWorldRotationAsQuaternion();
 
-    float Distance = (InCamera->GetLocation() - LightLocation).Length();
-    float Scale = Distance * 0.2f;
-    if (Distance < 7.0f) Scale = 7.0f * 0.2f;
+    // Gizmo와 동일한 Screen Space Scale 계산
+    const FCameraConstants& CameraConstants = InCamera->GetFViewProjConstants();
+    const FMatrix& ProjMatrix = CameraConstants.Projection;
+    const ECameraType CameraType = InCamera->GetCameraType();
+    const float ViewportHeight = InViewport.Height;
 
-    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
+    float Scale = 1.0f;
+    const float DesiredPixelSize = 120.0f;
+
+    if (ViewportHeight > 1.0f)
+    {
+        float ProjYY = std::abs(ProjMatrix.Data[1][1]);
+        if (ProjYY > 0.0001f)
+        {
+            if (CameraType == ECameraType::ECT_Perspective)
+            {
+                const FMatrix& ViewMatrix = CameraConstants.View;
+                FVector4 GizmoPos4(LightLocation.X, LightLocation.Y, LightLocation.Z, 1.0f);
+                FVector4 ViewSpacePos = GizmoPos4 * ViewMatrix;
+                float ProjectedDepth = std::max(std::abs(ViewSpacePos.Z), 1.0f);
+                Scale = (DesiredPixelSize * ProjectedDepth) / (ProjYY * ViewportHeight * 0.5f);
+            }
+            else // Orthographic
+            {
+                float OrthoHeight = 2.0f / ProjYY;
+                Scale = (DesiredPixelSize * OrthoHeight) / ViewportHeight;
+            }
+            Scale = std::max(0.01f, std::min(Scale, 100.0f));
+        }
+    }
+
+    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(-90.0f));
     FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
 
     LightDirectionArrow.Location = LightLocation;
