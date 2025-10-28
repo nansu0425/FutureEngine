@@ -488,6 +488,30 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
+
+	// 평면 드래그 처리
+	if (Gizmo.IsPlaneDirection())
+	{
+		// 평면 법선 벡터
+		FVector PlaneNormal = Gizmo.GetPlaneNormal();
+
+		if (!Gizmo.IsWorldMode())
+		{
+			FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+			PlaneNormal = q.RotateVector(PlaneNormal);
+		}
+
+		// 레이와 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 시작점으로부터 이동 거리 계산
+			FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+			return Gizmo.GetDragStartActorLocation() + MouseDelta;
+		}
+		return Gizmo.GetGizmoLocation();
+	}
+
+	// 축 드래그 처리
 	FVector GizmoAxis = Gizmo.GetGizmoAxis();
 
 	if (!Gizmo.IsWorldMode())
@@ -502,8 +526,8 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 
 	// GizmoAxis에 가장 수직인 카메라 벡터 선택
 	FVector PlaneVector;
-	const float DotRight = std::abs(GizmoAxis.Dot(CamRight));
-	const float DotUp = std::abs(GizmoAxis.Dot(CamUp));
+	const float DotRight = abs(GizmoAxis.Dot(CamRight));
+	const float DotUp = abs(GizmoAxis.Dot(CamUp));
 
 	if (DotRight < DotUp)
 	{
@@ -701,11 +725,76 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
-	FVector CardinalAxis = Gizmo.GetGizmoAxis();
+	FQuaternion Quat = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+	const FVector CameraLocation = InActiveCamera->GetLocation();
 
-	// Scale 모드는 항상 로컬 좌표를 사용하므로 GizmoAxis를 월드 좌표로 변환
-	FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
-	FVector GizmoAxis = q.RotateVector(CardinalAxis);
+	// 평면 스케일 처리
+	if (Gizmo.IsPlaneDirection())
+	{
+		// 평면 법선과 접선 벡터
+		FVector PlaneNormal = Gizmo.GetPlaneNormal();
+		FVector Tangent1, Tangent2;
+		Gizmo.GetPlaneTangents(Tangent1, Tangent2);
+
+		// 로컬 좌표로 변환
+		PlaneNormal = Quat.RotateVector(PlaneNormal);
+		FVector WorldTangent1 = Quat.RotateVector(Tangent1);
+		FVector WorldTangent2 = Quat.RotateVector(Tangent2);
+
+		// 레이와 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 평면 내 드래그 벡터 계산
+			const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+
+			// 두 접선 방향 드래그 거리 평균
+			const float Drag1 = MouseDelta.Dot(WorldTangent1);
+			const float Drag2 = MouseDelta.Dot(WorldTangent2);
+			const float AvgDrag = (Drag1 + Drag2) * 0.5f;
+
+			// 스케일 민감도 조정
+			const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
+			constexpr float BaseSensitivity = 0.03f;
+			const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
+			const float ScaleDelta = AvgDrag * ScaleSensitivity;
+
+			const FVector DragStartScale = Gizmo.GetDragStartActorScale();
+			FVector NewScale = DragStartScale;
+
+			// 평면의 두 축에 동일한 스케일 적용
+			if (abs(Tangent1.X) > 0.5f)
+			{
+				NewScale.X = max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent1.Y) > 0.5f)
+			{
+				NewScale.Y = max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent1.Z) > 0.5f)
+			{
+				NewScale.Z = max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.X) > 0.5f)
+			{
+				NewScale.X = max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.Y) > 0.5f)
+			{
+				NewScale.Y = max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.Z) > 0.5f)
+			{
+				NewScale.Z = max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
+			}
+
+			return NewScale;
+		}
+		return Gizmo.GetComponentScale();
+	}
+
+	// 축 스케일 처리 (기존 로직)
+	FVector CardinalAxis = Gizmo.GetGizmoAxis();
+	FVector GizmoAxis = Quat.RotateVector(CardinalAxis);
 
 	// 카메라 방향 벡터를 사용하여 안정적인 평면 계산
 	const FVector CamForward = InActiveCamera->GetForward();
@@ -714,8 +803,8 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 
 	// GizmoAxis에 가장 수직인 카메라 벡터 선택
 	FVector PlaneVector;
-	const float DotRight = std::abs(GizmoAxis.Dot(CamRight));
-	const float DotUp = std::abs(GizmoAxis.Dot(CamUp));
+	const float DotRight = abs(GizmoAxis.Dot(CamRight));
+	const float DotUp = abs(GizmoAxis.Dot(CamUp));
 
 	if (DotRight < DotUp)
 	{
@@ -730,7 +819,6 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	PlaneNormal.Normalize();
 
 	// PlaneNormal이 카메라를 향하도록 보장 (드래그 방향 일관성)
-	const FVector CameraLocation = InActiveCamera->GetLocation();
 	const FVector ToCamera = (CameraLocation - PlaneOrigin).GetNormalized();
 	if (PlaneNormal.Dot(ToCamera) < 0.0f)
 	{
@@ -739,17 +827,16 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
 	{
-		// 언리얼 방식: 드래그 거리에 비례하여 스케일 변화
+		// UE 방식을 사용, 드래그 거리에 비례하여 스케일 변화
 		const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
 		const float AxisDragDistance = MouseDelta.Dot(GizmoAxis);
 
 		// 카메라 거리에 따른 스케일 민감도 조정
-		const FVector CameraLocation = InActiveCamera->GetLocation();
 		const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
 
-		// 언리얼 기준: 거리에 비례한 민감도, 기본 배율 적용
+		// 거리에 비례한 민감도, 기본 배율 적용
 		// 가까울수록 정밀하게, 멀수록 빠르게 조정
-		const float BaseSensitivity = 0.03f;  // 기본 민감도
+		constexpr float BaseSensitivity = 0.03f;  // 기본 민감도
 		const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
 		const float ScaleDelta = AxisDragDistance * ScaleSensitivity;
 
@@ -773,17 +860,17 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 			NewScale = DragStartScale;
 
 			// X축 (1,0,0)
-			if (std::abs(CardinalAxis.X) > 0.5f)
+			if (abs(CardinalAxis.X) > 0.5f)
 			{
 				NewScale.X = std::max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
 			}
 			// Y축 (0,1,0)
-			else if (std::abs(CardinalAxis.Y) > 0.5f)
+			else if (abs(CardinalAxis.Y) > 0.5f)
 			{
 				NewScale.Y = std::max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
 			}
 			// Z축 (0,0,1)
-			else if (std::abs(CardinalAxis.Z) > 0.5f)
+			else if (abs(CardinalAxis.Z) > 0.5f)
 			{
 				NewScale.Z = std::max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
 			}

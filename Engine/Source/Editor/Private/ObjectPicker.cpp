@@ -75,6 +75,63 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 	case EGizmoMode::Translate:
 	case EGizmoMode::Scale:
 	{
+		// 먼저 평면 충돌 검사 (우선순위 높음)
+		const float GizmoScale = Gizmo.GetTranslateScale();
+		const float PlaneSize = 0.25f * GizmoScale;
+		const float PlaneOffset = 0.15f * GizmoScale;
+
+		// 평면 정보: {방향, 탄젠트1, 탄젠트2, 법선}
+		struct FPlaneTestInfo
+		{
+			EGizmoDirection Direction;
+			FVector Tangent1;
+			FVector Tangent2;
+			FVector Normal;
+		};
+
+		FPlaneTestInfo Planes[3] = {
+			{EGizmoDirection::XY_Plane, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}},  // XY 평면
+			{EGizmoDirection::XZ_Plane, {1, 0, 0}, {0, 0, 1}, {0, 1, 0}},  // XZ 평면
+			{EGizmoDirection::YZ_Plane, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}}   // YZ 평면
+		};
+
+		for (const FPlaneTestInfo& PlaneInfo : Planes)
+		{
+			// 로컬 좌표계 벡터
+			FVector T1 = PlaneInfo.Tangent1;
+			FVector T2 = PlaneInfo.Tangent2;
+			FVector Normal = PlaneInfo.Normal;
+
+			// World/Local 모드에 따라 회전 적용
+			if (Gizmo.GetGizmoMode() == EGizmoMode::Scale || !Gizmo.IsWorldMode())
+			{
+				FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+				T1 = q.RotateVector(T1);
+				T2 = q.RotateVector(T2);
+				Normal = q.RotateVector(Normal);
+			}
+
+			// 레이와 평면 교차 테스트
+			FVector HitPoint;
+			if (IsRayCollideWithPlane(WorldRay, GizmoLocation, Normal, HitPoint))
+			{
+				// 교차점을 평면 로컬 좌표로 변환
+				FVector LocalHit = HitPoint - GizmoLocation;
+				float U = LocalHit.Dot(T1);
+				float V = LocalHit.Dot(T2);
+
+				// 평면 사각형 내부에 있는지 확인
+				if (U >= PlaneOffset && U <= PlaneOffset + PlaneSize &&
+				    V >= PlaneOffset && V <= PlaneOffset + PlaneSize)
+				{
+					CollisionPoint = HitPoint;
+					Gizmo.SetGizmoDirection(PlaneInfo.Direction);
+					return;
+				}
+			}
+		}
+
+		// 평면과 충돌하지 않았으면 축 충돌 검사
 		FVector GizmoDistanceVector = WorldRayOrigin - GizmoLocation;
 		bool bIsCollide = false;
 
