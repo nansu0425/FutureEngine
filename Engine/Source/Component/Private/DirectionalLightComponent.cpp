@@ -26,7 +26,7 @@ UDirectionalLightComponent::UDirectionalLightComponent()
     LightDirectionArrow.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
     LightDirectionArrow.bShouldAlwaysVisible = true;
 
-    //EnsureVisualizationBillboard();
+    //EnsureVisualizationIcon();
 }
 
 void UDirectionalLightComponent::BeginPlay()
@@ -38,12 +38,12 @@ void UDirectionalLightComponent::BeginPlay()
 void UDirectionalLightComponent::EndPlay()
 {
     Super::EndPlay();
-    VisualizationBillboard = nullptr;
+    VisualizationIcon = nullptr;
 }
 
-void UDirectionalLightComponent::EnsureVisualizationBillboard()
+void UDirectionalLightComponent::EnsureVisualizationIcon()
 {
-    if (VisualizationBillboard)
+    if (VisualizationIcon)
     {
         return;
     }
@@ -63,19 +63,19 @@ void UDirectionalLightComponent::EnsureVisualizationBillboard()
         }
     }
 
-    UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
-    if (!Billboard)
+    UEditorIconComponent* Icon = OwnerActor->AddComponent<UEditorIconComponent>();
+    if (!Icon)
     {
         return;
     }
-    Billboard->AttachToComponent(this);
-    Billboard->SetIsVisualizationComponent(true);
-    Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
-    Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
-    Billboard->SetScreenSizeScaled(true);
+    Icon->AttachToComponent(this);
+    Icon->SetIsVisualizationComponent(true);
+    Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightDirectional.png"));
+    Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+    Icon->SetScreenSizeScaled(true);
 
-    VisualizationBillboard = Billboard;
-    UpdateVisualizationBillboardTint();
+    VisualizationIcon = Icon;
+    UpdateVisualizationIconTint();
 }
 
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

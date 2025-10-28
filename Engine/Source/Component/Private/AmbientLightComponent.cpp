@@ -26,9 +26,9 @@ UClass* UAmbientLightComponent::GetSpecificWidgetClass() const
 	return UAmbientLightComponentWidget::StaticClass();
 }
 
-void UAmbientLightComponent::EnsureVisualizationBillboard()
+void UAmbientLightComponent::EnsureVisualizationIcon()
 {
-	if (VisualizationBillboard)
+	if (VisualizationIcon)
 	{
 		return;
 	}
@@ -48,19 +48,19 @@ void UAmbientLightComponent::EnsureVisualizationBillboard()
 		}
 	}
 
-	UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
-	if (!Billboard)
+	UEditorIconComponent* Icon = OwnerActor->AddComponent<UEditorIconComponent>();
+	if (!Icon)
 	{
 		return;
 	}
-	Billboard->AttachToComponent(this);
-	Billboard->SetIsVisualizationComponent(true);
-	Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/SkyLight.png"));
-	Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
-	Billboard->SetScreenSizeScaled(true);
+	Icon->AttachToComponent(this);
+	Icon->SetIsVisualizationComponent(true);
+	Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/SkyLight.png"));
+	Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+	Icon->SetScreenSizeScaled(true);
 
-	VisualizationBillboard = Billboard;
-	UpdateVisualizationBillboardTint();
+	VisualizationIcon = Icon;
+	UpdateVisualizationIconTint();
 }
 
 FAmbientLightInfo UAmbientLightComponent::GetAmbientLightInfo() const

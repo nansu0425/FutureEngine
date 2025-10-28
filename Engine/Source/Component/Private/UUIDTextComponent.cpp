@@ -13,6 +13,7 @@ IMPLEMENT_CLASS(UUUIDTextComponent, UTextComponent)
 UUUIDTextComponent::UUUIDTextComponent() : ZOffset(5.0f)
 {
 	SetIsEditorOnly(true);
+	SetIsVisualizationComponent(true);
 	SetCanPick(false);
 
 	bReceivesDecals = false;

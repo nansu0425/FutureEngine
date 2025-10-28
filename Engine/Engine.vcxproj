@@ -341,6 +341,7 @@
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalSpotLightComponent.h" />
     <ClInclude Include="Source\Component\Public\DirectionalLightComponent.h" />
+    <ClInclude Include="Source\Component\Public\EditorIconComponent.h" />
     <ClInclude Include="Source\Component\Public\LightComponentBase.h" />
     <ClInclude Include="Source\Component\Public\PointLightComponent.h" />
     <ClInclude Include="Source\Component\Public\MovementComponent.h" />
@@ -426,6 +427,7 @@
     <ClInclude Include="Source\Render\RenderPass\Public\BillboardPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\ClusteredRenderingGridPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\EditorIconPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\LightPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\PointLightPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\FogPass.h" />
@@ -614,6 +616,7 @@
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalSpotLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DirectionalLightComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\EditorIconComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LightComponentBase.cpp" />
     <ClCompile Include="Source\Component\Private\PointLightComponent.cpp" />
@@ -687,6 +690,7 @@
     <ClCompile Include="Source\Render\RenderPass\Private\BillboardPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\ClusteredRenderingGridPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\EditorIconPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\LightPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\PointLightPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\FXAAPass.cpp" />

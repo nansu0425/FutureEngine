@@ -2,10 +2,10 @@
 
 #include "SceneComponent.h"
 #include "LightComponentBase.h"
-#include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 
-class UBillBoardComponent;
+class UEditorIconComponent;
 
 UENUM()
 enum class ELightComponentType
@@ -69,19 +69,19 @@ public:
     void SetIntensity(float InIntensity) override;
     void SetLightColor(FVector InLightColor) override;
 
-    virtual void EnsureVisualizationBillboard(){};
+    virtual void EnsureVisualizationIcon(){};
 
-    UBillBoardComponent* GetBillBoardComponent() const
+    UEditorIconComponent* GetEditorIconComponent() const
     {
-        return VisualizationBillboard;
+        return VisualizationIcon;
     }
 
-    void SetBillBoardComponent(UBillBoardComponent* InBillBoardComponent)
+    void SetEditorIconComponent(UEditorIconComponent* InEditorIconComponent)
     {
-        VisualizationBillboard = InBillBoardComponent;
+        VisualizationIcon = InEditorIconComponent;
     }
 
-    void RefreshVisualizationBillboardBinding();
+    void RefreshVisualizationIconBinding();
 
     /*-----------------------------------------------------------------------------
         Shadow Quality Parameters
@@ -115,9 +115,9 @@ public:
     uint32 GetShadowMapResolution() const { return static_cast<uint32>(1024.0f * ShadowResolutionScale); }
 
 protected:
-    void UpdateVisualizationBillboardTint();
+    void UpdateVisualizationIconTint();
 
-    UBillBoardComponent* VisualizationBillboard = nullptr;
+    UEditorIconComponent* VisualizationIcon = nullptr;
 
     /** Shadow map 해상도 배율 (0.25 ~ 4.0)
      * 0.25 = 256x256, 0.5 = 512x512, 1.0 = 1024x1024, 2.0 = 2048x2048, 4.0 = 4096x4096 */
