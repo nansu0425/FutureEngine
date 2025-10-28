@@ -440,7 +440,7 @@ void URenderer::CreateClusteredRenderingGrid()
 
 void URenderer::CreateDepthOnlyShader()
 {
-	const std::wstring ShaderFilePathString = L"Asset/Shader/DepthOnlyVS.hlsl";
+	const std::wstring ShaderFilePathString = L"Asset/Shader/DepthOnly.hlsl";
 	const std::filesystem::path ShaderPath(ShaderFilePathString);
 
 	// Depth-only VS uses FNormalVertex layout (same as UberLit)
@@ -462,7 +462,7 @@ void URenderer::CreateDepthOnlyShader()
 
 void URenderer::CreatePointLightShadowShader()
 {
-	const std::wstring ShaderFilePathString = L"Asset/Shader/PointLightShadowDepth.hlsl";
+	const std::wstring ShaderFilePathString = L"Asset/Shader/LinearDepthOnly.hlsl";
 	const std::filesystem::path ShaderPath(ShaderFilePathString);
 
 	// Same layout as depth-only shader

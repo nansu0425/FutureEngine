@@ -354,22 +354,82 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
 
 float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos, int FilterRadius)
 {
-    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
-    if (LightIndex >= MAX_SPOTLIGHT_NUM)
+    // --- 1. 기본 유효성 검사 ---
+    if (LightIndex >= MAX_SPOTLIGHT_NUM) 
+    {
+        return 1.0f;
+    }
+    
+    if (Light.CastShadow == 0)
     {
         return 1.0f;
     }
 
-    float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Spot shadow map resolution
-    return CalculatePercentageCloserShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        TexelSize,
-        FilterRadius,
-        ShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV
-    );
+    // --- 2. 선형 깊이 계산 (PointLight 방식 적용) ---
+    float3 LightToPixel = WorldPos - Light.Position;
+    float Distance = length(LightToPixel);
+
+    if (Distance < 1e-6 || Distance > Light.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+
+    float CurrentDepth = Distance / Light.Range; // (0.0 ~ 1.0)
+
+    // --- 3. 섀도우 맵 UV 좌표 계산 (기존 SpotLight 방식) ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        return 1.0f; 
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y
+
+    // --- 4. PCF (Percentage Closer Filtering) 계산 ---
+    float ShadowFactor = 0.0f;
+    
+    float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT);
+    uint2 AtlasUV = ShadowAtlasSpotLightTilePos[LightIndex].UV;
+
+    [loop]
+    for (int x = -FilterRadius; x <= FilterRadius; x++)
+    {
+        [loop]
+        for (int y = -FilterRadius; y <= FilterRadius; y++)
+        {
+            float2 Offset = float2(x, y) * TexelSize;
+            float2 LocalUV = saturate(ShadowTexCoord + Offset);
+
+            float2 AtlasTexCoord = LocalUV * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
+            
+            ShadowFactor += ShadowAtlas.SampleCmpLevelZero(
+                ShadowSampler,
+                AtlasTexCoord,
+                CurrentDepth // LightSpacePos.z 대신 선형 깊이 사용
+            );
+        }
+    }
+
+    float SideLengths = 2 * FilterRadius + 1;
+    ShadowFactor /= SideLengths * SideLengths;
+
+    return ShadowFactor;
+
+    // float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Spot shadow map resolution
+    // return CalculatePercentageCloserShadowFactor(
+    //     Light.CastShadow,
+    //     Light.LightViewProjection,
+    //     WorldPos,
+    //     TexelSize,
+    //     FilterRadius,
+    //     ShadowAtlas,
+    //     ShadowAtlasSpotLightTilePos[LightIndex].UV
+    // );
 }
 
 // Point Light PCF (Percentage Closer Filtering) Sample Offsets
@@ -632,13 +692,55 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
         return 1.0f;
     }
 
-    return CalculateVarianceShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV
-    );
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // --- 1. 선형 깊이 계산 ---
+    float3 LightToPixel = WorldPos - Light.Position;
+
+    float Distance = length(LightToPixel);
+    if (Distance < 1e-6 || Distance > Light.Range)
+    {
+        return 1.0f;
+    }
+
+    float CurrentDepth = Distance / Light.Range;
+
+    // --- 2. 쉐도우 맵 UV 좌표 계산 ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    // 섀도우 맵(SpotLight의 절두체) 바깥 영역 검사
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        // LightSpacePos.z (프로젝션 깊이)는 더 이상 검사할 필요가 없습니다.
+        // 우리는 이미 'Distance'로 범위를 확인했습니다.
+        return 1.0f; 
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; 
+
+    float2 AtlasTexCoord = ShadowTexCoord * ATLASGRIDSIZE;
+    AtlasTexCoord += ATLASGRIDSIZE * ShadowAtlasSpotLightTilePos[LightIndex].UV;
+
+    // --- 3. VSM 샘플링 ---
+    float2 Moments = VarianceShadowAtlas.Sample(VarianceShadowSampler, AtlasTexCoord);
+
+    // --- 4. 공통 체비셰프 계산 (새로운 선형 깊이 사용) ---
+    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
+    
+    // return CalculateVarianceShadowFactor(
+    //     Light.CastShadow,
+    //     Light.LightViewProjection,
+    //     WorldPos,
+    //     VarianceShadowAtlas,
+    //     ShadowAtlasSpotLightTilePos[LightIndex].UV
+    // );
 }
 
 float CalculatePointVarianceShadowFactor(FPointLightInfo Light, uint LightIndex, float3 WorldPos)
@@ -796,19 +898,65 @@ float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo L
 
 float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
 {
-    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
+    // --- 1. 기본 유효성 검사 ---
     if (LightIndex >= MAX_SPOTLIGHT_NUM)
     {
         return 1.0f;
     }
 
-    return CalculateSummedAreaVarianceShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 선형 깊이 계산 (PointLight 방식 적용) ---
+    float3 LightToPixel = WorldPos - Light.Position;
+    float Distance = length(LightToPixel);
+
+    if (Distance < 1e-6 || Distance > Light.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+
+    float CurrentDepth = Distance / Light.Range; // (0.0 ~ 1.0)
+
+    // --- 3. 섀도우 맵 UV 좌표 계산 (기존 SpotLight 방식) ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), Light.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        return 1.0f; // 섀도우 맵 바깥 영역
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; 
+
+    // --- 4. SAVSM 샘플링 ---
+    
+    // 텍스처 크기 및 텍셀 크기 계산
+    // (TEXTURE_WIDTH, TEXTURE_HEIGHT는 셰이더 상수로 전달되어야 함)
+    float2 TexelSize = float2(1.0f / TEXTURE_WIDTH, 1.0f / TEXTURE_HEIGHT);
+
+    // 필터 커널 크기 정의 (예: 4x4 픽셀 반경)
+    float KernelRadiusPixels = 4.0f;
+    float2 FilterRadiusUV = KernelRadiusPixels * TexelSize;
+
+    uint2 AtlasUV = ShadowAtlasSpotLightTilePos[LightIndex].UV;
+
+    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(
+        VarianceShadowAtlas, // (AtlasTexture)
+        AtlasUV,
+        ShadowTexCoord,      // (CenterUV)
+        FilterRadiusUV,
+        TexelSize
     );
+
+    // --- 5. 공통 체비쇼프 계산 (새로운 선형 깊이 사용) ---
+    
+    return CalculateChebyshevShadowFactor(CurrentDepth, AverageMoments);
 }
 
 /*-----------------------------------------------------------------------------

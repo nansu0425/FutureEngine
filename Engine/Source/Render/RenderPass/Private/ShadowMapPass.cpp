@@ -98,8 +98,8 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	, DepthOnlyVS(InDepthOnlyVS)
 	, DepthOnlyPS(InDepthOnlyPS)
 	, DepthOnlyInputLayout(InDepthOnlyInputLayout)
-	, PointLightShadowVS(InPointLightShadowVS)
-	, PointLightShadowPS(InPointLightShadowPS)
+	, LinearDepthOnlyVS(InPointLightShadowVS)
+	, LinearDepthOnlyPS(InPointLightShadowPS)
 	, PointLightShadowInputLayout(InPointLightShadowInputLayout)
 {
 	ID3D11Device* Device = URenderer::GetInstance().GetDevice();
@@ -327,7 +327,11 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	ShadowAtlasDirectionalLightTilePosArray[0] = {{0, 0}};
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
-	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
+	ID3D11RasterizerState* RastState = ShadowRasterizerState;
+	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
+	{
+		RastState = GetOrCreateRasterizerState(Light);
+	}
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
@@ -415,15 +419,19 @@ void FShadowMapPass::RenderSpotShadowMap(
 	DeviceContext->RSSetViewports(1, &ShadowViewport);
 	
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
-	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
+	ID3D11RasterizerState* RastState = ShadowRasterizerState;
+	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
+	{
+		RastState = GetOrCreateRasterizerState(Light);
+	}
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
 		DepthOnlyInputLayout,
-		DepthOnlyVS,
+		LinearDepthOnlyVS,
 		RastState,  // 캐싱된 state 사용 (매 프레임 생성/해제 방지)
 		ShadowDepthStencilState,
-		DepthOnlyPS,  
+		LinearDepthOnlyPS,
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
@@ -436,6 +444,12 @@ void FShadowMapPass::RenderSpotShadowMap(
 	// Store the calculated shadow view-projection matrix in the light component
 	FMatrix LightViewProj = LightView * LightProj;
 	Light->SetShadowViewProjection(LightViewProj);  // Will be added to SpotLightComponent in Phase 6
+	
+	FPointLightShadowParams Params;
+	Params.LightPosition = Light->GetWorldLocation();
+	Params.LightRange = Light->GetAttenuationRadius();
+	FRenderResourceFactory::UpdateConstantBufferData(PointLightShadowParamsBuffer, Params);
+	Pipeline->SetConstantBuffer(2, EShaderType::PS, PointLightShadowParamsBuffer);
 
 	// 5. 각 메시 렌더링
 	for (auto Mesh : Meshes)
@@ -485,15 +499,19 @@ void FShadowMapPass::RenderPointShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// 1. Rasterizer state
-	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
+	ID3D11RasterizerState* RastState = ShadowRasterizerState;
+	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
+	{
+		RastState = GetOrCreateRasterizerState(Light);
+	}
 
 	// 2. Pipeline 설정 (Point Light는 linear distance를 depth로 저장하므로 pixel shader 필요)
 	FPipelineInfo ShadowPipelineInfo = {
 		PointLightShadowInputLayout,
-		PointLightShadowVS,
+		LinearDepthOnlyVS,
 		RastState,
 		ShadowDepthStencilState,
-		PointLightShadowPS,  // Pixel shader for linear distance output
+		LinearDepthOnlyPS,  // Pixel shader for linear distance output
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
