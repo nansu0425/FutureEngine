@@ -3,15 +3,26 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/UELogParser.h"
 #include "Utility/Public/ScopeCycleCounter.h"
+#include "Utility/Public/LogFileWriter.h"
 
 IMPLEMENT_SINGLETON_CLASS(UConsoleWidget, UWidget)
 
-UConsoleWidget::UConsoleWidget() = default;
+UConsoleWidget::UConsoleWidget()
+	: LogFileWriter(nullptr)
+{
+}
 
 UConsoleWidget::~UConsoleWidget()
 {
 	CleanupSystemRedirect();
 	ClearLog();
+
+	if (LogFileWriter)
+	{
+		LogFileWriter->Shutdown();
+		delete LogFileWriter;
+		LogFileWriter = nullptr;
+	}
 }
 
 void UConsoleWidget::Initialize()
@@ -31,6 +42,31 @@ void UConsoleWidget::Initialize()
 
 	AddLog(ELogType::Success, "ConsoleWindow: Game Console 초기화 성공");
 	AddLog(ELogType::System, "ConsoleWindow: Logging System Ready");
+
+	// Log File Writer 초기화
+	LogFileWriter = new FLogFileWriter();
+	LogFileWriter->Initialize();
+
+	if (LogFileWriter && LogFileWriter->IsInitialized())
+	{
+		// 초기화 성공 시 임시 버퍼의 로그들을 파일에 기록
+		for (const auto& PendingLog : PendingLogs)
+		{
+			FString FileLog = GetLogTypePrefix(PendingLog.Type);
+			FileLog += " ";
+			FileLog += PendingLog.Message;
+			LogFileWriter->AddLog(FileLog);
+		}
+
+		// 임시 버퍼 비우기
+		PendingLogs.clear();
+
+		AddLog(ELogType::Success, "LogFileWriter: Initialized: %s", LogFileWriter->GetCurrentLogFileName().data());
+	}
+	else
+	{
+		AddLog(ELogType::Error, "LogFileWriter: Failed to initialize");
+	}
 }
 
 /**
@@ -305,6 +341,22 @@ void UConsoleWidget::AddLogInternal(ELogType InType, const char* fmt, va_list In
 
 	// Log buffer 복사 후 제거
 	LogEntry.Message = FString(Buffer);
+
+	// 파일에 로그 작성 또는 임시 버퍼에 저장
+	if (LogFileWriter && LogFileWriter->IsInitialized())
+	{
+		// LogFileWriter가 초기화되었으면 파일에 작성
+		FString FileLog = GetLogTypePrefix(InType);
+		FileLog += " ";
+		FileLog += Buffer;
+		LogFileWriter->AddLog(FileLog);
+	}
+	else
+	{
+		// 아직 초기화되지 않았으면 임시 버퍼에 저장
+		PendingLogs.push_back(LogEntry);
+	}
+
 	delete[] Buffer;
 
 	// 200개 초과 시 가장 오래된 로그 제거
@@ -348,6 +400,21 @@ void UConsoleWidget::AddSystemLog(const char* InText, bool bInIsError)
 	if (!LogEntry.Message.empty() && LogEntry.Message.back() == '\n')
 	{
 		LogEntry.Message.pop_back();
+	}
+
+	// 파일에 로그 작성 또는 임시 버퍼에 저장
+	if (LogFileWriter && LogFileWriter->IsInitialized())
+	{
+		// LogFileWriter가 초기화되었으면 파일에 작성
+		FString FileLog = GetLogTypePrefix(LogEntry.Type);
+		FileLog += " ";
+		FileLog += LogEntry.Message;
+		LogFileWriter->AddLog(FileLog);
+	}
+	else
+	{
+		// 아직 초기화되지 않았으면 임시 버퍼에 저장
+		PendingLogs.push_back(LogEntry);
 	}
 
 	// 200개 초과 시 가장 오래된 로그 제거

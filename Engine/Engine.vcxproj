@@ -489,6 +489,7 @@
     <ClInclude Include="Source\Texture\Public\TextureFilter.h" />
     <ClInclude Include="Source\Texture\Public\TextureRenderProxy.h" />
     <ClInclude Include="Source\Utility\Public\JsonSerializer.h" />
+    <ClInclude Include="Source\Utility\Public\LogFileWriter.h" />
     <ClInclude Include="Source\Utility\Public\ScopeCycleCounter.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
   </ItemGroup>
@@ -746,6 +747,7 @@
     </ClCompile>
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Texture\Private\TextureFilter.cpp" />
+    <ClCompile Include="Source\Utility\Private\LogFileWriter.cpp" />
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp" />
     <ClCompile Include="Source\Utility\Private\UELogParser.cpp" />
     <FxCompile Include="Asset\Shader\DepthOnlyVS.hlsl">
