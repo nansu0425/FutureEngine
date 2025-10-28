@@ -15,9 +15,9 @@ class UCamera : public UObject
 public:
 	// Camera Speed Constants
 	static constexpr float MIN_SPEED = 1.0f;
-	static constexpr float MAX_SPEED = 70.0f;
+	static constexpr float MAX_SPEED = 100.0f;
 	static constexpr float DEFAULT_SPEED = 20.0f;
-	static constexpr float SPEED_ADJUST_STEP = 1.0f;
+	static constexpr float SPEED_ADJUST_STEP = 3.0f;
 
 	UCamera();
 	~UCamera() override;
@@ -83,7 +83,6 @@ public:
 	void SetMoveSpeed(float InSpeed)
 	{
 		CurrentMoveSpeed = clamp(InSpeed, MIN_SPEED, MAX_SPEED);
-		// CurrentMoveSpeed = min(InSpeed, MAX_SPEED);
 	}
 	void AdjustMoveSpeed(float InDelta) { SetMoveSpeed(CurrentMoveSpeed + InDelta); }
 

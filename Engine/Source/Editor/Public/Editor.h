@@ -69,6 +69,10 @@ private:
 		return A * (1 - Alpha) + B * Alpha;
 	}
 
+	// Focus Target Calculation
+	bool GetComponentFocusTarget(UActorComponent* Component, FVector& OutCenter, float& OutRadius);
+	bool GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutRadius);
+
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터
 	UActorComponent* SelectedComponent = nullptr; // 선택된 컴포넌트
@@ -106,6 +110,6 @@ private:
 	TArray<FVector> CameraStartRotation;
 	TArray<FVector> CameraTargetLocation;
 	TArray<FVector> CameraTargetRotation;
-	static constexpr float CAMERA_ANIMATION_DURATION = 0.8f;
+	static constexpr float CAMERA_ANIMATION_DURATION = 0.3f;
 	void UpdateCameraAnimation();
 };

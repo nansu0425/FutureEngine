@@ -408,11 +408,19 @@ void UEditor::ProcessMouseInput()
 			Gizmo.SetGizmoDirection(EGizmoDirection::None);
 		}
 
-		// 단일 클릭과 더블 클릭 구분
-		bool bIsSingleClick = InputManager.IsKeyPressed(EKeyInput::MouseLeft);
-		bool bIsDoubleClick = InputManager.IsMouseDoubleClicked(EKeyInput::MouseLeft);
+		// Esc 키로 선택 해제
+		if (InputManager.IsKeyPressed(EKeyInput::Esc))
+		{
+			SelectActor(nullptr);
+			SelectComponent(nullptr);
+			bIsActorSelected = true;
+		}
 
-		if (bIsSingleClick || bIsDoubleClick)
+		// 더블 클릭이 우선 (단일 클릭보다 먼저 체크)
+		bool bIsDoubleClick = InputManager.IsMouseDoubleClicked(EKeyInput::MouseLeft);
+		bool bIsSingleClick = !bIsDoubleClick && InputManager.IsKeyPressed(EKeyInput::MouseLeft);
+
+		if (bIsDoubleClick || bIsSingleClick)
 		{
 			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
@@ -460,17 +468,40 @@ void UEditor::ProcessMouseInput()
 						}
 					}
 
-					// 단일 클릭: Actor 선택 (Root Component)
 					// 더블 클릭: Component 선택 (실제 클릭한 Component)
+					// 단일 클릭:
+					// - Actor 선택 상태: Actor 선택 유지
+					// - Component 선택 상태: 같은 Actor면 Component 전환, 다른 Actor면 Actor 선택
 					if (bIsDoubleClick)
 					{
+						// 더블클릭: Component 선택 모드로 진입
 						SelectActorAndComponent(ActorPicked, ComponentToSelect);
-						bIsActorSelected = false; // Component 선택 모드
+						bIsActorSelected = false;
 					}
-					else if (bIsSingleClick && !bIsDoubleClick)
+					else // bIsSingleClick
 					{
-						SelectActor(ActorPicked);
-						bIsActorSelected = true; // Actor 선택 모드
+						if (bIsActorSelected)
+						{
+							// Actor 선택 상태에서 단일 클릭: Actor 선택 유지
+							SelectActor(ActorPicked);
+							bIsActorSelected = true;
+						}
+						else
+						{
+							// Component 선택 상태에서 단일 클릭
+							if (GetSelectedActor() == ActorPicked)
+							{
+								// 같은 Actor: Component 전환
+								SelectActorAndComponent(ActorPicked, ComponentToSelect);
+								bIsActorSelected = false;
+							}
+							else
+							{
+								// 다른 Actor: Actor 선택으로 전환
+								SelectActor(ActorPicked);
+								bIsActorSelected = true;
+							}
+						}
 					}
 				}
 				else
@@ -1033,9 +1064,107 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 }
 
+bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCenter, float& OutRadius)
+{
+	if (!Component)
+	{
+		return false;
+	}
+
+	USceneComponent* SceneComp = Cast<USceneComponent>(Component);
+	if (!SceneComp)
+	{
+		return false;
+	}
+
+	// PrimitiveComponent: AABB 기반 계산
+	if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp))
+	{
+		FVector Min, Max;
+		PrimComp->GetWorldAABB(Min, Max);
+		OutCenter = (Min + Max) * 0.5f;
+
+		FVector Size = Max - Min;
+		OutRadius = Size.Length() * 0.5f;
+
+		// 최소 반경 보장 (너무 작은 오브젝트 대응)
+		OutRadius = max(OutRadius, 10.0f);
+	}
+	// SceneComponent: WorldLocation 기반
+	else
+	{
+		OutCenter = SceneComp->GetWorldLocation();
+		OutRadius = 30.0f;
+	}
+
+	return true;
+}
+
+bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutRadius)
+{
+	if (!Actor)
+	{
+		return false;
+	}
+
+	// Primitive Component를 찾아서 포커싱
+	// 1순위: RootComponent가 Primitive
+	// 2순위: 자식 중 Visualization Component
+	UPrimitiveComponent* Prim = nullptr;
+	if (Actor->GetRootComponent() && Actor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
+	{
+		Prim = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+	}
+	else
+	{
+		// RootComponent가 Primitive가 아니면 Visualization 컴포넌트 검색
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp))
+			{
+				if (!PrimComp->IsVisualizationComponent())
+				{
+					continue;
+				}
+				Prim = PrimComp;
+				break;
+			}
+		}
+	}
+
+	if (!Prim)
+	{
+		return false;
+	}
+
+	FVector Min, Max;
+	Prim->GetWorldAABB(Min, Max);
+	OutCenter = (Min + Max) * 0.5f;
+
+	FVector Size = Max - Min;
+	OutRadius = Size.Length() * 0.5f;
+
+	return true;
+}
+
 void UEditor::FocusOnSelectedActor()
 {
-	if (!SelectedActor)
+	FVector Center;
+	float BoundingRadius;
+	bool bSuccess = false;
+
+	// Component 선택 모드: 선택된 Component에 포커싱
+	if (!bIsActorSelected && SelectedComponent)
+	{
+		bSuccess = GetComponentFocusTarget(SelectedComponent, Center, BoundingRadius);
+	}
+	// Actor 선택 모드: Actor 전체에 포커싱
+	else if (SelectedActor)
+	{
+		bSuccess = GetActorFocusTarget(SelectedActor, Center, BoundingRadius);
+	}
+
+	if (!bSuccess)
 	{
 		return;
 	}
@@ -1044,24 +1173,10 @@ void UEditor::FocusOnSelectedActor()
 	auto& Viewports = ViewportManager.GetViewports();
 	auto& Clients = ViewportManager.GetClients();
 
-	if (Viewports.empty() || Clients.empty()) { return; }
-
-	UPrimitiveComponent* Prim = nullptr;
-	if (SelectedActor->GetRootComponent() && SelectedActor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
-	{
-		Prim = Cast<UPrimitiveComponent>(SelectedActor->GetRootComponent());
-	}
-
-	if (!Prim)
+	if (Viewports.empty() || Clients.empty())
 	{
 		return;
 	}
-
-	FVector ComponentMin, ComponentMax;
-	Prim->GetWorldAABB(ComponentMin, ComponentMax);
-	const FVector Center = (ComponentMin + ComponentMax) * 0.5f;
-	const FVector AABBSize = ComponentMax - ComponentMin;
-	const float BoundingRadius = AABBSize.Length() * 0.5f;
 
 	const int32 ViewportCount = static_cast<int32>(Viewports.size());
 
@@ -1113,9 +1228,8 @@ void UEditor::FocusOnSelectedActor()
 			const float FovY = Cam->GetFovY();
 			const float HalfFovRadian = FVector::GetDegreeToRadian(FovY * 0.5f);
 
-			// AABB 크기만큼 추가 간격 확보
-			const float AABBMargin = max(AABBSize.X, max(AABBSize.Y, AABBSize.Z));
-			const float Distance = (BoundingRadius / sinf(HalfFovRadian)) + AABBMargin;
+			// BoundingRadius 기준으로 거리 계산
+			const float Distance = BoundingRadius / sinf(HalfFovRadian);
 
 			CameraTargetLocation[i] = Center - Forward * Distance;
 
