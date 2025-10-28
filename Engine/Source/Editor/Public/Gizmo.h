@@ -202,6 +202,15 @@ private:
 	// Screen-space uniform scale calculation
 	float CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport, float InDesiredPixelSize) const;
 
+	// Modular rendering functions
+	void RenderCenterSphere(const FEditorPrimitive& P, float RenderScale);
+	void RenderTranslatePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
+	void RenderScalePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
+	void RenderRotationCircles(const FEditorPrimitive& P, const FQuaternion& AxisRotation,
+		const FQuaternion& BaseRot, const FVector4& AxisColor);
+	void RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuaternion& BaseRot,
+		int32 AxisIndex, EGizmoDirection Direction, UCamera* InCamera);
+
 	TArray<FEditorPrimitive> Primitives;
 	USceneComponent* TargetComponent = nullptr;
 
