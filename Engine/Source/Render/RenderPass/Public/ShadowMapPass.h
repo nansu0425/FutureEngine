@@ -176,38 +176,43 @@ private:
 	 */
 	void RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj);
 
-	/**
-	 * @brief Directional light의 rasterizer state를 가져오거나 생성합니다.
-	 *
-	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
-	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
-	 *
-	 * @param Light Directional light component
-	 * @return Light 전용 rasterizer state
-	 */
-	ID3D11RasterizerState* GetOrCreateRasterizerState(UDirectionalLightComponent* Light);
+	// /**
+	//  * @brief Directional light의 rasterizer state를 가져오거나 생성합니다.
+	//  *
+	//  * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	//  * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	//  *
+	//  * @param Light Directional light component
+	//  * @return Light 전용 rasterizer state
+	//  */
+	// ID3D11RasterizerState* GetOrCreateRasterizerState(UDirectionalLightComponent* Light);
+	//
+	// /**
+	//  * @brief Spot light의 rasterizer state를 가져오거나 생성합니다.
+	//  *
+	//  * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	//  * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	//  *
+	//  * @param Light Spot light component
+	//  * @return Light 전용 rasterizer state
+	//  */
+	// ID3D11RasterizerState* GetOrCreateRasterizerState(USpotLightComponent* Light);
+	//
+	// /**
+	//  * @brief Point light의 rasterizer state를 가져오거나 생성합니다.
+	//  *
+	//  * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
+	//  * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
+	//  *
+	//  * @param Light Point light component
+	//  * @return Light 전용 rasterizer state
+	//  */
+	// ID3D11RasterizerState* GetOrCreateRasterizerState(UPointLightComponent* Light);
 
-	/**
-	 * @brief Spot light의 rasterizer state를 가져오거나 생성합니다.
-	 *
-	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
-	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
-	 *
-	 * @param Light Spot light component
-	 * @return Light 전용 rasterizer state
-	 */
-	ID3D11RasterizerState* GetOrCreateRasterizerState(USpotLightComponent* Light);
-
-	/**
-	 * @brief Point light의 rasterizer state를 가져오거나 생성합니다.
-	 *
-	 * Light별로 DepthBias/SlopeScaledDepthBias가 다르므로, 각 light마다
-	 * 전용 rasterizer state를 캐싱합니다. 매 프레임 생성/해제를 방지하여 성능 향상.
-	 *
-	 * @param Light Point light component
-	 * @return Light 전용 rasterizer state
-	 */
-	ID3D11RasterizerState* GetOrCreateRasterizerState(UPointLightComponent* Light);
+	ID3D11RasterizerState* GetOrCreateRasterizerState(
+		float InShadowBias,
+		float InShadowSlopBias
+		);
 
 private:
 	// Shaders
@@ -230,9 +235,13 @@ private:
 	TMap<UPointLightComponent*, FCubeShadowMapResource*> PointShadowMaps;
 
 	// Rasterizer state 캐싱 (매 프레임 생성/해제 방지)
-	TMap<UDirectionalLightComponent*, ID3D11RasterizerState*> DirectionalRasterizerStates;
-	TMap<USpotLightComponent*, ID3D11RasterizerState*> SpotRasterizerStates;
-	TMap<UPointLightComponent*, ID3D11RasterizerState*> PointRasterizerStates;
+	// TMap<UDirectionalLightComponent*, ID3D11RasterizerState*> DirectionalRasterizerStates;
+	// TMap<USpotLightComponent*, ID3D11RasterizerState*> SpotRasterizerStates;
+	// TMap<UPointLightComponent*, ID3D11RasterizerState*> PointRasterizerStates;
+
+	TMap<FString, ID3D11RasterizerState*> LightRasterizerStates;
+
+	// Rasterizer State 캐싱 (Bias, Splop Bias를 키값으로 접근)
 
 	// Constant buffers (DepthOnlyVS.hlsl의 ViewProj와 동일)
 	ID3D11Buffer* ShadowViewProjConstantBuffer = nullptr;

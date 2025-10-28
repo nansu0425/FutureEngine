@@ -97,7 +97,7 @@ public:
     float GetShadowBias() const { return ShadowBias; }
 
     /** @brief Shadow acne 방지를 위한 depth bias를 설정합니다 (0.0 ~ 0.1). */
-    void SetShadowBias(float InBias) { ShadowBias = std::clamp(InBias, 0.0f, 0.1f); }
+    void SetShadowBias(float InBias) {ShadowBias = std::clamp(InBias, 0.0f, 0.1f); }
 
     /** @brief 표면 기울기에 따른 bias를 반환합니다 (Peter panning 방지). */
     float GetShadowSlopeBias() const { return ShadowSlopeBias; }

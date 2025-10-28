@@ -192,33 +192,33 @@ void USpotLightComponentWidget::RenderWidget()
         }
 
         float ShadowBias = SpotLightComponent->GetShadowBias();
-        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.005f, 0.0f, 0.1f))
         {
             SpotLightComponent->SetShadowBias(ShadowBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 0.1(최대)");
         }
 
         float ShadowSlopeBias = SpotLightComponent->GetShadowSlopeBias();
-        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 4.0f))
         {
             SpotLightComponent->SetShadowSlopeBias(ShadowSlopeBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 4.0(최대)");
         }
 
         float ShadowSharpen = SpotLightComponent->GetShadowSharpen();
-        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.05f, 0.0f, 1.0f))
         {
             SpotLightComponent->SetShadowSharpen(ShadowSharpen);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 1.0(최대)");
         }
 
 		// Shadow Mode

@@ -136,33 +136,33 @@ void UDirectionalLightComponentWidget::RenderWidget()
         }
 
         float ShadowBias = DirectionalLightComponent->GetShadowBias();
-        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.005f, 0.0f, 0.1f))
         {
             DirectionalLightComponent->SetShadowBias(ShadowBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 0.1(최대)");
         }
 
         float ShadowSlopeBias = DirectionalLightComponent->GetShadowSlopeBias();
-        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 4.0f))
         {
             DirectionalLightComponent->SetShadowSlopeBias(ShadowSlopeBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 4.0(최대)");
         }
 
         float ShadowSharpen = DirectionalLightComponent->GetShadowSharpen();
-        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.05f, 0.0f, 1.0f))
         {
             DirectionalLightComponent->SetShadowSharpen(ShadowSharpen);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 1.0(최대)");
         }
 
 		// Shadow Mode
@@ -213,23 +213,23 @@ void UDirectionalLightComponentWidget::RenderWidget()
 
     ID3D11ShaderResourceView* ShadowSRV = URenderer::GetInstance().GetShadowMapPass()->GetShadowAtlas()->ShadowSRV.Get();
     ImTextureID TextureID = (ImTextureID)ShadowSRV;
+
     if (ShadowSRV)
     {
-        // 원하는 출력 크기 설정
-        ImVec2 ImageSize(256 * 6, 256); 
-    
-        // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
-        // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
-        ImGui::Image(TextureID, 
-                     ImageSize, 
-                     ImVec2(0, 0), ImVec2(1.0f, 0.125f), 
-                     ImVec4(1, 1, 1, 1), 
-                     ImVec4(0, 0, 0, 0)); 
+        UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
+        int splitNum = CascadeManager.GetSplitNum();
 
+        static int currentCascade = 0;
+        ImGui::Text("Cascade SubFrustum Number");
+        ImGui::SliderInt("##CascadeSlider", &currentCascade, 0, splitNum - 1);
+
+        ImVec2 imageSize(256, 256);
+        ImVec2 startPos(0.125f * currentCascade, 0.0f);
+        ImVec2 endPos = startPos + ImVec2(0.125f, 0.125f);
+
+        ImGui::Image(TextureID, imageSize, startPos, endPos);
         if (ImGui::IsItemHovered())
-        {
             ImGui::SetTooltip("광원의 Shadow Map 출력");
-        }
     }
     
     ImGui::PopStyleColor(3);
