@@ -176,7 +176,7 @@ StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : r
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
-// SamplerState VarianceShadowSampler : register(s2);
+SamplerState VarianceShadowSampler : register(s2);
 
 // Material flags
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
@@ -274,7 +274,7 @@ float3x3 Inverse3x3(float3x3 M)
     PCF (Percentage Closer Filtering)
  -----------------------------------------------------------------------------*/
 
-float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, float2 TexelSize, Texture2D AtlasTexture, uint2 AtlasUV)
+float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, float2 TexelSize, int FilterRadius, Texture2D AtlasTexture, uint2 AtlasUV)
 {
     // If shadow is disabled, return fully lit (1.0)
     if (CastShadow == 0)
@@ -305,36 +305,40 @@ float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewP
     // PCF (Percentage Closer Filtering) for soft shadows
     float ShadowFactor = 0.0f;
 
-    // 3x3 PCF kernel
-    [unroll]
-    for (int x = -1; x <= 1; x++)
+    // PCF kernel
+    [loop]
+    for (int x = -FilterRadius; x <= FilterRadius; x++)
     {
-        [unroll]
-        for (int y = -1; y <= 1; y++)
+        [loop]
+        for (int y = -FilterRadius; y <= FilterRadius; y++)
         {
             float2 Offset = float2(x, y) * TexelSize;
+
+            float2 LocalUV = saturate(ShadowTexCoord + Offset);
 
             // 현재는 Directional Light가 한장이라고 가정하여
             // Shadow Atlas의 우측 상단을 가져온다고 가정
             // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
             // 별도로 위치를 지정해야 함.
-            float2 AtlasTexcoord = (ShadowTexCoord + Offset) * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
+            float2 AtlasTexCoord = LocalUV * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
             
             ShadowFactor += AtlasTexture.SampleCmpLevelZero(
                 ShadowSampler,
-                AtlasTexcoord,
+                AtlasTexCoord,
                 CurrentDepth
             );
         }
     }
 
-    ShadowFactor /= 9.0f; // Average of 9 samples
+    float SideLengths = 2 * FilterRadius + 1;
+
+    ShadowFactor /= SideLengths * SideLengths; // Average of 9 samples
 
     return ShadowFactor;
 }
 
 // Shadow Calculation Functions
-float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos, int FilterRadius)
 {
     float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Shadow map resolution
     return CalculatePercentageCloserShadowFactor(
@@ -342,12 +346,13 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
         Light.LightViewProjection,
         WorldPos,
         TexelSize,
+        FilterRadius,
         ShadowAtlas,
         ShadowAtlasDirectionalLightTilePos[0].UV
     );
 }
 
-float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
+float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos, int FilterRadius)
 {
     // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
     if (LightIndex >= MAX_SPOTLIGHT_NUM)
@@ -361,6 +366,7 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 Wo
         Light.LightViewProjection,
         WorldPos,
         TexelSize,
+        FilterRadius,
         ShadowAtlas,
         ShadowAtlasSpotLightTilePos[LightIndex].UV
     );
@@ -504,10 +510,10 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
     float ShadowFactor = 0.0f;
     float TotalSamples = 1.0f;  // Start with 1 for center sample
     
-    float2 AtlasTexcoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex);
+    float2 AtlasTexCoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex);
     
-    //float StoredDistance = ShadowAtlas.Load(int3(AtlasTexcoord, 0)).r;
-    float StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
+    //float StoredDistance = ShadowAtlas.Load(int3(AtlasTexCoord, 0)).r;
+    float StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexCoord).r;
 
     ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
 
@@ -516,10 +522,10 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
     {
         // Apply offset in tangent space around the sample direction
         float3 OffsetDir = normalize(SampleDir + CubePCFOffsets[i] * FilterRadius);
-        AtlasTexcoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex);
+        AtlasTexCoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex);
         
         // Sample shadow map with offset direction
-        StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
+        StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexCoord).r;
 
         // Compare and accumulate
         ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
@@ -535,29 +541,32 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
  -----------------------------------------------------------------------------*/
 
 /**
- * @brief VSM/SAVSM 공통 계산: 체비쇼프 부등식을 사용하여 그림자 인자를 계산합니다.
+ * @brief VSM/SAVSM 공통 계산: 체비쇼프 부등식을 사용하여 그림자 인자를 계산한다.
  * @param CurrentDepth 픽셀의 현재 깊이 (라이트 공간)
  * @param Moments 샘플링된 모멘트 (float2(E(X), E(X^2)))
  * @return float ShadowFactor (0.0 = shadowed, 1.0 = lit)
  */
 float CalculateChebyshevShadowFactor(float CurrentDepth, float2 Moments)
 {
-    // First Moment: E(X)
+    // --- 1. 필요 수치들 계산 ---
+    
+    // 1차 모멘트: E(X)
     float M1 = Moments.x;
 
-    // Second Moment: E(X^2)
+    // 2차 모멘트: E(X^2)
     float M2 = Moments.y;
 
-    // Variance (max for numerical stability)
+    // 분산 (수치 안정성을 위해 max 사용)
     float Variance = max(0.00001f, M2 - M1 * M1);
 
-    // If current depth is smaller than first moment, return 1.0f (Light Bleeding 방지)
+    // 현재 깊이가 1차 모멘트보다 작으면 1.0f 반환 (라이트 블리딩 방지) 
     if (CurrentDepth <= M1)
     {
         return 1.0f;
     }
 
-    // Chebyshev's Inequality
+    // --- 2. 체비셰프 부등식(Chebyshev's Inequality) ---
+    
     // P(X > t) <= P_max = Var(X) / (Var(X) + (t - E(X))^2)
     float Difference = CurrentDepth - M1;
 
@@ -569,7 +578,7 @@ float CalculateChebyshevShadowFactor(float CurrentDepth, float2 Moments)
 
 float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, Texture2D AtlasTexture, uint2 AtlasUV)
 {
-    // If shadow is disabled, return fully lit (1.0)
+    // 그림자가 비활성화 되어있으면, 완전히 밝혀져야 함 (1.0f)
     if (CastShadow == 0)
     {
         return 1.0f;
@@ -583,12 +592,12 @@ float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjectio
         LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
         LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
     {
-        return 1.0f; // Outside shadow map, assume lit
+        return 1.0f; // 쉐도우 맵 바깥영역은 밝은 것으로 간주함
     }
 
     float2 ShadowTexCoord;
     ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
-    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; 
 
     float2 AtlasTexCoord = ShadowTexCoord * ATLASGRIDSIZE;
     AtlasTexCoord += ATLASGRIDSIZE * AtlasUV;
@@ -596,7 +605,7 @@ float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjectio
     float CurrentDepth = LightSpacePos.z;
 
     // --- 2. VSM 샘플링 ---
-    float2 Moments = AtlasTexture.Sample(SamplerWrap, AtlasTexCoord);
+    float2 Moments = AtlasTexture.Sample(VarianceShadowSampler, AtlasTexCoord);
 
     // --- 3. 공통 체비쇼프 계산 ---
     return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
@@ -630,14 +639,55 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
     );
 }
 
+float CalculatePointVarianceShadowFactor(FPointLightInfo Light, uint LightIndex, float3 WorldPos)
+{
+    // --- 1. 기본 유효성 검사 ---
+    
+    if (Light.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+
+    if (LightIndex >= MAX_POINT_LIGHT_NUM)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 라이트까지의 방향 및 거리 계산 ---
+    
+    float3 LightToPixel = WorldPos - Light.Position;
+    float Distance = length(LightToPixel);
+
+    if (Distance < 1e-6 || Distance > Light.Range)
+    {
+        return 1.0f;
+    }
+
+    // --- 3. VSM에 필요한 값 계산 ---
+
+    float3 SampleDir = LightToPixel / Distance;
+
+    float CurrentDepth = Distance / Light.Range;
+
+    // --- 4. 아틀라스 UV 좌표 계산 ---
+
+    float2 AtlasTexCoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex);
+
+    // --- 5. VSM 모멘트 샘플링 및 체비쇼프 부등식 계산
+
+    float2 Moments = VarianceShadowAtlas.Sample(VarianceShadowSampler, AtlasTexCoord).rg;
+
+    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
+}
+
 /*-----------------------------------------------------------------------------
     SAVSM (Summed Area Variance Shadow Map) Filtering
  -----------------------------------------------------------------------------*/
 
 /**
- * @brief Summed Area Table(SAT)을 쿼리하여 사각 영역의 평균 모멘트를 계산합니다.
+ * @brief Summed Area Table(SAT)을 쿼리하여 사각 영역의 평균 모멘트를 계산한다.
  * @param AtlasTexture 쿼리할 Summed Area Variance Shadow Map
- * @param AtlasUV Atlas의 인덱스 (UV 좌표 아님) 
+ * @param AtlasUV Atlas 텍스쳐 내부의 텍스쳐 인덱스 (UV 좌표 아님) 
  * @param CenterUV 필터링할 영역의 중심 UV 좌표
  * @param FilterRadiusUV 필터링할 영역의 반지름 (UV 공간)
  * @param TexelSize 텍스처 1픽셀의 UV 크기 (1.0f / 텍스처 크기)
@@ -645,11 +695,11 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
  */
 float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, float2 CenterUV, float2 FilterRadiusUV, float2 TexelSize)
 {
-    // 1. 필털링할 영역의 사각 경계(UV)를 계산
+    // --- 1. 필터링할 영역의 사각 경계(UV)를 계산 ---
     float2 UV_TopRight = CenterUV + FilterRadiusUV;
     float2 UV_BottomLeft = CenterUV - FilterRadiusUV;
 
-    // 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산
+    // --- 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산 ---
     // SAT(x, y) = [0, 0]부터 [x, y]까지의 합
     float2 UV_A = float2(UV_BottomLeft.x - TexelSize.x, UV_BottomLeft.y - TexelSize.y); // A = (x1 -1, y1 -1)
     float2 UV_B = float2(UV_TopRight.x, UV_BottomLeft.y - TexelSize.y);                 // B = (x2, y1 - 1)
@@ -661,17 +711,17 @@ float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, 
     float2 AtlasUV_C = UV_C * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
     float2 AtlasUV_D = UV_D * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
 
-    // 3. SAT 텍스쳐 샘플링
+    // --- 3. SAT 텍스쳐 샘플링 ---
     // TODO: SamplerClamp 또는 SamplerBorder 대체
-    float2 Moments_A = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_A, 0);
-    float2 Moments_B = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_B, 0);
-    float2 Moments_C = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_C, 0);
-    float2 Moments_D = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_D, 0);
+    float2 Moments_A = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_A, 0);
+    float2 Moments_B = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_B, 0);
+    float2 Moments_C = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_C, 0);
+    float2 Moments_D = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_D, 0);
 
-    // 4. 포함-배제 원칙 (Inclusion-Exclusion)
+    // --- 4. 포함-배제 원칙 (Inclusion-Exclusion) ---
     float2 SummedMoments = Moments_D - Moments_B - Moments_C + Moments_A;
 
-    // 5. 필터 영역의 넓이를 계산 (UV 공간 -> 픽셀 공간)
+    // --- 5. 필터 영역의 넓이를 계산 (UV 공간 -> 픽셀 공간) ---
     // 필터 반경 R인 커널은 (2R+1) x (2R+1) 크기를 가집니다.
     float2 SideLengths = (FilterRadiusUV / TexelSize) * 2.0f + 1.0f;
     float FilterArea = SideLengths.x * SideLengths.y;
@@ -681,7 +731,7 @@ float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, 
         FilterArea = 1.0f; // 0으로 나누는 것을 방지
     }
 
-    // 6. 합계를 넓이로 나누어 평균 모멘트 계산
+    // --- 6. 합계를 넓이로 나누어 평균 모멘트 계산 ---
     return SummedMoments / FilterArea;
 }
 
@@ -781,9 +831,13 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
     float ShadowFactor = 1.0f;
-    if (Info.ShadowModeIndex == SMI_PCF)
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
     {
-        ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+        ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos, 0);
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos, 1);
     }
     else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
     {
@@ -828,7 +882,19 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
     float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
-    float ShadowFactor = CalculatePointShadowFactor(Info, LightIndex, WorldPos);
+    float ShadowFactor = 1.0f;
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
+    {
+        ShadowFactor = CalculatePointShadowFactor(Info, LightIndex, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculatePointShadowFactor(Info, LightIndex, WorldPos);
+    }
+    else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
+    {
+        ShadowFactor = CalculatePointVarianceShadowFactor(Info, LightIndex, WorldPos);
+    }
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * ShadowFactor;
@@ -884,9 +950,13 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
 
     // Shadow factor
     float ShadowFactor = 1.0f;
-    if (Info.ShadowModeIndex == SMI_PCF)
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
     {
-        ShadowFactor = CalculateSpotShadowFactor(Info, LightIndex, WorldPos);
+        ShadowFactor = CalculateSpotShadowFactor(Info, LightIndex, WorldPos, 0);
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateSpotShadowFactor(Info, LightIndex, WorldPos, 1);
     }
     else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
     {
@@ -974,7 +1044,7 @@ PS_INPUT Uber_VS(VS_INPUT Input)
         ADD_ILLUM(Illumination, CalculatePointLight(PointLight, LightIndex, Output.WorldNormal, Output.WorldPosition, ViewWorldLocation));
     }
 
-    // 4.Spot Lights
+    // 4.SpotLights
     uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
     [loop]
     for (uint j = 0; j < SpotLightCount; j++)
@@ -1056,7 +1126,7 @@ PS_OUTPUT Uber_PS(PS_INPUT Input)
         ADD_ILLUM(Illumination, CalculatePointLight(PointLight, LightIndex, N, Input.WorldPosition, ViewWorldLocation));
     }
 
-    // 4. Spot Lights
+    // 4. SpotLights
     uint SpotLightCount = GetSpotLightCount(LightIndicesOffset);
     [loop]
     for (uint j = 0; j < SpotLightCount ; j++)

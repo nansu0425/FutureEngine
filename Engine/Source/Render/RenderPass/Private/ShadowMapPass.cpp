@@ -233,7 +233,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
 
 	
-	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DeviceContext->ClearRenderTargetView(ShadowAtlas.VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowAtlas.ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	
@@ -493,7 +493,8 @@ void FShadowMapPass::RenderPointShadowMap(
 		PointLightShadowVS,
 		RastState,
 		ShadowDepthStencilState,
-		PointLightShadowPS,  // Pixel shader for linear distance output
+		DepthOnlyPS,
+		// PointLightShadowPS,  // Pixel shader for linear distance output
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
@@ -512,8 +513,7 @@ void FShadowMapPass::RenderPointShadowMap(
 
 	// 하나의 Atlas에 모두 작성하므로
 	// RenderTarget은 변경될 일이 없어 먼저 Set한다.
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
 	
 	// 4. 6개 면 렌더링 (+X, -X, +Y, -Y, +Z, -Z)
 	for (int Face = 0; Face < 6; Face++)

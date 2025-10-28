@@ -200,7 +200,7 @@ void UPointLightComponentWidget::RenderWidget()
 
 		// Shadow Mode
 		EShadowModeIndex CurrentShadowMode = PointLightComponent->GetShadowModeIndex();
-		const char* ShadowModeNames[] = { "UnFiltered", "PCF", "VSM", "VSM_BOX", "VSM_GAUSSIAN", "SAVSM" };
+		const char* ShadowModeNames[] = { "UnFiltered", "PCF", "VSM", "VSM_BOX", "VSM_GAUSSIAN" };
 		const char* CurrentShadowModeName = ShadowModeNames[static_cast<int>(CurrentShadowMode)];
 
 		if (ImGui::BeginCombo("Shadow Mode", CurrentShadowModeName))

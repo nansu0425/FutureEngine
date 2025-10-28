@@ -91,6 +91,7 @@ public:
 	
 	ID3D11SamplerState* GetDefaultSampler() const { return DefaultSampler; }
 	ID3D11SamplerState* GetShadowComparisonSampler() const { return ShadowComparisonSampler; }
+	ID3D11SamplerState* GetVarianceShadowSampler() const { return VarianceShadowSampler; }
 	ID3D11ShaderResourceView* GetDepthSRV() const { return DeviceResources->GetDepthStencilSRV(); }
 	
 	ID3D11RenderTargetView* GetRenderTargetView() const { return DeviceResources->GetRenderTargetView(); }
@@ -189,6 +190,7 @@ private:
 	ID3D11InputLayout* FogInputLayout = nullptr;
 	ID3D11SamplerState* DefaultSampler = nullptr;
 	ID3D11SamplerState* ShadowComparisonSampler = nullptr;
+	ID3D11SamplerState* VarianceShadowSampler = nullptr;
 
 	// Shadow Map Shaders
 	ID3D11VertexShader* DepthOnlyVertexShader = nullptr;
