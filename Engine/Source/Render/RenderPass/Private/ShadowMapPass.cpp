@@ -493,8 +493,7 @@ void FShadowMapPass::RenderPointShadowMap(
 		PointLightShadowVS,
 		RastState,
 		ShadowDepthStencilState,
-		DepthOnlyPS,
-		// PointLightShadowPS,  // Pixel shader for linear distance output
+		PointLightShadowPS,  // Pixel shader for linear distance output
 		nullptr,  // No blend state
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};

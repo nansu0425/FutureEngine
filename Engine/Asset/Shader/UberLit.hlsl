@@ -573,7 +573,9 @@ float CalculateChebyshevShadowFactor(float CurrentDepth, float2 Moments)
     // P_max
     float ShadowFactor = Variance / (Variance + Difference * Difference);
 
-    return saturate(ShadowFactor); 
+    // 아티팩트(Light Bleeding)을 완화하기 위한 인자
+    float ShadowExponent = 4.0f;
+    return pow(saturate(ShadowFactor), ShadowExponent); 
 }
 
 float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, Texture2D AtlasTexture, uint2 AtlasUV)
