@@ -106,7 +106,7 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, JSON* ActorJsonData)
 		return nullptr;
 	}
 
-	AActor* NewActor = Cast<AActor>(NewObject(InActorClass));
+	AActor* NewActor = Cast<AActor>(NewObject(InActorClass, this));
 	if (NewActor)
 	{
 		LevelActors.push_back(NewActor);
@@ -204,6 +204,16 @@ void ULevel::UnregisterComponent(UActorComponent* InComponent)
 	
 }
 
+void ULevel::AddActorToLevel(AActor* InActor)
+{
+	if (!InActor)
+	{
+		return;
+	}
+
+	LevelActors.push_back(InActor);
+}
+
 void ULevel::AddLevelComponent(AActor* Actor)
 {
 	if (!Actor)
@@ -275,7 +285,6 @@ bool ULevel::DestroyActor(AActor* InActor)
 	// Remove
 	SafeDelete(InActor);
 
-	UE_LOG("Level: Actor Destroyed Successfully");
 	return true;
 }
 

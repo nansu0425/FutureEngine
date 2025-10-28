@@ -360,6 +360,14 @@ void UEditor::ProcessMouseInput()
 	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
 	{
 		Gizmo.EndDrag();
+
+		// 복사 모드 종료
+		if (bIsInCopyMode)
+		{
+			bIsInCopyMode = false;
+			CopiedActor = nullptr;
+			CopiedComponent = nullptr;
+		}
 	}
 
 	// 스플리터 드래그 여부 체크
@@ -400,7 +408,11 @@ void UEditor::ProcessMouseInput()
 			Gizmo.SetGizmoDirection(EGizmoDirection::None);
 		}
 
-		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
+		// 단일 클릭과 더블 클릭 구분
+		bool bIsSingleClick = InputManager.IsKeyPressed(EKeyInput::MouseLeft);
+		bool bIsDoubleClick = InputManager.IsMouseDoubleClicked(EKeyInput::MouseLeft);
+
+		if (bIsSingleClick || bIsDoubleClick)
 		{
 			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
@@ -448,11 +460,23 @@ void UEditor::ProcessMouseInput()
 						}
 					}
 
-					SelectActorAndComponent(ActorPicked, ComponentToSelect);
+					// 단일 클릭: Actor 선택 (Root Component)
+					// 더블 클릭: Component 선택 (실제 클릭한 Component)
+					if (bIsDoubleClick)
+					{
+						SelectActorAndComponent(ActorPicked, ComponentToSelect);
+						bIsActorSelected = false; // Component 선택 모드
+					}
+					else if (bIsSingleClick && !bIsDoubleClick)
+					{
+						SelectActor(ActorPicked);
+						bIsActorSelected = true; // Actor 선택 모드
+					}
 				}
 				else
 				{
 					SelectActor(nullptr);
+					bIsActorSelected = true;
 				}
 			}
 		}
@@ -469,6 +493,40 @@ void UEditor::ProcessMouseInput()
 			PreviousGizmoDirection = Gizmo.GetGizmoDirection();
 			if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 			{
+				// Alt + 드래그: 객체 복사 (Scale 모드에서는 비활성화)
+				bool bAltPressed = InputManager.IsKeyDown(EKeyInput::Alt);
+				bool bIsScaleMode = (Gizmo.GetGizmoMode() == EGizmoMode::Scale);
+
+				if (bAltPressed && GetSelectedActor() && GetSelectedComponent() && !bIsScaleMode)
+				{
+					// 실제로 Actor 선택인지 Component 선택인지 확인
+					// RootComponent가 선택된 경우 = Actor 선택
+					bool bIsActorSelection = (GetSelectedComponent() == GetSelectedActor()->GetRootComponent());
+
+					if (bIsActorSelection)
+					{
+						// Actor 복사 (전체)
+						AActor* NewActor = DuplicateActor(GetSelectedActor());
+						if (NewActor)
+						{
+							SelectActor(NewActor);
+							CopiedActor = NewActor;
+							bIsInCopyMode = true;
+						}
+					}
+					else
+					{
+						// Component 복사 (같은 Actor 내)
+						UActorComponent* NewComponent = DuplicateComponent(GetSelectedComponent(), GetSelectedActor());
+						if (NewComponent)
+						{
+							SelectActorAndComponent(GetSelectedActor(), NewComponent);
+							CopiedComponent = NewComponent;
+							bIsInCopyMode = true;
+						}
+					}
+				}
+
 				Gizmo.OnMouseDragStart(CollisionPoint);
 			}
 			else
@@ -885,25 +943,78 @@ void UEditor::SelectActor(AActor* InActor)
 {
 	if (InActor == SelectedActor) return;
 
+	// 이전 선택 해제 (모든 컴포넌트)
+	if (SelectedActor)
+	{
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
+	}
+
 	SelectedActor = InActor;
-	if (SelectedActor) { SelectComponent(InActor->GetRootComponent()); }
-	else { SelectComponent(nullptr); }
+
+	if (SelectedActor)
+	{
+		// Actor 선택 시 모든 컴포넌트 하이라이팅
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnSelected();
+			}
+		}
+
+		// Gizmo는 RootComponent에 부착
+		SelectedComponent = InActor->GetRootComponent();
+		Gizmo.SetSelectedComponent(Cast<USceneComponent>(SelectedComponent));
+		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
+	}
+	else
+	{
+		SelectedComponent = nullptr;
+		Gizmo.SetSelectedComponent(nullptr);
+		UUIManager::GetInstance().OnSelectedComponentChanged(nullptr);
+	}
 }
 
 void UEditor::SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent)
 {
-	if (InActor != SelectedActor)
+	// 이전 Actor의 모든 컴포넌트 선택 해제
+	if (SelectedActor && SelectedActor != InActor)
 	{
-		SelectedActor = InActor;
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
+	}
+	else if (SelectedActor == InActor)
+	{
+		// 같은 Actor 내에서 컴포넌트만 변경: 기존 모든 컴포넌트 해제
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
 	}
 
+	SelectedActor = InActor;
 	SelectComponent(InComponent);
 }
 
 void UEditor::SelectComponent(UActorComponent* InComponent)
 {
 	if (InComponent == SelectedComponent) return;
-	
+
+	// Component 선택 시 단일 컴포넌트만 하이라이팅
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnDeselected();
@@ -913,6 +1024,11 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnSelected();
+		Gizmo.SetSelectedComponent(Cast<USceneComponent>(SelectedComponent));
+	}
+	else
+	{
+		Gizmo.SetSelectedComponent(nullptr);
 	}
 	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 }
@@ -1151,4 +1267,108 @@ void UEditor::UpdateCameraAnimation()
 			ViewportManager.SetOrthoGraphicCameraPoint(NewSharedCenter);
 		}
 	}
+}
+
+/**
+ * @brief Component 복사 (같은 Actor 내에 추가)
+ * @note 단일 Component만 복사하며, child component는 복사하지 않음
+ * @param InSourceComponent 복사할 원본 Component
+ * @param InParentActor 복사된 Component가 추가될 Actor
+ * @return 복사된 Component (실패 시 nullptr)
+ */
+UActorComponent* UEditor::DuplicateComponent(UActorComponent* InSourceComponent, AActor* InParentActor)
+{
+	if (!InSourceComponent || !InParentActor)
+	{
+		return nullptr;
+	}
+
+	// Duplicate()를 통해 Component 복사 (child는 복사되지 않음)
+	UActorComponent* NewComponent = Cast<UActorComponent>(InSourceComponent->Duplicate());
+	if (!NewComponent)
+	{
+		return nullptr;
+	}
+
+	// Owner 설정 및 Parent Actor에 등록
+	NewComponent->SetOwner(InParentActor);
+	InParentActor->GetOwnedComponents().push_back(NewComponent);
+
+	// SceneComponent인 경우 계층 구조 설정
+	USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewComponent);
+	if (NewSceneComponent)
+	{
+		USceneComponent* SourceSceneComponent = Cast<USceneComponent>(InSourceComponent);
+		if (SourceSceneComponent && SourceSceneComponent->GetAttachParent())
+		{
+			// 원본 Component의 부모에 새 Component도 부착
+			NewSceneComponent->AttachToComponent(SourceSceneComponent->GetAttachParent());
+		}
+		else
+		{
+			// 부모가 없으면 Root Component에 부착
+			if (InParentActor->GetRootComponent())
+			{
+				NewSceneComponent->AttachToComponent(InParentActor->GetRootComponent());
+			}
+		}
+	}
+
+	// Component 등록
+	InParentActor->RegisterComponent(NewComponent);
+
+	return NewComponent;
+}
+
+/**
+ * @brief Actor 전체 복사
+ * @param InSourceActor 복사할 원본 Actor
+ * @return 복사된 Actor (실패 시 nullptr)
+ */
+AActor* UEditor::DuplicateActor(AActor* InSourceActor)
+{
+	if (!InSourceActor)
+	{
+		return nullptr;
+	}
+
+	// EditorWorld 가져오기
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (!EditorWorld)
+	{
+		return nullptr;
+	}
+
+	// 2. Level 가져오기
+	ULevel* CurrentLevel = EditorWorld->GetLevel();
+	if (!CurrentLevel)
+	{
+		return nullptr;
+	}
+
+	// 3. Duplicate()를 통해 Actor 전체 복사 (모든 Component 포함)
+	AActor* NewActor = Cast<AActor>(InSourceActor->Duplicate());
+	if (!NewActor)
+	{
+		return nullptr;
+	}
+
+	// 4. Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
+	NewActor->SetOuter(CurrentLevel);
+	for (UActorComponent* Component : NewActor->GetOwnedComponents())
+	{
+		if (Component)
+		{
+			Component->SetOuter(NewActor);
+		}
+	}
+
+	// 5. Level에 Actor 추가
+	CurrentLevel->AddActorToLevel(NewActor);
+	CurrentLevel->AddLevelComponent(NewActor);
+
+	// 6. BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
+	NewActor->BeginPlay();
+
+	return NewActor;
 }

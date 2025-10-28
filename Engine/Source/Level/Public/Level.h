@@ -28,6 +28,8 @@ public:
 
 	const TArray<AActor*>& GetLevelActors() const { return LevelActors; }
 
+	void AddActorToLevel(AActor* InActor);
+
 	void AddLevelComponent(AActor* Actor);
 
 	void RegisterComponent(UActorComponent* InComponent);
