@@ -36,6 +36,7 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
+    float2 Moments : SV_Target0;
     float Depth : SV_Depth;
 };
 
@@ -57,11 +58,43 @@ PS_OUTPUT mainPS(PS_INPUT Input)
 {
     PS_OUTPUT Output;
 
-    // Calculate linear distance from light to pixel
+    // 1. 선형 거리 계산 (Light -> Pixel)
     float Distance = length(Input.WorldPosition - LightPosition);
 
-    // Normalize to [0, 1] range
-    Output.Depth = saturate(Distance / LightRange);
+    // 2. [0, 1] 범위로 정규화
+    // 이 값이 VSM의 확률 변수 'X' (깊이)가 됩니다.
+    float Depth = saturate(Distance / LightRange);
+
+    /*-----------------------------------------------------------------------------
+        3. 1차 모멘트 (First Moment): E(X)
+     -----------------------------------------------------------------------------*/
+    // VSM의 평균값은 정규화된 선형 거리 그 자체입니다.
+    float M1 = Depth;
+
+    /*-----------------------------------------------------------------------------
+        4. 2차 모멘트 (Second Moment): E(X²)
+     -----------------------------------------------------------------------------*/
+    // 깊이(선형 거리)의 공간적 변화율(gradient)을 계산합니다.
+    float dx = ddx(Depth);
+    float dy = ddy(Depth);
+    
+    // Analytic Variance Bias (분산 편향)
+    float AnalyticVarianceBias = 0.25f * (dx * dx + dy * dy);
+    
+    // M2 = E(X²) ≈ E(X)² + Var(X) ≈ Depth² + AnalyticVarianceBias
+    float M2 = Depth * Depth + AnalyticVarianceBias;
+    
+    /*-----------------------------------------------------------------------------
+        5. 출력 값 할당
+     -----------------------------------------------------------------------------*/
+    
+    // RTV (Render Target View)
+    // 1차, 2차 모멘트를 저장합니다.
+    Output.Moments = float2(M1, M2);
+    
+    // DSV (Depth Stencil View)
+    // 표준 깊이 테스트를 위해 정규화된 선형 거리를 저장합니다.
+    Output.Depth = Depth;
 
     return Output;
 }
