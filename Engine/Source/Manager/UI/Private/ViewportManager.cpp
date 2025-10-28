@@ -759,7 +759,7 @@ void UViewportManager::InitializeViewportAndClient()
 
 	// 우상단 (Index 2): Perspective
 	Clients[2]->SetViewType(EViewType::Perspective);
-	Clients[2]->SetViewMode(EViewModeIndex::VMI_Unlit);
+	Clients[2]->SetViewMode(EViewModeIndex::VMI_BlinnPhong);
 
 	// 우하단 (Index 3): Right (Orthographic)
 	Clients[3]->SetViewType(EViewType::OrthoRight);
@@ -953,13 +953,13 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 
 		// 1) 레이아웃/활성뷰/스플리터 비율
 		int32 LayoutInt = 0;
-		int32 LoadedActiveIndex = 0;
+		int32 LoadedActiveIndex = 2;
 		float LoadedSplitterV = 0.5f;
 		float LoadedSplitterH = 0.5f;
 		float LoadedSharedOrthoZoom = 100.0f;
 
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
-		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 0);
+		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 2);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV, 0.5f);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH, 0.5f);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
@@ -1225,13 +1225,13 @@ void UViewportManager::LoadViewportLayoutFromConfig()
 
 	// 레이아웃/활성뷰/스플리터 비율
 	int32 LayoutInt = 0;
-	int32 LoadedActiveIndex = 0;
+	int32 LoadedActiveIndex = 2;
 	float LoadedSplitterV = 0.5f;
 	float LoadedSplitterH = 0.5f;
 	float LoadedSharedOrthoZoom = 100.0f;
 
 	FJsonSerializer::ReadInt32(LayoutJson, "Layout", LayoutInt, 0);
-	FJsonSerializer::ReadInt32(LayoutJson, "ActiveIndex", LoadedActiveIndex, 0);
+	FJsonSerializer::ReadInt32(LayoutJson, "ActiveIndex", LoadedActiveIndex, 2);
 	FJsonSerializer::ReadFloat(LayoutJson, "SplitterV", LoadedSplitterV, 0.5f);
 	FJsonSerializer::ReadFloat(LayoutJson, "SplitterH", LoadedSplitterH, 0.5f);
 	FJsonSerializer::ReadFloat(LayoutJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
