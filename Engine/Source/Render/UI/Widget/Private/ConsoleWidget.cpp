@@ -5,6 +5,9 @@
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Utility/Public/LogFileWriter.h"
 
+// #define IMGUI_DEFINE_MATH_OPERATORS
+// #include "ImGui/imgui_internal.h"
+
 IMPLEMENT_SINGLETON_CLASS(UConsoleWidget, UWidget)
 
 UConsoleWidget::UConsoleWidget()
@@ -33,6 +36,9 @@ void UConsoleWidget::Initialize()
 	HistoryPosition = -1;
 	bIsAutoScroll = true;
 	bIsScrollToBottom = false;
+	bPendingScrollToBottom = false;
+	bIsDragging = false;
+	TextSelection.Clear();
 
 	// Stream Redirection 초기화
 	ConsoleOutputBuffer = nullptr;
@@ -111,6 +117,8 @@ void UConsoleWidget::RenderWidget()
 	if (ImGui::Button("Clear"))
 	{
 		ClearLog();
+		TextSelection.Clear();
+		bIsDragging = false;
 	}
 
 	ImGui::SameLine();
@@ -129,50 +137,231 @@ void UConsoleWidget::RenderWidget()
 	// 로그 출력 영역 미리 예약
 	const float ReservedHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
 
-	// 모든 로그를 하나의 텍스트로 합치기 (복사용)
-	// 로그 타입 프리픽스 추가
-	static FString CombinedLogText;
-	CombinedLogText.clear();
-	for (const auto& LogEntry : LogItems)
-	{
-		CombinedLogText += GetLogTypePrefix(LogEntry.Type);
-		CombinedLogText += " ";
-		CombinedLogText += LogEntry.Message;
-		CombinedLogText += "\n";
-	}
-
-	// InputTextMultiline을 읽기 전용 모드로 사용하여 메모장처럼 드래그 복사 가능
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	// 배경색 설정
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
-	// 라인 높이 조정 (FramePadding.y 값 증가)
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f)); // 패딩 증가
+	if (ImGui::BeginChild("##LogOutput", ImVec2(0, -ReservedHeight), true, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		ImDrawList* draw_list = ImGui::GetWindowDrawList();
+		float line_height = ImGui::GetTextLineHeight();
 
-	// 임시 버퍼 생
-	static std::vector<char> LogBuffer;
-	LogBuffer.resize(CombinedLogText.length() + 1024); // 여유 공간 확보
-	memcpy(LogBuffer.data(), CombinedLogText.c_str(), CombinedLogText.length() + 1);
+		// 마우스 입력 처리
+		ImVec2 mouse_pos = ImGui::GetMousePos();
+		bool is_window_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
 
-	// 전체 너비 사용
-	const float AvailableWidth = ImGui::GetContentRegionAvail().x;
+		// ESC 또는 다른 곳 클릭 시 선택 해제
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+		{
+			TextSelection.Clear();
+			bIsDragging = false;
+		}
 
-	ImGui::InputTextMultiline(
-		"##LogOutput",
-		LogBuffer.data(),
-		LogBuffer.size(),
-		ImVec2(AvailableWidth, -ReservedHeight),
-		ImGuiInputTextFlags_ReadOnly
-	);
+		// 윈도우 밖 클릭 시 선택 해제
+		if (!is_window_hovered && ImGui::IsMouseClicked(0))
+		{
+			TextSelection.Clear();
+			bIsDragging = false;
+		}
 
-	ImGui::PopStyleVar();
+		// 선택 영역 계산
+		int start_line = TextSelection.IsActive() ? std::min(TextSelection.StartLine, TextSelection.EndLine) : -1;
+		int end_line = TextSelection.IsActive() ? std::max(TextSelection.StartLine, TextSelection.EndLine) : -1;
+
+		// 1단계: 로그 렌더링하면서 위치 정보 수집
+		struct FRenderedLine
+		{
+			ImVec2 Min;
+			ImVec2 Max;
+			int Index;
+		};
+		std::vector<FRenderedLine> RenderedLines;
+		RenderedLines.reserve(LogItems.size());
+
+		int logIndex = 0;
+		for (const auto& LogEntry : LogItems)
+		{
+			const FString& fullText = LogEntry.Message;
+
+			// 로그 타입에 따른 색상 적용
+			ImVec4 Color = GetColorByLogType(LogEntry.Type);
+			bool bShouldApplyColor = (LogEntry.Type != ELogType::Info);
+
+			if (bShouldApplyColor)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, Color);
+			}
+
+			ImVec2 line_min = ImGui::GetCursorScreenPos();
+			ImGui::TextUnformatted(fullText.c_str());
+			ImVec2 line_max = ImGui::GetCursorScreenPos();
+
+			if (bShouldApplyColor)
+			{
+				ImGui::PopStyleColor();
+			}
+
+			// 렌더링된 라인 정보 저장
+			ImVec2 text_size = ImGui::CalcTextSize(fullText.c_str());
+			RenderedLines.push_back({
+				line_min,
+				ImVec2(line_min.x + text_size.x, line_max.y),
+				logIndex
+			});
+
+			logIndex++;
+		}
+
+		// 마우스 드래그 처리
+		static int ClickedLineOnPress = -1;
+		static bool bWasSingleLineSelected = false;
+		static int PreviouslySelectedLine = -1;
+
+		if (is_window_hovered && ImGui::IsMouseClicked(0))
+		{
+			// 클릭 전 선택 상태 저장
+			bWasSingleLineSelected = (TextSelection.IsActive() && TextSelection.StartLine == TextSelection.EndLine);
+			PreviouslySelectedLine = bWasSingleLineSelected ? TextSelection.StartLine : -1;
+
+			// 클릭한 라인 찾기
+			ClickedLineOnPress = -1;
+			for (const auto& line : RenderedLines)
+			{
+				if (mouse_pos.y >= line.Min.y && mouse_pos.y < line.Min.y + line_height)
+				{
+					ClickedLineOnPress = line.Index;
+					break;
+				}
+			}
+
+			// 다중 라인 선택 상태에서 클릭 시 선택 해제만
+			if (TextSelection.IsActive() && !bWasSingleLineSelected)
+			{
+				TextSelection.Clear();
+				bIsDragging = false;
+			}
+			// 단일 라인 또는 선택 없는 상태에서 클릭 시 새로운 선택 시작
+			else if (ClickedLineOnPress >= 0)
+			{
+				bIsDragging = true;
+				TextSelection.StartLine = ClickedLineOnPress;
+				TextSelection.EndLine = ClickedLineOnPress;
+			}
+		}
+
+		if (bIsDragging && ImGui::IsMouseDown(0))
+		{
+			// 드래그 중 - EndLine 업데이트
+			for (const auto& line : RenderedLines)
+			{
+				if (mouse_pos.y >= line.Min.y && mouse_pos.y < line.Min.y + line_height)
+				{
+					TextSelection.EndLine = line.Index;
+					break;
+				}
+			}
+		}
+
+		if (ImGui::IsMouseReleased(0))
+		{
+			// 단일 라인 토글: 드래그 없이 같은 라인을 다시 클릭한 경우
+			if (bIsDragging && bWasSingleLineSelected &&
+			    TextSelection.IsActive() &&
+			    TextSelection.StartLine == TextSelection.EndLine &&
+			    PreviouslySelectedLine == ClickedLineOnPress &&
+			    !ImGui::IsMouseDragging(0, 1.0f))
+			{
+				TextSelection.Clear();
+			}
+
+			bIsDragging = false;
+		}
+
+		// 선택 영역 하이라이트
+		if (TextSelection.IsActive())
+		{
+			const ImU32 highlight_color = IM_COL32(70, 100, 200, 128);
+
+			if (bIsDragging)
+			{
+				// 드래그 중: 화면 밖 선택 영역도 표시
+				ImVec2 window_pos = ImGui::GetWindowPos();
+				float virtual_y = window_pos.y + ImGui::GetStyle().WindowPadding.y - ImGui::GetScrollY();
+
+				for (int idx = 0; idx < (int)LogItems.size(); ++idx)
+				{
+					if (idx < start_line || idx > end_line) continue;
+
+					// 화면에 렌더링된 라인 찾기
+					bool found = false;
+					for (const auto& line : RenderedLines)
+					{
+						if (line.Index == idx)
+						{
+							draw_list->AddRectFilled(line.Min, ImVec2(line.Max.x, line.Min.y + line_height), highlight_color);
+							found = true;
+							break;
+						}
+					}
+
+					// 화면 밖 라인은 가상 위치에 표시
+					if (!found)
+					{
+						ImVec2 sel_min = ImVec2(window_pos.x, virtual_y + idx * line_height);
+						ImVec2 sel_max = ImVec2(sel_min.x + 1000.0f, sel_min.y + line_height);
+						draw_list->AddRectFilled(sel_min, sel_max, highlight_color);
+					}
+				}
+			}
+			else
+			{
+				// 드래그 완료: 화면에 보이는 것만 하이라이트
+				for (const auto& line : RenderedLines)
+				{
+					if (line.Index >= start_line && line.Index <= end_line)
+					{
+						draw_list->AddRectFilled(line.Min, ImVec2(line.Max.x, line.Min.y + line_height), highlight_color);
+					}
+				}
+			}
+		}
+
+		// Ctrl+C로 복사
+		if (TextSelection.IsActive() && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C))
+		{
+			FString selected_text;
+			int start = std::min(TextSelection.StartLine, TextSelection.EndLine);
+			int end = std::max(TextSelection.StartLine, TextSelection.EndLine);
+
+			if (start >= 0 && end >= 0 && start < (int)LogItems.size() && end < (int)LogItems.size())
+			{
+				int idx = 0;
+				for (const auto& LogEntry : LogItems)
+				{
+					if (idx >= start && idx <= end)
+					{
+						selected_text += LogEntry.Message + "\n";
+					}
+					idx++;
+				}
+
+				ImGui::SetClipboardText(selected_text.c_str());
+			}
+			// 복사 후 선택 유지
+		}
+
+		// Auto Scroll 처리
+		if (bIsScrollToBottom || bPendingScrollToBottom)
+		{
+			ImGui::SetScrollHereY(1.0f);
+			bIsScrollToBottom = false;
+			bPendingScrollToBottom = false;
+		}
+	}
+
+	ImGui::EndChild();
 	ImGui::PopStyleColor(2);
 
-	// Auto Scroll 처리
-	if (bIsScrollToBottom)
-	{
-		ImGui::SetScrollHereY(1.0f);
-		bIsScrollToBottom = false;
-	}
 	ImGui::Separator();
 
 	// Input Command with History Navigation
@@ -225,32 +414,32 @@ void UConsoleWidget::ClearLog()
 /**
  * @brief ELogType에 따른 색상 반환
  */
-// ImVec4 UConsoleWidget::GetColorByLogType(ELogType InType)
-// {
-// 	switch (InType)
-// 	{
-// 	case ELogType::Info:
-// 		return {1.0f, 1.0f, 1.0f, 1.0f}; // 흰색
-// 	case ELogType::Warning:
-// 		return {1.0f, 1.0f, 0.4f, 1.0f}; // 노란색
-// 	case ELogType::Error:
-// 	case ELogType::TerminalError:
-// 		return {1.0f, 0.4f, 0.4f, 1.0f}; // 빨간색
-// 	case ELogType::Success:
-// 	case ELogType::UELog:
-// 		return {0.4f, 1.0f, 0.4f, 1.0f}; // 초록색
-// 	case ELogType::System:
-// 		return {0.7f, 0.7f, 0.7f, 1.0f}; // 회색
-// 	case ELogType::Debug:
-// 		return {0.4f, 0.6f, 1.0f, 1.0f}; // 파란색
-// 	case ELogType::Terminal:
-// 		return {0.6f, 0.8f, 1.0f, 1.0f}; // 하늘색
-// 	case ELogType::Command:
-// 		return {1.0f, 0.8f, 0.6f, 1.0f}; // 주황색
-// 	default:
-// 		return {1.0f, 1.0f, 1.0f, 1.0f}; // 기본 흰색
-// 	}
-// }
+ImVec4 UConsoleWidget::GetColorByLogType(ELogType InType)
+{
+	switch (InType)
+	{
+	case ELogType::Info:
+		return {1.0f, 1.0f, 1.0f, 1.0f}; // 흰색
+	case ELogType::Warning:
+		return {1.0f, 1.0f, 0.4f, 1.0f}; // 노란색
+	case ELogType::Error:
+	case ELogType::TerminalError:
+		return {1.0f, 0.4f, 0.4f, 1.0f}; // 빨간색
+	case ELogType::Success:
+	case ELogType::UELog:
+		return {0.4f, 1.0f, 0.4f, 1.0f}; // 초록색
+	case ELogType::System:
+		return {0.7f, 0.7f, 0.7f, 1.0f}; // 회색
+	case ELogType::Debug:
+		return {0.4f, 0.6f, 1.0f, 1.0f}; // 파란색
+	case ELogType::Terminal:
+		return {0.6f, 0.8f, 1.0f, 1.0f}; // 하늘색
+	case ELogType::Command:
+		return {1.0f, 0.8f, 0.6f, 1.0f}; // 주황색
+	default:
+		return {1.0f, 1.0f, 1.0f, 1.0f}; // 기본 흰색
+	}
+}
 
 /**
  * @brief ELogType에 따른 프리픽스 문자열 반환
@@ -963,4 +1152,15 @@ void UConsoleWidget::CleanupSystemRedirect()
 	{
 		// Ignore Cleanup Errors
 	}
+}
+
+void UConsoleWidget::OnConsoleShown()
+{
+	bPendingScrollToBottom = true;
+}
+
+void UConsoleWidget::ClearSelection()
+{
+	TextSelection.Clear();
+	bIsDragging = false;
 }

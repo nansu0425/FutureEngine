@@ -71,6 +71,10 @@ public:
 	int HandleHistoryCallback(ImGuiInputTextCallbackData* InData);
 	bool IsSingleton() const override { return true; }
 
+	// Console visibility tracking
+	void OnConsoleShown();
+	void ClearSelection();
+
 private:
 	// Command input
 	char InputBuf[256];
@@ -81,6 +85,21 @@ private:
 	std::deque<FLogEntry> LogItems;
 	bool bIsAutoScroll;
 	bool bIsScrollToBottom;
+	bool bPendingScrollToBottom; // 콘솔이 열릴 때 스크롤을 하단으로 이동
+
+	// Text selection for drag-copy
+	struct FTextSelection
+	{
+		int StartLine = -1;
+		int StartChar = -1;
+		int EndLine = -1;
+		int EndChar = -1;
+		bool IsActive() const { return StartLine >= 0; }
+		void Clear() { StartLine = StartChar = EndLine = EndChar = -1; }
+	};
+	FTextSelection TextSelection;
+	bool bIsDragging = false;
+	ImVec2 DragStartPos;
 
 	// Stream redirection
 	ConsoleStreamBuffer* ConsoleOutputBuffer;
@@ -95,7 +114,7 @@ private:
 	std::deque<FLogEntry> PendingLogs;
 
 	// Helper functions
-	// static ImVec4 GetColorByLogType(ELogType InType); // InputTextMultiline은 라인별 색상 지원 안함
+	static ImVec4 GetColorByLogType(ELogType InType);
 	static const char* GetLogTypePrefix(ELogType InType);
 
 	void AddLogInternal(ELogType InType, const char* fmt, va_list InArguments);
