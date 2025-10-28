@@ -216,13 +216,13 @@ void UDirectionalLightComponentWidget::RenderWidget()
     if (ShadowSRV)
     {
         // 원하는 출력 크기 설정
-        ImVec2 ImageSize(256, 256); 
+        ImVec2 ImageSize(256 * 6, 256); 
     
         // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
         // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
         ImGui::Image(TextureID, 
                      ImageSize, 
-                     ImVec2(0, 0), ImVec2(0.125f, 0.125f), 
+                     ImVec2(0, 0), ImVec2(1.0f, 0.125f), 
                      ImVec4(1, 1, 1, 1), 
                      ImVec4(0, 0, 0, 0)); 
 

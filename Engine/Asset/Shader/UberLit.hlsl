@@ -47,6 +47,18 @@ cbuffer Camera : register(b1)
     float FarClip;
 }
 
+cbuffer MaterialConstants : register(b2)
+{
+    float4 Ka; // Ambient color
+    float4 Kd; // Diffuse color
+    float4 Ks; // Specular color
+    float Ns;  // Specular exponent
+    float Ni;  // Index of refraction
+    float D;   // Dissolve factor
+    uint MaterialFlags; // Which textures are available (bitfield)
+    float Time;
+}
+
 cbuffer GlobalLightConstant : register(b3)
 {
     FAmbientLightInfo Ambient;
@@ -69,6 +81,15 @@ cbuffer LightCountInfo : register(b5)
     uint SpotLightCount;
     float2 Padding;
 };
+
+cbuffer CascadeShadowMapData : register(b6)
+{
+    row_major float4x4 CascadeView;      // 64 bytes
+    row_major float4x4 CascadeProj[8];   // 512 bytes
+    float4 SplitDistance[8];    // 128 bytes (HLSL: each float is 16-byte aligned)
+    uint SplitNum;             // 16 bytes (with padding)
+    // Total: 720 bytes
+}
 
 StructuredBuffer<int> PointLightIndices : register(t6);
 StructuredBuffer<int> SpotLightIndices : register(t7);
@@ -145,18 +166,6 @@ FSpotLightInfo GetSpotLight(uint LightIdx)
 {
     // uint LightInfoIdx = SpotLightIndices[LightIdx];
     return SpotLightInfos[LightIdx];
-}
-
-cbuffer MaterialConstants : register(b2)
-{
-    float4 Ka; // Ambient color
-    float4 Kd; // Diffuse color
-    float4 Ks; // Specular color
-    float Ns;  // Specular exponent
-    float Ni;  // Index of refraction
-    float D;   // Dissolve factor
-    uint MaterialFlags; // Which textures are available (bitfield)
-    float Time;
 }
 
 // Textures
@@ -336,6 +345,27 @@ float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewP
 // Shadow Calculation Functions
 float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
+    float CameraViewZ = mul(float4(WorldPos, 1.0f), View).z;
+
+    int SubFrustumNum;
+    for (SubFrustumNum = 0; SubFrustumNum < SplitNum; SubFrustumNum++)
+    {
+        if (CameraViewZ <= SplitDistance[SubFrustumNum].r)
+            break;
+    }
+
+    // If beyond all cascades, assume fully lit
+    if (SubFrustumNum >= SplitNum)
+        return 1.0f;
+
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), CascadeView);
+    LightSpacePos = mul(LightSpacePos, CascadeProj[SubFrustumNum]);
+
+    float2 AtlasUV =(ShadowTexCoord + Offset) * ATLASGRIDSIZE;
+            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasDirectionalLightTilePos[SubFrustumNum];
+            AtlasUV.x += ATLASGRIDSIZE * AtlasUV.UV.x;
+            AtlasUV.y += ATLASGRIDSIZE * AtlasUV.UV.y;
+
     float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Shadow map resolution
     return CalculatePercentageCloserShadowFactor(
         Light.CastShadow,
@@ -343,7 +373,7 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
         WorldPos,
         TexelSize,
         ShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[0].UV
+        AtlasUV
     );
 }
 

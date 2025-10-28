@@ -142,6 +142,8 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	// 5. Point Light Shadow constant buffer 생성
 	PointLightShadowParamsBuffer = FRenderResourceFactory::CreateConstantBuffer<FPointLightShadowParams>();
 
+	ConstantCascadeData = FRenderResourceFactory::CreateConstantBuffer<FCascadeShadowMapData>();
+	
 	ShadowAtlas.Initialize(Device, 8192);
 
 	D3D11_BUFFER_DESC BufferDesc = {};
@@ -229,8 +231,8 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	// This prevents D3D11 resource hazard warnings
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
-	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
-	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
+	ID3D11ShaderResourceView* NullSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
+	DeviceContext->PSSetShaderResources(10, 4, NullSRVs);  // Unbind t10-t14
 
 	
 	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -243,7 +245,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
 			// 유효한 첫번째 Dir Light만 사용
-			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes);
+			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes, Context.CurrentCamera);
 			break;
 		}
 	}
@@ -290,7 +292,8 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 
 void FShadowMapPass::RenderDirectionalShadowMap(
 	UDirectionalLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes
+	const TArray<UStaticMeshComponent*>& Meshes,
+	UCamera* InCamera
 	)
 {
 	// FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
@@ -311,20 +314,14 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// 1. Shadow render target 설정
-	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
-	
-	D3D11_VIEWPORT ShadowViewport;
-	
-	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.MinDepth = 0.0f;
-	ShadowViewport.MaxDepth = 1.0f;
-	ShadowViewport.TopLeftX = 0.0f;
-	ShadowViewport.TopLeftY = 0.0f;
-	
-	DeviceContext->RSSetViewports(1, &ShadowViewport);
+	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	ShadowAtlasDirectionalLightTilePosArray[0] = {{0, 0}};
+	ID3D11RenderTargetView* NullRTV = nullptr;
+	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
 	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
@@ -341,20 +338,47 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
-	// 4. Light view-projection 계산
-	FMatrix LightView, LightProj;
-	CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
+	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
+	FCascadeShadowMapData CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
 
-	// Store the calculated shadow view-projection matrix in the light component
-	FMatrix LightViewProj = LightView * LightProj;
-	Light->SetShadowViewProjection(LightViewProj);
-
-	// 5. 각 메시 렌더링
-	for (auto Mesh : Meshes)
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantCascadeData, CascadeShadowMapData);
+	Pipeline->SetConstantBuffer(6, EShaderType::VS | EShaderType::PS, ConstantCascadeData);
+	
+	for (int i = 0; i < CascadeManager.GetSplitNum(); i++)
 	{
-		if (Mesh->IsVisible())
+		D3D11_VIEWPORT ShadowViewport;
+	
+		ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.MinDepth = 0.0f;
+		ShadowViewport.MaxDepth = 1.0f;
+		ShadowViewport.TopLeftX = SHADOW_MAP_RESOLUTION * i;
+		ShadowViewport.TopLeftY = 0.0f;
+	
+		DeviceContext->RSSetViewports(1, &ShadowViewport);
+
+		ShadowAtlasDirectionalLightTilePosArray[i] = {{static_cast<uint32>(i), 0}, {}};
+
+		// 4. Light view-projection 계산
+		// FMatrix LightView, LightProj;
+		// CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
+
+		// Store the calculated shadow view-projection matrix in the light component
+		//FMatrix LightViewProj = LightView * LightProj;
+		FMatrix LightView = CascadeShadowMapData.View;
+		FMatrix LightProj = CascadeShadowMapData.Proj[i];
+		FMatrix LightViewProj = LightView * LightProj;
+
+		// Cascade는 ViewProj가 여러개라서 추후 수정하던가 날려야 함 - HSH
+		// Light->SetShadowViewProjection(LightViewProj);
+
+		// 5. 각 메시 렌더링
+		for (auto Mesh : Meshes)
 		{
-			RenderMeshDepth(Mesh, LightView, LightProj);
+			if (Mesh->IsVisible())
+			{
+				RenderMeshDepth(Mesh, LightView, LightProj);
+			}
 		}
 	}
 
@@ -1021,6 +1045,8 @@ void FShadowMapPass::Release()
 	SafeRelease(ShadowAtlasDirectionalLightTilePosStructuredSRV);
 	SafeRelease(ShadowAtlasSpotLightTilePosStructuredSRV);
 	SafeRelease(ShadowAtlasPointLightTilePosStructuredSRV);
+
+	SafeRelease(ConstantCascadeData);
 	// Shader와 InputLayout은 Renderer가 소유하므로 여기서 해제하지 않음
 }
 

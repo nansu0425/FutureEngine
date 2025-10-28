@@ -3,6 +3,7 @@
 #include "Texture/Public/ShadowMapResources.h"
 #include "Global/Types.h"
 #include "Render/RenderPass/Public/ShadowData.h"
+#include "Render/RenderPass/Public/CascadeManager.h"
 
 class ULightComponent;
 class UDirectionalLightComponent;
@@ -95,7 +96,8 @@ private:
 	 */
 	void RenderDirectionalShadowMap(
 		UDirectionalLightComponent* Light,
-		const TArray<UStaticMeshComponent*>& Meshes
+		const TArray<UStaticMeshComponent*>& Meshes,
+		UCamera* InCamera
 		);
 
 	// --- Spot Light Shadow Rendering ---
@@ -250,4 +252,7 @@ private:
 	ID3D11ShaderResourceView* ShadowAtlasPointLightTilePosStructuredSRV = nullptr;
 
 	FShadowMapResource ShadowAtlas{};
+
+	// Handle Cascade Data
+	ID3D11Buffer* ConstantCascadeData = nullptr;
 };

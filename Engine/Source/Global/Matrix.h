@@ -111,6 +111,10 @@ struct FMatrix
 
 	static FVector VectorMultiply(const FVector& v, const FMatrix& m);
 
+	// Create an orthographic projection matrix (Left-Handed)
+	static FMatrix CreateOrthoLH(float Left, float Right, float Bottom, float Top, float Near, float Far);
+	static FMatrix CreateLookAtLH(const FVector& Eye, const FVector& Target, const FVector& Up);
+	
 	FMatrix Transpose() const;
 	FMatrix Inverse() const;
 
@@ -118,6 +122,7 @@ struct FMatrix
 	FVector GetRotation() const;
 	FVector GetScale() const;
 	FVector TransformPosition(const FVector& V) const;
+
 
 	static FMatrix CreateFromRotator(const FRotator& InRotator);
 	FQuaternion ToQuaternion() const;

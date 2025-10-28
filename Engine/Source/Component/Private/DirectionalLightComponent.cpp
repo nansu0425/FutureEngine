@@ -143,7 +143,7 @@ FDirectionalLightInfo UDirectionalLightComponent::GetDirectionalLightInfo() cons
     Info.Intensity = Intensity;
 
     // Shadow parameters
-    Info.LightViewProjection = CachedShadowViewProjection; // Updated by ShadowMapPass
+    // Info.LightViewProjection = CachedShadowViewProjection; // Updated by ShadowMapPass
     Info.CastShadow = GetCastShadows() ? 1u : 0u;
     Info.ShadowModeIndex = static_cast<uint32>(GetShadowModeIndex());
     Info.ShadowBias = GetShadowBias();

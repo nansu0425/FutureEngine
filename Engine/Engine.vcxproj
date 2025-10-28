@@ -425,6 +425,7 @@
     <ClInclude Include="Source\Render\Renderer\Public\Renderer.h" />
     <ClInclude Include="Source\Render\Renderer\Public\RenderResourceFactory.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\BillboardPass.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\CascadeManager.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\ClusteredRenderingGridPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\EditorIconPass.h" />
@@ -688,6 +689,7 @@
     <ClCompile Include="Source\Render\Renderer\Private\Renderer.cpp" />
     <ClCompile Include="Source\Render\Renderer\Private\RenderResourceFactory.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\BillboardPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\CascadeManager.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\ClusteredRenderingGridPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\EditorIconPass.cpp" />
