@@ -212,7 +212,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconTop->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Top")) { ViewportClient->SetViewType(EViewType::OrthoTop); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Top"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoTop);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					// Bottom
 					if (IconBottom && IconBottom->GetTextureSRV())
@@ -220,7 +227,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconBottom->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Bottom")) { ViewportClient->SetViewType(EViewType::OrthoBottom); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Bottom"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoBottom);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					// Left
 					if (IconLeft && IconLeft->GetTextureSRV())
@@ -228,7 +242,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconLeft->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Left")) { ViewportClient->SetViewType(EViewType::OrthoLeft); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Left"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoLeft);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					// Right
 					if (IconRight && IconRight->GetTextureSRV())
@@ -236,7 +257,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconRight->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Right")) { ViewportClient->SetViewType(EViewType::OrthoRight); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Right"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoRight);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					// Front
 					if (IconFront && IconFront->GetTextureSRV())
@@ -244,7 +272,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconFront->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Front")) { ViewportClient->SetViewType(EViewType::OrthoFront); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Front"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoFront);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					// Back
 					if (IconBack && IconBack->GetTextureSRV())
@@ -252,7 +287,14 @@ void UViewportMenuBarWidget::RenderWidget()
 						ImGui::Image((ImTextureID)IconBack->GetTextureSRV(), ImVec2(16, 16));
 						ImGui::SameLine();
 					}
-					if (ImGui::MenuItem("Back")) { ViewportClient->SetViewType(EViewType::OrthoBack); if (UCamera* Cam = ViewportClient->GetCamera()) { Cam->SetCameraType(ECameraType::ECT_Orthographic); } }
+					if (ImGui::MenuItem("Back"))
+					{
+						ViewportClient->SetViewType(EViewType::OrthoBack);
+						if (UCamera* Cam = ViewportClient->GetCamera())
+						{
+							Cam->SetCameraType(ECameraType::ECT_Orthographic);
+						}
+					}
 					
 					ImGui::EndMenu();
 				}

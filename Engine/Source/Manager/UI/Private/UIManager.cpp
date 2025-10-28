@@ -459,8 +459,6 @@ void UUIManager::ArrangeRightPanelsInitial(UUIWindow* InOutlinerWindow, UUIWindo
             InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight + OutlinerHeight));
             InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, DetailHeight));
         }
-
-        UE_LOG("UIManager: 초기 레이아웃 - 두 패널 모두 설정 (%.1fx%.1f)", DefaultPanelWidth, InAvailableHeight);
     }
     // Outliner만 있는 경우: 전체 오른쪽 영역 차지
     else if (InOutlinerWindow)
@@ -469,9 +467,6 @@ void UUIManager::ArrangeRightPanelsInitial(UUIWindow* InOutlinerWindow, UUIWindo
 
         InOutlinerWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
         InOutlinerWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
-
-        UE_LOG("UIManager: 초기 레이아웃 - Outliner만 설정 (%.1fx%.1f)", ActualPanelWidth,
-               InAvailableHeight);
     }
     // Detail만 있는 경우: 전체 오른쪽 영역 차지
     else if (InDetailWindow)
@@ -480,8 +475,6 @@ void UUIManager::ArrangeRightPanelsInitial(UUIWindow* InOutlinerWindow, UUIWindo
 
         InDetailWindow->SetLastWindowPosition(ImVec2(StartX, InMenuBarHeight));
         InDetailWindow->SetLastWindowSize(ImVec2(ActualPanelWidth, InAvailableHeight));
-
-        UE_LOG("UIManager: 초기 레이아웃 - Detail만 설정 (%.1fx%.1f)", ActualPanelWidth, InAvailableHeight);
     }
 }
 

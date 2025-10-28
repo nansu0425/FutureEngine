@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Level/Public/World.h"
 #include "Level/Public/Level.h"
+#include "Actor/Public/AmbientLight.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Path/Public/PathManager.h"
@@ -309,5 +310,14 @@ void UWorld::CreateNewLevel(const FName& InLevelName)
 	NewLevel->SetName(InLevelName);
 	NewLevel->SetOuter(this);
 	SwitchToLevel(NewLevel);
+
+	// 기본 AmbientLight 추가
+	AActor* SpawnedActor = SpawnActor(AAmbientLight::StaticClass());
+	if (AAmbientLight* AmbientLight = Cast<AAmbientLight>(SpawnedActor))
+	{
+		AmbientLight->SetActorLocation(FVector(0.0f, 0.0f, 0.0f));
+		AmbientLight->SetName("AmbientLight");
+	}
+
 	BeginPlay();
 }

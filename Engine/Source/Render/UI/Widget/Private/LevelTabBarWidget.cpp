@@ -18,6 +18,7 @@
 #include "Actor/Public/DecalActor.h"
 #include "Actor/Public/DecalSpotLightActor.h"
 #include "Editor/Public/BatchLines.h"
+#include "Manager/Render/Public/CascadeManager.h"
 
 IMPLEMENT_CLASS(ULevelTabBarWidget, UWidget)
 
@@ -47,6 +48,7 @@ ULevelTabBarWidget::ULevelTabBarWidget()
 	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Play.png", nullptr, PlayPIEIconSRV.GetAddressOf());
 	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Pause.png", nullptr, PausePIEIconSRV.GetAddressOf());
 	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Stop.png", nullptr, StopPIEIconSRV.GetAddressOf());
+	DirectX::CreateWICTextureFromFile(URenderer::GetInstance().GetDevice(), L"Asset/LevelBarIcon/Cascade.png", nullptr, CascadeIconSRV.GetAddressOf());
 }
 
 void ULevelTabBarWidget::Initialize()
@@ -420,6 +422,73 @@ void ULevelTabBarWidget::RenderWidget()
 
 		ToolbarVSeparator(10.0f, 6.0f, 6.0f, 1.0f, separatorColor, 5.0f);
 
+		if (IconButton("##btn_ControlCascade", CascadeIconSRV.Get(), "Control Cascade", true, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)))
+		{
+			ImGui::OpenPopup("ControlCascadeMenu");
+		}
+		
+		// 팝업 메뉴: Cascade 조정 메뉴
+		if (ImGui::BeginPopup("ControlCascadeMenu"))
+		{
+			ImGui::Text("Cascade Properties");
+			ImGui::Separator();
+
+			UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
+
+			static bool bEnableCascade = true;
+			if (ImGui::Checkbox("Enable Cascade", &bEnableCascade))
+			{
+				if (!bEnableCascade)
+				{
+					CascadeManager.SetSplitNum(1);
+					CascadeManager.SetLightViewVolumeZNearBias(0.0f);
+				}
+			}
+
+			if (bEnableCascade)
+			{
+				int32 SplitNum = CascadeManager.GetSplitNum();
+				// --- UI 렌더링 및 상호작용 ---
+				if (ImGui::SliderInt(
+					"Split Num",
+					&SplitNum,
+					UCascadeManager::SPLIT_NUM_MIN,
+					UCascadeManager::SPLIT_NUM_MAX,
+					"%d"))
+				{
+					CascadeManager.SetSplitNum(SplitNum);
+				}
+
+				float SplitBlendFactor = CascadeManager.GetSplitBlendFactor();
+				// --- UI 렌더링 및 상호작용 ---
+				if (ImGui::SliderFloat(
+					"Split Blend Factor",
+					&SplitBlendFactor,
+					UCascadeManager::SPLIT_BLEND_FACTOR_MIN,
+					UCascadeManager::SPLIT_BLEND_FACTOR_MAX,
+					"%.1f"))
+				{
+					CascadeManager.SetSplitBlendFactor(SplitBlendFactor);
+				}
+
+				float LightViewVolumeZNearBias = CascadeManager.GetLightViewVolumeZNearBias();
+				// --- UI 렌더링 및 상호작용 ---
+				if (ImGui::SliderFloat(
+					"Light View Volume ZNear Bias",
+					&LightViewVolumeZNearBias,
+					UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN,
+					UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX,
+					"%.1f"))
+				{
+					CascadeManager.SetLightViewVolumeZNearBias(LightViewVolumeZNearBias);
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+		
+		ToolbarVSeparator(10.0f, 6.0f, 6.0f, 1.0f, separatorColor, 5.0f);
+		
 		// Grid Spacing 조절
 		ImGui::Text("Grid:");
 		ImGui::SameLine();
@@ -443,7 +512,6 @@ void ULevelTabBarWidget::RenderWidget()
 		{
 			ImGui::SetTooltip("Grid Spacing");
 		}
-
 	}
 	ImGui::End();
 

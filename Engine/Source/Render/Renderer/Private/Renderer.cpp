@@ -5,6 +5,7 @@
 #include "Component/Public/AmbientLightComponent.h"
 #include "Component/Public/DecalComponent.h"
 #include "Component/Public/DirectionalLightComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Component/Public/HeightFogComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
@@ -20,6 +21,7 @@
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
+#include "Render/RenderPass/Public/EditorIconPass.h"
 #include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 #include "Render/RenderPass/Public/ClusteredRenderingGridPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
@@ -95,6 +97,10 @@ void URenderer::Init(HWND InWindowHandle)
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
 	RenderPasses.push_back(BillboardPass);
+
+	FEditorIconPass* EditorIconPass = new FEditorIconPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(EditorIconPass);
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
@@ -547,7 +553,12 @@ void URenderer::HotReloadShaders()
 					BillboardPass->SetInputLayout(TextureInputLayout);
 					BillboardPass->SetVertexShader(TextureVertexShader);
 					BillboardPass->SetPixelShader(TexturePixelShader);
-					break;
+				}
+				else if (auto* EditorIconPass = dynamic_cast<FEditorIconPass*>(RenderPass))
+				{
+					EditorIconPass->SetInputLayout(TextureInputLayout);
+					EditorIconPass->SetVertexShader(TextureVertexShader);
+					EditorIconPass->SetPixelShader(TexturePixelShader);
 				}
 			}
 			break;
@@ -920,6 +931,10 @@ void URenderer::RenderLevel(FViewport* InViewport, int32 ViewportIndex)
 		else if (auto BillBoard = Cast<UBillBoardComponent>(Prim))
 		{
 			RenderingContext.BillBoards.push_back(BillBoard);
+		}
+		else if (auto EditorIcon = Cast<UEditorIconComponent>(Prim))
+		{
+			RenderingContext.EditorIcons.push_back(EditorIcon);
 		}
 		else if (auto Text = Cast<UTextComponent>(Prim))
 		{

@@ -142,6 +142,8 @@ FShadowMapPass::FShadowMapPass(UPipeline* InPipeline,
 	// 5. Point Light Shadow constant buffer 생성
 	PointLightShadowParamsBuffer = FRenderResourceFactory::CreateConstantBuffer<FPointLightShadowParams>();
 
+	ConstantCascadeData = FRenderResourceFactory::CreateConstantBuffer<FCascadeShadowMapData>();
+	
 	ShadowAtlas.Initialize(Device, 8192);
 
 	D3D11_BUFFER_DESC BufferDesc = {};
@@ -229,8 +231,8 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	// This prevents D3D11 resource hazard warnings
 	const auto& Renderer = URenderer::GetInstance();
 	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
-	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
-	DeviceContext->PSSetShaderResources(10, 2, NullSRVs);  // Unbind t10-t11 (DirectionalShadowMap, SpotShadowMap)
+	ID3D11ShaderResourceView* NullSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
+	DeviceContext->PSSetShaderResources(10, 4, NullSRVs);  // Unbind t10-t14
 
 	
 	const float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -243,7 +245,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
 			// 유효한 첫번째 Dir Light만 사용
-			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes);
+			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes, Context.CurrentCamera);
 			break;
 		}
 	}
@@ -290,7 +292,8 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 
 void FShadowMapPass::RenderDirectionalShadowMap(
 	UDirectionalLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes
+	const TArray<UStaticMeshComponent*>& Meshes,
+	UCamera* InCamera
 	)
 {
 	// FShadowMapResource* ShadowMap = GetOrCreateShadowMap(Light);
@@ -311,27 +314,25 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// 1. Shadow render target 설정
-	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
-	
-	D3D11_VIEWPORT ShadowViewport;
-	
-	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.MinDepth = 0.0f;
-	ShadowViewport.MaxDepth = 1.0f;
-	ShadowViewport.TopLeftX = 0.0f;
-	ShadowViewport.TopLeftY = 0.0f;
-	
-	DeviceContext->RSSetViewports(1, &ShadowViewport);
+	// Note: RenderTargets는 Pipeline API 사용, Viewport는 Pipeline 미지원으로 DeviceContext 직접 사용
+	// ID3D11RenderTargetView* NullRTV = nullptr;
+	// Pipeline->SetRenderTargets(1, &NullRTV, ShadowMap->ShadowDSV.Get());
+	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
+	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	ShadowAtlasDirectionalLightTilePosArray[0] = {{0, 0}};
+	//ID3D11RenderTargetView* NullRTV = nullptr;
+	//Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(
+		1,
+		ShadowAtlas.VarianceShadowRTV.GetAddressOf(),
+		ShadowAtlas.ShadowDSV.Get()
+		);
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
-	ID3D11RasterizerState* RastState = ShadowRasterizerState;
-	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
-	{
-		RastState = GetOrCreateRasterizerState(Light);
-	}
+	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(
+		Light->GetShadowBias(),
+		Light->GetShadowSlopeBias()
+	);
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
 	FPipelineInfo ShadowPipelineInfo = {
@@ -345,20 +346,47 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
-	// 4. Light view-projection 계산
-	FMatrix LightView, LightProj;
-	CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
+	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
+	FCascadeShadowMapData CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
 
-	// Store the calculated shadow view-projection matrix in the light component
-	FMatrix LightViewProj = LightView * LightProj;
-	Light->SetShadowViewProjection(LightViewProj);
-
-	// 5. 각 메시 렌더링
-	for (auto Mesh : Meshes)
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantCascadeData, CascadeShadowMapData);
+	Pipeline->SetConstantBuffer(6, EShaderType::VS | EShaderType::PS, ConstantCascadeData);
+	
+	for (int i = 0; i < CascadeManager.GetSplitNum(); i++)
 	{
-		if (Mesh->IsVisible())
+		D3D11_VIEWPORT ShadowViewport;
+	
+		ShadowViewport.Width = Light->GetShadowResolutionScale();
+		ShadowViewport.Height = Light->GetShadowResolutionScale();
+		ShadowViewport.MinDepth = 0.0f;
+		ShadowViewport.MaxDepth = 1.0f;
+		ShadowViewport.TopLeftX = SHADOW_MAP_RESOLUTION * i;
+		ShadowViewport.TopLeftY = 0.0f;
+	
+		DeviceContext->RSSetViewports(1, &ShadowViewport);
+
+		ShadowAtlasDirectionalLightTilePosArray[i] = {{static_cast<uint32>(i), 0}, {}};
+
+		// 4. Light view-projection 계산
+		// FMatrix LightView, LightProj;
+		// CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
+
+		// Store the calculated shadow view-projection matrix in the light component
+		//FMatrix LightViewProj = LightView * LightProj;
+		FMatrix LightView = CascadeShadowMapData.View;
+		FMatrix LightProj = CascadeShadowMapData.Proj[i];
+		FMatrix LightViewProj = LightView * LightProj;
+
+		// Cascade는 ViewProj가 여러개라서 추후 수정하던가 날려야 함 - HSH
+		// Light->SetShadowViewProjection(LightViewProj);
+
+		// 5. 각 메시 렌더링
+		for (auto Mesh : Meshes)
 		{
-			RenderMeshDepth(Mesh, LightView, LightProj);
+			if (Mesh->IsVisible())
+			{
+				RenderMeshDepth(Mesh, LightView, LightProj);
+			}
 		}
 	}
 
@@ -401,14 +429,18 @@ void FShadowMapPass::RenderSpotShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// // 1. Shadow render target 설정
-	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(
+		1,
+		ShadowAtlas.VarianceShadowRTV.GetAddressOf(),
+		ShadowAtlas.ShadowDSV.Get()
+		);
 
 	D3D11_VIEWPORT ShadowViewport;
 
 	const static float Y_START = SHADOW_MAP_RESOLUTION;
 
-	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.Width = Light->GetShadowResolutionScale();
+	ShadowViewport.Height = Light->GetShadowResolutionScale();
 	ShadowViewport.MinDepth = 0.0f;
 	ShadowViewport.MaxDepth = 1.0f;
 	ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
@@ -422,7 +454,10 @@ void FShadowMapPass::RenderSpotShadowMap(
 	ID3D11RasterizerState* RastState = ShadowRasterizerState;
 	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
 	{
-		RastState = GetOrCreateRasterizerState(Light);
+		RastState = GetOrCreateRasterizerState(
+			Light->GetShadowBias(),
+			Light->GetShadowSlopeBias()
+		);
 	}
 
 	// 3. Pipeline을 통해 shadow rendering state 설정
@@ -502,7 +537,10 @@ void FShadowMapPass::RenderPointShadowMap(
 	ID3D11RasterizerState* RastState = ShadowRasterizerState;
 	if (Light->GetShadowModeIndex() == EShadowModeIndex::SMI_UnFiltered || Light->GetShadowModeIndex() == EShadowModeIndex::SMI_PCF)
 	{
-		RastState = GetOrCreateRasterizerState(Light);
+		RastState = GetOrCreateRasterizerState(
+			Light->GetShadowBias(),
+			Light->GetShadowSlopeBias()
+		);
 	}
 
 	// 2. Pipeline 설정 (Point Light는 linear distance를 depth로 저장하므로 pixel shader 필요)
@@ -540,8 +578,8 @@ void FShadowMapPass::RenderPointShadowMap(
 
 		static const float Y_START = SHADOW_MAP_RESOLUTION * 2.0f;
 
-		ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-		ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.Width = Light->GetShadowResolutionScale();;
+		ShadowViewport.Height = Light->GetShadowResolutionScale();;
 		ShadowViewport.MinDepth = 0.0f;
 		ShadowViewport.MaxDepth = 1.0f;
 		ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
@@ -962,27 +1000,34 @@ void FShadowMapPass::Release()
 	}
 	DirectionalShadowMaps.clear();
 
-	// Rasterizer state 캐시 해제 (매 프레임 생성 방지를 위해 캐싱했던 states)
-	for (auto& Pair : DirectionalRasterizerStates)
-	{
-		if (Pair.second)
-			Pair.second->Release();
-	}
-	DirectionalRasterizerStates.clear();
+	// // Rasterizer state 캐시 해제 (매 프레임 생성 방지를 위해 캐싱했던 states)
+	// for (auto& Pair : DirectionalRasterizerStates)
+	// {
+	// 	if (Pair.second)
+	// 		Pair.second->Release();
+	// }
+	// DirectionalRasterizerStates.clear();
+	//
+	// for (auto& Pair : SpotRasterizerStates)
+	// {
+	// 	if (Pair.second)
+	// 		Pair.second->Release();
+	// }
+	// SpotRasterizerStates.clear();
+	//
+	// for (auto& Pair : PointRasterizerStates)
+	// {
+	// 	if (Pair.second)
+	// 		Pair.second->Release();
+	// }
+	// PointRasterizerStates.clear();
 
-	for (auto& Pair : SpotRasterizerStates)
+	for (auto& Pair : LightRasterizerStates)
 	{
 		if (Pair.second)
 			Pair.second->Release();
 	}
-	SpotRasterizerStates.clear();
-
-	for (auto& Pair : PointRasterizerStates)
-	{
-		if (Pair.second)
-			Pair.second->Release();
-	}
-	PointRasterizerStates.clear();
+	LightRasterizerStates.clear();
 
 	for (auto& Pair : SpotShadowMaps)
 	{
@@ -1038,6 +1083,8 @@ void FShadowMapPass::Release()
 	SafeRelease(ShadowAtlasDirectionalLightTilePosStructuredSRV);
 	SafeRelease(ShadowAtlasSpotLightTilePosStructuredSRV);
 	SafeRelease(ShadowAtlasPointLightTilePosStructuredSRV);
+
+	SafeRelease(ConstantCascadeData);
 	// Shader와 InputLayout은 Renderer가 소유하므로 여기서 해제하지 않음
 }
 
@@ -1053,92 +1100,138 @@ FShadowMapResource* FShadowMapPass::GetSpotShadowMap(USpotLightComponent* Light)
 	return It != SpotShadowMaps.end() ? It->second : nullptr;
 }
 
-ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UDirectionalLightComponent* Light)
+// ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UDirectionalLightComponent* Light)
+// {
+// 	// 이미 생성된 state가 있으면 재사용
+// 	auto It = DirectionalRasterizerStates.find(Light);
+// 	if (It != DirectionalRasterizerStates.end())
+// 		return It->second;
+//
+// 	// 새로 생성
+// 	const auto& Renderer = URenderer::GetInstance();
+// 	D3D11_RASTERIZER_DESC RastDesc = {};
+// 	ShadowRasterizerState->GetDesc(&RastDesc);
+//
+// 	// Light별 DepthBias 설정
+// 	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+// 	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+// 	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+// 	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+// 	//   - 100000.0f: float → integer 변환 스케일
+// 	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+// 	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+//
+// 	ID3D11RasterizerState* NewState = nullptr;
+// 	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+//
+// 	// 캐시에 저장
+// 	DirectionalRasterizerStates[Light] = NewState;
+//
+// 	return NewState;
+// }
+//
+// ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(USpotLightComponent* Light)
+// {
+// 	// 이미 생성된 state가 있으면 재사용
+// 	auto It = SpotRasterizerStates.find(Light);
+// 	if (It != SpotRasterizerStates.end())
+// 		return It->second;
+//
+// 	// 새로 생성
+// 	const auto& Renderer = URenderer::GetInstance();
+// 	D3D11_RASTERIZER_DESC RastDesc = {};
+// 	ShadowRasterizerState->GetDesc(&RastDesc);
+//
+// 	// Light별 DepthBias 설정
+// 	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+// 	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+// 	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+// 	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+// 	//   - 100000.0f: float → integer 변환 스케일
+// 	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+// 	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+//
+// 	ID3D11RasterizerState* NewState = nullptr;
+// 	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+//
+// 	// 캐시에 저장
+// 	SpotRasterizerStates[Light] = NewState;
+//
+// 	return NewState;
+// }
+//
+// ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UPointLightComponent* Light)
+// {
+// 	// 이미 생성된 state가 있으면 재사용
+// 	auto It = PointRasterizerStates.find(Light);
+// 	if (It != PointRasterizerStates.end())
+// 		return It->second;
+//
+// 	// 새로 생성
+// 	const auto& Renderer = URenderer::GetInstance();
+// 	D3D11_RASTERIZER_DESC RastDesc = {};
+// 	ShadowRasterizerState->GetDesc(&RastDesc);
+//
+// 	// Light별 DepthBias 설정
+// 	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
+// 	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
+// 	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
+// 	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
+// 	//   - 100000.0f: float → integer 변환 스케일
+// 	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
+// 	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+//
+// 	ID3D11RasterizerState* NewState = nullptr;
+// 	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+//
+// 	// 캐시에 저장
+// 	PointRasterizerStates[Light] = NewState;
+//
+// 	return NewState;
+// }
+
+ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(
+	float InShadowBias,
+	float InShadowSlopBias
+	)
 {
-	// 이미 생성된 state가 있으면 재사용
-	auto It = DirectionalRasterizerStates.find(Light);
-	if (It != DirectionalRasterizerStates.end())
-		return It->second;
-
-	// 새로 생성
-	const auto& Renderer = URenderer::GetInstance();
-	D3D11_RASTERIZER_DESC RastDesc = {};
-	ShadowRasterizerState->GetDesc(&RastDesc);
-
 	// Light별 DepthBias 설정
 	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
 	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
 	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
 	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
 	//   - 100000.0f: float → integer 변환 스케일
-	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
-	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
 
-	ID3D11RasterizerState* NewState = nullptr;
-	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
+	auto Quantize = [](float value, float step)
+	{
+		return roundf(value / step) * step;
+	};
 
-	// 캐시에 저장
-	DirectionalRasterizerStates[Light] = NewState;
+	FLOAT QuantizedShadowBias = Quantize(InShadowBias, 0.0001f);     // 0.0001 단위
+	FLOAT QuantizedSlopeBias  = Quantize(InShadowSlopBias, 0.01f);   // 0.01 단위
+	INT DepthBias = static_cast<INT>(QuantizedShadowBias * 100000.0f);
+	FLOAT SlopeScaledDepthBias = QuantizedSlopeBias;
 
-	return NewState;
-}
-
-ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(USpotLightComponent* Light)
-{
+	FString RasterizeMapKey = to_string(QuantizedShadowBias) + to_string(QuantizedSlopeBias);
+	
 	// 이미 생성된 state가 있으면 재사용
-	auto It = SpotRasterizerStates.find(Light);
-	if (It != SpotRasterizerStates.end())
+	auto It = LightRasterizerStates.find(RasterizeMapKey);
+	if (It != LightRasterizerStates.end())
 		return It->second;
 
 	// 새로 생성
 	const auto& Renderer = URenderer::GetInstance();
 	D3D11_RASTERIZER_DESC RastDesc = {};
 	ShadowRasterizerState->GetDesc(&RastDesc);
-
-	// Light별 DepthBias 설정
-	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
-	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
-	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
-	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
-	//   - 100000.0f: float → integer 변환 스케일
-	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
-	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
+	
+	RastDesc.DepthBias = DepthBias;
+	RastDesc.SlopeScaledDepthBias = SlopeScaledDepthBias;
 
 	ID3D11RasterizerState* NewState = nullptr;
 	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
 
 	// 캐시에 저장
-	SpotRasterizerStates[Light] = NewState;
-
-	return NewState;
-}
-
-ID3D11RasterizerState* FShadowMapPass::GetOrCreateRasterizerState(UPointLightComponent* Light)
-{
-	// 이미 생성된 state가 있으면 재사용
-	auto It = PointRasterizerStates.find(Light);
-	if (It != PointRasterizerStates.end())
-		return It->second;
-
-	// 새로 생성
-	const auto& Renderer = URenderer::GetInstance();
-	D3D11_RASTERIZER_DESC RastDesc = {};
-	ShadowRasterizerState->GetDesc(&RastDesc);
-
-	// Light별 DepthBias 설정
-	// DepthBias: Shadow acne (자기 그림자 아티팩트) 방지
-	//   - 공식: FinalDepth = OriginalDepth + DepthBias*r + SlopeScaledDepthBias*MaxSlope
-	//   - r: Depth buffer의 최소 표현 단위 (format dependent)
-	//   - MaxSlope: max(|dz/dx|, |dz/dy|) - 표면의 기울기
-	//   - 100000.0f: float → integer 변환 스케일
-	RastDesc.DepthBias = static_cast<INT>(Light->GetShadowBias() * 100000.0f);
-	RastDesc.SlopeScaledDepthBias = Light->GetShadowSlopeBias();
-
-	ID3D11RasterizerState* NewState = nullptr;
-	Renderer.GetDevice()->CreateRasterizerState(&RastDesc, &NewState);
-
-	// 캐시에 저장
-	PointRasterizerStates[Light] = NewState;
+	LightRasterizerStates[RasterizeMapKey] = NewState;
 
 	return NewState;
 }

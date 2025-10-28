@@ -41,9 +41,9 @@ UClass* UPointLightComponent::GetSpecificWidgetClass() const
     return UPointLightComponentWidget::StaticClass();
 }
 
-void UPointLightComponent::EnsureVisualizationBillboard()
+void UPointLightComponent::EnsureVisualizationIcon()
 {
-	if (VisualizationBillboard)
+	if (VisualizationIcon)
 	{
 		return;
 	}
@@ -63,19 +63,19 @@ void UPointLightComponent::EnsureVisualizationBillboard()
 		}
 	}
 
-	UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
-	if (!Billboard)
+	UEditorIconComponent* Icon = OwnerActor->AddComponent<UEditorIconComponent>();
+	if (!Icon)
 	{
 		return;
 	}
-	Billboard->AttachToComponent(this);
-	Billboard->SetIsVisualizationComponent(true);
-	Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightPoint.png"));
-	Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
-	Billboard->SetScreenSizeScaled(true);
+	Icon->AttachToComponent(this);
+	Icon->SetIsVisualizationComponent(true);
+	Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightPoint.png"));
+	Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+	Icon->SetScreenSizeScaled(true);
 
-	VisualizationBillboard = Billboard;
-	UpdateVisualizationBillboardTint();
+	VisualizationIcon = Icon;
+	UpdateVisualizationIconTint();
 }
 FPointLightInfo UPointLightComponent::GetPointlightInfo() const
 {
@@ -92,6 +92,7 @@ FPointLightInfo UPointLightComponent::GetPointlightInfo() const
 	Info.ShadowBias = GetShadowBias();
 	Info.ShadowSlopeBias = GetShadowSlopeBias();
 	Info.ShadowSharpen = GetShadowSharpen();
+	Info.Resolution = GetShadowResolutionScale();
 
 	return Info;
 }

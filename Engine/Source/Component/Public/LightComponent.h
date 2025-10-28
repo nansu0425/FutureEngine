@@ -2,10 +2,10 @@
 
 #include "SceneComponent.h"
 #include "LightComponentBase.h"
-#include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 
-class UBillBoardComponent;
+class UEditorIconComponent;
 
 UENUM()
 enum class ELightComponentType
@@ -69,19 +69,19 @@ public:
     void SetIntensity(float InIntensity) override;
     void SetLightColor(FVector InLightColor) override;
 
-    virtual void EnsureVisualizationBillboard(){};
+    virtual void EnsureVisualizationIcon(){};
 
-    UBillBoardComponent* GetBillBoardComponent() const
+    UEditorIconComponent* GetEditorIconComponent() const
     {
-        return VisualizationBillboard;
+        return VisualizationIcon;
     }
 
-    void SetBillBoardComponent(UBillBoardComponent* InBillBoardComponent)
+    void SetEditorIconComponent(UEditorIconComponent* InEditorIconComponent)
     {
-        VisualizationBillboard = InBillBoardComponent;
+        VisualizationIcon = InEditorIconComponent;
     }
 
-    void RefreshVisualizationBillboardBinding();
+    void RefreshVisualizationIconBinding();
 
     /*-----------------------------------------------------------------------------
         Shadow Quality Parameters
@@ -90,14 +90,28 @@ public:
     /** @brief Shadow map 해상도 배율을 반환합니다 (1.0 = 기본 1024x1024). */
     float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 
-    /** @brief Shadow map 해상도 배율을 설정합니다 (0.25 ~ 4.0). */
-    void SetShadowResolutionScale(float InScale) { ShadowResolutionScale = std::clamp(InScale, 0.25f, 4.0f); }
+    void SetShadowResolutionScale(float InShadowResolutionScale)
+    {
+        int ShadowResolutionScaleInt = static_cast<int>(InShadowResolutionScale);
+
+        if (ShadowResolutionScaleInt != 1024 &&
+            ShadowResolutionScaleInt != 512 &&
+            ShadowResolutionScaleInt != 256 &&
+            ShadowResolutionScaleInt != 128)
+        {
+            ShadowResolutionScale = 1024.0f;
+            UE_LOG_WARNING("Warning: You tried to set shadow resolution with invalid value. Resolution is set with default value.");
+            return;
+        }
+        
+        ShadowResolutionScale = static_cast<float>(ShadowResolutionScaleInt);
+    }
 
     /** @brief Shadow acne 방지를 위한 depth bias를 반환합니다. */
     float GetShadowBias() const { return ShadowBias; }
 
     /** @brief Shadow acne 방지를 위한 depth bias를 설정합니다 (0.0 ~ 0.1). */
-    void SetShadowBias(float InBias) { ShadowBias = std::clamp(InBias, 0.0f, 0.1f); }
+    void SetShadowBias(float InBias) {ShadowBias = std::clamp(InBias, 0.0f, 0.1f); }
 
     /** @brief 표면 기울기에 따른 bias를 반환합니다 (Peter panning 방지). */
     float GetShadowSlopeBias() const { return ShadowSlopeBias; }
@@ -115,13 +129,13 @@ public:
     uint32 GetShadowMapResolution() const { return static_cast<uint32>(1024.0f * ShadowResolutionScale); }
 
 protected:
-    void UpdateVisualizationBillboardTint();
+    void UpdateVisualizationIconTint();
 
-    UBillBoardComponent* VisualizationBillboard = nullptr;
+    UEditorIconComponent* VisualizationIcon = nullptr;
 
     /** Shadow map 해상도 배율 (0.25 ~ 4.0)
      * 0.25 = 256x256, 0.5 = 512x512, 1.0 = 1024x1024, 2.0 = 2048x2048, 4.0 = 4096x4096 */
-    float ShadowResolutionScale = 1.0f;
+    float ShadowResolutionScale = 1024.0f;
 
     /** Depth bias for shadow acne prevention (0.0 ~ 0.1) */
     float ShadowBias = 0.005f;

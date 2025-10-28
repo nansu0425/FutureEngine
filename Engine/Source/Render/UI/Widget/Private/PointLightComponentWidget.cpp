@@ -158,44 +158,65 @@ void UPointLightComponentWidget::RenderWidget()
 
     if (PointLightComponent->GetCastShadows())
     {
-        float ShadowResoulutionScale = PointLightComponent->GetShadowResolutionScale();
-        if (ImGui::DragFloat("ShadowResoulutionScale", &ShadowResoulutionScale, 0.1f, 0.0f, 20.0f))
+        // Shadow Resolution 선택용 ComboBox
+        const int shadowResOptions[] = {128, 256, 512, 1024};
+        const char* shadowResLabels[] = {"128", "256", "512", "1024"};
+
+        // 현재 라이트의 ShadowResolutionScale을 읽음
+        float currentScale = PointLightComponent->GetShadowResolutionScale();
+
+        // 현재 값과 가장 가까운 옵션 인덱스 계산
+        int currentIndex = 0;
+        for (int i = 0; i < IM_ARRAYSIZE(shadowResOptions); ++i)
         {
-            PointLightComponent->SetShadowResolutionScale(ShadowResoulutionScale);
+            if (fabs(currentScale - static_cast<float>(shadowResOptions[i])) < 1e-3f)
+            {
+                currentIndex = i;
+                break;
+            }
         }
+        
+        // ComboBox 생성
+        if (ImGui::Combo("Shadow Resolution", &currentIndex, shadowResLabels, IM_ARRAYSIZE(shadowResLabels)))
+        {
+            // 선택된 값 적용
+            PointLightComponent->SetShadowResolutionScale(static_cast<float>(shadowResOptions[currentIndex]));
+        }
+
+        // 툴팁 표시
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 해상도 크기\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 해상도 크기\n옵션: 128, 256, 512, 1024");
         }
 
         float ShadowBias = PointLightComponent->GetShadowBias();
-        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowBias", &ShadowBias, 0.005f, 0.0f, 0.1f))
         {
             PointLightComponent->SetShadowBias(ShadowBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 깊이 보정\n범위: 0.0(최소) ~ 0.1(최대)");
         }
 
         float ShadowSlopeBias = PointLightComponent->GetShadowSlopeBias();
-        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSlopeBias", &ShadowSlopeBias, 0.1f, 0.0f, 4.0f))
         {
             PointLightComponent->SetShadowSlopeBias(ShadowSlopeBias);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 기울기 비례 보정\n범위: 0.0(최소) ~ 4.0(최대)");
         }
 
         float ShadowSharpen = PointLightComponent->GetShadowSharpen();
-        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.1f, 0.0f, 20.0f))
+        if (ImGui::DragFloat("ShadowSharpen", &ShadowSharpen, 0.1f, 0.0f, 1.0f))
         {
             PointLightComponent->SetShadowSharpen(ShadowSharpen);
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 첨도(Sharpness)\n범위: 0.0(최소) ~ 1.0(최대)");
         }
 
 		// Shadow Mode
@@ -281,31 +302,43 @@ void UPointLightComponentWidget::RenderWidget()
         
         if (PointLightIdx < IDX_MAX)
         {
-            // 원하는 출력 크기 설정
-            ImVec2 ImageSize(256, 256 * 6); 
-    
-            // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
-            // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
-            ImGui::Image(TextureID, 
-                         ImageSize, 
-                         ImVec2(0.125f * static_cast<float>(PointLightIdx), 0.25f),
-                         ImVec2(0.125f * static_cast<float>(PointLightIdx + 1), 1.0f
+            ImVec2 imageSize(256, 256);
+            
+            const char* faceNames[6] = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
+            // 각 면의 UV 범위 계산 (위→아래 방향으로 6분할)
 
-                         ), 
-                         ImVec4(1, 1, 1, 1), 
-                         ImVec4(0, 0, 0, 0)); 
-
-            if (ImGui::IsItemHovered())
+            // 탭 바 시작
+            if (ImGui::BeginTabBar("CubeShadowMapTabs"))
             {
-                ImGui::SetTooltip("광원의 Shadow Map 출력");
+                for (int faceIdx = 0; faceIdx < 6; faceIdx++)
+                {
+                    if (ImGui::BeginTabItem(faceNames[faceIdx]))
+                    {
+                        // UV 계산 (Y축이 아래로 갈수록 증가)
+                        float uStart = 0.125f * static_cast<float>(PointLightIdx);
+                        float vStart = 0.125f * static_cast<float>(faceIdx + 2);
+                        float uEnd   = uStart + (1.0f / (8192.0f / PointLightComponent->GetShadowResolutionScale()));
+                        float vEnd   = vStart + (1.0f / (8192.0f / PointLightComponent->GetShadowResolutionScale()));
+
+                        ImGui::Image(TextureID,
+                                     imageSize,
+                                     ImVec2(uStart, vStart),
+                                     ImVec2(uEnd, vEnd),
+                                     ImVec4(1, 1, 1, 1),
+                                     ImVec4(0, 0, 0, 0));
+
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("%s face shadow map", faceNames[faceIdx]);
+
+                        ImGui::EndTabItem();
+                    }
+                }
+                ImGui::EndTabBar();
             }
         }
     }
-
-    
     
     ImGui::PopStyleColor(3);
-
     ImGui::Separator();
 }
 

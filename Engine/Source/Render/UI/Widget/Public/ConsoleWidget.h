@@ -4,6 +4,7 @@
 using std::streambuf;
 
 class UConsoleWidget;
+class FLogFileWriter;
 struct ImGuiInputTextCallbackData;
 
 struct FLogEntry
@@ -70,6 +71,10 @@ public:
 	int HandleHistoryCallback(ImGuiInputTextCallbackData* InData);
 	bool IsSingleton() const override { return true; }
 
+	// Console visibility tracking
+	void OnConsoleShown();
+	void ClearSelection();
+
 private:
 	// Command input
 	char InputBuf[256];
@@ -77,9 +82,24 @@ private:
 	int HistoryPosition;
 
 	// Log output
-	TArray<FLogEntry> LogItems;
+	std::deque<FLogEntry> LogItems;
 	bool bIsAutoScroll;
 	bool bIsScrollToBottom;
+	bool bPendingScrollToBottom; // 콘솔이 열릴 때 스크롤을 하단으로 이동
+
+	// Text selection for drag-copy
+	struct FTextSelection
+	{
+		int StartLine = -1;
+		int StartChar = -1;
+		int EndLine = -1;
+		int EndChar = -1;
+		bool IsActive() const { return StartLine >= 0; }
+		void Clear() { StartLine = StartChar = EndLine = EndChar = -1; }
+	};
+	FTextSelection TextSelection;
+	bool bIsDragging = false;
+	ImVec2 DragStartPos;
 
 	// Stream redirection
 	ConsoleStreamBuffer* ConsoleOutputBuffer;
@@ -87,8 +107,15 @@ private:
 	streambuf* OriginalConsoleOutput;
 	streambuf* OriginalConsoleError;
 
+	// Log file writer
+	FLogFileWriter* LogFileWriter;
+
+	// 초기화 전 로그 임시 버퍼
+	std::deque<FLogEntry> PendingLogs;
+
 	// Helper functions
 	static ImVec4 GetColorByLogType(ELogType InType);
+	static const char* GetLogTypePrefix(ELogType InType);
 
 	void AddLogInternal(ELogType InType, const char* fmt, va_list InArguments);
 };

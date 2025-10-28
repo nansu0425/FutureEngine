@@ -35,8 +35,8 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 				ShadowMap,
 				AtlasTilePos.UV[0] * TEXTURE_WIDTH,
 				AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
-				TEXTURE_WIDTH,
-				TEXTURE_HEIGHT
+				static_cast<uint32>(DirLight->GetShadowResolutionScale()),
+				static_cast<uint32>(DirLight->GetShadowResolutionScale())
 			);
 		}
 	}
@@ -54,8 +54,8 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 				ShadowMap,
 				AtlasTilePos.UV[0] * TEXTURE_WIDTH,
 				AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
-				TEXTURE_WIDTH,
-				TEXTURE_HEIGHT
+				static_cast<uint32>(SpotLight->GetShadowResolutionScale()),
+				static_cast<uint32>(SpotLight->GetShadowResolutionScale())
 			);
 		}
 	}

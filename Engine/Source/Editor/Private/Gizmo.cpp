@@ -430,8 +430,8 @@ static void GenerateQuarterRingMesh(const FVector& Axis0, const FVector& Axis1,
 	OutIndices.clear();
 
 	// 세그먼트 수
-	const int32 NumArcPoints = static_cast<int32>(kQuarterRingSegments * (kQuarterRingEndAngle - kQuarterRingStartAngle) / (3.14159265f / 2.0f)) + 1;
-	const int32 NumThicknessSegments = 6; // 두께 방향 세그먼트 수
+	constexpr int32 NumArcPoints = static_cast<int32>(kQuarterRingSegments * (kQuarterRingEndAngle - kQuarterRingStartAngle) / (PI / 2.0f)) + 1;
+	constexpr int32 NumThicknessSegments = 6; // 두께 방향 세그먼트 수
 
 	// 회전축 계산 (Axis0 × Axis1)
 	FVector ZAxis = Axis0.Cross(Axis1);
@@ -590,17 +590,17 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 		// 가장 지배적인 축 방향 찾기
 		if (AbsZ > AbsX && AbsZ > AbsY)
 		{
-			// Top/Bottom 뷰 (XY 평면) → Z축 회전
+			// Top/Bottom 뷰 (XY 평면) -> Z축 회전
 			OrthoWorldAxis = EGizmoDirection::Up;
 		}
 		else if (AbsY > AbsX && AbsY > AbsZ)
 		{
-			// Left/Right 뷰 (XZ 평면) → Y축 회전
+			// Left/Right 뷰 (XZ 평면) -> Y축 회전
 			OrthoWorldAxis = EGizmoDirection::Right;
 		}
 		else
 		{
-			// Front/Back 뷰 (YZ 평면) → X축 회전
+			// Front/Back 뷰 (YZ 평면) -> X축 회전
 			OrthoWorldAxis = EGizmoDirection::Forward;
 		}
 	}
@@ -779,25 +779,25 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				LocalRenderAxis1.Normalize();
 
 				TArray<FNormalVertex> vertices;
-				TArray<uint32> indices;
+				TArray<uint32> Indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
-					vertices, indices);
+					vertices, Indices);
 
-				ID3D11Buffer* tempVB = nullptr;
-				ID3D11Buffer* tempIB = nullptr;
-				CreateTempBuffers(vertices, indices, &tempVB, &tempIB);
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+				CreateTempBuffers(vertices, Indices, &TempVB, &TempIB);
 
-				P.VertexBuffer = tempVB;
+				P.VertexBuffer = TempVB;
 				P.NumVertices = static_cast<uint32>(vertices.size());
-				P.IndexBuffer = tempIB;
-				P.NumIndices = static_cast<uint32>(indices.size());
+				P.IndexBuffer = TempIB;
+				P.NumIndices = static_cast<uint32>(Indices.size());
 				P.Rotation = BaseRot;
 				P.Color = ColorFor(EGizmoDirection::Forward);
 				Renderer.RenderEditorPrimitive(P, RenderState);
 
-				tempVB->Release();
-				tempIB->Release();
+				TempVB->Release();
+				TempIB->Release();
 			}
 		}
 		else
@@ -970,25 +970,25 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				LocalRenderAxis1.Normalize();
 
 				TArray<FNormalVertex> vertices;
-				TArray<uint32> indices;
+				TArray<uint32> Indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
-					vertices, indices);
+					vertices, Indices);
 
-				ID3D11Buffer* tempVB = nullptr;
-				ID3D11Buffer* tempIB = nullptr;
-				CreateTempBuffers(vertices, indices, &tempVB, &tempIB);
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+				CreateTempBuffers(vertices, Indices, &TempVB, &TempIB);
 
-				P.VertexBuffer = tempVB;
+				P.VertexBuffer = TempVB;
 				P.NumVertices = static_cast<uint32>(vertices.size());
-				P.IndexBuffer = tempIB;
-				P.NumIndices = static_cast<uint32>(indices.size());
+				P.IndexBuffer = TempIB;
+				P.NumIndices = static_cast<uint32>(Indices.size());
 				P.Rotation = BaseRot;
 				P.Color = ColorFor(EGizmoDirection::Right);
 				Renderer.RenderEditorPrimitive(P, RenderState);
 
-				tempVB->Release();
-				tempIB->Release();
+				TempVB->Release();
+				TempIB->Release();
 			}
 		}
 		else
@@ -1161,25 +1161,25 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 				LocalRenderAxis1.Normalize();
 
 				TArray<FNormalVertex> vertices;
-				TArray<uint32> indices;
+				TArray<uint32> Indices;
 				GenerateQuarterRingMesh(LocalRenderAxis0, LocalRenderAxis1,
 					RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius, RotateCollisionConfig.Thickness,
-					vertices, indices);
+					vertices, Indices);
 
-				ID3D11Buffer* tempVB = nullptr;
-				ID3D11Buffer* tempIB = nullptr;
-				CreateTempBuffers(vertices, indices, &tempVB, &tempIB);
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+				CreateTempBuffers(vertices, Indices, &TempVB, &TempIB);
 
-				P.VertexBuffer = tempVB;
+				P.VertexBuffer = TempVB;
 				P.NumVertices = static_cast<uint32>(vertices.size());
-				P.IndexBuffer = tempIB;
-				P.NumIndices = static_cast<uint32>(indices.size());
+				P.IndexBuffer = TempIB;
+				P.NumIndices = static_cast<uint32>(Indices.size());
 				P.Rotation = BaseRot;
 				P.Color = ColorFor(EGizmoDirection::Up);
 				Renderer.RenderEditorPrimitive(P, RenderState);
 
-				tempVB->Release();
-				tempIB->Release();
+				TempVB->Release();
+				TempIB->Release();
 			}
 		}
 		else
@@ -1189,6 +1189,560 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 			P.Color = ColorFor(EGizmoDirection::Up);
 			Renderer.RenderEditorPrimitive(P, RenderState);
 		}
+	}
+
+	// Translation 모드: 직각 표시 (축 위의 점에서 교점으로 연결)
+	if (GizmoMode == EGizmoMode::Translate)
+	{
+		const float CornerPos = 0.3f * RenderScale;  // 교점 위치 (0.3, 0.3)
+		const float HandleRadius = 0.02f * RenderScale;  // 원통 반지름
+		const int NumSegments = 8;  // 원통 분할 수
+
+		struct FPlaneInfo
+		{
+			EGizmoDirection Direction;
+			FVector Tangent1;
+			FVector Tangent2;
+		};
+
+		FPlaneInfo Planes[3] = {
+			{EGizmoDirection::XY_Plane, {1, 0, 0}, {0, 1, 0}},  // XY 평면
+			{EGizmoDirection::XZ_Plane, {1, 0, 0}, {0, 0, 1}},  // XZ 평면
+			{EGizmoDirection::YZ_Plane, {0, 1, 0}, {0, 0, 1}}   // YZ 평면
+		};
+
+		for (const FPlaneInfo& PlaneInfo : Planes)
+		{
+			FVector T1 = PlaneInfo.Tangent1;
+			FVector T2 = PlaneInfo.Tangent2;
+
+			if (!bIsWorld)
+			{
+				T1 = BaseRot.RotateVector(T1);
+				T2 = BaseRot.RotateVector(T2);
+			}
+
+			// 평면 법선 (두께 방향)
+			FVector PlaneNormal = Cross(T1, T2).GetNormalized();
+
+			// Z-up LH: X=Forward(빨강), Y=Right(초록), Z=Up(파랑)
+			// 선분 1: T1 축 위의 점에서 시작 (T1 축에 닿음) -> T1 색상
+			// 선분 2: T2 축 위의 점에서 시작 (T2 축에 닿음) -> T2 색상
+			EGizmoDirection Seg1Color, Seg2Color;
+			if (PlaneInfo.Direction == EGizmoDirection::XY_Plane)
+			{
+				// XY: T1=X, T2=Y
+				// 선분1은 X축에 닿음 -> Forward(빨강)
+				// 선분2는 Y축에 닿음 -> Right(초록)
+				Seg1Color = EGizmoDirection::Forward;
+				Seg2Color = EGizmoDirection::Right;
+			}
+			else if (PlaneInfo.Direction == EGizmoDirection::XZ_Plane)
+			{
+				// XZ: T1=X, T2=Z
+				// 선분1은 X축에 닿음 -> Forward(빨강)
+				// 선분2는 Z축에 닿음 -> Up(파랑)
+				Seg1Color = EGizmoDirection::Forward;
+				Seg2Color = EGizmoDirection::Up;
+			}
+			else // YZ_Plane
+			{
+				// YZ: T1=Y, T2=Z
+				// 선분1은 Y축에 닿음 -> Right(초록)
+				// 선분2는 Z축에 닿음 -> Up(파랑)
+				Seg1Color = EGizmoDirection::Right;
+				Seg2Color = EGizmoDirection::Up;
+			}
+
+			// 평면 선택 여부 (두 선분 공통)
+			bool bIsPlaneSelected = (GizmoDirection == PlaneInfo.Direction);
+
+			// 선분 1: T1 축 위의 점 (CornerPos, 0) -> 교점 (CornerPos, CornerPos) - T1 색상
+			{
+				TArray<FNormalVertex> vertices;
+				TArray<uint32> Indices;
+
+				FVector Start1 = T1 * CornerPos;
+				FVector End1 = T1 * CornerPos + T2 * CornerPos;
+				FVector Dir1 = (End1 - Start1).GetNormalized();
+				FVector Perp1_1 = Cross(Dir1, PlaneNormal).GetNormalized();
+				FVector Perp1_2 = Cross(Dir1, Perp1_1).GetNormalized();
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					float Angle = static_cast<float>(i) / NumSegments * 2.0f * PI;
+					FVector Offset = (Perp1_1 * std::cos(Angle) + Perp1_2 * std::sin(Angle)) * HandleRadius;
+
+					vertices.push_back({Start1 + Offset, Offset.GetNormalized()});
+					vertices.push_back({End1 + Offset, Offset.GetNormalized()});
+				}
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					int Next = (i + 1) % NumSegments;
+					Indices.push_back(i * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 1);
+				}
+
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+
+				D3D11_BUFFER_DESC VBDesc = {};
+				VBDesc.Usage = D3D11_USAGE_DEFAULT;
+				VBDesc.ByteWidth = static_cast<UINT>(sizeof(FNormalVertex) * vertices.size());
+				VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA VBData = {};
+				VBData.pSysMem = vertices.data();
+				Renderer.GetDevice()->CreateBuffer(&VBDesc, &VBData, &TempVB);
+
+				D3D11_BUFFER_DESC IBDesc = {};
+				IBDesc.Usage = D3D11_USAGE_DEFAULT;
+				IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+				IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA IBData = {};
+				IBData.pSysMem = Indices.data();
+				Renderer.GetDevice()->CreateBuffer(&IBDesc, &IBData, &TempIB);
+
+				FEditorPrimitive Prim1;
+				Prim1.Location = P.Location;
+				Prim1.Scale = FVector(1.0f, 1.0f, 1.0f);
+				Prim1.Rotation = FQuaternion::Identity();
+				Prim1.VertexBuffer = TempVB;
+				Prim1.NumVertices = static_cast<uint32>(vertices.size());
+				Prim1.IndexBuffer = TempIB;
+				Prim1.NumIndices = static_cast<uint32>(Indices.size());
+				Prim1.bShouldAlwaysVisible = true;
+				Prim1.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				// 평면 선분은 평면이 선택되었을 때만 하이라이트
+				FVector4 Seg1BaseColor = GizmoColor[AxisIndex(Seg1Color)];
+				if (bIsPlaneSelected && bIsDragging)
+				{
+					Prim1.Color = FVector4(0.8f, 0.8f, 0.0f, 1.0f);  // 드래그 중
+				}
+				else if (bIsPlaneSelected)
+				{
+					Prim1.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 호버 중
+				}
+				else
+				{
+					Prim1.Color = Seg1BaseColor;  // 기본 색상
+				}
+
+				Renderer.RenderEditorPrimitive(Prim1, RenderState);
+
+				TempVB->Release();
+				TempIB->Release();
+			}
+
+			// 선분 2: T2 축 위의 점 (0, CornerPos) -> 교점 (CornerPos, CornerPos) - T2 색상
+			{
+				TArray<FNormalVertex> vertices;
+				TArray<uint32> Indices;
+
+				FVector Start2 = T2 * CornerPos;
+				FVector End2 = T1 * CornerPos + T2 * CornerPos;
+				FVector Dir2 = (End2 - Start2).GetNormalized();
+				FVector Perp2_1 = Cross(Dir2, PlaneNormal).GetNormalized();
+				FVector Perp2_2 = Cross(Dir2, Perp2_1).GetNormalized();
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					float Angle = static_cast<float>(i) / NumSegments * 2.0f * PI;
+					FVector Offset = (Perp2_1 * std::cos(Angle) + Perp2_2 * std::sin(Angle)) * HandleRadius;
+
+					vertices.push_back({Start2 + Offset, Offset.GetNormalized()});
+					vertices.push_back({End2 + Offset, Offset.GetNormalized()});
+				}
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					int Next = (i + 1) % NumSegments;
+					Indices.push_back(i * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 1);
+				}
+
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+
+				D3D11_BUFFER_DESC VBDesc = {};
+				VBDesc.Usage = D3D11_USAGE_DEFAULT;
+				VBDesc.ByteWidth = static_cast<UINT>(sizeof(FNormalVertex) * vertices.size());
+				VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA VBData = {};
+				VBData.pSysMem = vertices.data();
+				Renderer.GetDevice()->CreateBuffer(&VBDesc, &VBData, &TempVB);
+
+				D3D11_BUFFER_DESC IBDesc = {};
+				IBDesc.Usage = D3D11_USAGE_DEFAULT;
+				IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+				IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA IBData = {};
+				IBData.pSysMem = Indices.data();
+				Renderer.GetDevice()->CreateBuffer(&IBDesc, &IBData, &TempIB);
+
+				FEditorPrimitive Prim2;
+				Prim2.Location = P.Location;
+				Prim2.Scale = FVector(1.0f, 1.0f, 1.0f);
+				Prim2.Rotation = FQuaternion::Identity();
+				Prim2.VertexBuffer = TempVB;
+				Prim2.NumVertices = static_cast<uint32>(vertices.size());
+				Prim2.IndexBuffer = TempIB;
+				Prim2.NumIndices = static_cast<uint32>(Indices.size());
+				Prim2.bShouldAlwaysVisible = true;
+				Prim2.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				FVector4 Seg2BaseColor = GizmoColor[AxisIndex(Seg2Color)];
+				if (bIsPlaneSelected && bIsDragging)
+				{
+					Prim2.Color = FVector4(0.8f, 0.8f, 0.0f, 1.0f);  // 드래그 중
+				}
+				else if (bIsPlaneSelected)
+				{
+					Prim2.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 호버 중
+				}
+				else
+				{
+					Prim2.Color = Seg2BaseColor;  // 기본 색상
+				}
+
+				Renderer.RenderEditorPrimitive(Prim2, RenderState);
+
+				TempVB->Release();
+				TempIB->Release();
+			}
+		}
+	}
+
+	// Scale 모드: 대각선 형태 평면 핸들
+	if (GizmoMode == EGizmoMode::Scale)
+	{
+		const float MidPoint = 0.5f * RenderScale;  // 축 길이 0.5 지점
+		const float HandleRadius = 0.02f * RenderScale;  // 원통 반지름
+		constexpr int NumSegments = 8;  // 원통 분할 수
+
+		struct FPlaneInfo
+		{
+			EGizmoDirection Direction;
+			FVector Tangent1;
+			FVector Tangent2;
+		};
+
+		FPlaneInfo Planes[3] = {
+			{EGizmoDirection::XY_Plane, {1, 0, 0}, {0, 1, 0}},
+			{EGizmoDirection::XZ_Plane, {1, 0, 0}, {0, 0, 1}},
+			{EGizmoDirection::YZ_Plane, {0, 1, 0}, {0, 0, 1}}
+		};
+
+		for (const FPlaneInfo& PlaneInfo : Planes)
+		{
+			FVector T1 = PlaneInfo.Tangent1;
+			FVector T2 = PlaneInfo.Tangent2;
+
+			T1 = BaseRot.RotateVector(T1);
+			T2 = BaseRot.RotateVector(T2);
+
+			// T1 축 0.5 지점과 T2 축 0.5 지점, 그리고 중간 지점
+			FVector Point1 = T1 * MidPoint;  // T1 축 0.5 지점
+			FVector Point2 = T2 * MidPoint;  // T2 축 0.5 지점
+			FVector MidCenter = (Point1 + Point2) * 0.5f;  // 중간 지점 (0.25, 0.25)
+
+			// 평면 법선
+			FVector PlaneNormal = Cross(T1, T2).GetNormalized();
+
+			// Z-up LH: X=Forward(빨강), Y=Right(초록), Z=Up(파랑)
+			// 선분 1: T1 축 0.5 지점 -> 중간 지점 - T1 색상
+			// 선분 2: 중간 지점 -> T2 축 0.5 지점 - T2 색상
+			EGizmoDirection Seg1Color, Seg2Color;
+			if (PlaneInfo.Direction == EGizmoDirection::XY_Plane)
+			{
+				// XY: T1=X, T2=Y
+				Seg1Color = EGizmoDirection::Forward;  // X축 (빨강)
+				Seg2Color = EGizmoDirection::Right;    // Y축 (초록)
+			}
+			else if (PlaneInfo.Direction == EGizmoDirection::XZ_Plane)
+			{
+				// XZ: T1=X, T2=Z
+				Seg1Color = EGizmoDirection::Forward;  // X축 (빨강)
+				Seg2Color = EGizmoDirection::Up;       // Z축 (파랑)
+			}
+			else // YZ_Plane
+			{
+				// YZ: T1=Y, T2=Z
+				Seg1Color = EGizmoDirection::Right;    // Y축 (초록)
+				Seg2Color = EGizmoDirection::Up;       // Z축 (파랑)
+			}
+
+			// 평면 선택 여부 (두 선분 공통)
+			bool bIsPlaneSelected = (GizmoDirection == PlaneInfo.Direction);
+
+			// 선분 1: T1 축 0.5 지점 -> 중간 지점 - T1 색상
+			{
+				TArray<FNormalVertex> vertices;
+				TArray<uint32> Indices;
+
+				FVector Start = Point1;
+				FVector End = MidCenter;
+				FVector DiagDir = (End - Start).GetNormalized();
+				FVector Perp1 = Cross(DiagDir, PlaneNormal).GetNormalized();
+				FVector Perp2 = Cross(DiagDir, Perp1).GetNormalized();
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					float Angle = static_cast<float>(i) / NumSegments * 2.0f * PI;
+					FVector Offset = (Perp1 * std::cos(Angle) + Perp2 * std::sin(Angle)) * HandleRadius;
+
+					vertices.push_back({Start + Offset, Offset.GetNormalized()});
+					vertices.push_back({End + Offset, Offset.GetNormalized()});
+				}
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					int Next = (i + 1) % NumSegments;
+					Indices.push_back(i * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 1);
+				}
+
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+
+				D3D11_BUFFER_DESC VBDesc = {};
+				VBDesc.Usage = D3D11_USAGE_DEFAULT;
+				VBDesc.ByteWidth = static_cast<UINT>(sizeof(FNormalVertex) * vertices.size());
+				VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA VBData = {};
+				VBData.pSysMem = vertices.data();
+				Renderer.GetDevice()->CreateBuffer(&VBDesc, &VBData, &TempVB);
+
+				D3D11_BUFFER_DESC IBDesc = {};
+				IBDesc.Usage = D3D11_USAGE_DEFAULT;
+				IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+				IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA IBData = {};
+				IBData.pSysMem = Indices.data();
+				Renderer.GetDevice()->CreateBuffer(&IBDesc, &IBData, &TempIB);
+
+				FEditorPrimitive Prim1;
+				Prim1.Location = P.Location;
+				Prim1.Scale = FVector(1.0f, 1.0f, 1.0f);
+				Prim1.Rotation = FQuaternion::Identity();
+				Prim1.VertexBuffer = TempVB;
+				Prim1.NumVertices = static_cast<uint32>(vertices.size());
+				Prim1.IndexBuffer = TempIB;
+				Prim1.NumIndices = static_cast<uint32>(Indices.size());
+				Prim1.bShouldAlwaysVisible = true;
+				Prim1.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				// 평면 선분은 평면이 선택되었을 때만 하이라이트
+				FVector4 Seg1BaseColor = GizmoColor[AxisIndex(Seg1Color)];
+				if (bIsPlaneSelected && bIsDragging)
+				{
+					Prim1.Color = FVector4(0.8f, 0.8f, 0.0f, 1.0f);  // 드래그 중
+				}
+				else if (bIsPlaneSelected)
+				{
+					Prim1.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 호버 중
+				}
+				else
+				{
+					Prim1.Color = Seg1BaseColor;  // 기본 색상
+				}
+
+				Renderer.RenderEditorPrimitive(Prim1, RenderState);
+
+				TempVB->Release();
+				TempIB->Release();
+			}
+
+			// 선분 2: 중간 지점 -> T2 축 0.5 지점 - T2 색상
+			{
+				TArray<FNormalVertex> vertices;
+				TArray<uint32> Indices;
+
+				FVector Start = MidCenter;
+				FVector End = Point2;
+				FVector DiagDir = (End - Start).GetNormalized();
+				FVector Perp1 = Cross(DiagDir, PlaneNormal).GetNormalized();
+				FVector Perp2 = Cross(DiagDir, Perp1).GetNormalized();
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					float Angle = static_cast<float>(i) / NumSegments * 2.0f * PI;
+					FVector Offset = (Perp1 * std::cos(Angle) + Perp2 * std::sin(Angle)) * HandleRadius;
+
+					vertices.push_back({Start + Offset, Offset.GetNormalized()});
+					vertices.push_back({End + Offset, Offset.GetNormalized()});
+				}
+
+				for (int i = 0; i < NumSegments; ++i)
+				{
+					int Next = (i + 1) % NumSegments;
+					Indices.push_back(i * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(Next * 2 + 0);
+					Indices.push_back(i * 2 + 1);
+					Indices.push_back(Next * 2 + 1);
+				}
+
+				ID3D11Buffer* TempVB = nullptr;
+				ID3D11Buffer* TempIB = nullptr;
+
+				D3D11_BUFFER_DESC VBDesc = {};
+				VBDesc.Usage = D3D11_USAGE_DEFAULT;
+				VBDesc.ByteWidth = static_cast<UINT>(sizeof(FNormalVertex) * vertices.size());
+				VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA VBData = {};
+				VBData.pSysMem = vertices.data();
+				Renderer.GetDevice()->CreateBuffer(&VBDesc, &VBData, &TempVB);
+
+				D3D11_BUFFER_DESC IBDesc = {};
+				IBDesc.Usage = D3D11_USAGE_DEFAULT;
+				IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+				IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				D3D11_SUBRESOURCE_DATA IBData = {};
+				IBData.pSysMem = Indices.data();
+				Renderer.GetDevice()->CreateBuffer(&IBDesc, &IBData, &TempIB);
+
+				FEditorPrimitive Prim2;
+				Prim2.Location = P.Location;
+				Prim2.Scale = FVector(1.0f, 1.0f, 1.0f);
+				Prim2.Rotation = FQuaternion::Identity();
+				Prim2.VertexBuffer = TempVB;
+				Prim2.NumVertices = static_cast<uint32>(vertices.size());
+				Prim2.IndexBuffer = TempIB;
+				Prim2.NumIndices = static_cast<uint32>(Indices.size());
+				Prim2.bShouldAlwaysVisible = true;
+				Prim2.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				FVector4 Seg2BaseColor = GizmoColor[AxisIndex(Seg2Color)];
+				if (bIsPlaneSelected && bIsDragging)
+				{
+					Prim2.Color = FVector4(0.8f, 0.8f, 0.0f, 1.0f);  // 드래그 중
+				}
+				else if (bIsPlaneSelected)
+				{
+					Prim2.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 호버 중
+				}
+				else
+				{
+					Prim2.Color = Seg2BaseColor;  // 기본 색상
+				}
+
+				Renderer.RenderEditorPrimitive(Prim2, RenderState);
+
+				TempVB->Release();
+				TempIB->Release();
+			}
+		}
+	}
+
+	// Translation 및 Scale 모드에서 중심점에 전체 기즈모 컨트롤 구체 렌더링
+	if (GizmoMode == EGizmoMode::Translate || GizmoMode == EGizmoMode::Scale)
+	{
+		const float SphereRadius = 0.1f * RenderScale;
+		constexpr int NumSegments = 16;
+		constexpr int NumRings = 8;
+
+		TArray<FNormalVertex> vertices;
+		TArray<uint32> Indices;
+
+		// UV Sphere 생성
+		for (int ring = 0; ring <= NumRings; ++ring)
+		{
+			float phi = static_cast<float>(ring) / NumRings * PI;
+			float sinPhi = std::sin(phi);
+			float cosPhi = std::cos(phi);
+
+			for (int seg = 0; seg <= NumSegments; ++seg)
+			{
+				float theta = static_cast<float>(seg) / NumSegments * 2.0f * PI;
+				float sinTheta = std::sin(theta);
+				float cosTheta = std::cos(theta);
+
+				FVector pos(sinPhi * cosTheta, sinPhi * sinTheta, cosPhi);
+				FVector normal = pos.GetNormalized();
+				pos = pos * SphereRadius;
+
+				vertices.push_back({pos, normal});
+			}
+		}
+
+		// 인덱스 생성
+		for (int ring = 0; ring < NumRings; ++ring)
+		{
+			for (int seg = 0; seg < NumSegments; ++seg)
+			{
+				int current = ring * (NumSegments + 1) + seg;
+				int next = current + NumSegments + 1;
+
+				Indices.push_back(current);
+				Indices.push_back(next);
+				Indices.push_back(current + 1);
+
+				Indices.push_back(current + 1);
+				Indices.push_back(next);
+				Indices.push_back(next + 1);
+			}
+		}
+
+		ID3D11Buffer* TempVB = nullptr;
+		ID3D11Buffer* TempIB = nullptr;
+
+		D3D11_BUFFER_DESC VBDesc = {};
+		VBDesc.Usage = D3D11_USAGE_DEFAULT;
+		VBDesc.ByteWidth = static_cast<UINT>(sizeof(FNormalVertex) * vertices.size());
+		VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		D3D11_SUBRESOURCE_DATA VBData = {};
+		VBData.pSysMem = vertices.data();
+		Renderer.GetDevice()->CreateBuffer(&VBDesc, &VBData, &TempVB);
+
+		D3D11_BUFFER_DESC IBDesc = {};
+		IBDesc.Usage = D3D11_USAGE_DEFAULT;
+		IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+		IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		D3D11_SUBRESOURCE_DATA IBData = {};
+		IBData.pSysMem = Indices.data();
+		Renderer.GetDevice()->CreateBuffer(&IBDesc, &IBData, &TempIB);
+
+		FEditorPrimitive Prim;
+		Prim.Location = P.Location;
+		Prim.Scale = FVector(1.0f, 1.0f, 1.0f);
+		Prim.Rotation = FQuaternion::Identity();
+		Prim.VertexBuffer = TempVB;
+		Prim.NumVertices = static_cast<uint32>(vertices.size());
+		Prim.IndexBuffer = TempIB;
+		Prim.NumIndices = static_cast<uint32>(Indices.size());
+		Prim.bShouldAlwaysVisible = true;
+		Prim.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+		// 중심 구체 색상: 흰색 또는 하이라이트
+		bool bIsCenterSelected = (GizmoDirection == EGizmoDirection::Center);
+		if (bIsCenterSelected && bIsDragging)
+		{
+			Prim.Color = FVector4(0.8f, 0.8f, 0.0f, 1.0f);  // 드래그 중: 짙은 노란색
+		}
+		else if (bIsCenterSelected)
+		{
+			Prim.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // 호버 중: 밝은 노란색
+		}
+		else
+		{
+			Prim.Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);  // 기본: 흰색
+		}
+
+		Renderer.RenderEditorPrimitive(Prim, RenderState);
+
+		TempVB->Release();
+		TempIB->Release();
 	}
 }
 
@@ -1254,7 +1808,35 @@ FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 {
 	const int Idx = AxisIndex(InAxis);
 	const FVector4& BaseColor = GizmoColor[Idx];
-	const bool bIsHighlight = (InAxis == GizmoDirection);
+	bool bIsHighlight = (InAxis == GizmoDirection);
+
+	// 평면 기즈모가 선택되었을 때만 해당 평면의 2개 축도 하이라이트
+	// (단일 축 선택 시에는 평면이 하이라이트되지 않음)
+
+	// InAxis가 평면인 경우: GizmoDirection도 평면이어야만 하이라이트
+	bool bIsInAxisPlane = (InAxis == EGizmoDirection::XY_Plane ||
+	                       InAxis == EGizmoDirection::XZ_Plane ||
+	                       InAxis == EGizmoDirection::YZ_Plane);
+
+	if (!bIsHighlight && IsPlaneDirection() && !bIsInAxisPlane)
+	{
+		// 평면이 선택되었고, InAxis가 단일 축인 경우: 해당 평면의 축들을 하이라이트
+		if (GizmoDirection == EGizmoDirection::XY_Plane)
+		{
+			// XY 평면: X(Forward, 빨강) + Y(Right, 초록)
+			bIsHighlight = (InAxis == EGizmoDirection::Forward || InAxis == EGizmoDirection::Right);
+		}
+		else if (GizmoDirection == EGizmoDirection::XZ_Plane)
+		{
+			// XZ 평면: X(Forward, 빨강) + Z(Up, 파랑)
+			bIsHighlight = (InAxis == EGizmoDirection::Forward || InAxis == EGizmoDirection::Up);
+		}
+		else if (GizmoDirection == EGizmoDirection::YZ_Plane)
+		{
+			// YZ 평면: Y(Right, 초록) + Z(Up, 파랑)
+			bIsHighlight = (InAxis == EGizmoDirection::Right || InAxis == EGizmoDirection::Up);
+		}
+	}
 
 	if (bIsDragging && bIsHighlight)
 	{
@@ -1304,7 +1886,7 @@ float UGizmo::CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT&
 		return 1.0f;
 	}
 
-	float Scale = 1.0f;
+	float Scale;
 
 	if (CameraType == ECameraType::ECT_Perspective)
 	{
@@ -1323,10 +1905,7 @@ float UGizmo::CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT&
 
 		// 최소 거리 제한
 		constexpr float MinDepth = 1.0f;
-		if (ProjectedDepth < MinDepth)
-		{
-			ProjectedDepth = MinDepth;
-		}
+		ProjectedDepth = max(ProjectedDepth, MinDepth);
 
 		// Unreal Engine 공식:
 		// Scale = PixelSize * ProjectedDepth / (ProjYY * ViewportHeight * 0.5)
@@ -1370,7 +1949,7 @@ void UGizmo::CalculateQuarterRingDirections(UCamera* InCamera, EGizmoDirection I
 	}
 
 	const int Idx = AxisIndex(InAxis);
-	const FVector GizmoLoc = Primitives[(int)GizmoMode].Location;
+	const FVector GizmoLoc = Primitives[static_cast<int>(GizmoMode)].Location;
 	const FQuaternion GizmoRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
 	const FVector CameraLoc = InCamera->GetLocation();
 	const FVector DirectionToWidget = (GizmoLoc - CameraLoc).GetNormalized();
@@ -1479,7 +2058,7 @@ void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* I
 	GizmoScreenPos4 *= 1.0f / GizmoScreenPos4.W;
 	PointScreenPos4 *= 1.0f / PointScreenPos4.W;
 
-	// NDC → 스크린 좌표
+	// NDC -> 스크린 좌표
 	const FVector2 GizmoScreenPos(
 		(GizmoScreenPos4.X * 0.5f + 0.5f) * InViewport.Width + InViewport.TopLeftX,
 		((-GizmoScreenPos4.Y) * 0.5f + 0.5f) * InViewport.Height + InViewport.TopLeftY
@@ -1501,7 +2080,7 @@ void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* I
 
 	// 텍스트 위치 (뷰포트 크기 비례 원 바깥으로 추가 오프셋)
 	// 스크린 공간 원 반지름에 비례하는 오프셋 계산
-	const float ScreenRadiusRatio = 0.3f;
+	constexpr float ScreenRadiusRatio = 0.3f;
 	const float TextOffset = DistToPoint * ScreenRadiusRatio;
 	const float TextX = PointScreenPos.X + DirectionToPoint.X * TextOffset;
 	const float TextY = PointScreenPos.Y + DirectionToPoint.Y * TextOffset;
@@ -1537,40 +2116,3 @@ void UGizmo::CollectRotationAngleOverlay(FD2DOverlayManager& Manager, UCamera* I
 	const D2D1_COLOR_F ColorYellow = D2D1::ColorF(1.0f, 1.0f, 0.0f);
 	Manager.AddText(AngleText, TextRect, ColorYellow, 15.0f, true, true, L"Consolas");
 }
-
-/**
- * @brief 두 벡터 사이의 회전을 나타내는 쿼터니언을 계산 (Unreal Engine FQuat::FindBetween 동일)
- * @param From 시작 벡터
- * @param To 끝 벡터
- * @return From을 To로 회전시키는 쿼터니언
- */
-// static FQuaternion FindRotationBetween(FVector From, FVector To)
-// {
-// 	From.Normalize();
-// 	To.Normalize();
-//
-// 	const float Dot = From.Dot(To);
-//
-// 	// 두 벡터가 거의 평행한 경우
-// 	if (Dot > kDotProductParallelThreshold)
-// 	{
-// 		return FQuaternion::Identity();
-// 	}
-//
-// 	// 두 벡터가 거의 반대 방향인 경우
-// 	if (Dot < kDotProductOppositeThreshold)
-// 	{
-// 		FVector Axis = FVector::RightVector().Cross(From);
-// 		if (Axis.LengthSquared() < kAxisLengthSquaredEpsilon)
-// 		{
-// 			Axis = FVector::UpVector().Cross(From);
-// 		}
-// 		Axis.Normalize();
-// 		return FQuaternion::FromAxisAngle(Axis, 3.14159265f);
-// 	}
-//
-// 	FVector Axis = From.Cross(To);
-// 	Axis.Normalize();
-// 	const float Angle = std::acosf(Dot);
-// 	return FQuaternion::FromAxisAngle(Axis, Angle);
-// }

@@ -28,6 +28,8 @@ public:
 
 	const TArray<AActor*>& GetLevelActors() const { return LevelActors; }
 
+	void AddActorToLevel(AActor* InActor);
+
 	void AddLevelComponent(AActor* Actor);
 
 	void RegisterComponent(UActorComponent* InComponent);
@@ -69,6 +71,7 @@ private:
 	TArray<AActor*> ActorsToDelete;
 
 	uint64 ShowFlags =
+		static_cast<uint64>(EEngineShowFlags::SF_Billboard) |
 		static_cast<uint64>(EEngineShowFlags::SF_Bounds) |
 		static_cast<uint64>(EEngineShowFlags::SF_StaticMesh) |
 		static_cast<uint64>(EEngineShowFlags::SF_Text) |

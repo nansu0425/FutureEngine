@@ -177,6 +177,7 @@ enum class EEngineShowFlags : uint64
 	SF_FXAA = 1 << 5,
 	SF_Fog = 1 << 6,
 	SF_Octree = 1 << 7,
+	SF_UUID = 1 << 8,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

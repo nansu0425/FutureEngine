@@ -63,6 +63,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> PlayPIEIconSRV;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> PausePIEIconSRV;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> StopPIEIconSRV;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CascadeIconSRV;
 
     // pie
     EPIEUIState PIEUIState = EPIEUIState::Stopped;

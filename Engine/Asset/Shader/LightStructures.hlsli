@@ -32,13 +32,14 @@ struct FDirectionalLightInfo
     float Intensity;
 
     // Shadow parameters
-    row_major float4x4 LightViewProjection;
+    // row_major float4x4 LightViewProjection;
     uint CastShadow;           // 0 or 1
     uint ShadowModeIndex;
     float ShadowBias;
     float ShadowSlopeBias;
     float ShadowSharpen;
-    float3 Padding;
+    float Resolution;
+    float2 Padding;
 };
 
 struct FPointLightInfo
@@ -55,7 +56,7 @@ struct FPointLightInfo
     float ShadowBias;
     float ShadowSlopeBias;
     float ShadowSharpen;
-    float Padding;  // 4 bytes padding for 16-byte alignment (C++ FVector4 alignment)
+    float Resolution;
 };
 
 struct FSpotLightInfo
@@ -77,7 +78,8 @@ struct FSpotLightInfo
     float ShadowBias;
     float ShadowSlopeBias;
     float ShadowSharpen;
-    float3 Padding;
+    float Resolution;
+    float2 Padding;
 };
 
 struct FShadowAtlasTilePos

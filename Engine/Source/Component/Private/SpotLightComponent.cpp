@@ -83,13 +83,14 @@ FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
     Info.ShadowBias = GetShadowBias();
     Info.ShadowSlopeBias = GetShadowSlopeBias();
     Info.ShadowSharpen = GetShadowSharpen();
+    Info.Resolution = GetShadowResolutionScale();
 
     return Info;
 }
 
-void USpotLightComponent::EnsureVisualizationBillboard()
+void USpotLightComponent::EnsureVisualizationIcon()
 {
-    if (VisualizationBillboard)
+    if (VisualizationIcon)
     {
         return;
     }
@@ -109,17 +110,17 @@ void USpotLightComponent::EnsureVisualizationBillboard()
         }
     }
 
-    UBillBoardComponent* Billboard = OwnerActor->AddComponent<UBillBoardComponent>();
-    if (!Billboard)
+    UEditorIconComponent* Icon = OwnerActor->AddComponent<UEditorIconComponent>();
+    if (!Icon)
     {
         return;
     }
-    Billboard->AttachToComponent(this);
-    Billboard->SetIsVisualizationComponent(true);
-    Billboard->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightSpot.png"));
-    Billboard->SetRelativeScale3D(FVector(2.f,2.f,2.f));
-    Billboard->SetScreenSizeScaled(true);
+    Icon->AttachToComponent(this);
+    Icon->SetIsVisualizationComponent(true);
+    Icon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/S_LightSpot.png"));
+    Icon->SetRelativeScale3D(FVector(2.f,2.f,2.f));
+    Icon->SetScreenSizeScaled(true);
 
-    VisualizationBillboard = Billboard;
-    UpdateVisualizationBillboardTint();
+    VisualizationIcon = Icon;
+    UpdateVisualizationIconTint();
 }

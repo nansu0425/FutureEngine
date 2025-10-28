@@ -62,6 +62,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				SpawnActorToLevel(ActorClass, &ActorDataJson); 
 			}
 		}
+
+		// 뷰포트 카메라 정보 로드
+		UViewportManager::GetInstance().SerializeViewports(bInIsLoading, InOutHandle);
 	}
 	// 저장
 	else
@@ -79,6 +82,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			ActorsJson[std::to_string(Actor->GetUUID())] = ActorJson;
 		}
 		InOutHandle["Actors"] = ActorsJson;
+
+		// 뷰포트 카메라 정보 저장
+		UViewportManager::GetInstance().SerializeViewports(bInIsLoading, InOutHandle);
 	}
 }
 
@@ -100,7 +106,7 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, JSON* ActorJsonData)
 		return nullptr;
 	}
 
-	AActor* NewActor = Cast<AActor>(NewObject(InActorClass));
+	AActor* NewActor = Cast<AActor>(NewObject(InActorClass, this));
 	if (NewActor)
 	{
 		LevelActors.push_back(NewActor);
@@ -198,6 +204,16 @@ void ULevel::UnregisterComponent(UActorComponent* InComponent)
 	
 }
 
+void ULevel::AddActorToLevel(AActor* InActor)
+{
+	if (!InActor)
+	{
+		return;
+	}
+
+	LevelActors.push_back(InActor);
+}
+
 void ULevel::AddLevelComponent(AActor* Actor)
 {
 	if (!Actor)
@@ -269,7 +285,6 @@ bool ULevel::DestroyActor(AActor* InActor)
 	// Remove
 	SafeDelete(InActor);
 
-	UE_LOG("Level: Actor Destroyed Successfully");
 	return true;
 }
 

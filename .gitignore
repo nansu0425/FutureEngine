@@ -431,3 +431,6 @@ NUL
 # Rider
 .idea/
 *.objbin
+
+# Log
+Log/

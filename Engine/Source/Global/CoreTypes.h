@@ -135,13 +135,14 @@ struct FDirectionalLightInfo
 	float Intensity;
 
 	// Shadow parameters
-	FMatrix LightViewProjection;
+	// FMatrix LightViewProjection;
 	uint32 CastShadow;           // 0 or 1
 	uint32 ShadowModeIndex;
 	float ShadowBias;
 	float ShadowSlopeBias;
 	float ShadowSharpen;
-	FVector Padding;
+	float Resolution;
+	FVector2 Padding;
 };
 
 //StructuredBuffer: 16-byte alignment required (FVector4 alignment)
@@ -159,7 +160,7 @@ struct FPointLightInfo
 	float ShadowBias;
 	float ShadowSlopeBias;
 	float ShadowSharpen;
-	float Padding;  // 4 bytes padding to align to 64 bytes (16의 배수)
+	float Resolution;
 };
 
 //StructuredBuffer padding 없어도됨
@@ -185,7 +186,8 @@ struct FSpotLightInfo
 	float ShadowBias;
 	float ShadowSlopeBias;
 	float ShadowSharpen;
-	FVector Padding;
+	float Resolution;
+	FVector2 Padding;
 };
 
 struct FGlobalLightConstant
