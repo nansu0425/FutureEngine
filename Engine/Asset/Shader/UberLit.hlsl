@@ -185,7 +185,7 @@ StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : r
 
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
-// SamplerState VarianceShadowSampler : register(s2);
+SamplerState VarianceShadowSampler : register(s2);
 
 // Material flags
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
@@ -278,78 +278,9 @@ float3x3 Inverse3x3(float3x3 M)
     
     return inv;
 }
-
 /*-----------------------------------------------------------------------------
-    PCF (Percentage Closer Filtering)
+    CSM (Cascaded Shadow Map) 헬퍼 함수
  -----------------------------------------------------------------------------*/
-
-float CalculatePercentageCloserShadowFactor(
-    uint CastShadow,
-    float4x4 LightViewProjection,
-    float3 WorldPos,
-    float Resolution,
-    Texture2D AtlasTexture,
-    uint2 AtlasUV
-    )
-{
-    // If shadow is disabled, return fully lit (1.0)
-    if (CastShadow == 0)
-        return 1.0f;
-
-    // Transform world position to light space
-    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightViewProjection);
-
-    // Perspective divide (to NDC space)
-    LightSpacePos.xyz /= LightSpacePos.w;
-
-    // Check if position is outside light frustum
-    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
-        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
-        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
-    {
-        return 1.0f; // Outside shadow map, assume lit
-    }
-
-    // Convert NDC to texture coordinates ([-1,1] -> [0,1])
-    float2 ShadowTexCoord;
-    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
-    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
-
-    // Current pixel depth in light space
-    float CurrentDepth = LightSpacePos.z;
-
-    // PCF (Percentage Closer Filtering) for soft shadows
-    float ShadowFactor = 0.0f;
-
-    // 3x3 PCF kernel
-    [unroll]
-    for (int x = -1; x <= 1; x++)
-    {
-        [unroll]
-        for (int y = -1; y <= 1; y++)
-        {
-            float TexelSize = 1.0f / Resolution;
-            float2 Offset = float2(x, y) * TexelSize;
-
-            // 현재는 Directional Light가 한장이라고 가정하여
-            // Shadow Atlas의 우측 상단을 가져온다고 가정
-            // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
-            // 별도로 위치를 지정해야 함.
-            float2 AtlasTexcoord =
-                (ShadowTexCoord + Offset) * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
-            
-            ShadowFactor += AtlasTexture.SampleCmpLevelZero(
-                ShadowSampler,
-                AtlasTexcoord,
-                CurrentDepth
-            );
-        }
-    }
-
-    ShadowFactor /= 9.0f; // Average of 9 samples
-
-    return ShadowFactor;
-}
 
 float GetCameraViewZ(float3 WorldPos)
 {
@@ -369,73 +300,208 @@ uint GetCascadeSubFrustumNum(float CameraViewZ)
     return SubFrustumNum;
 }
 
-// Shadow Calculation Functions
-float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+/*-----------------------------------------------------------------------------
+    PCF (Percentage Closer Filtering)
+ -----------------------------------------------------------------------------*/
+
+// --- PCF 헬퍼 함수 ---
+
+/**
+ * @brief 지정된 좌표와 깊이를 사용하여 섀도우 아틀라스에서 PCF 샘플링을 수행한다.
+ * @param ShadowTexCoord 타일 내의 로컬 UV 좌표 (0.0 ~ 1.0)
+ * @param CurrentDepth 픽셀의 비교 대상 깊이 값
+ * @param Resolution 섀도우 맵 타일의 해상도 (e.g., 1024.0)
+ * @param FilterRadius PCF 필터 반경 (1이면 3x3, 2이면 5x5)
+ * @param AtlasTexture 전체 섀도우 아틀라스 텍스처
+ * @param AtlasUV 이 타일의 아틀라스 내 그리드 좌표 (e.g., [0, 1])
+ * @return 계산된 그림자 값 (0.0 = In Shadow, 1.0 = Lit)
+ */
+float PerformPCF(
+    float2 ShadowTexCoord,
+    float CurrentDepth,
+    float Resolution,
+    int FilterRadius,
+    Texture2D AtlasTexture,
+    uint2 AtlasUV
+)
 {
-    float CameraViewZ = GetCameraViewZ(WorldPos);
-    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
+    float ShadowFactor = 0.0f;
 
-    float ShadowFactorFromSubFrustum =
-        CalculatePercentageCloserShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum]),
-            WorldPos,
-            Light.Resolution,
-            ShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
-        );
-
-    // 첫번째 SubFrustum이면 그대로 값을 반환
-    if (SubFrustumNum == 0)
-        return ShadowFactorFromSubFrustum;
-
-    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
-    
-    if (CameraViewZ <= OverlappedSectionMax)
+    float2 AtlasTileOrigin = float2(AtlasUV) * ATLASGRIDSIZE;
+    for (int X = -FilterRadius; X <= FilterRadius; ++X)
     {
-        float ShadowFactorFromSubFrustum2 =
-        CalculatePercentageCloserShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
-            WorldPos,
-            Light.Resolution,
-            ShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
-        );
+        for (int Y = -FilterRadius; Y <= FilterRadius; ++Y)
+        {
+            float2 Offset = float2(X, Y) * (1.0f / Resolution);
+            float2 LocalUV = saturate(ShadowTexCoord + Offset);
+            float2 AtlasTexCoord = AtlasTileOrigin + (LocalUV * GET_TILE_SIZE(Resolution));
 
-        float t = (CameraViewZ - OverlappedSectionMin) /
-            (OverlappedSectionMax - OverlappedSectionMin);
+            ShadowFactor += AtlasTexture.SampleCmpLevelZero(
+                ShadowSampler,
+                AtlasTexCoord,
+                CurrentDepth
+            );
+        }
+    }
 
-        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
-    }
-    else
-    {
-        return ShadowFactorFromSubFrustum;
-    }
+    float SideLengths = 2 * FilterRadius + 1;
+    return ShadowFactor / (SideLengths * SideLengths);
 }
 
-float CalculateSpotShadowFactor(
-    FSpotLightInfo Light,
-    uint LightIndex,
-    float3 WorldPos
-    )
+/**
+ * @brief (Directional Light / CSM용)
+ * 특정 LightViewProjection 행렬을 사용하여 월드 좌표의 그림자 값을 계산한다.
+ * 이 함수는 내부적으로 PerformPCF를 호출한다.
+ */
+float CalculatePCFFactor(
+    float4x4 LightViewProjection,
+    float3 WorldPos,
+    float Resolution,
+    int FilterRadius,
+    Texture2D AtlasTexture,
+    uint2 AtlasUV
+)
 {
-    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
-    if (LightIndex >= MAX_SPOTLIGHT_NUM)
+    // --- 1. Light Space 위치 계산 ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
+        LightSpacePos.z <  0.0f || LightSpacePos.z > 1.0f)
     {
         return 1.0f;
     }
 
-    return CalculatePercentageCloserShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        Light.Resolution,
+    // --- 2. 쉐도우 맵 UV 계산 ---
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f;
+
+    // --- 3. 깊이 계산 (Directional Light는 Orthographic 투영이므로 Z값 그대로 사용)
+    float CurrentDepth = LightSpacePos.z;
+
+    // --- 4. PCF 함수 호출 ---
+    return PerformPCF(
+        ShadowTexCoord,
+        CurrentDepth,
+        Resolution,
+        FilterRadius,
+        AtlasTexture,
+        AtlasUV
+    ); 
+}
+
+// --- PCF Directional Light ---
+
+float CalculateDirectionalPCFFactor(
+    FDirectionalLightInfo LightInfo,
+    float3 WorldPos,
+    int FilterRadius
+)
+{
+    // --- 1. 유효성 검사 ---
+    if (LightInfo.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+    
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
+
+    // --- 2. 현재 SubFrustum 그림자 값 계산 ---
+    float PCFFactorFromSubfrustum =
+        CalculatePCFFactor(
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            LightInfo.Resolution,
+            FilterRadius,
+            ShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        );
+
+    // 첫번째 SubFrustum이면 블렌딩 없음
+    if (SubFrustumNum == 0)
+    {
+        return PCFFactorFromSubfrustum;
+    }
+
+    // --- 3. SubFrustum 블렌딩 ---
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float PCFFactorFromPrevSubFrustum =
+            CalculatePCFFactor(
+                mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+                WorldPos,
+                LightInfo.Resolution,
+                FilterRadius,
+                ShadowAtlas,
+                ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
+            );
+
+        float LerpFactor = saturate((CameraViewZ - OverlappedSectionMin)
+            / (OverlappedSectionMax - OverlappedSectionMin));
+
+        return lerp(PCFFactorFromPrevSubFrustum, PCFFactorFromSubfrustum, LerpFactor);
+    }
+    else
+    {
+        return PCFFactorFromSubfrustum;     
+    }
+}
+
+// --- PCF Spotlight ---
+
+float CalculateSpotPCFFactor(
+    FSpotLightInfo LightInfo,
+    uint LightIndex,
+    float3 WorldPos,
+    int FilterRadius
+)
+{
+    // --- 1. 유효성 검사 ---
+    if (LightInfo.CastShadow == 0 || LightIndex >= MAX_SPOTLIGHT_NUM)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 깊이 계산 (Spotlight는 선형 깊이 사용) ---
+    float Distance = length(WorldPos - LightInfo.Position);
+    if (Distance < 1e-6 || Distance > LightInfo.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+    float CurrentDepth = Distance / LightInfo.Range;
+
+    // --- 2. 쉐도우 맵 UV 좌표 계산 ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightInfo.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        return 1.0f;
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f;
+
+    // --- 3. PCF 함수 호출 ---
+    return PerformPCF(
+        ShadowTexCoord,
+        CurrentDepth,
+        LightInfo.Resolution,
+        FilterRadius,
         ShadowAtlas,
         ShadowAtlasSpotLightTilePos[LightIndex].UV
     );
 }
+
+// --- PCF Point Light ---
 
 // Point Light PCF (Percentage Closer Filtering) Sample Offsets
 // 20 samples in 3D space for soft shadows on cube maps
@@ -545,7 +611,11 @@ float2 GetPointLightShadowMapUVWithDirection(
     return AtlasUV;
 }
 
-float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 WorldPos)
+float CalculatePointPCFFactor(
+    FPointLightInfo Light,
+    uint LightIndex,
+    float3 WorldPos
+)
 {
     // If shadow is disabled, return fully lit (1.0)
     if (Light.CastShadow == 0)
@@ -609,9 +679,11 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
     VSM (Variance Shadow Map) Filtering
  -----------------------------------------------------------------------------*/
 
+// --- VSM 헬퍼 함수 ---
+
 /**
  * @brief VSM/SAVSM 공통 계산: 체비쇼프 부등식을 사용하여 그림자 인자를 계산합니다.
- * @param CurrentDepth 픽셀의 현재 깊이 (라이트 공간)
+ * @param CurrentDepth 픽셀의 현재 깊이 
  * @param Moments 샘플링된 모멘트 (float2(E(X), E(X^2)))
  * @return float ShadowFactor (0.0 = shadowed, 1.0 = lit)
  */
@@ -639,117 +711,195 @@ float CalculateChebyshevShadowFactor(float CurrentDepth, float2 Moments)
     // P_max
     float ShadowFactor = Variance / (Variance + Difference * Difference);
 
-    return saturate(ShadowFactor); 
+    float ShadowExponent = 4.0f;
+    return pow(saturate(ShadowFactor), ShadowExponent); 
 }
 
-float CalculateVarianceShadowFactor(
-    uint CastShadow,
+/**
+ * @brief (Directional / CSM 전용) 
+ * 표준 투영 깊이(LightSpacePos.z)를 사용하여 VSM을 계산한다.
+ */
+float CalculateVSMFactor(
     float4x4 LightViewProjection,
     float3 WorldPos,
+    float Resolution,
     Texture2D AtlasTexture,
-    uint2 AtlasUV,
-    float Resolution
-    )
+    uint2 AtlasUV
+)
 {
-    // If shadow is disabled, return fully lit (1.0)
-    if (CastShadow == 0)
-    {
-        return 1.0f;
-    }
-
-    // --- 1. 월드 -> 라이트 공간 -> UV 변환 ---
+    // --- 1. Light Space 위치 계산 ---
     float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightViewProjection);
     LightSpacePos.xyz /= LightSpacePos.w;
 
     if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
         LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
-        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
-    {
-        return 1.0f; // Outside shadow map, assume lit
-    }
-
-    float2 ShadowTexCoord;
-    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
-    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
-
-    float2 AtlasTexCoord = ShadowTexCoord * GET_TILE_SIZE(Resolution);
-    AtlasTexCoord += ATLASGRIDSIZE * AtlasUV;
-
-    float CurrentDepth = LightSpacePos.z;
-
-    // --- 2. VSM 샘플링 ---
-    float2 Moments = AtlasTexture.Sample(SamplerWrap, AtlasTexCoord);
-
-    // --- 3. 공통 체비쇼프 계산 ---
-    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
-}
-
-float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
-{
-    float CameraViewZ = GetCameraViewZ(WorldPos);
-    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
-
-    float ShadowFactorFromSubFrustum =
-        CalculateVarianceShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum]),
-            WorldPos,
-            VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-            Light.Resolution
-        );
-
-    // 첫번째 SubFrustum이면 그대로 값을 반환
-    if (SubFrustumNum == 0)
-        return ShadowFactorFromSubFrustum;
-
-    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
-    
-    if (CameraViewZ <= OverlappedSectionMax)
-    {
-        float ShadowFactorFromSubFrustum2 =
-        CalculateVarianceShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
-            WorldPos,
-            VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-            Light.Resolution
-        );
-
-        float t = (CameraViewZ - OverlappedSectionMin) /
-            (OverlappedSectionMax - OverlappedSectionMin);
-
-        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
-    }
-    else
-    {
-        return ShadowFactorFromSubFrustum;
-    }
-}
-
-float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
-{
-    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
-    if (LightIndex >= MAX_SPOTLIGHT_NUM)
+        LightSpacePos.z <  0.0f || LightSpacePos.z > 1.0f)
     {
         return 1.0f;
     }
 
-    return CalculateVarianceShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV,
-        Light.Resolution
-    );
+    // --- 2. 쉐도우 맵 UV 계산 ---
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f;
+
+    float2 AtlasTileOrigin = float2(AtlasUV) * ATLASGRIDSIZE;
+    float2 AtlasTexCoord = AtlasTileOrigin + (ShadowTexCoord * GET_TILE_SIZE(Resolution));
+
+    // --- 3. 깊이 계산 (Directional Light는 Orthographic 투영이므로 Z값 그대로 사용)
+    float CurrentDepth = LightSpacePos.z;
+
+    // --- 4. VSM 샘플링 및 체비쇼프 부등식 계산 ---
+    float2 Moments = AtlasTexture.Sample(VarianceShadowSampler, AtlasTexCoord);
+
+    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
+}
+
+// --- VSM Directional Light ---
+
+float CalculateDirectionalVSMFactor(
+    FDirectionalLightInfo LightInfo,
+    float3 WorldPos
+)
+{
+    // --- 1. 유효성 검사 ---
+    if (LightInfo.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+    
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
+
+    // --- 2. 현재 SubFrustum 그림자 값 계산 ---
+    float VSMFactorFromSubfrustum =
+        CalculateVSMFactor(
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            LightInfo.Resolution,
+            ShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        );
+
+    // 첫번째 SubFrustum이면 블렌딩 없음
+    if (SubFrustumNum == 0)
+    {
+        return VSMFactorFromSubfrustum;
+    }
+
+    // --- 3. SubFrustum 블렌딩 ---
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float VSMFactorFromPrevSubFrustum =
+            CalculateVSMFactor(
+                mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+                WorldPos,
+                LightInfo.Resolution,
+                ShadowAtlas,
+                ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
+            );
+
+        float LerpFactor = saturate((CameraViewZ - OverlappedSectionMin)
+            / (OverlappedSectionMax - OverlappedSectionMin));
+
+        return lerp(VSMFactorFromPrevSubFrustum, VSMFactorFromSubfrustum, LerpFactor);
+    }
+    else
+    {
+        return VSMFactorFromSubfrustum;     
+    }
+}
+
+// --- VSM Spotlight ---
+
+float CalculateSpotVSMFactor(
+    FSpotLightInfo LightInfo,
+    uint LightIndex,
+    float3 WorldPos
+)
+{
+    // --- 1. 기본 유효성 검사 ---
+    if (LightInfo.CastShadow == 0 || LightIndex >= MAX_SPOTLIGHT_NUM)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 깊이 계산 (Spot Light는 선형 깊이 사용) ---
+    float Distance = length(WorldPos - LightInfo.Position);
+    if (Distance < 1e-6 || Distance > LightInfo.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+    float CurrentDepth = Distance / LightInfo.Range; 
+
+    // --- 3. 쉐도우 맵 UV 좌표 계산 ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightInfo.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        return 1.0f; 
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; 
+
+    // UV 계산 통일
+    uint2 AtlasUV = ShadowAtlasSpotLightTilePos[LightIndex].UV;
+    float2 AtlasTileOrigin = float2(AtlasUV) * ATLASGRIDSIZE;
+    float2 AtlasTexCoord = AtlasTileOrigin + (ShadowTexCoord * GET_TILE_SIZE(LightInfo.Resolution));
+
+    // --- 4. VSM 샘플링 ---
+    float2 Moments = VarianceShadowAtlas.Sample(VarianceShadowSampler, AtlasTexCoord);
+
+    // --- 5. 공통 체비셰프 계산 (선형 깊이[CurrentDepth] 사용) ---
+    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);    
+}
+
+// --- VSM Point light ---
+float CalculatePointVSMFactor(
+    FPointLightInfo LightInfo,
+    uint LightIndex,
+    float3 WorldPos
+)
+{
+    // --- 1. 기본 유효성 검사 ---
+    if (LightInfo.CastShadow == 0 || LightIndex >= MAX_POINT_LIGHT_NUM)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 깊이 계산 (Point light는 선형 깊이 사용) ---
+    float3 LightToPixel = WorldPos - LightInfo.Position;
+    float Distance = length(WorldPos - LightInfo.Position);
+    if (Distance < 1e-6 || Distance > LightInfo.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+    float CurrentDepth = Distance / LightInfo.Range;
+
+    // --- 3. VSM에 필요한 값 계산 ---
+    float3 SampleDir = LightToPixel / Distance;
+
+    // --- 4. 아틀라스 UV 좌표 계산 ---
+    float2 AtlasTexCoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex, LightInfo.Resolution);
+
+    // --- 5. VSM 모멘트 샘플링 및 체비쇼프 부등식 계산 ---
+    float2 Moments = VarianceShadowAtlas.Sample(VarianceShadowSampler, AtlasTexCoord);
+
+    return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
 }
 
 /*-----------------------------------------------------------------------------
     SAVSM (Summed Area Variance Shadow Map) Filtering
  -----------------------------------------------------------------------------*/
+
+// --- SAVSM 헬퍼 함수 ---
 
 /**
  * @brief Summed Area Table(SAT)을 쿼리하여 사각 영역의 평균 모멘트를 계산합니다.
@@ -757,7 +907,7 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
  * @param AtlasUV Atlas의 인덱스 (UV 좌표 아님) 
  * @param CenterUV 필터링할 영역의 중심 UV 좌표
  * @param FilterRadiusUV 필터링할 영역의 반지름 (UV 공간)
- * @param TexelSize 텍스처 1픽셀의 UV 크기 (1.0f / 텍스처 크기)
+ * @param Resolution 필터링할 텍스쳐 영역의 해상도
  * @return float2(Average E(X), Average E(X^2))
  */
 float2 SampleSummedAreaVarianceShadowMap(
@@ -768,14 +918,14 @@ float2 SampleSummedAreaVarianceShadowMap(
     float Resolution
     )
 {
-    // 1. 필터링할 영역의 사각 경계(UV)를 계산
+    // --- 1. 필터링할 영역의 사각 경계(UV)를 계산 ---
     float2 UV_TopRight = CenterUV + FilterRadiusUV;
     float2 UV_BottomLeft = CenterUV - FilterRadiusUV;
 
     // 텍스처 크기 및 텍셀 크기 계산
     float2 TexelSize = float2(1.0f / Resolution, 1.0f / Resolution);
     
-    // 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산
+    // --- 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산 ---
     // SAT(x, y) = [0, 0]부터 [x, y]까지의 합
     float2 UV_A = float2(UV_BottomLeft.x - TexelSize.x, UV_BottomLeft.y - TexelSize.y); // A = (x1 -1, y1 -1)
     float2 UV_B = float2(UV_TopRight.x, UV_BottomLeft.y - TexelSize.y);                 // B = (x2, y1 - 1)
@@ -787,18 +937,17 @@ float2 SampleSummedAreaVarianceShadowMap(
     float2 AtlasUV_C = UV_C * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
     float2 AtlasUV_D = UV_D * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
 
-    // 3. SAT 텍스쳐 샘플링
-    // TODO: SamplerClamp 또는 SamplerBorder 대체
-    float2 Moments_A = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_A, 0);
-    float2 Moments_B = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_B, 0);
-    float2 Moments_C = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_C, 0);
-    float2 Moments_D = AtlasTexture.SampleLevel(SamplerWrap, AtlasUV_D, 0);
+    // --- 3. SAT 텍스쳐 샘플링 ---
+    float2 Moments_A = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_A, 0);
+    float2 Moments_B = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_B, 0);
+    float2 Moments_C = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_C, 0);
+    float2 Moments_D = AtlasTexture.SampleLevel(VarianceShadowSampler, AtlasUV_D, 0);
 
-    // 4. 포함-배제 원칙 (Inclusion-Exclusion)
+    // --- 4. 포함-배제 원칙 (Inclusion-Exclusion) ---
     float2 SummedMoments = Moments_D - Moments_B - Moments_C + Moments_A;
 
-    // 5. 필터 영역의 넓이를 계산 (UV 공간 -> 픽셀 공간)
-    // 필터 반경 R인 커널은 (2R+1) x (2R+1) 크기를 가집니다.
+    // --- 5. 필터 영역의 넓이를 계산 (UV 공간 -> 픽셀 공간) ---
+    // 필터 반경 R인 커널은 (2R+1) x (2R+1) 크기를 가짐
     float2 SideLengths = (FilterRadiusUV / TexelSize) * 2.0f + 1.0f;
     float FilterArea = SideLengths.x * SideLengths.y;
 
@@ -807,124 +956,172 @@ float2 SampleSummedAreaVarianceShadowMap(
         FilterArea = 1.0f; // 0으로 나누는 것을 방지
     }
 
-    // 6. 합계를 넓이로 나누어 평균 모멘트 계산
+    // --- 6. 합계를 넓이로 나누어 평균 모멘트 계산 ---
     return SummedMoments / FilterArea;
 }
 
-float CalculateSummedAreaVarianceShadowFactor(
-    uint CastShadow,
+/**
+ * @brief (Directional / CSM 전용 헬퍼 함수)
+ * 표준 투영 깊이(LightSpacePos.z)를 사용하여 SAVSM을 계산한다.
+ */
+float CalculateSAVSMFactor(
     float4x4 LightViewProjection,
     float3 WorldPos,
+    float Resolution,
+    float FilterRadiusPixels,
     Texture2D AtlasTexture,
-    uint2 AtlasUV,
-    float Resolution
-    )
+    uint2 AtlasUV
+)
 {
-    // If shadow is disabled, return fully lit (1.0)
-    if (CastShadow == 0)
-    {
-        return 1.0f;
-    }
-
-    // --- 1. 월드 -> 라이트 공간 -> UV 변환 (VSM과 동일) ---
+    // --- 1. Light Space 위치 계산 ---
     float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightViewProjection);
     LightSpacePos.xyz /= LightSpacePos.w;
 
     if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
         LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f ||
-        LightSpacePos.z < 0.0f || LightSpacePos.z > 1.0f)
-    {
-        return 1.0f; // Outside shadow map, assume lit
-    }
-
-    float2 ShadowTexCoord;
-    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
-    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y
-
-    float CurrentDepth = LightSpacePos.z;
-
-    // --- 2. SAVSM 샘플링 ---
-    
-    // 텍스처 크기 및 텍셀 크기 계산
-    float2 TexelSize = float2(1.0f / Resolution, 1.0f / Resolution);
-
-    // 필터 커널 크기 정의 (예: 4x4 픽셀 반경)
-    float KernelRadiusPixels = 4.0f;
-    float2 FilterRadiusUV = KernelRadiusPixels * TexelSize;
-
-    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(
-        AtlasTexture,
-        AtlasUV,
-        ShadowTexCoord,
-        FilterRadiusUV,
-        Resolution
-    );
-
-    // --- 3. 공통 체비쇼프 계산 ---
-    return CalculateChebyshevShadowFactor(CurrentDepth, AverageMoments);
-}
-
-float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
-{
-    float CameraViewZ = GetCameraViewZ(WorldPos);
-    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
-
-    float ShadowFactorFromSubFrustum =
-        CalculateSummedAreaVarianceShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum]),
-            WorldPos,
-            VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-            Light.Resolution
-        );
-
-    // 첫번째 SubFrustum이면 그대로 값을 반환
-    if (SubFrustumNum == 0)
-        return ShadowFactorFromSubFrustum;
-
-    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
-    
-    if (CameraViewZ <= OverlappedSectionMax)
-    {
-        float ShadowFactorFromSubFrustum2 =
-        CalculateSummedAreaVarianceShadowFactor(
-            Light.CastShadow,
-            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
-            WorldPos,
-            VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-            Light.Resolution
-        );
-
-        float t = (CameraViewZ - OverlappedSectionMin) /
-            (OverlappedSectionMax - OverlappedSectionMin);
-
-        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
-    }
-    else
-    {
-        return ShadowFactorFromSubFrustum;
-    }
-}
-
-float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
-{
-    // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
-    if (LightIndex >= MAX_SPOTLIGHT_NUM)
+        LightSpacePos.z <  0.0f || LightSpacePos.z > 1.0f)
     {
         return 1.0f;
     }
 
-    return CalculateSummedAreaVarianceShadowFactor(
-        Light.CastShadow,
-        Light.LightViewProjection,
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV,
-        Light.Resolution
+    // --- 2. 쉐도우 맵 UV 계산 ---
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f;
+
+    // --- 3. 깊이 계산 ---
+    float CurrentDepth = LightSpacePos.z;
+
+    // --- 4. SAVSM 샘플링 및 체비쇼프 부등식 계산 ---
+    
+    // 텍셀 크기 및 필터 반경(UV) 계산
+    float2 TexelSize = float2(1.0f / Resolution, 1.0f / Resolution);
+    float2 FilterRadiusUV = FilterRadiusPixels * TexelSize;
+
+    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(
+        AtlasTexture,
+        AtlasUV,
+        ShadowTexCoord, 
+        FilterRadiusUV,
+        Resolution
     );
+
+    return CalculateChebyshevShadowFactor(CurrentDepth, AverageMoments); 
+}
+
+// --- SAVSM Directional Light ---
+
+float CalculateDirectionalSAVSMFactor(
+    FDirectionalLightInfo LightInfo,
+    float3 WorldPos,
+    float FilterRadiusPixels
+)
+{
+    // --- 1. 유효성 검사 ---
+    if (LightInfo.CastShadow == 0)
+    {
+        return 1.0f;
+    }
+    
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
+
+    // --- 2. 현재 SubFrustum 그림자 값 계산 ---
+    float SAVSMFactorFromSubfrustum =
+        CalculateSAVSMFactor( // SAVSM 헬퍼 함수 호출
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            LightInfo.Resolution,
+            FilterRadiusPixels,
+            VarianceShadowAtlas, 
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        );
+
+    // 첫번째 SubFrustum이면 블렌딩 없음
+    if (SubFrustumNum == 0)
+    {
+        return SAVSMFactorFromSubfrustum;
+    }
+
+    // --- 3. SubFrustum 블렌딩 ---
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float SAVSMFactorFromPrevSubFrustum =
+            CalculateSAVSMFactor( // SAVSM 헬퍼 함수 호출
+                mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+                WorldPos,
+                LightInfo.Resolution,
+                FilterRadiusPixels, 
+                VarianceShadowAtlas, 
+                ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
+            );
+
+        float LerpFactor = saturate((CameraViewZ - OverlappedSectionMin)
+            / (OverlappedSectionMax - OverlappedSectionMin));
+
+        return lerp(SAVSMFactorFromPrevSubFrustum, SAVSMFactorFromSubfrustum, LerpFactor);
+    }
+    else
+    {
+        return SAVSMFactorFromSubfrustum;     
+    }
+}
+
+// --- SAVSM Spot Light ---
+
+float CalculateSpotSAVSMFactor(
+    FSpotLightInfo LightInfo, 
+    uint LightIndex, 
+    float3 WorldPos,
+    float FilterRadiusPixels // 동적 필터 크기
+)
+{
+    // --- 1. 기본 유효성 검사 ---
+    if (LightInfo.CastShadow == 0 || LightIndex >= MAX_SPOTLIGHT_NUM)
+    {
+        return 1.0f;
+    }
+
+    // --- 2. 깊이 계산 (Spot Light는 선형 깊이 사용) ---
+    float Distance = length(WorldPos - LightInfo.Position);
+    if (Distance < 1e-6 || Distance > LightInfo.Range)
+    {
+        return 1.0f; // 라이트 범위 밖
+    }
+    float CurrentDepth = Distance / LightInfo.Range; 
+
+    // --- 3. 섀도우 맵 UV 좌표 계산 ---
+    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), LightInfo.LightViewProjection);
+    LightSpacePos.xyz /= LightSpacePos.w;
+
+    if (LightSpacePos.x < -1.0f || LightSpacePos.x > 1.0f ||
+        LightSpacePos.y < -1.0f || LightSpacePos.y > 1.0f)
+    {
+        return 1.0f; 
+    }
+
+    float2 ShadowTexCoord;
+    ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
+    ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; 
+
+    // --- 4. SAVSM 샘플링 ---
+    float2 TexelSize = float2(1.0f / LightInfo.Resolution, 1.0f / LightInfo.Resolution);
+    float2 FilterRadiusUV = FilterRadiusPixels * TexelSize;
+    uint2 AtlasUV = ShadowAtlasSpotLightTilePos[LightIndex].UV;
+
+    float2 AverageMoments = SampleSummedAreaVarianceShadowMap(
+        VarianceShadowAtlas, 
+        AtlasUV,
+        ShadowTexCoord,
+        FilterRadiusUV,
+        LightInfo.Resolution
+    );
+
+    // --- 5. 공통 체비쇼프 계산 (선형 깊이 사용) ---
+    return CalculateChebyshevShadowFactor(CurrentDepth, AverageMoments);
 }
 
 /*-----------------------------------------------------------------------------
@@ -949,17 +1146,21 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
     float ShadowFactor = 1.0f;
-    if (Info.ShadowModeIndex == SMI_PCF)
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
     {
-        ShadowFactor = CalculateDirectionalShadowFactor(Info, WorldPos);
+        ShadowFactor = CalculateDirectionalPCFFactor(Info, WorldPos, 0); 
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateDirectionalPCFFactor(Info, WorldPos, 1);
     }
     else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
     {
-        ShadowFactor = CalculateDirectionalVarianceShadowFactor(Info, WorldPos);
+        ShadowFactor = CalculateDirectionalVSMFactor(Info, WorldPos);
     }
     else if (Info.ShadowModeIndex == SMI_SAVSM)
     {
-        ShadowFactor = CalculateDirectionalSummedAreaVarianceShadowFactor(Info, WorldPos);
+        ShadowFactor = CalculateDirectionalSAVSMFactor(Info, WorldPos, 4.0f);
     }
 
     // diffuse illumination (affected by shadow)
@@ -996,7 +1197,19 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
     float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
 
     // Calculate shadow factor (0 = shadow, 1 = lit)
-    float ShadowFactor = CalculatePointShadowFactor(Info, LightIndex, WorldPos);
+    float ShadowFactor = 1.0f;
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
+    {
+        ShadowFactor = CalculatePointPCFFactor(Info, WorldPos, 0);
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculatePointPCFFactor(Info, WorldPos, 1);
+    }
+    else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
+    {
+        ShadowFactor = CalculatePointVSMFactor(Info, LightIndex, WorldPos);
+    }
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * ShadowFactor;
@@ -1052,17 +1265,21 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
 
     // Shadow factor
     float ShadowFactor = 1.0f;
-    if (Info.ShadowModeIndex == SMI_PCF)
+    if (Info.ShadowModeIndex == SMI_UnFiltered)
     {
-        ShadowFactor = CalculateSpotShadowFactor(Info, LightIndex, WorldPos);
+        ShadowFactor = CalculateSpotPCFFactor(Info, LightIndex, WorldPos, 0);
+    }
+    else if (Info.ShadowModeIndex == SMI_PCF)
+    {
+        ShadowFactor = CalculateSpotPCFFactor(Info, LightIndex, WorldPos, 1);
     }
     else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
     {
-        ShadowFactor = CalculateSpotVarianceShadowFactor(Info, LightIndex, WorldPos);
+        ShadowFactor = CalculateSpotVSMFactor(Info, LightIndex, WorldPos);
     }
     else if (Info.ShadowModeIndex == SMI_SAVSM)
     {
-        ShadowFactor = CalculateSpotSummedAreaVarianceShadowFactor(Info, LightIndex, WorldPos);
+        ShadowFactor = CalculateSpotSAVSMFactor(Info, LightIndex, WorldPos, 4.0f);
     }
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
