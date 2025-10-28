@@ -8,6 +8,7 @@
 #include "Actor/Public/Actor.h"
 #include "Editor/Public/Editor.h"
 #include "Global/Quaternion.h"
+#include "Render/HitProxy/Public/HitProxy.h"
 
 IMPLEMENT_CLASS(UGizmo, UObject)
 
@@ -572,7 +573,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	FQuaternion AxisRots[3] = {
 		FQuaternion::Identity(),  // X링: YZ 평면
 		FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f)),  // Y링: XZ 평면
-		FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면
+		FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면 - Right(Y)축 기준 90도로 X→Z
 	};
 
 	// 오쏘 뷰에서 World 모드일 때 어떤 축을 표시할지 결정
@@ -1786,7 +1787,7 @@ void UGizmo::RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuatern
 	FQuaternion AxisRots[3] = {
 		FQuaternion::Identity(),  // X링: YZ 평면
 		FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f)),  // Y링: XZ 평면
-		FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면
+		FQuaternion::FromAxisAngle(FVector::ForwardVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면
 	};
 
 	if (bIsOrtho && bIsWorld)
@@ -1843,5 +1844,224 @@ void UGizmo::RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuatern
 
 		TempVB->Release();
 		TempIB->Release();
+	}
+}
+
+void UGizmo::RenderForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+{
+	if (!TargetComponent || !InCamera)
+	{
+		return;
+	}
+
+	// Scale uniformly in screen space
+	const float RenderScale = CalculateScreenSpaceScale(InCamera, InViewport, 120.0f);
+
+	URenderer& Renderer = URenderer::GetInstance();
+	FHitProxyManager& HitProxyManager = FHitProxyManager::GetInstance();
+
+	const int Mode = static_cast<int>(GizmoMode);
+	auto& P = Primitives[Mode];
+	P.Location = TargetComponent->GetWorldLocation();
+	P.Scale = FVector(RenderScale, RenderScale, RenderScale);
+
+	// Determine gizmo base rotation
+	FQuaternion BaseRot;
+	if (GizmoMode == EGizmoMode::Rotate && !bIsWorld && bIsDragging)
+	{
+		BaseRot = DragStartActorRotationQuat;
+	}
+	else if (GizmoMode == EGizmoMode::Scale)
+	{
+		BaseRot = TargetComponent->GetWorldRotationAsQuaternion();
+	}
+	else
+	{
+		BaseRot = bIsWorld ? FQuaternion::Identity() : TargetComponent->GetWorldRotationAsQuaternion();
+	}
+
+	bool bIsRotateMode = (GizmoMode == EGizmoMode::Rotate);
+
+	FQuaternion AxisRots[3];
+	if (bIsRotateMode)
+	{
+		// Rotation mode
+		AxisRots[0] = FQuaternion::Identity();
+		AxisRots[1] = FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f));
+		AxisRots[2] = FQuaternion::FromAxisAngle(FVector::ForwardVector(), FVector::GetDegreeToRadian(90.0f));
+	}
+	else
+	{
+		// Translation/Scale mode
+		AxisRots[0] = FQuaternion::Identity();
+		AxisRots[1] = FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f));
+		AxisRots[2] = FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f));
+	}
+	const bool bIsOrtho = (InCamera->GetCameraType() == ECameraType::ECT_Orthographic);
+
+	// Orthographic rotation axis determination
+	EGizmoDirection OrthoWorldAxis = EGizmoDirection::None;
+	if (bIsOrtho && bIsWorld && bIsRotateMode)
+	{
+		const FVector CamForward = InCamera->GetForward();
+		const float AbsX = abs(CamForward.X);
+		const float AbsY = abs(CamForward.Y);
+		const float AbsZ = abs(CamForward.Z);
+
+		if (AbsZ > AbsX && AbsZ > AbsY)
+		{
+			OrthoWorldAxis = EGizmoDirection::Up;
+		}
+		else if (AbsY > AbsX && AbsY > AbsZ)
+		{
+			OrthoWorldAxis = EGizmoDirection::Right;
+		}
+		else
+		{
+			OrthoWorldAxis = EGizmoDirection::Forward;
+		}
+	}
+
+	bool bShowX = !bIsDragging || !bIsRotateMode || GizmoDirection == EGizmoDirection::Forward;
+	bool bShowY = !bIsDragging || !bIsRotateMode || GizmoDirection == EGizmoDirection::Right;
+	bool bShowZ = !bIsDragging || !bIsRotateMode || GizmoDirection == EGizmoDirection::Up;
+
+	if (bIsOrtho && bIsWorld && bIsRotateMode && !bIsDragging)
+	{
+		bShowX = (OrthoWorldAxis == EGizmoDirection::Forward);
+		bShowY = (OrthoWorldAxis == EGizmoDirection::Right);
+		bShowZ = (OrthoWorldAxis == EGizmoDirection::Up);
+	}
+
+	FRenderState RenderState;
+	RenderState.FillMode = EFillMode::Solid;
+	RenderState.CullMode = ECullMode::Back;
+
+	// Allocate HitProxy IDs per axis
+	HWidgetAxis* XAxisProxy = new HWidgetAxis(EGizmoAxisType::X, InvalidHitProxyId);
+	HWidgetAxis* YAxisProxy = new HWidgetAxis(EGizmoAxisType::Y, InvalidHitProxyId);
+	HWidgetAxis* ZAxisProxy = new HWidgetAxis(EGizmoAxisType::Z, InvalidHitProxyId);
+
+	FHitProxyId XAxisId = HitProxyManager.AllocateHitProxyId(XAxisProxy);
+	FHitProxyId YAxisId = HitProxyManager.AllocateHitProxyId(YAxisProxy);
+	FHitProxyId ZAxisId = HitProxyManager.AllocateHitProxyId(ZAxisProxy);
+
+
+	// Rotation mode requires dynamic mesh generation
+	if (bIsRotateMode)
+	{
+		// NOTE: ID 스왑은 의도된 설계, LocalAxis 배열이 회전 평면 기준이므로 bShowX는 YZ평면(Y축 회전)을 생성
+		// 따라서 물리적 위치와 ID를 매칭하려면 bShowX -> YAxisId, bShowY -> XAxisId 할당 필요
+
+		// X axis rendering
+		if (bShowX)
+		{
+			TArray<FNormalVertex> vertices;
+			TArray<uint32> indices;
+			GenerateQuarterRingMesh(FVector(0, 0, 1), FVector(0, 1, 0),
+				RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+				RotateCollisionConfig.Thickness, vertices, indices);
+
+			if (!indices.empty())
+			{
+				ID3D11Buffer* vb = nullptr;
+				ID3D11Buffer* ib = nullptr;
+				CreateTempBuffers(vertices, indices, &vb, &ib);
+
+				P.VertexBuffer = vb;
+				P.NumVertices = static_cast<uint32>(vertices.size());
+				P.IndexBuffer = ib;
+				P.NumIndices = static_cast<uint32>(indices.size());
+				P.Rotation = AxisRots[0] * BaseRot;
+				P.Color = YAxisId.GetColor();
+				Renderer.RenderEditorPrimitive(P, RenderState);
+
+				vb->Release();
+				ib->Release();
+			}
+		}
+
+		// Y axis rendering
+		if (bShowY)
+		{
+			TArray<FNormalVertex> vertices;
+			TArray<uint32> indices;
+			GenerateQuarterRingMesh(FVector(1, 0, 0), FVector(0, 0, 1),
+				RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+				RotateCollisionConfig.Thickness, vertices, indices);
+
+			if (!indices.empty())
+			{
+				ID3D11Buffer* vb = nullptr;
+				ID3D11Buffer* ib = nullptr;
+				CreateTempBuffers(vertices, indices, &vb, &ib);
+
+				P.VertexBuffer = vb;
+				P.NumVertices = static_cast<uint32>(vertices.size());
+				P.IndexBuffer = ib;
+				P.NumIndices = static_cast<uint32>(indices.size());
+				P.Rotation = AxisRots[1] * BaseRot;
+				P.Color = XAxisId.GetColor();
+				Renderer.RenderEditorPrimitive(P, RenderState);
+
+				vb->Release();
+				ib->Release();
+			}
+		}
+
+		// Z axis rendering
+		if (bShowZ)
+		{
+			TArray<FNormalVertex> vertices;
+			TArray<uint32> indices;
+			GenerateQuarterRingMesh(FVector(1, 0, 0), FVector(0, 1, 0),
+				RotateCollisionConfig.InnerRadius, RotateCollisionConfig.OuterRadius,
+				RotateCollisionConfig.Thickness, vertices, indices);
+
+			if (!indices.empty())
+			{
+				ID3D11Buffer* vb = nullptr;
+				ID3D11Buffer* ib = nullptr;
+				CreateTempBuffers(vertices, indices, &vb, &ib);
+
+				P.VertexBuffer = vb;
+				P.NumVertices = static_cast<uint32>(vertices.size());
+				P.IndexBuffer = ib;
+				P.NumIndices = static_cast<uint32>(indices.size());
+				P.Rotation = AxisRots[2] * BaseRot;
+				P.Color = ZAxisId.GetColor();
+				Renderer.RenderEditorPrimitive(P, RenderState);
+
+				vb->Release();
+				ib->Release();
+			}
+		}
+	}
+	else
+	{
+		// Translate/Scale mode uses existing Primitives
+		// X axis rendering
+		if (bShowX)
+		{
+			P.Rotation = AxisRots[0] * BaseRot;
+			P.Color = XAxisId.GetColor();
+			Renderer.RenderEditorPrimitive(P, RenderState);
+		}
+
+		// Y axis rendering
+		if (bShowY)
+		{
+			P.Rotation = AxisRots[1] * BaseRot;
+			P.Color = YAxisId.GetColor();
+			Renderer.RenderEditorPrimitive(P, RenderState);
+		}
+
+		// Z axis rendering
+		if (bShowZ)
+		{
+			P.Rotation = AxisRots[2] * BaseRot;
+			P.Color = ZAxisId.GetColor();
+			Renderer.RenderEditorPrimitive(P, RenderState);
+		}
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "Editor/Public/Gizmo.h"
+#include "Render/HitProxy/Public/HitProxy.h"
 
 class UPrimitiveComponent;
 class AActor;
@@ -14,7 +15,9 @@ class UObjectPicker : public UObject
 {
 public:
 	UObjectPicker() = default;
+	~UObjectPicker();
 	UPrimitiveComponent* PickPrimitive(UCamera* InActiveCamera, const FRay& WorldRay, TArray<UPrimitiveComponent*> Candidate, float* Distance);
+	UPrimitiveComponent* PickPrimitiveFromHitProxy(UCamera* InActiveCamera, int32 MouseX, int32 MouseY);
 	void PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGizmo& Gizmo, FVector& CollisionPoint);
 	bool IsRayCollideWithPlane(const FRay& WorldRay, FVector PlanePoint, FVector Normal, FVector& PointOnPlane);
 
@@ -26,4 +29,9 @@ private:
 	FRay GetModelRay(const FRay& Ray, UPrimitiveComponent* Primitive);
 	bool IsRayTriangleCollided(UCamera* InActiveCamera, const FRay& Ray, const FVector& Vertex1, const FVector& Vertex2, const FVector& Vertex3,
 		const FMatrix& ModelMatrix, float* Distance);
+
+	FHitProxyId ReadHitProxyAtLocation(int32 X, int32 Y, const D3D11_VIEWPORT& Viewport);
+	void CreateStagingTextureIfNeeded();
+
+	ID3D11Texture2D* HitProxyStagingTexture = nullptr;
 };

@@ -23,12 +23,14 @@ void UDeviceResources::Create(HWND InWindowHandle)
 	CreateNormalBuffer();
 	CreateDepthBuffer();
 	CreateSceneColorTarget();
+	CreateHitProxyTarget();
 	CreateFactories();
 }
 
 void UDeviceResources::Release()
 {
 	ReleaseFactories();
+	ReleaseHitProxyTarget();
 	ReleaseSceneColorTarget();
 	ReleaseFrameBuffer();
 	ReleaseNormalBuffer();
@@ -287,6 +289,65 @@ void UDeviceResources::ReleaseSceneColorTarget()
 	SafeRelease(SceneColorTextureSRV);
 	SafeRelease(SceneColorTextureRTV);
 	SafeRelease(SceneColorTexture);
+}
+
+void UDeviceResources::CreateHitProxyTarget()
+{
+	ReleaseHitProxyTarget();
+
+	if (!Device || Width == 0 || Height == 0)
+	{
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC HitProxyDesc = {};
+	HitProxyDesc.Width = Width;
+	HitProxyDesc.Height = Height;
+	HitProxyDesc.MipLevels = 1;
+	HitProxyDesc.ArraySize = 1;
+	HitProxyDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	HitProxyDesc.SampleDesc.Count = 1;
+	HitProxyDesc.SampleDesc.Quality = 0;
+	HitProxyDesc.Usage = D3D11_USAGE_DEFAULT;
+	HitProxyDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	HitProxyDesc.CPUAccessFlags = 0;
+	HitProxyDesc.MiscFlags = 0;
+
+	HRESULT Result = Device->CreateTexture2D(&HitProxyDesc, nullptr, &HitProxyTexture);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: HitProxy Texture 생성 실패");
+		ReleaseHitProxyTarget();
+		return;
+	}
+
+	Result = Device->CreateRenderTargetView(HitProxyTexture, nullptr, &HitProxyTextureRTV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: HitProxy RTV 생성 실패");
+		ReleaseHitProxyTarget();
+		return;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format = HitProxyDesc.Format;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = 1;
+
+	Result = Device->CreateShaderResourceView(HitProxyTexture, &SRVDesc, &HitProxyTextureSRV);
+	if (FAILED(Result))
+	{
+		UE_LOG_ERROR("DeviceResources: HitProxy SRV 생성 실패");
+		ReleaseHitProxyTarget();
+	}
+}
+
+void UDeviceResources::ReleaseHitProxyTarget()
+{
+	SafeRelease(HitProxyTextureSRV);
+	SafeRelease(HitProxyTextureRTV);
+	SafeRelease(HitProxyTexture);
 }
 
 

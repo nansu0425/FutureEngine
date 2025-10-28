@@ -190,7 +190,7 @@ void UEditor::RenderEditorGeometry()
 void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
 	Gizmo.RenderGizmo(InCamera, InViewport);
-	
+
 	// 모든 DirectionalLight의 빛 방향 기즈모 렌더링 (선택 여부 무관)
 	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
 	if (EditorWorld && EditorWorld->GetLevel())
@@ -211,8 +211,13 @@ void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	}
 }
 
-
-
+void UEditor::RenderGizmoForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+{
+	if (Gizmo.HasComponent())
+	{
+		Gizmo.RenderForHitProxy(InCamera, InViewport);
+	}
+}
 
 void UEditor::UpdateBatchLines()
 {
@@ -401,6 +406,7 @@ void UEditor::ProcessMouseInput()
 		// 스플리터 드래그 중이 아니고, ImGui가 마우스를 캡처하지 않았을 때만 처리
 		if (GetSelectedActor() && Gizmo.HasComponent())
 		{
+			// 기즈모 호버링 (Ray Based)
 			ObjectPicker.PickGizmo(CurrentCamera, WorldRay, Gizmo, CollisionPoint);
 		}
 		else
@@ -425,28 +431,17 @@ void UEditor::ProcessMouseInput()
 			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
 
-			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+			// HitProxy를 통한 컴포넌트 피킹
 			UPrimitiveComponent* PrimitiveCollided = nullptr;
-			if (EditorWorld && EditorWorld->GetLevel() && EditorWorld->GetLevel()->GetShowFlags())
-			{
-				TArray<UPrimitiveComponent*> Candidate;
+			const int32 MouseX = static_cast<int32>(MousePos.X - ViewportInfo.TopLeftX);
+			const int32 MouseY = static_cast<int32>(MousePos.Y - ViewportInfo.TopLeftY);
 
-				ULevel* CurrentLevel = EditorWorld->GetLevel();
-				ObjectPicker.FindCandidateFromOctree(CurrentLevel->GetStaticOctree(), WorldRay, Candidate);
-
-				TArray<UPrimitiveComponent*>& DynamicCandidates = CurrentLevel->GetDynamicPrimitives();
-				if (!DynamicCandidates.empty())
-				{
-					Candidate.insert(Candidate.end(), DynamicCandidates.begin(), DynamicCandidates.end());
-				}
-
-				TStatId StatId("Picking");
-				FScopeCycleCounter PickCounter(StatId);
-				PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
-				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
-				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
-				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
-			}
+			TStatId StatId("Picking");
+			FScopeCycleCounter PickCounter(StatId);
+			PrimitiveCollided = ObjectPicker.PickPrimitiveFromHitProxy(CurrentCamera, MouseX, MouseY);
+			ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
+			float ElapsedMs = static_cast<float>(PickCounter.Finish());
+			UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
 
 			// 피킹 결과에 따라 Actor와 Component 선택
 			if (Gizmo.GetGizmoDirection() == EGizmoDirection::None)
@@ -1107,41 +1102,48 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 		return false;
 	}
 
-	// Primitive Component를 찾아서 포커싱
-	// 1순위: RootComponent가 Primitive
-	// 2순위: 자식 중 Visualization Component
-	UPrimitiveComponent* Prim = nullptr;
-	if (Actor->GetRootComponent() && Actor->GetRootComponent()->IsA(UPrimitiveComponent::StaticClass()))
+	// Actor의 모든 Primitive Component를 수집하여 전체 AABB 계산
+	TArray<UPrimitiveComponent*> PrimitiveComponents;
+
+	for (UActorComponent* Comp : Actor->GetOwnedComponents())
 	{
-		Prim = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
-	}
-	else
-	{
-		// RootComponent가 Primitive가 아니면 Visualization 컴포넌트 검색
-		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp))
 		{
-			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp))
+			// Visualization Component는 제외 (실제 렌더링되는 메쉬만 포함)
+			if (PrimComp->IsVisualizationComponent())
 			{
-				if (!PrimComp->IsVisualizationComponent())
-				{
-					continue;
-				}
-				Prim = PrimComp;
-				break;
+				continue;
 			}
+			PrimitiveComponents.push_back(PrimComp);
 		}
 	}
 
-	if (!Prim)
+	if (PrimitiveComponents.empty())
 	{
 		return false;
 	}
 
-	FVector Min, Max;
-	Prim->GetWorldAABB(Min, Max);
-	OutCenter = (Min + Max) * 0.5f;
+	// 모든 컴포넌트의 AABB를 합쳐서 전체 바운딩 계산
+	FVector GlobalMin(FLT_MAX, FLT_MAX, FLT_MAX);
+	FVector GlobalMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-	FVector Size = Max - Min;
+	for (UPrimitiveComponent* Prim : PrimitiveComponents)
+	{
+		FVector Min, Max;
+		Prim->GetWorldAABB(Min, Max);
+
+		GlobalMin.X = min(GlobalMin.X, Min.X);
+		GlobalMin.Y = min(GlobalMin.Y, Min.Y);
+		GlobalMin.Z = min(GlobalMin.Z, Min.Z);
+
+		GlobalMax.X = max(GlobalMax.X, Max.X);
+		GlobalMax.Y = max(GlobalMax.Y, Max.Y);
+		GlobalMax.Z = max(GlobalMax.Z, Max.Z);
+	}
+
+	OutCenter = (GlobalMin + GlobalMax) * 0.5f;
+
+	FVector Size = GlobalMax - GlobalMin;
 	OutRadius = Size.Length() * 0.5f;
 
 	return true;
@@ -1250,9 +1252,24 @@ void UEditor::FocusOnSelectedActor()
 
 			// 회전은 현재 유지
 			CameraTargetRotation[i] = CameraStartRotation[i];
+		}
+	}
 
-			// OrthoZoom을 기본값(500)으로 리셋
-			Cam->SetOrthoZoom(500.0f);
+	// Orthographic 포커싱 시 SharedOrthoZoom 동기화
+	if (ActiveCameraType == ECameraType::ECT_Orthographic)
+	{
+		constexpr float FocusOrthoZoom = 500.0f;
+		ViewportManager.SetSharedOrthoZoom(FocusOrthoZoom);
+
+		// 모든 ortho 카메라에 동일한 줌 적용
+		for (int32 i = 0; i < ViewportCount; ++i)
+		{
+			if (!Clients[i]) continue;
+			UCamera* Cam = Clients[i]->GetCamera();
+			if (Cam && Cam->GetCameraType() == ECameraType::ECT_Orthographic)
+			{
+				Cam->SetOrthoZoom(FocusOrthoZoom);
+			}
 		}
 	}
 
