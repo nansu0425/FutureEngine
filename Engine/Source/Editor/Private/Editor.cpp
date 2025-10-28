@@ -17,6 +17,8 @@
 #include "Physics/Public/BoundingSphere.h"
 #include "Component/Public/DirectionalLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
+#include "Component/Public/EditorIconComponent.h"
+#include "Component/Public/BillBoardComponent.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/ui/Viewport/Public/ViewportClient.h"
@@ -201,11 +203,11 @@ void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 		{
 			if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(LightComp))
 			{
-				DirLight->RenderLightDirectionGizmo(InCamera);
+				DirLight->RenderLightDirectionGizmo(InCamera, InViewport);
 			}
-			if (USpotLightComponent* DirLight = Cast<USpotLightComponent>(LightComp))
+			if (USpotLightComponent* SpotLight = Cast<USpotLightComponent>(LightComp))
 			{
-				DirLight->RenderLightDirectionGizmo(InCamera);
+				SpotLight->RenderLightDirectionGizmo(InCamera, InViewport);
 			}
 		}
 	}
@@ -1063,13 +1065,47 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 {
 	if (!Component)
 	{
+		UE_LOG_WARNING("Editor: GetComponentFocusTarget: Component is null");
 		return false;
 	}
 
 	USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 	if (!SceneComp)
 	{
+		UE_LOG_WARNING("Editor: GetComponentFocusTarget: Not a SceneComponent");
 		return false;
+	}
+
+	// EditorIconComponent: 부모 LightComponent를 찾아서 처리, 없으면 자체 WorldLocation 사용
+	if (UEditorIconComponent* IconComp = Cast<UEditorIconComponent>(SceneComp))
+	{
+		USceneComponent* ParentComp = IconComp->GetAttachParent();
+		if (ULightComponent* ParentLight = Cast<ULightComponent>(ParentComp))
+		{
+			OutCenter = ParentLight->GetWorldLocation();
+			OutRadius = 50.0f;
+			UE_LOG("Editor: GetComponentFocusTarget: EditorIcon with LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+		}
+		else
+		{
+			// 부모가 LightComponent가 아니거나 없는 경우
+			OutCenter = IconComp->GetWorldLocation();
+			OutRadius = 50.0f;
+			UE_LOG_WARNING("Editor: GetComponentFocusTarget: EditorIcon without LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+		}
+		return true;
+	}
+
+	// LightComponent: WorldLocation 기반 (AABB가 없으므로)
+	if (Cast<ULightComponent>(SceneComp))
+	{
+		OutCenter = SceneComp->GetWorldLocation();
+		OutRadius = 50.0f;
+		UE_LOG("Editor: GetComponentFocusTarget: LightComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+		return true;
 	}
 
 	// PrimitiveComponent: AABB 기반 계산
@@ -1084,12 +1120,16 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 
 		// 최소 반경 보장 (너무 작은 오브젝트 대응)
 		OutRadius = max(OutRadius, 10.0f);
+		UE_LOG("Editor: GetComponentFocusTarget: PrimitiveComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 	// SceneComponent: WorldLocation 기반
 	else
 	{
 		OutCenter = SceneComp->GetWorldLocation();
 		OutRadius = 30.0f;
+		UE_LOG("Editor: GetComponentFocusTarget: SceneComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 
 	return true;
@@ -1099,6 +1139,7 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 {
 	if (!Actor)
 	{
+		UE_LOG_WARNING("Editor: GetActorFocusTarget: Actor is null");
 		return false;
 	}
 
@@ -1118,8 +1159,22 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 		}
 	}
 
+	// Primitive가 없으면 LightComponent 찾기 (Light Actor 처리)
 	if (PrimitiveComponents.empty())
 	{
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (ULightComponent* LightComp = Cast<ULightComponent>(Comp))
+			{
+				OutCenter = LightComp->GetWorldLocation();
+				OutRadius = 50.0f;
+				UE_LOG("Editor: GetActorFocusTarget: Light Actor Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+					OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+				return true;
+			}
+		}
+
+		UE_LOG_WARNING("Editor: GetActorFocusTarget: No valid component found");
 		return false;
 	}
 
@@ -1146,6 +1201,8 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 	FVector Size = GlobalMax - GlobalMin;
 	OutRadius = Size.Length() * 0.5f;
 
+	UE_LOG("Editor: GetActorFocusTarget: Mesh Actor Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+		OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	return true;
 }
 
@@ -1158,18 +1215,24 @@ void UEditor::FocusOnSelectedActor()
 	// Component 선택 모드: 선택된 Component에 포커싱
 	if (!bIsActorSelected && SelectedComponent)
 	{
+		UE_LOG("Editor: FocusOnSelectedActor: Component mode - %s", SelectedComponent->GetName().ToString().data());
 		bSuccess = GetComponentFocusTarget(SelectedComponent, Center, BoundingRadius);
 	}
 	// Actor 선택 모드: Actor 전체에 포커싱
 	else if (SelectedActor)
 	{
+		UE_LOG("Editor: FocusOnSelectedActor: Actor mode - %s", SelectedActor->GetName().ToString().data());
 		bSuccess = GetActorFocusTarget(SelectedActor, Center, BoundingRadius);
 	}
 
 	if (!bSuccess)
 	{
+		UE_LOG_WARNING("Editor: FocusOnSelectedActor: Failed to get focus target");
 		return;
 	}
+
+	UE_LOG("Editor: FocusOnSelectedActor: Success - Center=(%.1f,%.1f,%.1f) Radius=%.1f",
+		Center.X, Center.Y, Center.Z, BoundingRadius);
 
 	auto& ViewportManager = UViewportManager::GetInstance();
 	auto& Viewports = ViewportManager.GetViewports();
@@ -1231,7 +1294,17 @@ void UEditor::FocusOnSelectedActor()
 			const float HalfFovRadian = FVector::GetDegreeToRadian(FovY * 0.5f);
 
 			// BoundingRadius 기준으로 거리 계산
-			const float Distance = BoundingRadius / sinf(HalfFovRadian);
+			float Distance = BoundingRadius / sinf(HalfFovRadian);
+
+			// EditorIcon이나 Billboard는 작은 스프라이트이므로 더 가까이
+			if (UEditorIconComponent* IconComp = Cast<UEditorIconComponent>(SelectedComponent))
+			{
+				Distance = min(Distance, 200.0f);
+			}
+			else if (UBillBoardComponent* BillboardComp = Cast<UBillBoardComponent>(SelectedComponent))
+			{
+				Distance = min(Distance, 200.0f);
+			}
 
 			CameraTargetLocation[i] = Center - Forward * Distance;
 

@@ -5,11 +5,12 @@
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Editor/Public/Camera.h"
 #include "Render/HitProxy/Public/HitProxy.h"
 
 FHitProxyPass::FHitProxyPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferCamera, ID3D11Buffer* InConstantBufferModel,
-	ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
+                             ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
 	: FRenderPass(InPipeline, InConstantBufferCamera, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
 {
 	// HitProxyColor 상수 버퍼 생성 (b2 슬롯)
@@ -68,6 +69,50 @@ void FHitProxyPass::Execute(FRenderingContext& Context)
 	// HitProxyManager 초기화
 	FHitProxyManager& HitProxyManager = FHitProxyManager::GetInstance();
 	HitProxyManager.ClearAllHitProxies();
+
+	// EditorIcon 컴포넌트 렌더링
+	for (UEditorIconComponent* IconComp : Context.EditorIcons)
+	{
+		if (!IconComp->IsVisible())
+		{
+			continue;
+		}
+
+		// Billboard 카메라 정렬 적용
+		IconComp->FaceCamera(Context.CurrentCamera->GetForward());
+
+		// HitProxy ID 할당
+		HComponent* ComponentProxy = new HComponent(IconComp, InvalidHitProxyId);
+		FHitProxyId ProxyId = HitProxyManager.AllocateHitProxyId(ComponentProxy);
+
+		// HitProxyColor 상수 버퍼 업데이트
+		FVector4 ProxyColor = ProxyId.GetColor();
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferHitProxyColor, ProxyColor);
+		Pipeline->SetConstantBuffer(2, EShaderType::PS, ConstantBufferHitProxyColor);
+
+		// Vertex/Index 버퍼 바인딩
+		Pipeline->SetVertexBuffer(IconComp->GetVertexBuffer(), sizeof(FNormalVertex));
+		Pipeline->SetIndexBuffer(IconComp->GetIndexBuffer(), 0);
+
+		// Model 상수 버퍼 업데이트
+		FMatrix WorldMatrix;
+		if (IconComp->IsScreenSizeScaled())
+		{
+			FVector FixedWorldScale = IconComp->GetRelativeScale3D();
+			FVector IconLocation = IconComp->GetWorldLocation();
+			FQuaternion IconRotation = IconComp->GetWorldRotationAsQuaternion();
+			WorldMatrix = FMatrix::GetModelMatrix(IconLocation, IconRotation, FixedWorldScale);
+		}
+		else
+		{
+			WorldMatrix = IconComp->GetWorldTransformMatrix();
+		}
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
+		Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
+
+		// 렌더링
+		Pipeline->DrawIndexed(IconComp->GetNumIndices(), 0, 0);
+	}
 
 	// StaticMesh 컴포넌트 렌더링
 	FStaticMesh* CurrentMeshAsset = nullptr;

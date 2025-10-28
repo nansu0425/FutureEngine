@@ -1242,23 +1242,49 @@ void URenderer::RenderHitProxyPass(UCamera* InCamera, const D3D11_VIEWPORT& InVi
 	Context.Viewport = InViewport;
 	Context.RenderTargetSize = FVector2(InViewport.Width, InViewport.Height);
 
-	// StaticMesh 컴포넌트 수집
-	const TArray<AActor*>& Actors = CurrentLevel->GetLevelActors();
-	for (AActor* Actor : Actors)
-	{
-		if (!Actor || Actor->IsPendingDestroy())
-		{
-			continue;
-		}
+	// 모든 Primitive 컴포넌트 수집
+	TArray<UPrimitiveComponent*> AllVisiblePrims;
 
-		const TArray<UActorComponent*>& Components = Actor->GetOwnedComponents();
-		for (UActorComponent* Component : Components)
+	// Static Octree에서 정적 프리미티브 수집
+	if (FOctree* StaticOctree = CurrentLevel->GetStaticOctree())
+	{
+		TArray<UPrimitiveComponent*> AllStatics;
+		StaticOctree->GetAllPrimitives(AllStatics);
+		for (UPrimitiveComponent* Primitive : AllStatics)
 		{
-			if (UStaticMeshComponent* MeshComp = dynamic_cast<UStaticMeshComponent*>(Component))
+			if (Primitive && Primitive->IsVisible())
 			{
-				Context.StaticMeshes.push_back(MeshComp);
+				AllVisiblePrims.push_back(Primitive);
 			}
 		}
+	}
+
+	// 동적 프리미티브 수집
+	TArray<UPrimitiveComponent*>& DynamicPrimitives = CurrentLevel->GetDynamicPrimitives();
+	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
+	{
+		if (Primitive && Primitive->IsVisible())
+		{
+			AllVisiblePrims.push_back(Primitive);
+		}
+	}
+
+	// Primitive 타입별로 분류
+	for (auto& Prim : AllVisiblePrims)
+	{
+		if (auto StaticMesh = Cast<UStaticMeshComponent>(Prim))
+		{
+			Context.StaticMeshes.push_back(StaticMesh);
+		}
+		else if (auto EditorIcon = Cast<UEditorIconComponent>(Prim))
+		{
+			Context.EditorIcons.push_back(EditorIcon);
+		}
+		else if (auto BillBoard = Cast<UBillBoardComponent>(Prim))
+		{
+			Context.BillBoards.push_back(BillBoard);
+		}
+		// 필요하면 다른 타입도 추가 가능
 	}
 
 	// HitProxyPass 실행

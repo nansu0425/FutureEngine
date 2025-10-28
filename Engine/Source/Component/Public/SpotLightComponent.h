@@ -14,7 +14,7 @@ class USpotLightComponent : public UPointLightComponent
     DECLARE_CLASS(USpotLightComponent, UPointLightComponent)
 
 public:
-    USpotLightComponent() = default;
+    USpotLightComponent();
 
     virtual ~USpotLightComponent() = default;
     
@@ -63,7 +63,7 @@ public:
     void SetOuterAngle(float const InAttenuationAngleRad);
     void SetInnerAngle(float const InAttenuationAngleRad);
 
-    void RenderLightDirectionGizmo(UCamera* InCamera);
+    void RenderLightDirectionGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
     FSpotLightInfo GetSpotLightInfo() const;
 
@@ -73,7 +73,7 @@ public:
 
 private:
     void EnsureVisualizationIcon()override;
-    
+
 private:
     /**
      * 거리 감쇠 지수는 부모(UPointLightComponent)가 관리하며,
@@ -87,4 +87,7 @@ private:
 
     // Shadow mapping
     FMatrix CachedShadowViewProjection = FMatrix::Identity();
+
+    // 라이트 방향을 시각화하는 화살표 프리미티브
+    FEditorPrimitive LightDirectionArrow;
 };
