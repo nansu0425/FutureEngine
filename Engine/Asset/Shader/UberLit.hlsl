@@ -351,11 +351,14 @@ float CalculatePercentageCloserShadowFactor(
     return ShadowFactor;
 }
 
-float GetCascadeSubFrustumNum(float3 WorldPos)
+float GetCameraViewZ(float3 WorldPos)
 {
     // 거리에 따라 알맞은 절두체를 선택한다.
-    float CameraViewZ = mul(float4(WorldPos, 1.0f), View).z;
+    return mul(float4(WorldPos, 1.0f), View).z;
+}
 
+uint GetCascadeSubFrustumNum(float CameraViewZ)
+{
     int SubFrustumNum;
     for (SubFrustumNum = 0; SubFrustumNum < SplitNum; SubFrustumNum++)
     {
@@ -369,20 +372,47 @@ float GetCascadeSubFrustumNum(float3 WorldPos)
 // Shadow Calculation Functions
 float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
-    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
 
-    // If beyond all cascades, assume fully lit
-    if (SubFrustumNum >= SplitNum)
-        return 1.0f;
+    float ShadowFactorFromSubFrustum =
+        CalculatePercentageCloserShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            Light.Resolution,
+            ShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        );
 
-    return CalculatePercentageCloserShadowFactor(
-        Light.CastShadow,
-        mul(CascadeView, CascadeProj[SubFrustumNum]),
-        WorldPos,
-        Light.Resolution,
-        ShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
-    );
+    // 첫번째 SubFrustum이면 그대로 값을 반환
+    if (SubFrustumNum == 0)
+        return ShadowFactorFromSubFrustum;
+
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+    
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float ShadowFactorFromSubFrustum2 =
+        CalculatePercentageCloserShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+            WorldPos,
+            Light.Resolution,
+            ShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
+        );
+
+        float t = (CameraViewZ - OverlappedSectionMin) /
+            (OverlappedSectionMax - OverlappedSectionMin);
+
+        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
+    }
+    else
+    {
+        return ShadowFactorFromSubFrustum;
+    }
 }
 
 float CalculateSpotShadowFactor(
@@ -656,20 +686,47 @@ float CalculateVarianceShadowFactor(
 
 float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
-    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
 
-    // If beyond all cascades, assume fully lit
-    if (SubFrustumNum >= SplitNum)
-        return 1.0f;
+    float ShadowFactorFromSubFrustum =
+        CalculateVarianceShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            VarianceShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            Light.Resolution
+        );
+
+    // 첫번째 SubFrustum이면 그대로 값을 반환
+    if (SubFrustumNum == 0)
+        return ShadowFactorFromSubFrustum;
+
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
     
-    return CalculateVarianceShadowFactor(
-        Light.CastShadow,
-        mul(CascadeView, CascadeProj[SubFrustumNum]),
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-        Light.Resolution
-    );
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float ShadowFactorFromSubFrustum2 =
+        CalculateVarianceShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+            WorldPos,
+            VarianceShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            Light.Resolution
+        );
+
+        float t = (CameraViewZ - OverlappedSectionMin) /
+            (OverlappedSectionMax - OverlappedSectionMin);
+
+        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
+    }
+    else
+    {
+        return ShadowFactorFromSubFrustum;
+    }
 }
 
 float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
@@ -809,20 +866,47 @@ float CalculateSummedAreaVarianceShadowFactor(
 
 float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
-    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+    float CameraViewZ = GetCameraViewZ(WorldPos);
+    uint SubFrustumNum = GetCascadeSubFrustumNum(CameraViewZ);
 
-    // If beyond all cascades, assume fully lit
-    if (SubFrustumNum >= SplitNum)
-        return 1.0f;
+    float ShadowFactorFromSubFrustum =
+        CalculateSummedAreaVarianceShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum]),
+            WorldPos,
+            VarianceShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            Light.Resolution
+        );
+
+    // 첫번째 SubFrustum이면 그대로 값을 반환
+    if (SubFrustumNum == 0)
+        return ShadowFactorFromSubFrustum;
+
+    float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
+    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
     
-    return CalculateSummedAreaVarianceShadowFactor(
-        Light.CastShadow,
-        mul(CascadeView, CascadeProj[SubFrustumNum]),
-        WorldPos,
-        VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
-        Light.Resolution
-    );
+    if (CameraViewZ <= OverlappedSectionMax)
+    {
+        float ShadowFactorFromSubFrustum2 =
+        CalculateSummedAreaVarianceShadowFactor(
+            Light.CastShadow,
+            mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
+            WorldPos,
+            VarianceShadowAtlas,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            Light.Resolution
+        );
+
+        float t = (CameraViewZ - OverlappedSectionMin) /
+            (OverlappedSectionMax - OverlappedSectionMin);
+
+        return t * ShadowFactorFromSubFrustum + (1.0f - t) * ShadowFactorFromSubFrustum2;
+    }
+    else
+    {
+        return ShadowFactorFromSubFrustum;
+    }
 }
 
 float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
