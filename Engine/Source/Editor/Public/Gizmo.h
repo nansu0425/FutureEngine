@@ -17,6 +17,10 @@ enum class EGizmoDirection
 	Right,
 	Up,
 	Forward,
+	XY_Plane,  // Z축 수직 평면 (X, Y 두 축 동시 제어)
+	XZ_Plane,  // Y축 수직 평면 (X, Z 두 축 동시 제어)
+	YZ_Plane,  // X축 수직 평면 (Y, Z 두 축 동시 제어)
+	Center,    // 중심점 (Translation: 카메라 평면 드래그, Scale: 균일 스케일)
 	None
 };
 
@@ -95,6 +99,50 @@ public:
 		}
 	}
 
+	// 평면 법선 반환 (평면 방향에 수직인 축)
+	FVector GetPlaneNormal() const
+	{
+		switch (GizmoDirection)
+		{
+		case EGizmoDirection::XY_Plane:	return {0, 0, 1};  // Z축
+		case EGizmoDirection::XZ_Plane:	return {0, 1, 0};  // Y축
+		case EGizmoDirection::YZ_Plane:	return {1, 0, 0};  // X축
+		default:						return {0, 0, 1};
+		}
+	}
+
+	// 평면의 두 접선 벡터 반환
+	void GetPlaneTangents(FVector& OutTangent1, FVector& OutTangent2) const
+	{
+		switch (GizmoDirection)
+		{
+		case EGizmoDirection::XY_Plane:
+			OutTangent1 = {1, 0, 0};  // X축
+			OutTangent2 = {0, 1, 0};  // Y축
+			break;
+		case EGizmoDirection::XZ_Plane:
+			OutTangent1 = {1, 0, 0};  // X축
+			OutTangent2 = {0, 0, 1};  // Z축
+			break;
+		case EGizmoDirection::YZ_Plane:
+			OutTangent1 = {0, 1, 0};  // Y축
+			OutTangent2 = {0, 0, 1};  // Z축
+			break;
+		default:
+			OutTangent1 = {1, 0, 0};
+			OutTangent2 = {0, 1, 0};
+			break;
+		}
+	}
+
+	// 방향이 평면인지 확인
+	bool IsPlaneDirection() const
+	{
+		return GizmoDirection == EGizmoDirection::XY_Plane ||
+		       GizmoDirection == EGizmoDirection::XZ_Plane ||
+		       GizmoDirection == EGizmoDirection::YZ_Plane;
+	}
+
 	float GetTranslateRadius() const { return TranslateCollisionConfig.Radius * TranslateCollisionConfig.Scale; }
 	float GetTranslateHeight() const { return TranslateCollisionConfig.Height * TranslateCollisionConfig.Scale; }
 	float GetRotateOuterRadius() const { return RotateCollisionConfig.OuterRadius * RotateCollisionConfig.Scale; }
@@ -140,6 +188,10 @@ private:
 		case EGizmoDirection::Forward:	return 0;
 		case EGizmoDirection::Right:	return 1;
 		case EGizmoDirection::Up:		return 2;
+		// 평면은 법선 축의 인덱스 사용
+		case EGizmoDirection::XY_Plane:	return 2;  // Z축 (파란색)
+		case EGizmoDirection::XZ_Plane:	return 1;  // Y축 (초록색)
+		case EGizmoDirection::YZ_Plane:	return 0;  // X축 (빨간색)
 		default:						return 2;
 		}
 	}

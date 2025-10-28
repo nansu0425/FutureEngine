@@ -45,6 +45,10 @@ public:
 	void FocusOnSelectedActor();
 	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
 
+	// Alt + 드래그 복사 기능
+	UActorComponent* DuplicateComponent(UActorComponent* InSourceComponent, AActor* InParentActor);
+	AActor* DuplicateActor(AActor* InSourceActor);
+
 // Getter
 public:
 	UBatchLines* GetBatchLines() { return &BatchLines; }
@@ -68,6 +72,14 @@ private:
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터
 	UActorComponent* SelectedComponent = nullptr; // 선택된 컴포넌트
+
+	// 선택 타입 (Actor vs Component)
+	bool bIsActorSelected = true; // true: Actor 선택 (Root Component), false: Component 선택
+
+	// Alt + 드래그 복사 모드
+	bool bIsInCopyMode = false; // Alt 키 누른 상태로 드래그 시작 시 true
+	AActor* CopiedActor = nullptr; // 복사된 Actor (복사 모드 시)
+	UActorComponent* CopiedComponent = nullptr; // 복사된 Component (복사 모드 시)
 
 	UCamera* Camera;
 	UGizmo Gizmo;

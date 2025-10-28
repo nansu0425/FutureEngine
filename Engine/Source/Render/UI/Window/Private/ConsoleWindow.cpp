@@ -120,6 +120,12 @@ void UConsoleWindow::StartShowAnimation()
 	SetWindowState(EUIWindowState::Visible);
 
 	AnimationProgress = max(AnimationProgress, 0.0f);
+
+	// 콘솔이 열릴 때 스크롤을 하단으로 이동
+	if (ConsoleWidget)
+	{
+		ConsoleWidget->OnConsoleShown();
+	}
 }
 
 void UConsoleWindow::StartHideAnimation()
@@ -130,6 +136,12 @@ void UConsoleWindow::StartHideAnimation()
 	}
 
 	AnimationState = EConsoleAnimationState::Hiding;
+
+	// 콘솔이 닫힐 때 선택 해제
+	if (ConsoleWidget)
+	{
+		ConsoleWidget->ClearSelection();
+	}
 }
 
 void UConsoleWindow::UpdateAnimation(float DeltaTime)

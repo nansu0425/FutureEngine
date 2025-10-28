@@ -360,6 +360,14 @@ void UEditor::ProcessMouseInput()
 	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
 	{
 		Gizmo.EndDrag();
+
+		// 복사 모드 종료
+		if (bIsInCopyMode)
+		{
+			bIsInCopyMode = false;
+			CopiedActor = nullptr;
+			CopiedComponent = nullptr;
+		}
 	}
 
 	// 스플리터 드래그 여부 체크
@@ -400,7 +408,11 @@ void UEditor::ProcessMouseInput()
 			Gizmo.SetGizmoDirection(EGizmoDirection::None);
 		}
 
-		if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
+		// 단일 클릭과 더블 클릭 구분
+		bool bIsSingleClick = InputManager.IsKeyPressed(EKeyInput::MouseLeft);
+		bool bIsDoubleClick = InputManager.IsMouseDoubleClicked(EKeyInput::MouseLeft);
+
+		if (bIsSingleClick || bIsDoubleClick)
 		{
 			// 뷰포트 클릭 시 LastClickedViewportIndex 업데이트 (PIE 시작 시 사용)
 			ViewportManager.SetLastClickedViewportIndex(ActiveViewportIndex);
@@ -448,11 +460,23 @@ void UEditor::ProcessMouseInput()
 						}
 					}
 
-					SelectActorAndComponent(ActorPicked, ComponentToSelect);
+					// 단일 클릭: Actor 선택 (Root Component)
+					// 더블 클릭: Component 선택 (실제 클릭한 Component)
+					if (bIsDoubleClick)
+					{
+						SelectActorAndComponent(ActorPicked, ComponentToSelect);
+						bIsActorSelected = false; // Component 선택 모드
+					}
+					else if (bIsSingleClick && !bIsDoubleClick)
+					{
+						SelectActor(ActorPicked);
+						bIsActorSelected = true; // Actor 선택 모드
+					}
 				}
 				else
 				{
 					SelectActor(nullptr);
+					bIsActorSelected = true;
 				}
 			}
 		}
@@ -469,6 +493,40 @@ void UEditor::ProcessMouseInput()
 			PreviousGizmoDirection = Gizmo.GetGizmoDirection();
 			if (InputManager.IsKeyPressed(EKeyInput::MouseLeft))
 			{
+				// Alt + 드래그: 객체 복사 (Scale 모드에서는 비활성화)
+				bool bAltPressed = InputManager.IsKeyDown(EKeyInput::Alt);
+				bool bIsScaleMode = (Gizmo.GetGizmoMode() == EGizmoMode::Scale);
+
+				if (bAltPressed && GetSelectedActor() && GetSelectedComponent() && !bIsScaleMode)
+				{
+					// 실제로 Actor 선택인지 Component 선택인지 확인
+					// RootComponent가 선택된 경우 = Actor 선택
+					bool bIsActorSelection = (GetSelectedComponent() == GetSelectedActor()->GetRootComponent());
+
+					if (bIsActorSelection)
+					{
+						// Actor 복사 (전체)
+						AActor* NewActor = DuplicateActor(GetSelectedActor());
+						if (NewActor)
+						{
+							SelectActor(NewActor);
+							CopiedActor = NewActor;
+							bIsInCopyMode = true;
+						}
+					}
+					else
+					{
+						// Component 복사 (같은 Actor 내)
+						UActorComponent* NewComponent = DuplicateComponent(GetSelectedComponent(), GetSelectedActor());
+						if (NewComponent)
+						{
+							SelectActorAndComponent(GetSelectedActor(), NewComponent);
+							CopiedComponent = NewComponent;
+							bIsInCopyMode = true;
+						}
+					}
+				}
+
 				Gizmo.OnMouseDragStart(CollisionPoint);
 			}
 			else
@@ -488,6 +546,30 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
+
+	// 평면 드래그 처리
+	if (Gizmo.IsPlaneDirection())
+	{
+		// 평면 법선 벡터
+		FVector PlaneNormal = Gizmo.GetPlaneNormal();
+
+		if (!Gizmo.IsWorldMode())
+		{
+			FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+			PlaneNormal = q.RotateVector(PlaneNormal);
+		}
+
+		// 레이와 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 시작점으로부터 이동 거리 계산
+			FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+			return Gizmo.GetDragStartActorLocation() + MouseDelta;
+		}
+		return Gizmo.GetGizmoLocation();
+	}
+
+	// 축 드래그 처리
 	FVector GizmoAxis = Gizmo.GetGizmoAxis();
 
 	if (!Gizmo.IsWorldMode())
@@ -502,8 +584,8 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 
 	// GizmoAxis에 가장 수직인 카메라 벡터 선택
 	FVector PlaneVector;
-	const float DotRight = std::abs(GizmoAxis.Dot(CamRight));
-	const float DotUp = std::abs(GizmoAxis.Dot(CamUp));
+	const float DotRight = abs(GizmoAxis.Dot(CamRight));
+	const float DotUp = abs(GizmoAxis.Dot(CamUp));
 
 	if (DotRight < DotUp)
 	{
@@ -701,11 +783,76 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
-	FVector CardinalAxis = Gizmo.GetGizmoAxis();
+	FQuaternion Quat = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
+	const FVector CameraLocation = InActiveCamera->GetLocation();
 
-	// Scale 모드는 항상 로컬 좌표를 사용하므로 GizmoAxis를 월드 좌표로 변환
-	FQuaternion q = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
-	FVector GizmoAxis = q.RotateVector(CardinalAxis);
+	// 평면 스케일 처리
+	if (Gizmo.IsPlaneDirection())
+	{
+		// 평면 법선과 접선 벡터
+		FVector PlaneNormal = Gizmo.GetPlaneNormal();
+		FVector Tangent1, Tangent2;
+		Gizmo.GetPlaneTangents(Tangent1, Tangent2);
+
+		// 로컬 좌표로 변환
+		PlaneNormal = Quat.RotateVector(PlaneNormal);
+		FVector WorldTangent1 = Quat.RotateVector(Tangent1);
+		FVector WorldTangent2 = Quat.RotateVector(Tangent2);
+
+		// 레이와 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 평면 내 드래그 벡터 계산
+			const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+
+			// 두 접선 방향 드래그 거리 평균
+			const float Drag1 = MouseDelta.Dot(WorldTangent1);
+			const float Drag2 = MouseDelta.Dot(WorldTangent2);
+			const float AvgDrag = (Drag1 + Drag2) * 0.5f;
+
+			// 스케일 민감도 조정
+			const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
+			constexpr float BaseSensitivity = 0.03f;
+			const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
+			const float ScaleDelta = AvgDrag * ScaleSensitivity;
+
+			const FVector DragStartScale = Gizmo.GetDragStartActorScale();
+			FVector NewScale = DragStartScale;
+
+			// 평면의 두 축에 동일한 스케일 적용
+			if (abs(Tangent1.X) > 0.5f)
+			{
+				NewScale.X = max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent1.Y) > 0.5f)
+			{
+				NewScale.Y = max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent1.Z) > 0.5f)
+			{
+				NewScale.Z = max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.X) > 0.5f)
+			{
+				NewScale.X = max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.Y) > 0.5f)
+			{
+				NewScale.Y = max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
+			}
+			if (abs(Tangent2.Z) > 0.5f)
+			{
+				NewScale.Z = max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
+			}
+
+			return NewScale;
+		}
+		return Gizmo.GetComponentScale();
+	}
+
+	// 축 스케일 처리 (기존 로직)
+	FVector CardinalAxis = Gizmo.GetGizmoAxis();
+	FVector GizmoAxis = Quat.RotateVector(CardinalAxis);
 
 	// 카메라 방향 벡터를 사용하여 안정적인 평면 계산
 	const FVector CamForward = InActiveCamera->GetForward();
@@ -714,8 +861,8 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 
 	// GizmoAxis에 가장 수직인 카메라 벡터 선택
 	FVector PlaneVector;
-	const float DotRight = std::abs(GizmoAxis.Dot(CamRight));
-	const float DotUp = std::abs(GizmoAxis.Dot(CamUp));
+	const float DotRight = abs(GizmoAxis.Dot(CamRight));
+	const float DotUp = abs(GizmoAxis.Dot(CamUp));
 
 	if (DotRight < DotUp)
 	{
@@ -730,7 +877,6 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	PlaneNormal.Normalize();
 
 	// PlaneNormal이 카메라를 향하도록 보장 (드래그 방향 일관성)
-	const FVector CameraLocation = InActiveCamera->GetLocation();
 	const FVector ToCamera = (CameraLocation - PlaneOrigin).GetNormalized();
 	if (PlaneNormal.Dot(ToCamera) < 0.0f)
 	{
@@ -739,17 +885,16 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 
 	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
 	{
-		// 언리얼 방식: 드래그 거리에 비례하여 스케일 변화
+		// UE 방식을 사용, 드래그 거리에 비례하여 스케일 변화
 		const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
 		const float AxisDragDistance = MouseDelta.Dot(GizmoAxis);
 
 		// 카메라 거리에 따른 스케일 민감도 조정
-		const FVector CameraLocation = InActiveCamera->GetLocation();
 		const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
 
-		// 언리얼 기준: 거리에 비례한 민감도, 기본 배율 적용
+		// 거리에 비례한 민감도, 기본 배율 적용
 		// 가까울수록 정밀하게, 멀수록 빠르게 조정
-		const float BaseSensitivity = 0.03f;  // 기본 민감도
+		constexpr float BaseSensitivity = 0.03f;  // 기본 민감도
 		const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
 		const float ScaleDelta = AxisDragDistance * ScaleSensitivity;
 
@@ -773,17 +918,17 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 			NewScale = DragStartScale;
 
 			// X축 (1,0,0)
-			if (std::abs(CardinalAxis.X) > 0.5f)
+			if (abs(CardinalAxis.X) > 0.5f)
 			{
 				NewScale.X = std::max(DragStartScale.X + ScaleDelta, MIN_SCALE_VALUE);
 			}
 			// Y축 (0,1,0)
-			else if (std::abs(CardinalAxis.Y) > 0.5f)
+			else if (abs(CardinalAxis.Y) > 0.5f)
 			{
 				NewScale.Y = std::max(DragStartScale.Y + ScaleDelta, MIN_SCALE_VALUE);
 			}
 			// Z축 (0,0,1)
-			else if (std::abs(CardinalAxis.Z) > 0.5f)
+			else if (abs(CardinalAxis.Z) > 0.5f)
 			{
 				NewScale.Z = std::max(DragStartScale.Z + ScaleDelta, MIN_SCALE_VALUE);
 			}
@@ -798,25 +943,78 @@ void UEditor::SelectActor(AActor* InActor)
 {
 	if (InActor == SelectedActor) return;
 
+	// 이전 선택 해제 (모든 컴포넌트)
+	if (SelectedActor)
+	{
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
+	}
+
 	SelectedActor = InActor;
-	if (SelectedActor) { SelectComponent(InActor->GetRootComponent()); }
-	else { SelectComponent(nullptr); }
+
+	if (SelectedActor)
+	{
+		// Actor 선택 시 모든 컴포넌트 하이라이팅
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnSelected();
+			}
+		}
+
+		// Gizmo는 RootComponent에 부착
+		SelectedComponent = InActor->GetRootComponent();
+		Gizmo.SetSelectedComponent(Cast<USceneComponent>(SelectedComponent));
+		UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
+	}
+	else
+	{
+		SelectedComponent = nullptr;
+		Gizmo.SetSelectedComponent(nullptr);
+		UUIManager::GetInstance().OnSelectedComponentChanged(nullptr);
+	}
 }
 
 void UEditor::SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent)
 {
-	if (InActor != SelectedActor)
+	// 이전 Actor의 모든 컴포넌트 선택 해제
+	if (SelectedActor && SelectedActor != InActor)
 	{
-		SelectedActor = InActor;
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
+	}
+	else if (SelectedActor == InActor)
+	{
+		// 같은 Actor 내에서 컴포넌트만 변경: 기존 모든 컴포넌트 해제
+		for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+		{
+			if (Component)
+			{
+				Component->OnDeselected();
+			}
+		}
 	}
 
+	SelectedActor = InActor;
 	SelectComponent(InComponent);
 }
 
 void UEditor::SelectComponent(UActorComponent* InComponent)
 {
 	if (InComponent == SelectedComponent) return;
-	
+
+	// Component 선택 시 단일 컴포넌트만 하이라이팅
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnDeselected();
@@ -826,6 +1024,11 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	if (SelectedComponent)
 	{
 		SelectedComponent->OnSelected();
+		Gizmo.SetSelectedComponent(Cast<USceneComponent>(SelectedComponent));
+	}
+	else
+	{
+		Gizmo.SetSelectedComponent(nullptr);
 	}
 	UUIManager::GetInstance().OnSelectedComponentChanged(SelectedComponent);
 }
@@ -1064,4 +1267,108 @@ void UEditor::UpdateCameraAnimation()
 			ViewportManager.SetOrthoGraphicCameraPoint(NewSharedCenter);
 		}
 	}
+}
+
+/**
+ * @brief Component 복사 (같은 Actor 내에 추가)
+ * @note 단일 Component만 복사하며, child component는 복사하지 않음
+ * @param InSourceComponent 복사할 원본 Component
+ * @param InParentActor 복사된 Component가 추가될 Actor
+ * @return 복사된 Component (실패 시 nullptr)
+ */
+UActorComponent* UEditor::DuplicateComponent(UActorComponent* InSourceComponent, AActor* InParentActor)
+{
+	if (!InSourceComponent || !InParentActor)
+	{
+		return nullptr;
+	}
+
+	// Duplicate()를 통해 Component 복사 (child는 복사되지 않음)
+	UActorComponent* NewComponent = Cast<UActorComponent>(InSourceComponent->Duplicate());
+	if (!NewComponent)
+	{
+		return nullptr;
+	}
+
+	// Owner 설정 및 Parent Actor에 등록
+	NewComponent->SetOwner(InParentActor);
+	InParentActor->GetOwnedComponents().push_back(NewComponent);
+
+	// SceneComponent인 경우 계층 구조 설정
+	USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewComponent);
+	if (NewSceneComponent)
+	{
+		USceneComponent* SourceSceneComponent = Cast<USceneComponent>(InSourceComponent);
+		if (SourceSceneComponent && SourceSceneComponent->GetAttachParent())
+		{
+			// 원본 Component의 부모에 새 Component도 부착
+			NewSceneComponent->AttachToComponent(SourceSceneComponent->GetAttachParent());
+		}
+		else
+		{
+			// 부모가 없으면 Root Component에 부착
+			if (InParentActor->GetRootComponent())
+			{
+				NewSceneComponent->AttachToComponent(InParentActor->GetRootComponent());
+			}
+		}
+	}
+
+	// Component 등록
+	InParentActor->RegisterComponent(NewComponent);
+
+	return NewComponent;
+}
+
+/**
+ * @brief Actor 전체 복사
+ * @param InSourceActor 복사할 원본 Actor
+ * @return 복사된 Actor (실패 시 nullptr)
+ */
+AActor* UEditor::DuplicateActor(AActor* InSourceActor)
+{
+	if (!InSourceActor)
+	{
+		return nullptr;
+	}
+
+	// EditorWorld 가져오기
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (!EditorWorld)
+	{
+		return nullptr;
+	}
+
+	// 2. Level 가져오기
+	ULevel* CurrentLevel = EditorWorld->GetLevel();
+	if (!CurrentLevel)
+	{
+		return nullptr;
+	}
+
+	// 3. Duplicate()를 통해 Actor 전체 복사 (모든 Component 포함)
+	AActor* NewActor = Cast<AActor>(InSourceActor->Duplicate());
+	if (!NewActor)
+	{
+		return nullptr;
+	}
+
+	// 4. Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
+	NewActor->SetOuter(CurrentLevel);
+	for (UActorComponent* Component : NewActor->GetOwnedComponents())
+	{
+		if (Component)
+		{
+			Component->SetOuter(NewActor);
+		}
+	}
+
+	// 5. Level에 Actor 추가
+	CurrentLevel->AddActorToLevel(NewActor);
+	CurrentLevel->AddLevelComponent(NewActor);
+
+	// 6. BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
+	NewActor->BeginPlay();
+
+	return NewActor;
 }

@@ -59,11 +59,11 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         
                 FJsonSerializer::ReadString(ComponentData, "Type", TypeString);
                 FJsonSerializer::ReadString(ComponentData, "Name", NameString);
-        
+
             	UClass* ComponentClass = UClass::FindClass(TypeString);
-                UActorComponent* NewComp = Cast<UActorComponent>(NewObject(ComponentClass));
+                UActorComponent* NewComp = Cast<UActorComponent>(NewObject(ComponentClass, this));
             	NewComp->SetName(NameString);
-                
+
                 if (NewComp)
                 {
                 	NewComp->SetOwner(this);
@@ -291,12 +291,22 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 
 void AActor::RegisterComponent(UActorComponent* InNewComponent)
 {
-	if (!InNewComponent || InNewComponent->GetOwner() != this)
+	if (!InNewComponent)
+	{
+		return;
+	}
+
+	if (InNewComponent->GetOwner() != this)
 	{
 		InNewComponent->SetOwner(this);
 	}
 
-	OwnedComponents.push_back(InNewComponent);
+	// 중복 추가 방지
+	auto It = std::find(OwnedComponents.begin(), OwnedComponents.end(), InNewComponent);
+	if (It == OwnedComponents.end())
+	{
+		OwnedComponents.push_back(InNewComponent);
+	}
 
 	GWorld->GetLevel()->RegisterComponent(InNewComponent);
 }
