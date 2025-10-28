@@ -342,9 +342,9 @@ float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewP
     return ShadowFactor;
 }
 
-// Shadow Calculation Functions
-float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+float GetCascadeSubFrustumNum(float3 WorldPos)
 {
+    // 거리에 따라 알맞은 절두체를 선택한다.
     float CameraViewZ = mul(float4(WorldPos, 1.0f), View).z;
 
     int SubFrustumNum;
@@ -354,26 +354,26 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
             break;
     }
 
+    return SubFrustumNum;
+}
+
+// Shadow Calculation Functions
+float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
+{
+    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+
     // If beyond all cascades, assume fully lit
     if (SubFrustumNum >= SplitNum)
         return 1.0f;
 
-    float4 LightSpacePos = mul(float4(WorldPos, 1.0f), CascadeView);
-    LightSpacePos = mul(LightSpacePos, CascadeProj[SubFrustumNum]);
-
-    float2 AtlasUV =(ShadowTexCoord + Offset) * ATLASGRIDSIZE;
-            FShadowAtlasTilePos AtlasTilePos = ShadowAtlasDirectionalLightTilePos[SubFrustumNum];
-            AtlasUV.x += ATLASGRIDSIZE * AtlasUV.UV.x;
-            AtlasUV.y += ATLASGRIDSIZE * AtlasUV.UV.y;
-
     float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Shadow map resolution
     return CalculatePercentageCloserShadowFactor(
         Light.CastShadow,
-        Light.LightViewProjection,
+        mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
         TexelSize,
         ShadowAtlas,
-        AtlasUV
+        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
     );
 }
 
@@ -634,12 +634,18 @@ float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjectio
 
 float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
+    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+
+    // If beyond all cascades, assume fully lit
+    if (SubFrustumNum >= SplitNum)
+        return 1.0f;
+    
     return CalculateVarianceShadowFactor(
         Light.CastShadow,
-        Light.LightViewProjection,
+        mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[0].UV
+        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
     );
 }
 
@@ -763,12 +769,18 @@ float CalculateSummedAreaVarianceShadowFactor(uint CastShadow, float4x4 LightVie
 
 float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo Light, float3 WorldPos)
 {
+    int SubFrustumNum = GetCascadeSubFrustumNum(WorldPos);
+
+    // If beyond all cascades, assume fully lit
+    if (SubFrustumNum >= SplitNum)
+        return 1.0f;
+    
     return CalculateSummedAreaVarianceShadowFactor(
         Light.CastShadow,
-        Light.LightViewProjection,
+        mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[0].UV
+        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
     );
 }
 

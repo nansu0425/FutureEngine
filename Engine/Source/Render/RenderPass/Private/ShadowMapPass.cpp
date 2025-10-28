@@ -235,7 +235,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	DeviceContext->PSSetShaderResources(10, 4, NullSRVs);  // Unbind t10-t14
 
 	
-	const float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DeviceContext->ClearRenderTargetView(ShadowAtlas.VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowAtlas.ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	
@@ -320,8 +320,13 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	// DeviceContext->RSSetViewports(1, &ShadowMap->ShadowViewport);
 	// DeviceContext->ClearDepthStencilView(ShadowMap->ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	ID3D11RenderTargetView* NullRTV = nullptr;
-	Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	//ID3D11RenderTargetView* NullRTV = nullptr;
+	//Pipeline->SetRenderTargets(1, &NullRTV, ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(
+		1,
+		ShadowAtlas.VarianceShadowRTV.GetAddressOf(),
+		ShadowAtlas.ShadowDSV.Get()
+		);
 
 	// 2. Light별 캐싱된 rasterizer state 가져오기 (DepthBias 포함)
 	ID3D11RasterizerState* RastState = GetOrCreateRasterizerState(Light);
@@ -421,7 +426,11 @@ void FShadowMapPass::RenderSpotShadowMap(
 	DeviceContext->RSGetViewports(&NumViewports, &OriginalViewport);
 
 	// // 1. Shadow render target 설정
-	Pipeline->SetRenderTargets(1, ShadowAtlas.VarianceShadowRTV.GetAddressOf(), ShadowAtlas.ShadowDSV.Get());
+	Pipeline->SetRenderTargets(
+		1,
+		ShadowAtlas.VarianceShadowRTV.GetAddressOf(),
+		ShadowAtlas.ShadowDSV.Get()
+		);
 
 	D3D11_VIEWPORT ShadowViewport;
 
