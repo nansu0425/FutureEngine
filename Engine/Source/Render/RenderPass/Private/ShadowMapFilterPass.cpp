@@ -28,16 +28,19 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 		auto DirLight = Context.DirectionalLights[i];
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
-			FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
-			FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(i);
-			FilterShadowAtlasMap(
-				DirLight,
-				ShadowMap,
-				AtlasTilePos.UV[0] * TEXTURE_WIDTH,
-				AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
-				static_cast<uint32>(DirLight->GetShadowResolutionScale()),
-				static_cast<uint32>(DirLight->GetShadowResolutionScale())
-			);
+			for (uint32 j = 0; j < UCascadeManager::GetInstance().GetSplitNum(); j++)
+			{
+				FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
+				FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(j);
+				FilterShadowAtlasMap(
+					DirLight,
+					ShadowMap,
+					AtlasTilePos.UV[0] * TEXTURE_WIDTH,
+					AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
+					static_cast<uint32>(DirLight->GetShadowResolutionScale()),
+					static_cast<uint32>(DirLight->GetShadowResolutionScale())
+				);
+			}
 		}
 	}
 
