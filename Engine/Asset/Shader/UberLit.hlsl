@@ -714,7 +714,7 @@ float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, floa
             mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
             WorldPos,
             VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV,
             Light.Resolution
         );
 
@@ -894,7 +894,7 @@ float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo L
             mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
             WorldPos,
             VarianceShadowAtlas,
-            ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+            ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV,
             Light.Resolution
         );
 
