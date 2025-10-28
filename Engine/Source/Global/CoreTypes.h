@@ -135,7 +135,7 @@ struct FDirectionalLightInfo
 	float Intensity;
 
 	// Shadow parameters
-	FMatrix LightViewProjection;
+	// FMatrix LightViewProjection;
 	uint32 CastShadow;           // 0 or 1
 	float ShadowBias;
 	float ShadowSlopeBias;

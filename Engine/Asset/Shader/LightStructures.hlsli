@@ -15,7 +15,7 @@ struct FDirectionalLightInfo
     float Intensity;
 
     // Shadow parameters
-    row_major float4x4 LightViewProjection;
+    // row_major float4x4 LightViewProjection;
     uint CastShadow;           // 0 or 1
     float ShadowBias;
     float ShadowSlopeBias;

@@ -75,30 +75,14 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
     FCascadeSubFrustum CascadeFrustum;
 
     FMatrix CameraViewInverse = InCamera->GetFViewProjConstantsInverse().View;
-    CascadeShadowMapData.View = FMatrix::RotationMatrix(
-        InDirectionalLight->GetWorldRotation()
-        ).Transpose();
 
-    // 2. Light direction 기준으로 view matrix 생성
-    // FVector LightDir = InDirectionalLight->GetForwardVector();
-    // if (LightDir.Length() < 1e-6f)
-    //     LightDir = FVector(0, 0, -1);
-    // else
-    //     LightDir = LightDir.GetNormalized();
-    //
-    // FVector SceneCenter = FVector::ZeroVector();
-    // float SceneRadius = FarZ;
-    //
-    // // Light position은 scene 중심에서 light direction 반대로 충분히 멀리
-    // FVector LightPos = SceneCenter - LightDir * (SceneRadius + 50.0f);
-    //
-    // // Up vector 계산 (Z-Up, X-Forward, Y-Right Left-Handed 좌표계)
-    // FVector Up = FVector(0, 0, 1);  // Z-Up
-    // if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
-    //     Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
-    //
-    // CascadeShadowMapData.View = FMatrix::CreateLookAtLH(LightPos, SceneCenter, Up);
-    //
+    // Directional Light가 (0, 0, 0) Rotation일 때 땅을 보게 하기 위해 기본적으로 돌아간 상태이므로
+    // 해당 사항을 반영하여 View를 계산해야 합니다 - by HSH
+    FQuaternion LightRotationInverse = InDirectionalLight->GetWorldRotationAsQuaternion().Inverse();
+    FQuaternion ArrowToPosZ = FQuaternion::FromAxisAngle(FVector::RightVector(), 180.0f * ToRad);
+    FQuaternion FinalRotation = LightRotationInverse * ArrowToPosZ;
+    CascadeShadowMapData.View = FinalRotation.ToRotationMatrix();
+    
     FMatrix CameraViewToCascadeView = CameraViewInverse * CascadeShadowMapData.View;
 
     float NearPlaneXY = CalculateFrustumXYWithZ(NearZ, Fov);
@@ -198,7 +182,7 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
         float Right = SubFrustumMax.X;
         float Bottom = SubFrustumMin.Y;
         float Top = SubFrustumMax.Y;
-        float Near = SubFrustumMin.Z;// - LightViewVolumeZNearBias;
+        float Near = SubFrustumMin.Z - LightViewVolumeZNearBias;
         float Far = SubFrustumMax.Z;
 
         CascadeShadowMapData.Proj[i] = FMatrix::CreateOrthoLH(

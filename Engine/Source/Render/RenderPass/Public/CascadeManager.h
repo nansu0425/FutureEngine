@@ -27,7 +27,7 @@ public:
         );
 
 private:
-    uint32 SplitNum = 3;
+    uint32 SplitNum = 8;
     float SplitBlendFactor = 0.5f;
     float LightViewVolumeZNearBias = 100.0f;
 };
