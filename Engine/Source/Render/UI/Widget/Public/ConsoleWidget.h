@@ -4,6 +4,7 @@
 using std::streambuf;
 
 class UConsoleWidget;
+class FLogFileWriter;
 struct ImGuiInputTextCallbackData;
 
 struct FLogEntry
@@ -77,7 +78,7 @@ private:
 	int HistoryPosition;
 
 	// Log output
-	TArray<FLogEntry> LogItems;
+	std::deque<FLogEntry> LogItems;
 	bool bIsAutoScroll;
 	bool bIsScrollToBottom;
 
@@ -87,8 +88,15 @@ private:
 	streambuf* OriginalConsoleOutput;
 	streambuf* OriginalConsoleError;
 
+	// Log file writer
+	FLogFileWriter* LogFileWriter;
+
+	// 초기화 전 로그 임시 버퍼
+	std::deque<FLogEntry> PendingLogs;
+
 	// Helper functions
-	static ImVec4 GetColorByLogType(ELogType InType);
+	// static ImVec4 GetColorByLogType(ELogType InType); // InputTextMultiline은 라인별 색상 지원 안함
+	static const char* GetLogTypePrefix(ELogType InType);
 
 	void AddLogInternal(ELogType InType, const char* fmt, va_list InArguments);
 };

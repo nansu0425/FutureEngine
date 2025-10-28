@@ -50,5 +50,5 @@ public:
     FAmbientLightInfo GetAmbientLightInfo() const;
 
 private:
-    void EnsureVisualizationBillboard()override;
+    void EnsureVisualizationIcon()override;
 };

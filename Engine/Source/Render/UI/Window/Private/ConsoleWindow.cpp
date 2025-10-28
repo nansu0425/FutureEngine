@@ -20,7 +20,7 @@ UConsoleWindow::UConsoleWindow()
 	: ConsoleWidget(nullptr)
 	, AnimationState(EConsoleAnimationState::Hidden)
 	, AnimationProgress(0.0f)
-	, AnimationDuration(0.25f)
+	, AnimationDuration(0.15f)
 	, BottomMargin(10.0f)
 {
 	// 콘솔 윈도우 기본 설정
@@ -59,26 +59,24 @@ void UConsoleWindow::Initialize()
 		}
 	}
 
-	// Initialize System Output Redirection
+	// Initialize ConsoleWidget
 	try
 	{
-		ConsoleWidget->InitializeSystemRedirect();
-		AddLog(ELogType::Success, "ConsoleWindow: Game Console 초기화 성공");
-		AddLog(ELogType::System, "ConsoleWindow: Logging System Ready");
+		ConsoleWidget->Initialize();
 	}
 	catch (const std::exception& Exception)
 	{
 		// 초기화 실패 시 기본 로그만 출력 (예외를 다시 던지지 않음)
 		if (ConsoleWidget)
 		{
-			ConsoleWidget->AddLog(ELogType::Error, "ConsoleWindow: System Redirection Failed: %s", Exception.what());
+			ConsoleWidget->AddLog(ELogType::Error, "ConsoleWindow: Initialization Failed: %s", Exception.what());
 		}
 	}
 	catch (...)
 	{
 		if (ConsoleWidget)
 		{
-			ConsoleWidget->AddLog(ELogType::Error, "ConsoleWindow: System Redirection Failed: Unknown Error");
+			ConsoleWidget->AddLog(ELogType::Error, "ConsoleWindow: Initialization Failed: Unknown Error");
 		}
 	}
 }
@@ -121,10 +119,7 @@ void UConsoleWindow::StartShowAnimation()
 	AnimationState = EConsoleAnimationState::Showing;
 	SetWindowState(EUIWindowState::Visible);
 
-	if (AnimationProgress <= 0.0f)
-	{
-		AnimationProgress = 0.0f;
-	}
+	AnimationProgress = max(AnimationProgress, 0.0f);
 }
 
 void UConsoleWindow::StartHideAnimation()
@@ -194,7 +189,7 @@ void UConsoleWindow::ApplyAnimatedLayout(float MenuBarOffset)
 
 	ImVec2 TargetPos(WorkPos.x, ConsoleTopY);
 	ImGui::SetNextWindowPos(TargetPos, ImGuiCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(Config.DefaultSize.x, AnimatedHeight), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(WorkSize.x, AnimatedHeight), ImGuiCond_Always);
 }
 
 /**

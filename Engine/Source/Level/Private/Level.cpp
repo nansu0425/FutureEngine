@@ -62,6 +62,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				SpawnActorToLevel(ActorClass, &ActorDataJson); 
 			}
 		}
+
+		// 뷰포트 카메라 정보 로드
+		UViewportManager::GetInstance().SerializeViewports(bInIsLoading, InOutHandle);
 	}
 	// 저장
 	else
@@ -79,6 +82,9 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			ActorsJson[std::to_string(Actor->GetUUID())] = ActorJson;
 		}
 		InOutHandle["Actors"] = ActorsJson;
+
+		// 뷰포트 카메라 정보 저장
+		UViewportManager::GetInstance().SerializeViewports(bInIsLoading, InOutHandle);
 	}
 }
 

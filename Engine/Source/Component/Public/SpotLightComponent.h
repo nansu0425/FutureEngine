@@ -72,7 +72,7 @@ public:
     const FMatrix& GetShadowViewProjection() const { return CachedShadowViewProjection; }
 
 private:
-    void EnsureVisualizationBillboard()override;
+    void EnsureVisualizationIcon()override;
     
 private:
     /**

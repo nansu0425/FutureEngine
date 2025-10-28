@@ -3,7 +3,7 @@
 #include "Component/Public/LightComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 
-#include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Actor/Public/Actor.h"
 
 #include <algorithm>
@@ -61,18 +61,18 @@ void ULightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 void ULightComponent::SetIntensity(float InIntensity)
 {
     Super::SetIntensity(InIntensity);
-    UpdateVisualizationBillboardTint();
+    UpdateVisualizationIconTint();
 }
 
 void ULightComponent::SetLightColor(FVector InLightColor)
 {
     Super::SetLightColor(InLightColor);
-    UpdateVisualizationBillboardTint();
+    UpdateVisualizationIconTint();
 }
 
-void ULightComponent::UpdateVisualizationBillboardTint()
+void ULightComponent::UpdateVisualizationIconTint()
 {
-    if (!VisualizationBillboard)
+    if (!VisualizationIcon)
     {
         return;
     }
@@ -84,10 +84,10 @@ void ULightComponent::UpdateVisualizationBillboardTint()
 
     float NormalizedIntensity = std::clamp(GetIntensity(), 0.0f, 20.0f) / 20.0f;
     FVector4 Tint(ClampedColor.X, ClampedColor.Y, ClampedColor.Z, 1.0f);
-    VisualizationBillboard->SetSpriteTint(Tint);
+    VisualizationIcon->SetSpriteTint(Tint);
 }
 
-void ULightComponent::RefreshVisualizationBillboardBinding()
+void ULightComponent::RefreshVisualizationIconBinding()
 {
     AActor* OwnerActor = GetOwner();
     if (!OwnerActor)
@@ -95,15 +95,15 @@ void ULightComponent::RefreshVisualizationBillboardBinding()
         return;
     }
 
-    UBillBoardComponent* BoundBillboard = VisualizationBillboard;
-    const bool bNeedsLookup = !BoundBillboard || !BoundBillboard->IsVisualizationComponent() || BoundBillboard->GetAttachParent() != this;
+    UEditorIconComponent* BoundIcon = VisualizationIcon;
+    const bool bNeedsLookup = !BoundIcon || !BoundIcon->IsVisualizationComponent() || BoundIcon->GetAttachParent() != this;
 
     if (bNeedsLookup)
     {
-        BoundBillboard = nullptr;
+        BoundIcon = nullptr;
         for (UActorComponent* Component : OwnerActor->GetOwnedComponents())
         {
-            if (UBillBoardComponent* Candidate = Cast<UBillBoardComponent>(Component))
+            if (UEditorIconComponent* Candidate = Cast<UEditorIconComponent>(Component))
             {
                 if (!Candidate->IsVisualizationComponent())
                 {
@@ -115,21 +115,21 @@ void ULightComponent::RefreshVisualizationBillboardBinding()
                     continue;
                 }
 
-                BoundBillboard = Candidate;
+                BoundIcon = Candidate;
                 break;
             }
         }
 
-        VisualizationBillboard = BoundBillboard;
+        VisualizationIcon = BoundIcon;
     }
 
-    if (VisualizationBillboard)
+    if (VisualizationIcon)
     {
-        if (VisualizationBillboard->GetAttachParent() != this)
+        if (VisualizationIcon->GetAttachParent() != this)
         {
-            VisualizationBillboard->AttachToComponent(this);
+            VisualizationIcon->AttachToComponent(this);
         }
 
-        UpdateVisualizationBillboardTint();
+        UpdateVisualizationIconTint();
     }
 }

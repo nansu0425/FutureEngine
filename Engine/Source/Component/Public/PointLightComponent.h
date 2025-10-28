@@ -65,7 +65,7 @@ public:
     void SetFarPlane(float InFarPlane) { FarPlane = InFarPlane; }
 
 private:
-    void EnsureVisualizationBillboard()override;
+    void EnsureVisualizationIcon()override;
 
 private:
     float NearPlane = 0.01f;

@@ -2,11 +2,13 @@
 #include "Actor/Public/Actor.h"
 
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/EditorIconComponent.h"
 #include "Component/Public/LightComponent.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
+#include "Manager/Asset/Public/AssetManager.h"
 #include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
@@ -118,7 +120,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         	{
         		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
         		{
-        			LightComponent->RefreshVisualizationBillboardBinding();
+        			LightComponent->RefreshVisualizationIconBinding();
         		}
         	}
 
@@ -220,10 +222,19 @@ void AActor::InitializeComponents()
 
 	if (SceneComp->IsA(ULightComponent::StaticClass()))
 	{
-		static_cast<ULightComponent*>(SceneComp)->EnsureVisualizationBillboard();
+		static_cast<ULightComponent*>(SceneComp)->EnsureVisualizationIcon();
 	}
-	
-	
+	else if (SceneComp->IsExactly(USceneComponent::StaticClass()))
+	{
+		// 빈 Actor인 경우 Actor 아이콘 추가
+		UEditorIconComponent* ActorIcon = CreateDefaultSubobject<UEditorIconComponent>();
+		ActorIcon->AttachToComponent(SceneComp);
+		ActorIcon->SetIsVisualizationComponent(true);
+		ActorIcon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/Actor_64x.png"));
+		ActorIcon->SetRelativeScale3D(FVector(2.f, 2.f, 2.f));
+		ActorIcon->SetScreenSizeScaled(true);
+	}
+
 	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
 	UUID->AttachToComponent(GetRootComponent());
 	UUID->SetOffset(5.0f);
@@ -268,10 +279,10 @@ UActorComponent* AActor::AddComponent(UClass* InClass)
 
 	NewComponent->BeginPlay();
 
-	// LightComponent인 경우 빌보드 생성
+	// LightComponent인 경우 에디터 아이콘 생성
 	if (ULightComponent* LightComp = Cast<ULightComponent>(NewComponent))
 	{
-		LightComp->EnsureVisualizationBillboard();
+		LightComp->EnsureVisualizationIcon();
 	}
 
 	
@@ -305,12 +316,12 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
 
 	if (ULightComponent* LightComponent = Cast<ULightComponent>(InComponentToDelete))
 	{
-		// 1) 라이트에 연결된 시각화 빌보드가 있으면, 자식 분리 옵션과 무관하게 먼저 삭제
-		if (UBillBoardComponent* Billboard = LightComponent->GetBillBoardComponent())
+		// 1) 라이트에 연결된 시각화 아이콘이 있으면, 자식 분리 옵션과 무관하게 먼저 삭제
+		if (UEditorIconComponent* Icon = LightComponent->GetEditorIconComponent())
 		{
-			// 빌보드는 반드시 파괴되도록 자식 분리 옵션을 false로 호출
-			RemoveComponent(Billboard, false);
-			LightComponent->SetBillBoardComponent(nullptr);
+			// 아이콘은 반드시 파괴되도록 자식 분리 옵션을 false로 호출
+			RemoveComponent(Icon, false);
+			LightComponent->SetEditorIconComponent(nullptr);
 		}
 
 		// 2) 라이트 컴포넌트 자체를 등록 해제
