@@ -158,14 +158,35 @@ void UPointLightComponentWidget::RenderWidget()
 
     if (PointLightComponent->GetCastShadows())
     {
-        float ShadowResoulutionScale = PointLightComponent->GetShadowResolutionScale();
-        if (ImGui::DragFloat("ShadowResoulutionScale", &ShadowResoulutionScale, 0.1f, 0.0f, 20.0f))
+        // Shadow Resolution 선택용 ComboBox
+        const int shadowResOptions[] = {128, 256, 512, 1024};
+        const char* shadowResLabels[] = {"128", "256", "512", "1024"};
+
+        // 현재 라이트의 ShadowResolutionScale을 읽음
+        float currentScale = PointLightComponent->GetShadowResolutionScale();
+
+        // 현재 값과 가장 가까운 옵션 인덱스 계산
+        int currentIndex = 0;
+        for (int i = 0; i < IM_ARRAYSIZE(shadowResOptions); ++i)
         {
-            PointLightComponent->SetShadowResolutionScale(ShadowResoulutionScale);
+            if (fabs(currentScale - static_cast<float>(shadowResOptions[i])) < 1e-3f)
+            {
+                currentIndex = i;
+                break;
+            }
         }
+        
+        // ComboBox 생성
+        if (ImGui::Combo("Shadow Resolution", &currentIndex, shadowResLabels, IM_ARRAYSIZE(shadowResLabels)))
+        {
+            // 선택된 값 적용
+            PointLightComponent->SetShadowResolutionScale(static_cast<float>(shadowResOptions[currentIndex]));
+        }
+
+        // 툴팁 표시
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 해상도 크기\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 해상도 크기\n옵션: 128, 256, 512, 1024");
         }
 
         float ShadowBias = PointLightComponent->GetShadowBias();
@@ -285,7 +306,6 @@ void UPointLightComponentWidget::RenderWidget()
             
             const char* faceNames[6] = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
             // 각 면의 UV 범위 계산 (위→아래 방향으로 6분할)
-            float faceHeight = 1.0f / 6.0f;
 
             // 탭 바 시작
             if (ImGui::BeginTabBar("CubeShadowMapTabs"))
@@ -296,9 +316,9 @@ void UPointLightComponentWidget::RenderWidget()
                     {
                         // UV 계산 (Y축이 아래로 갈수록 증가)
                         float uStart = 0.125f * static_cast<float>(PointLightIdx);
-                        float uEnd   = 0.125f * static_cast<float>(PointLightIdx + 1);
-                        float vStart = 0.25f + faceHeight * static_cast<float>(faceIdx);
-                        float vEnd   = vStart + faceHeight;
+                        float vStart = 0.125f * static_cast<float>(faceIdx + 2);
+                        float uEnd   = uStart + (1.0f / (8192.0f / PointLightComponent->GetShadowResolutionScale()));
+                        float vEnd   = vStart + (1.0f / (8192.0f / PointLightComponent->GetShadowResolutionScale()));
 
                         ImGui::Image(TextureID,
                                      imageSize,

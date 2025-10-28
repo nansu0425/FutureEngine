@@ -125,14 +125,35 @@ void UDirectionalLightComponentWidget::RenderWidget()
 
     if (DirectionalLightComponent->GetCastShadows())
     {
-        float ShadowResoulutionScale = DirectionalLightComponent->GetShadowResolutionScale();
-        if (ImGui::DragFloat("ShadowResoulutionScale", &ShadowResoulutionScale, 0.1f, 0.0f, 20.0f))
+        // Shadow Resolution 선택용 ComboBox
+        const int shadowResOptions[] = {128, 256, 512, 1024};
+        const char* shadowResLabels[] = {"128", "256", "512", "1024"};
+
+        // 현재 라이트의 ShadowResolutionScale을 읽음
+        float currentScale = DirectionalLightComponent->GetShadowResolutionScale();
+
+        // 현재 값과 가장 가까운 옵션 인덱스 계산
+        int currentIndex = 0;
+        for (int i = 0; i < IM_ARRAYSIZE(shadowResOptions); ++i)
         {
-            DirectionalLightComponent->SetShadowResolutionScale(ShadowResoulutionScale);
+            if (fabs(currentScale - static_cast<float>(shadowResOptions[i])) < 1e-3f)
+            {
+                currentIndex = i;
+                break;
+            }
         }
+
+        // ComboBox 생성
+        if (ImGui::Combo("Shadow Resolution", &currentIndex, shadowResLabels, IM_ARRAYSIZE(shadowResLabels)))
+        {
+            // 선택된 값 적용
+            DirectionalLightComponent->SetShadowResolutionScale(static_cast<float>(shadowResOptions[currentIndex]));
+        }
+
+        // 툴팁 표시
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 해상도 크기\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 해상도 크기\n옵션: 128, 256, 512, 1024");
         }
 
         float ShadowBias = DirectionalLightComponent->GetShadowBias();
@@ -225,7 +246,10 @@ void UDirectionalLightComponentWidget::RenderWidget()
 
         ImVec2 imageSize(256, 256);
         ImVec2 startPos(0.125f * currentCascade, 0.0f);
-        ImVec2 endPos = startPos + ImVec2(0.125f, 0.125f);
+        ImVec2 endPos = startPos + ImVec2(
+            1.0f / (8192.0f / DirectionalLightComponent->GetShadowResolutionScale()),
+            1.0f / (8192.0f / DirectionalLightComponent->GetShadowResolutionScale())
+            );
 
         ImGui::Image(TextureID, imageSize, startPos, endPos);
         if (ImGui::IsItemHovered())

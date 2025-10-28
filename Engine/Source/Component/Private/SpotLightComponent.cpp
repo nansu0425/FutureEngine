@@ -83,6 +83,7 @@ FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
     Info.ShadowBias = GetShadowBias();
     Info.ShadowSlopeBias = GetShadowSlopeBias();
     Info.ShadowSharpen = GetShadowSharpen();
+    Info.Resolution = GetShadowResolutionScale();
 
     return Info;
 }

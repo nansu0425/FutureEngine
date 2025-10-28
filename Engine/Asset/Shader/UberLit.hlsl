@@ -13,12 +13,12 @@
 #define ADD_ILLUM(a, b) { (a).Ambient += (b).Ambient; (a).Diffuse += (b).Diffuse; (a).Specular += (b).Specular; }
 
 static const float PI = 3.14159265358979323846f;
+
+#define ATLASSIZE 8192.0f
 #define ATLASTILECOUNT 8.0f
 #define ATLASGRIDSIZE 1.0f / ATLASTILECOUNT
 
-// TODO: cbuffer에서 값을 전달하기 전까지 사용할 임시 상수
-#define TEXTURE_WIDTH 1024.0f
-#define TEXTURE_HEIGHT 1024.0f
+#define GET_TILE_SIZE(resolution) (1.0f / (ATLASSIZE / resolution))
 
 #define MAX_POINT_LIGHT_NUM 8
 #define MAX_SPOTLIGHT_NUM 8
@@ -283,7 +283,14 @@ float3x3 Inverse3x3(float3x3 M)
     PCF (Percentage Closer Filtering)
  -----------------------------------------------------------------------------*/
 
-float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, float2 TexelSize, Texture2D AtlasTexture, uint2 AtlasUV)
+float CalculatePercentageCloserShadowFactor(
+    uint CastShadow,
+    float4x4 LightViewProjection,
+    float3 WorldPos,
+    float Resolution,
+    Texture2D AtlasTexture,
+    uint2 AtlasUV
+    )
 {
     // If shadow is disabled, return fully lit (1.0)
     if (CastShadow == 0)
@@ -321,13 +328,15 @@ float CalculatePercentageCloserShadowFactor(uint CastShadow, float4x4 LightViewP
         [unroll]
         for (int y = -1; y <= 1; y++)
         {
+            float TexelSize = 1.0f / Resolution;
             float2 Offset = float2(x, y) * TexelSize;
 
             // 현재는 Directional Light가 한장이라고 가정하여
             // Shadow Atlas의 우측 상단을 가져온다고 가정
             // 추후 Cascade를 구현할 때 Atlas에서 Frustum Slice를 읽어올 수 있도록
             // 별도로 위치를 지정해야 함.
-            float2 AtlasTexcoord = (ShadowTexCoord + Offset) * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
+            float2 AtlasTexcoord =
+                (ShadowTexCoord + Offset) * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
             
             ShadowFactor += AtlasTexture.SampleCmpLevelZero(
                 ShadowSampler,
@@ -366,18 +375,21 @@ float CalculateDirectionalShadowFactor(FDirectionalLightInfo Light, float3 World
     if (SubFrustumNum >= SplitNum)
         return 1.0f;
 
-    float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Shadow map resolution
     return CalculatePercentageCloserShadowFactor(
         Light.CastShadow,
         mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
-        TexelSize,
+        Light.Resolution,
         ShadowAtlas,
         ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
     );
 }
 
-float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 WorldPos)
+float CalculateSpotShadowFactor(
+    FSpotLightInfo Light,
+    uint LightIndex,
+    float3 WorldPos
+    )
 {
     // Light의 개수가 규정된 상한을 초과하면 그림자 계산 스킵
     if (LightIndex >= MAX_SPOTLIGHT_NUM)
@@ -385,12 +397,11 @@ float CalculateSpotShadowFactor(FSpotLightInfo Light, uint LightIndex, float3 Wo
         return 1.0f;
     }
 
-    float2 TexelSize = 1.0f / float2(TEXTURE_WIDTH, TEXTURE_HEIGHT); // Spot shadow map resolution
     return CalculatePercentageCloserShadowFactor(
         Light.CastShadow,
         Light.LightViewProjection,
         WorldPos,
-        TexelSize,
+        Light.Resolution,
         ShadowAtlas,
         ShadowAtlasSpotLightTilePos[LightIndex].UV
     );
@@ -416,7 +427,11 @@ static const float3 CubePCFOffsets[20] = {
     float3( 1.0,  1.0,  1.0), float3(-1.0, -1.0, -1.0)
 };
 
-float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
+float2 GetPointLightShadowMapUVWithDirection(
+    float3 Direction,
+    uint LightIndex,
+    float Resolution
+    )
 {
     float3 AbsDir = abs(Direction);
     float2 UV;
@@ -491,7 +506,7 @@ float2 GetPointLightShadowMapUVWithDirection(float3 Direction, uint LightIndex)
     }
 
     // Atlas UV 계산
-    float2 AtlasUV = UV * ATLASGRIDSIZE;
+    float2 AtlasUV = UV * GET_TILE_SIZE(Resolution);
 
     FShadowAtlasPointLightTilePos AtlasTilePos = ShadowAtlasPointLightTilePos[LightIndex];
     AtlasUV.x += ATLASGRIDSIZE * AtlasTilePos.UV[FaceIndex].x;
@@ -534,7 +549,7 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
     float ShadowFactor = 0.0f;
     float TotalSamples = 1.0f;  // Start with 1 for center sample
     
-    float2 AtlasTexcoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex);
+    float2 AtlasTexcoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex, Light.Resolution);
     
     //float StoredDistance = ShadowAtlas.Load(int3(AtlasTexcoord, 0)).r;
     float StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
@@ -546,7 +561,7 @@ float CalculatePointShadowFactor(FPointLightInfo Light, uint LightIndex ,float3 
     {
         // Apply offset in tangent space around the sample direction
         float3 OffsetDir = normalize(SampleDir + CubePCFOffsets[i] * FilterRadius);
-        AtlasTexcoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex);
+        AtlasTexcoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex, Light.Resolution);
         
         // Sample shadow map with offset direction
         StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
@@ -597,7 +612,14 @@ float CalculateChebyshevShadowFactor(float CurrentDepth, float2 Moments)
     return saturate(ShadowFactor); 
 }
 
-float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, Texture2D AtlasTexture, uint2 AtlasUV)
+float CalculateVarianceShadowFactor(
+    uint CastShadow,
+    float4x4 LightViewProjection,
+    float3 WorldPos,
+    Texture2D AtlasTexture,
+    uint2 AtlasUV,
+    float Resolution
+    )
 {
     // If shadow is disabled, return fully lit (1.0)
     if (CastShadow == 0)
@@ -620,7 +642,7 @@ float CalculateVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjectio
     ShadowTexCoord.x = LightSpacePos.x * 0.5f + 0.5f;
     ShadowTexCoord.y = -LightSpacePos.y * 0.5f + 0.5f; // Flip Y for texture space
 
-    float2 AtlasTexCoord = ShadowTexCoord * ATLASGRIDSIZE;
+    float2 AtlasTexCoord = ShadowTexCoord * GET_TILE_SIZE(Resolution);
     AtlasTexCoord += ATLASGRIDSIZE * AtlasUV;
 
     float CurrentDepth = LightSpacePos.z;
@@ -645,7 +667,8 @@ float CalculateDirectionalVarianceShadowFactor(FDirectionalLightInfo Light, floa
         mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+        Light.Resolution
     );
 }
 
@@ -662,7 +685,8 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
         Light.LightViewProjection,
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV
+        ShadowAtlasSpotLightTilePos[LightIndex].UV,
+        Light.Resolution
     );
 }
 
@@ -679,12 +703,21 @@ float CalculateSpotVarianceShadowFactor(FSpotLightInfo Light, uint LightIndex, f
  * @param TexelSize 텍스처 1픽셀의 UV 크기 (1.0f / 텍스처 크기)
  * @return float2(Average E(X), Average E(X^2))
  */
-float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, float2 CenterUV, float2 FilterRadiusUV, float2 TexelSize)
+float2 SampleSummedAreaVarianceShadowMap(
+    Texture2D AtlasTexture,
+    uint2 AtlasUV,
+    float2 CenterUV,
+    float2 FilterRadiusUV,
+    float Resolution
+    )
 {
-    // 1. 필털링할 영역의 사각 경계(UV)를 계산
+    // 1. 필터링할 영역의 사각 경계(UV)를 계산
     float2 UV_TopRight = CenterUV + FilterRadiusUV;
     float2 UV_BottomLeft = CenterUV - FilterRadiusUV;
 
+    // 텍스처 크기 및 텍셀 크기 계산
+    float2 TexelSize = float2(1.0f / Resolution, 1.0f / Resolution);
+    
     // 2. SAT(Summed Area Table) 쿼리를 위해서 4개의 샘플링 좌표를 계산
     // SAT(x, y) = [0, 0]부터 [x, y]까지의 합
     float2 UV_A = float2(UV_BottomLeft.x - TexelSize.x, UV_BottomLeft.y - TexelSize.y); // A = (x1 -1, y1 -1)
@@ -692,10 +725,10 @@ float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, 
     float2 UV_C = float2(UV_BottomLeft.x - TexelSize.x, UV_TopRight.y);                 // C = (x1 - 1, y2)
     float2 UV_D = float2(UV_TopRight.x, UV_TopRight.y);                                 // D = (x2, y2)
 
-    float2 AtlasUV_A = UV_A * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
-    float2 AtlasUV_B = UV_B * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
-    float2 AtlasUV_C = UV_C * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
-    float2 AtlasUV_D = UV_D * ATLASGRIDSIZE + AtlasUV * ATLASGRIDSIZE;
+    float2 AtlasUV_A = UV_A * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
+    float2 AtlasUV_B = UV_B * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
+    float2 AtlasUV_C = UV_C * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
+    float2 AtlasUV_D = UV_D * GET_TILE_SIZE(Resolution) + AtlasUV * ATLASGRIDSIZE;
 
     // 3. SAT 텍스쳐 샘플링
     // TODO: SamplerClamp 또는 SamplerBorder 대체
@@ -721,7 +754,14 @@ float2 SampleSummedAreaVarianceShadowMap(Texture2D AtlasTexture, uint2 AtlasUV, 
     return SummedMoments / FilterArea;
 }
 
-float CalculateSummedAreaVarianceShadowFactor(uint CastShadow, float4x4 LightViewProjection, float3 WorldPos, Texture2D AtlasTexture, uint2 AtlasUV)
+float CalculateSummedAreaVarianceShadowFactor(
+    uint CastShadow,
+    float4x4 LightViewProjection,
+    float3 WorldPos,
+    Texture2D AtlasTexture,
+    uint2 AtlasUV,
+    float Resolution
+    )
 {
     // If shadow is disabled, return fully lit (1.0)
     if (CastShadow == 0)
@@ -749,7 +789,7 @@ float CalculateSummedAreaVarianceShadowFactor(uint CastShadow, float4x4 LightVie
     // --- 2. SAVSM 샘플링 ---
     
     // 텍스처 크기 및 텍셀 크기 계산
-    float2 TexelSize = float2(1.0f / TEXTURE_WIDTH, 1.0f / TEXTURE_HEIGHT);
+    float2 TexelSize = float2(1.0f / Resolution, 1.0f / Resolution);
 
     // 필터 커널 크기 정의 (예: 4x4 픽셀 반경)
     float KernelRadiusPixels = 4.0f;
@@ -760,7 +800,7 @@ float CalculateSummedAreaVarianceShadowFactor(uint CastShadow, float4x4 LightVie
         AtlasUV,
         ShadowTexCoord,
         FilterRadiusUV,
-        TexelSize
+        Resolution
     );
 
     // --- 3. 공통 체비쇼프 계산 ---
@@ -780,7 +820,8 @@ float CalculateDirectionalSummedAreaVarianceShadowFactor(FDirectionalLightInfo L
         mul(CascadeView, CascadeProj[SubFrustumNum]),
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
+        ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV,
+        Light.Resolution
     );
 }
 
@@ -797,7 +838,8 @@ float CalculateSpotSummedAreaVarianceShadowFactor(FSpotLightInfo Light, uint Lig
         Light.LightViewProjection,
         WorldPos,
         VarianceShadowAtlas,
-        ShadowAtlasSpotLightTilePos[LightIndex].UV
+        ShadowAtlasSpotLightTilePos[LightIndex].UV,
+        Light.Resolution
     );
 }
 

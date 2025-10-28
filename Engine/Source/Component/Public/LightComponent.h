@@ -90,8 +90,22 @@ public:
     /** @brief Shadow map 해상도 배율을 반환합니다 (1.0 = 기본 1024x1024). */
     float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 
-    /** @brief Shadow map 해상도 배율을 설정합니다 (0.25 ~ 4.0). */
-    void SetShadowResolutionScale(float InScale) { ShadowResolutionScale = std::clamp(InScale, 0.25f, 4.0f); }
+    void SetShadowResolutionScale(float InShadowResolutionScale)
+    {
+        int ShadowResolutionScaleInt = static_cast<int>(InShadowResolutionScale);
+
+        if (ShadowResolutionScaleInt != 1024 &&
+            ShadowResolutionScaleInt != 512 &&
+            ShadowResolutionScaleInt != 256 &&
+            ShadowResolutionScaleInt != 128)
+        {
+            ShadowResolutionScale = 1024.0f;
+            UE_LOG_WARNING("Warning: You tried to set shadow resolution with invalid value. Resolution is set with default value.");
+            return;
+        }
+        
+        ShadowResolutionScale = static_cast<float>(ShadowResolutionScaleInt);
+    }
 
     /** @brief Shadow acne 방지를 위한 depth bias를 반환합니다. */
     float GetShadowBias() const { return ShadowBias; }
@@ -121,7 +135,7 @@ protected:
 
     /** Shadow map 해상도 배율 (0.25 ~ 4.0)
      * 0.25 = 256x256, 0.5 = 512x512, 1.0 = 1024x1024, 2.0 = 2048x2048, 4.0 = 4096x4096 */
-    float ShadowResolutionScale = 1.0f;
+    float ShadowResolutionScale = 1024.0f;
 
     /** Depth bias for shadow acne prevention (0.0 ~ 0.1) */
     float ShadowBias = 0.005f;

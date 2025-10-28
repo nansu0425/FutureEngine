@@ -181,14 +181,35 @@ void USpotLightComponentWidget::RenderWidget()
 
     if (SpotLightComponent->GetCastShadows())
     {
-        float ShadowResoulutionScale = SpotLightComponent->GetShadowResolutionScale();
-        if (ImGui::DragFloat("ShadowResoulutionScale", &ShadowResoulutionScale, 0.1f, 0.0f, 20.0f))
+        // Shadow Resolution 선택용 ComboBox
+        const int shadowResOptions[] = {128, 256, 512, 1024};
+        const char* shadowResLabels[] = {"128", "256", "512", "1024"};
+
+        // 현재 라이트의 ShadowResolutionScale을 읽음
+        float currentScale = SpotLightComponent->GetShadowResolutionScale();
+
+        // 현재 값과 가장 가까운 옵션 인덱스 계산
+        int currentIndex = 0;
+        for (int i = 0; i < IM_ARRAYSIZE(shadowResOptions); ++i)
         {
-            SpotLightComponent->SetShadowResolutionScale(ShadowResoulutionScale);
+            if (fabs(currentScale - static_cast<float>(shadowResOptions[i])) < 1e-3f)
+            {
+                currentIndex = i;
+                break;
+            }
         }
+        
+        // ComboBox 생성
+        if (ImGui::Combo("Shadow Resolution", &currentIndex, shadowResLabels, IM_ARRAYSIZE(shadowResLabels)))
+        {
+            // 선택된 값 적용
+            SpotLightComponent->SetShadowResolutionScale(static_cast<float>(shadowResOptions[currentIndex]));
+        }
+
+        // 툴팁 표시
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("그림자 해상도 크기\n범위: 0.0(최소) ~ 20.0(최대)");
+            ImGui::SetTooltip("그림자 해상도 크기\n옵션: 128, 256, 512, 1024");
         }
 
         float ShadowBias = SpotLightComponent->GetShadowBias();
@@ -306,13 +327,19 @@ void USpotLightComponentWidget::RenderWidget()
         {
             // 원하는 출력 크기 설정
             ImVec2 ImageSize(256, 256); 
-    
+
+            ImVec2 startPos(0.125f * static_cast<float>(SpotLightIdx), 0.125f);
+            ImVec2 endPos = startPos + ImVec2(
+            1.0f / (8192.0f / SpotLightComponent->GetShadowResolutionScale()),
+            1.0f / (8192.0f / SpotLightComponent->GetShadowResolutionScale())
+            );
+            
             // ImGui::Image(텍스처 ID, 크기, UV 시작점, UV 끝점, Tint Color, Border Color)
             // 일반적으로 (0,0)에서 (1,1)까지의 UV를 사용하고, Tint Color는 흰색, Border Color는 투명으로 설정합니다.
             ImGui::Image(TextureID, 
                          ImageSize, 
-                         ImVec2(0.125f * static_cast<float>(SpotLightIdx), 0.125f),
-                         ImVec2(0.125f * static_cast<float>(SpotLightIdx + 1), 0.25f), 
+                         startPos,
+                         endPos, 
                          ImVec4(1, 1, 1, 1), 
                          ImVec4(0, 0, 0, 0)); 
 

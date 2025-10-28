@@ -356,8 +356,8 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	{
 		D3D11_VIEWPORT ShadowViewport;
 	
-		ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-		ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.Width = Light->GetShadowResolutionScale();
+		ShadowViewport.Height = Light->GetShadowResolutionScale();
 		ShadowViewport.MinDepth = 0.0f;
 		ShadowViewport.MaxDepth = 1.0f;
 		ShadowViewport.TopLeftX = SHADOW_MAP_RESOLUTION * i;
@@ -439,8 +439,8 @@ void FShadowMapPass::RenderSpotShadowMap(
 
 	const static float Y_START = SHADOW_MAP_RESOLUTION;
 
-	ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-	ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+	ShadowViewport.Width = Light->GetShadowResolutionScale();
+	ShadowViewport.Height = Light->GetShadowResolutionScale();
 	ShadowViewport.MinDepth = 0.0f;
 	ShadowViewport.MaxDepth = 1.0f;
 	ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
@@ -564,8 +564,8 @@ void FShadowMapPass::RenderPointShadowMap(
 
 		static const float Y_START = SHADOW_MAP_RESOLUTION * 2.0f;
 
-		ShadowViewport.Width = SHADOW_MAP_RESOLUTION;
-		ShadowViewport.Height = SHADOW_MAP_RESOLUTION;
+		ShadowViewport.Width = Light->GetShadowResolutionScale();;
+		ShadowViewport.Height = Light->GetShadowResolutionScale();;
 		ShadowViewport.MinDepth = 0.0f;
 		ShadowViewport.MaxDepth = 1.0f;
 		ShadowViewport.TopLeftX = X_OFFSET * AtlasIndex;
