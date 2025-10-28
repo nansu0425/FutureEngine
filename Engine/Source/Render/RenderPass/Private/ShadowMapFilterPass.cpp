@@ -28,16 +28,19 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 		auto DirLight = Context.DirectionalLights[i];
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
-			FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
-			FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(i);
-			FilterShadowAtlasMap(
-				DirLight,
-				ShadowMap,
-				AtlasTilePos.UV[0] * TEXTURE_WIDTH,
-				AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
-				static_cast<uint32>(DirLight->GetShadowResolutionScale()),
-				static_cast<uint32>(DirLight->GetShadowResolutionScale())
-			);
+			for (uint32 j = 0; j < UCascadeManager::GetInstance().GetSplitNum(); j++)
+			{
+				FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
+				FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(j);
+				FilterShadowAtlasMap(
+					DirLight,
+					ShadowMap,
+					AtlasTilePos.UV[0] * TEXTURE_WIDTH,
+					AtlasTilePos.UV[1] * TEXTURE_HEIGHT,
+					static_cast<uint32>(DirLight->GetShadowResolutionScale()),
+					static_cast<uint32>(DirLight->GetShadowResolutionScale())
+				);
+			}
 		}
 	}
 
@@ -61,7 +64,26 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 	}
 
 	// --- 3. Point Lights ---
-	// TODO
+	for (uint32 i = 0; i< Context.PointLights.size(); ++i)
+	{
+		auto PointLight = Context.PointLights[i];
+		if (PointLight->GetCastShadows() && PointLight->GetLightEnabled())
+		{
+			FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
+			FShadowAtlasPointLightTilePos AtlasTilePos = ShadowMapPass->GetPointAtlasTilePos(i);
+			for (int j = 0; j < 6; ++j)
+			{
+				FilterShadowAtlasMap(
+					PointLight,
+					ShadowMap,
+					AtlasTilePos.UV[j][0] * TEXTURE_WIDTH,
+					AtlasTilePos.UV[j][1] * TEXTURE_HEIGHT,
+					TEXTURE_WIDTH,
+					TEXTURE_HEIGHT
+				);	
+			}
+		}
+	}
 }
 
 void FShadowMapFilterPass::Release()

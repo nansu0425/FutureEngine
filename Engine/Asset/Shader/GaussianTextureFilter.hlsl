@@ -78,7 +78,7 @@ void mainCS(
         uint2 SampleCoord; // 샘플링할 픽셀 좌표
         int CurrentOffset = i;
 
-#ifdef BLUR_DIRECTION_VERTICAL
+#ifdef SCAN_DIRECTION_COLUMN
         // --- Vertical Pass 모드 ---
         // Y(행) 방향으로 샘플링
         

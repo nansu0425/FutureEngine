@@ -126,6 +126,11 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
     for (int i = 0; i < SplitNum; i++)
     {
         float PlaneZ = CascadeShadowMapData.SplitDistance[i].X;
+        // 마지막 SubFrustum이 아니면 10%의 추가 z길이를 부여한다.
+        // 이 추가 Z 길이는 Cascade Banding에 사용한다.
+        if (i < SplitNum - 1)
+            PlaneZ *= 1.1f;
+        
         float PlaneXY = CalculateFrustumXYWithZ(PlaneZ, Fov);
 
         CascadeFrustum.SubFarPlane[i][(int)EPlaneVertexPos::TOP_LEFT] =

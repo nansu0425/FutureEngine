@@ -234,6 +234,22 @@ void URenderer::CreateSamplerState()
 	shadowSamplerDesc.MinLOD = 0;
 	shadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	GetDevice()->CreateSamplerState(&shadowSamplerDesc, &ShadowComparisonSampler);
+
+	// Sampler for variance shadow mapping (VSM)
+	D3D11_SAMPLER_DESC VarianceShadowSamplerDesc = {};
+	VarianceShadowSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	VarianceShadowSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	VarianceShadowSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	VarianceShadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	VarianceShadowSamplerDesc.BorderColor[0] = 1.0f;
+	VarianceShadowSamplerDesc.BorderColor[1] = 1.0f;
+	VarianceShadowSamplerDesc.BorderColor[2] = 1.0f;
+	VarianceShadowSamplerDesc.BorderColor[3] = 1.0f;
+	VarianceShadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	VarianceShadowSamplerDesc.MinLOD = 0;
+	VarianceShadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	VarianceShadowSamplerDesc.MipLODBias = 0;
+	GetDevice()->CreateSamplerState(&VarianceShadowSamplerDesc, &VarianceShadowSampler);
 }
 
 void URenderer::RegisterShaderReloadCache(const std::filesystem::path& ShaderPath, ShaderUsage Usage)
@@ -441,7 +457,7 @@ void URenderer::CreateClusteredRenderingGrid()
 
 void URenderer::CreateDepthOnlyShader()
 {
-	const std::wstring ShaderFilePathString = L"Asset/Shader/DepthOnlyVS.hlsl";
+	const std::wstring ShaderFilePathString = L"Asset/Shader/DepthOnly.hlsl";
 	const std::filesystem::path ShaderPath(ShaderFilePathString);
 
 	// Depth-only VS uses FNormalVertex layout (same as UberLit)
@@ -463,7 +479,7 @@ void URenderer::CreateDepthOnlyShader()
 
 void URenderer::CreatePointLightShadowShader()
 {
-	const std::wstring ShaderFilePathString = L"Asset/Shader/PointLightShadowDepth.hlsl";
+	const std::wstring ShaderFilePathString = L"Asset/Shader/LinearDepthOnly.hlsl";
 	const std::filesystem::path ShaderPath(ShaderFilePathString);
 
 	// Same layout as depth-only shader
@@ -796,6 +812,7 @@ void URenderer::ReleaseSamplerState()
 	SafeRelease(FXAASamplerState);
 	SafeRelease(DefaultSampler);
 	SafeRelease(ShadowComparisonSampler);
+	SafeRelease(VarianceShadowSampler);
 }
 
 void URenderer::Update()

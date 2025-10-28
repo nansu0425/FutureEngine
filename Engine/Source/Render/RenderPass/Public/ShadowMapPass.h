@@ -221,8 +221,8 @@ private:
 	ID3D11InputLayout* DepthOnlyInputLayout = nullptr;
 
 	// Point Light Shadow Shaders (with linear distance)
-	ID3D11VertexShader* PointLightShadowVS = nullptr;
-	ID3D11PixelShader* PointLightShadowPS = nullptr;
+	ID3D11VertexShader* LinearDepthOnlyVS = nullptr;
+	ID3D11PixelShader* LinearDepthOnlyPS = nullptr;
 	ID3D11InputLayout* PointLightShadowInputLayout = nullptr;
 
 	// States
