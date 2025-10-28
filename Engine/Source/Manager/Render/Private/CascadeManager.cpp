@@ -1,19 +1,19 @@
 ﻿#include "pch.h"
-#include "Render/RenderPass/Public/CascadeManager.h"
+#include "Manager/Render/Public/CascadeManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(UCascadeManager, UObject)
 
 UCascadeManager::UCascadeManager() = default;
 UCascadeManager::~UCascadeManager() = default;
 
-uint32 UCascadeManager::GetSplitNum() const
+int32 UCascadeManager::GetSplitNum() const
 {
     return SplitNum;
 }
 
-void UCascadeManager::SetSplitNum(uint32 InSplitNum)
+void UCascadeManager::SetSplitNum(int32 InSplitNum)
 {
-    SplitNum = InSplitNum;
+    SplitNum = std::clamp(InSplitNum, SPLIT_NUM_MIN, SPLIT_NUM_MAX);
 }
 
 float UCascadeManager::GetSplitBlendFactor() const
@@ -23,7 +23,11 @@ float UCascadeManager::GetSplitBlendFactor() const
 
 void UCascadeManager::SetSplitBlendFactor(float InSplitBlendFactor)
 {
-    SplitBlendFactor = InSplitBlendFactor;
+    SplitBlendFactor = std::clamp(
+        InSplitBlendFactor,
+        SPLIT_BLEND_FACTOR_MIN,
+        SPLIT_BLEND_FACTOR_MAX
+        );
 }
 
 float UCascadeManager::GetLightViewVolumeZNearBias() const
@@ -33,7 +37,11 @@ float UCascadeManager::GetLightViewVolumeZNearBias() const
 
 void UCascadeManager::SetLightViewVolumeZNearBias(float InLightViewVolumeZNearBias)
 {
-    LightViewVolumeZNearBias = InLightViewVolumeZNearBias;
+    LightViewVolumeZNearBias = std::clamp(
+        InLightViewVolumeZNearBias,
+        LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN,
+        LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX
+        );
 }
 
 float UCascadeManager::CalculateFrustumXYWithZ(float Z, float Fov)

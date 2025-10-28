@@ -3,7 +3,7 @@
 #include "Texture/Public/ShadowMapResources.h"
 #include "Global/Types.h"
 #include "Render/RenderPass/Public/ShadowData.h"
-#include "Render/RenderPass/Public/CascadeManager.h"
+#include "Manager/Render/Public/CascadeManager.h"
 
 class ULightComponent;
 class UDirectionalLightComponent;
