@@ -355,7 +355,7 @@ void UMainBarWidget::RenderShowFlagsMenu()
 		// ShowFlags 가져오기
 		uint64 ShowFlags = CurrentLevel->GetShowFlags();
 
-		// BillBoard Text 표시 옵션
+		// BillBoard 표시 옵션
 		bool bShowBillboard = (ShowFlags & EEngineShowFlags::SF_Billboard) != 0;
 		if (ImGui::MenuItem("빌보드 표시", nullptr, bShowBillboard))
 		{
@@ -368,6 +368,23 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			{
 				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Billboard);
 				UE_LOG("MainBarWidget: 빌보드 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+
+		// UUID 표시 옵션
+		bool bShowUUID = (ShowFlags & EEngineShowFlags::SF_UUID) != 0;
+		if (ImGui::MenuItem("UUID 표시", nullptr, bShowUUID))
+		{
+			if (bShowUUID)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_UUID);
+				UE_LOG("MainBarWidget: UUID 비표시");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_UUID);
+				UE_LOG("MainBarWidget: UUID 표시");
 			}
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}

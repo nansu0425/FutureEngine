@@ -8,6 +8,7 @@
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Level/Public/Level.h"
+#include "Manager/Asset/Public/AssetManager.h"
 #include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
@@ -223,8 +224,17 @@ void AActor::InitializeComponents()
 	{
 		static_cast<ULightComponent*>(SceneComp)->EnsureVisualizationIcon();
 	}
-	
-	
+	else if (SceneComp->IsExactly(USceneComponent::StaticClass()))
+	{
+		// 빈 Actor인 경우 Actor 아이콘 추가
+		UEditorIconComponent* ActorIcon = CreateDefaultSubobject<UEditorIconComponent>();
+		ActorIcon->AttachToComponent(SceneComp);
+		ActorIcon->SetIsVisualizationComponent(true);
+		ActorIcon->SetSprite(UAssetManager::GetInstance().LoadTexture("Data/Icons/Actor_64x.png"));
+		ActorIcon->SetRelativeScale3D(FVector(2.f, 2.f, 2.f));
+		ActorIcon->SetScreenSizeScaled(true);
+	}
+
 	UUUIDTextComponent* UUID = CreateDefaultSubobject<UUUIDTextComponent>();
 	UUID->AttachToComponent(GetRootComponent());
 	UUID->SetOffset(5.0f);
