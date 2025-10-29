@@ -589,6 +589,26 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
 
+	// Center 구체 드래그 처리
+	// UE 기준 카메라 NDC 평면에 평행하게 이동
+	if (Gizmo.GetGizmoDirection() == EGizmoDirection::Center)
+	{
+		// 카메라의 Forward 방향을 평면 법선로 사용
+		FVector PlaneNormal = InActiveCamera->GetForward();
+
+		// 드래그 시작 지점의 마우스 위치를 평면 원점으로 사용
+		FVector FixedPlaneOrigin = Gizmo.GetDragStartMouseLocation();
+
+		// 레이와 카메라 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, FixedPlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 시작점으로부터 이동 거리 계산
+			FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+			return Gizmo.GetDragStartActorLocation() + MouseDelta;
+		}
+		return Gizmo.GetGizmoLocation();
+	}
+
 	// 평면 드래그 처리
 	if (Gizmo.IsPlaneDirection())
 	{
@@ -827,6 +847,41 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
 	FQuaternion Quat = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
 	const FVector CameraLocation = InActiveCamera->GetLocation();
+
+	// Center 구체 드래그 처리 (균일 스케일, 모든 축 동일하게)
+	if (Gizmo.GetGizmoDirection() == EGizmoDirection::Center)
+	{
+		// 카메라 Forward 방향의 평면에서 드래그
+		FVector PlaneNormal = InActiveCamera->GetForward();
+
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 벡터 계산
+			const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+
+			// 카메라 Right 방향으로의 드래그 거리 사용 (수평 드래그)
+			const FVector CamRight = InActiveCamera->GetRight();
+			const float DragDistance = MouseDelta.Dot(CamRight);
+
+			// 스케일 민감도 조정
+			const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
+			constexpr float BaseSensitivity = 0.03f;
+			const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
+			const float ScaleDelta = DragDistance * ScaleSensitivity;
+
+			// 모든 축에 동일한 스케일 적용 (균일 스케일)
+			const FVector DragStartScale = Gizmo.GetDragStartActorScale();
+			const float UniformScale = max(1.0f + ScaleDelta / DragStartScale.X, MIN_SCALE_VALUE);
+
+			FVector NewScale;
+			NewScale.X = max(DragStartScale.X * UniformScale, MIN_SCALE_VALUE);
+			NewScale.Y = max(DragStartScale.Y * UniformScale, MIN_SCALE_VALUE);
+			NewScale.Z = max(DragStartScale.Z * UniformScale, MIN_SCALE_VALUE);
+
+			return NewScale;
+		}
+		return Gizmo.GetComponentScale();
+	}
 
 	// 평면 스케일 처리
 	if (Gizmo.IsPlaneDirection())

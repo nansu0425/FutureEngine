@@ -135,6 +135,23 @@ void UGizmo::OnMouseDragStart(const FVector& CollisionPoint)
 // 하이라이트 색상은 렌더 시점에만 계산 (상태 오염 방지)
 FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 {
+	// Scale 모드에서만 Center 선택 시 모든 축 및 평면 하이라이팅
+	if (GizmoMode == EGizmoMode::Scale && GizmoDirection == EGizmoDirection::Center)
+	{
+		if (InAxis == EGizmoDirection::Forward || InAxis == EGizmoDirection::Right || InAxis == EGizmoDirection::Up ||
+		    InAxis == EGizmoDirection::XY_Plane || InAxis == EGizmoDirection::XZ_Plane || InAxis == EGizmoDirection::YZ_Plane)
+		{
+			if (bIsDragging)
+			{
+				return {0.8f, 0.8f, 0.0f, 1.0f};  // 드래그 중: 짙은 노란색
+			}
+			else
+			{
+				return {1.0f, 1.0f, 0.0f, 1.0f};  // 호버 중: 밝은 노란색
+			}
+		}
+	}
+
 	return FGizmoMath::CalculateColor(InAxis, GizmoDirection, bIsDragging, GizmoColor);
 }
 

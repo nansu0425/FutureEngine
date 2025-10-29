@@ -281,7 +281,7 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
  */
 void UGizmo::RenderCenterSphere(const FEditorPrimitive& P, float RenderScale)
 {
-	const float SphereRadius = 0.07f * RenderScale;
+	const float SphereRadius = 0.10f * RenderScale;
 	constexpr int NumSegments = 16;
 	constexpr int NumRings = 8;
 
@@ -553,14 +553,15 @@ void UGizmo::RenderScalePlanes(const FEditorPrimitive& P, const FQuaternion& Bas
 		}
 
 		bool bIsPlaneSelected = (GizmoDirection == PlaneInfo.Direction);
+		bool bIsCenterSelected = (GizmoDirection == EGizmoDirection::Center);
 
-		// 색상 계산
+		// 색상 계산 (평면 자체 선택 또는 Center 선택 시 하이라이팅)
 		FVector4 Seg1Color_Final, Seg2Color_Final;
-		if (bIsPlaneSelected && bIsDragging)
+		if ((bIsPlaneSelected || bIsCenterSelected) && bIsDragging)
 		{
 			Seg1Color_Final = Seg2Color_Final = FVector4(0.8f, 0.8f, 0.0f, 1.0f);
 		}
-		else if (bIsPlaneSelected)
+		else if (bIsPlaneSelected || bIsCenterSelected)
 		{
 			Seg1Color_Final = Seg2Color_Final = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
 		}
@@ -948,10 +949,12 @@ void UGizmo::RenderForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewpo
 	HWidgetAxis* XAxisProxy = new HWidgetAxis(EGizmoAxisType::X, InvalidHitProxyId);
 	HWidgetAxis* YAxisProxy = new HWidgetAxis(EGizmoAxisType::Y, InvalidHitProxyId);
 	HWidgetAxis* ZAxisProxy = new HWidgetAxis(EGizmoAxisType::Z, InvalidHitProxyId);
+	HWidgetAxis* CenterProxy = new HWidgetAxis(EGizmoAxisType::Center, InvalidHitProxyId);
 
 	FHitProxyId XAxisId = HitProxyManager.AllocateHitProxyId(XAxisProxy);
 	FHitProxyId YAxisId = HitProxyManager.AllocateHitProxyId(YAxisProxy);
 	FHitProxyId ZAxisId = HitProxyManager.AllocateHitProxyId(ZAxisProxy);
+	FHitProxyId CenterId = HitProxyManager.AllocateHitProxyId(CenterProxy);
 
 
 	// Rotation mode requires dynamic mesh generation
@@ -1069,6 +1072,77 @@ void UGizmo::RenderForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewpo
 			P.Rotation = AxisRots[2] * BaseRot;
 			P.Color = ZAxisId.GetColor();
 			Renderer.RenderEditorPrimitive(P, RenderState);
+		}
+
+		// Center sphere rendering for Translate/Scale modes
+		{
+			const float SphereRadius = 0.10f * RenderScale;
+			constexpr int NumSegments = 16;
+			constexpr int NumRings = 16;
+
+			TArray<FNormalVertex> vertices;
+			TArray<uint32> indices;
+
+			// Generate sphere mesh
+			for (int ring = 0; ring <= NumRings; ++ring)
+			{
+				const float Theta = PI * static_cast<float>(ring) / static_cast<float>(NumRings);
+				const float SinTheta = sinf(Theta);
+				const float CosTheta = cosf(Theta);
+
+				for (int seg = 0; seg <= NumSegments; ++seg)
+				{
+					const float Phi = 2.0f * PI * static_cast<float>(seg) / static_cast<float>(NumSegments);
+					const float SinPhi = sinf(Phi);
+					const float CosPhi = cosf(Phi);
+
+					FNormalVertex v;
+					v.Position.X = SphereRadius * SinTheta * CosPhi;
+					v.Position.Y = SphereRadius * SinTheta * SinPhi;
+					v.Position.Z = SphereRadius * CosTheta;
+					v.Normal = v.Position.GetNormalized();
+					v.Color = FVector4(1, 1, 1, 1);
+					vertices.push_back(v);
+				}
+			}
+
+			// Generate indices
+			for (int ring = 0; ring < NumRings; ++ring)
+			{
+				for (int seg = 0; seg < NumSegments; ++seg)
+				{
+					const int Current = ring * (NumSegments + 1) + seg;
+					const int Next = Current + NumSegments + 1;
+
+					indices.push_back(Current);
+					indices.push_back(Next);
+					indices.push_back(Current + 1);
+
+					indices.push_back(Current + 1);
+					indices.push_back(Next);
+					indices.push_back(Next + 1);
+				}
+			}
+
+			if (!indices.empty())
+			{
+				ID3D11Buffer* sphereVB = nullptr;
+				ID3D11Buffer* sphereIB = nullptr;
+				FGizmoGeometry::CreateTempBuffers(vertices, indices, &sphereVB, &sphereIB);
+
+				FEditorPrimitive SpherePrim = P;
+				SpherePrim.VertexBuffer = sphereVB;
+				SpherePrim.NumVertices = static_cast<uint32>(vertices.size());
+				SpherePrim.IndexBuffer = sphereIB;
+				SpherePrim.NumIndices = static_cast<uint32>(indices.size());
+				SpherePrim.Rotation = FQuaternion::Identity();
+				SpherePrim.Scale = FVector(1.0f, 1.0f, 1.0f);
+				SpherePrim.Color = CenterId.GetColor();
+				Renderer.RenderEditorPrimitive(SpherePrim, RenderState);
+
+				sphereVB->Release();
+				sphereIB->Release();
+			}
 		}
 	}
 }
