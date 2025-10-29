@@ -9,7 +9,7 @@
 class UStaticMeshComponent;
 
 /**
- * @brief Axis-Aligned Bounding Box
+ * @brief 축 정렬 경계 상자 (Axis-Aligned Bounding Box)
  */
 struct FPSMBoundingBox
 {
@@ -20,7 +20,7 @@ struct FPSMBoundingBox
 	FPSMBoundingBox(const FPSMBoundingBox& Other) : MinPt(Other.MinPt), MaxPt(Other.MaxPt) {}
 
 	/**
-	 * @brief Construct AABB from array of points
+	 * @brief 점 배열로부터 AABB 생성
 	 */
 	explicit FPSMBoundingBox(const std::vector<FVector>& Points)
 	{
@@ -31,7 +31,7 @@ struct FPSMBoundingBox
 	}
 
 	/**
-	 * @brief Merge multiple AABBs into one
+	 * @brief 여러 AABB를 하나로 병합
 	 */
 	explicit FPSMBoundingBox(const std::vector<FPSMBoundingBox>& Boxes)
 	{
@@ -43,7 +43,7 @@ struct FPSMBoundingBox
 	}
 
 	/**
-	 * @brief Get center of AABB
+	 * @brief AABB의 중심점 반환
 	 */
 	FVector GetCenter() const
 	{
@@ -51,7 +51,7 @@ struct FPSMBoundingBox
 	}
 
 	/**
-	 * @brief Merge a point into this AABB
+	 * @brief 점을 AABB에 병합
 	 */
 	void Merge(const FVector& Point)
 	{
@@ -65,7 +65,7 @@ struct FPSMBoundingBox
 	}
 
 	/**
-	 * @brief Get i-th corner of AABB (0-7)
+	 * @brief AABB의 i번째 모서리 반환 (0-7)
 	 */
 	FVector GetCorner(int Index) const
 	{
@@ -77,16 +77,16 @@ struct FPSMBoundingBox
 	}
 
 	/**
-	 * @brief Ray-box intersection test
-	 * @param OutHitDist Distance along ray to intersection point
-	 * @param Origin Ray origin
-	 * @param Direction Ray direction (should be normalized)
-	 * @return true if intersection exists
+	 * @brief 광선-박스 교차 테스트
+	 * @param OutHitDist 광선을 따라 교차점까지의 거리
+	 * @param Origin 광선 원점
+	 * @param Direction 광선 방향 (정규화되어야 함)
+	 * @return 교차가 존재하면 true
 	 */
 	bool Intersect(float& OutHitDist, const FVector& Origin, const FVector& Direction) const;
 
 	/**
-	 * @brief Check if AABB is valid (non-empty)
+	 * @brief AABB가 유효한지 확인 (비어있지 않은지)
 	 */
 	bool IsValid() const
 	{
@@ -95,7 +95,7 @@ struct FPSMBoundingBox
 };
 
 /**
- * @brief Bounding Sphere
+ * @brief 경계 구 (Bounding Sphere)
  */
 struct FPSMBoundingSphere
 {
@@ -106,7 +106,7 @@ struct FPSMBoundingSphere
 	FPSMBoundingSphere(const FPSMBoundingSphere& Other) : Center(Other.Center), Radius(Other.Radius) {}
 
 	/**
-	 * @brief Construct bounding sphere from AABB
+	 * @brief AABB로부터 경계 구 생성
 	 */
 	explicit FPSMBoundingSphere(const FPSMBoundingBox& Box)
 	{
@@ -116,55 +116,55 @@ struct FPSMBoundingSphere
 	}
 
 	/**
-	 * @brief Construct minimum bounding sphere from points
+	 * @brief 점들로부터 최소 경계 구 생성
 	 */
 	explicit FPSMBoundingSphere(const std::vector<FVector>& Points);
 };
 
 /**
- * @brief View Frustum for culling tests
+ * @brief 컬링 테스트용 뷰 프러스텀
  */
 struct FPSMFrustum
 {
-	FVector4 Planes[6];  // Left, Right, Bottom, Top, Near, Far (in DirectX view space)
-	FVector Corners[8];  // 8 frustum corners
-	int VertexLUT[6];    // Nearest/farthest vertex index for each plane
+	FVector4 Planes[6];  // Left, Right, Bottom, Top, Near, Far (DirectX 뷰 공간)
+	FVector Corners[8];  // 프러스텀 8개 모서리
+	int VertexLUT[6];    // 각 평면에 대한 가장 가까운/먼 정점 인덱스
 
 	FPSMFrustum() = default;
 
 	/**
-	 * @brief Construct frustum from view-projection matrix
-	 * @param ViewProj Combined view-projection matrix
+	 * @brief 뷰-투영 행렬로부터 프러스텀 생성
+	 * @param ViewProj 결합된 뷰-투영 행렬
 	 */
 	explicit FPSMFrustum(const FMatrix& ViewProj);
 
 	/**
-	 * @brief Test if sphere is inside frustum
+	 * @brief 구가 프러스텀 내부에 있는지 테스트
 	 */
 	bool TestSphere(const FPSMBoundingSphere& Sphere) const;
 
 	/**
-	 * @brief Test if AABB is inside/intersecting frustum
-	 * @return 0 = outside, 1 = fully inside, 2 = intersecting
+	 * @brief AABB가 프러스텀 내부/교차하는지 테스트
+	 * @return 0 = 외부, 1 = 완전히 내부, 2 = 교차
 	 */
 	int TestBox(const FPSMBoundingBox& Box) const;
 
 	/**
-	 * @brief Test if swept sphere (extruded along direction) intersects frustum
-	 * Used for shadow caster culling
+	 * @brief Swept Sphere(방향으로 확장된 구)가 프러스텀과 교차하는지 테스트
+	 * 그림자 캐스터 컬링에 사용됨
 	 */
 	bool TestSweptSphere(const FPSMBoundingSphere& Sphere, const FVector& SweepDir) const;
 };
 
 /**
- * @brief Bounding Cone - used for tight FOV calculation in PSM
+ * @brief 경계 원뿔 (Bounding Cone) - PSM에서 타이트한 FOV 계산에 사용
  */
 struct FPSMBoundingCone
 {
 	FVector Apex = FVector::ZeroVector();
-	FVector Direction = FVector(1, 0, 0);  // X-Forward in FutureEngine
-	float FovX = 0.0f;  // Half angle in radians
-	float FovY = 0.0f;  // Half angle in radians
+	FVector Direction = FVector(1, 0, 0);  // FutureEngine에서는 X-Forward
+	float FovX = 0.0f;  // 라디안 단위 반각
+	float FovY = 0.0f;  // 라디안 단위 반각
 	float Near = 0.001f;
 	float Far = 1.0f;
 	FMatrix LookAtMatrix = FMatrix::Identity();
@@ -172,12 +172,12 @@ struct FPSMBoundingCone
 	FPSMBoundingCone() = default;
 
 	/**
-	 * @brief Construct bounding cone from AABBs and apex point
-	 * Automatically calculates optimal view direction and FOV
+	 * @brief AABB들과 꼭짓점으로부터 경계 원뿔 생성
+	 * 최적의 뷰 방향과 FOV를 자동으로 계산
 	 *
-	 * @param Boxes AABBs in post-projective space
-	 * @param Projection Transformation to post-projective space
-	 * @param InApex Cone apex (light position in post-projective space)
+	 * @param Boxes 포스트-프로젝티브 공간의 AABB들
+	 * @param Projection 포스트-프로젝티브 공간으로의 변환
+	 * @param InApex 원뿔 꼭짓점 (포스트-프로젝티브 공간의 빛 위치)
 	 */
 	FPSMBoundingCone(
 		const std::vector<FPSMBoundingBox>& Boxes,
@@ -186,12 +186,12 @@ struct FPSMBoundingCone
 	);
 
 	/**
-	 * @brief Construct bounding cone with predefined direction
+	 * @brief 미리 정의된 방향으로 경계 원뿔 생성
 	 *
-	 * @param Boxes AABBs in post-projective space
-	 * @param Projection Transformation to post-projective space
-	 * @param InApex Cone apex
-	 * @param InDirection Cone direction (will be normalized)
+	 * @param Boxes 포스트-프로젝티브 공간의 AABB들
+	 * @param Projection 포스트-프로젝티브 공간으로의 변환
+	 * @param InApex 원뿔 꼭짓점
+	 * @param InDirection 원뿔 방향 (정규화됨)
 	 */
 	FPSMBoundingCone(
 		const std::vector<FPSMBoundingBox>& Boxes,
@@ -202,20 +202,20 @@ struct FPSMBoundingCone
 };
 
 /**
- * @brief Transform AABB by matrix
- * @param Result Output transformed AABB
- * @param Source Input AABB
- * @param Transform Transformation matrix
+ * @brief 행렬로 AABB 변환
+ * @param Result 출력 변환된 AABB
+ * @param Source 입력 AABB
+ * @param Transform 변환 행렬
  */
 void TransformBoundingBox(FPSMBoundingBox& Result, const FPSMBoundingBox& Source, const FMatrix& Transform);
 
 /**
- * @brief Get AABB of a static mesh component in world space
+ * @brief 스태틱 메시 컴포넌트의 월드 공간 AABB 가져오기
  */
 void GetMeshWorldBoundingBox(FPSMBoundingBox& OutBox, UStaticMeshComponent* Mesh);
 
 /**
- * @brief Test swept sphere-plane intersection (for shadow caster culling)
+ * @brief Swept Sphere-평면 교차 테스트 (그림자 캐스터 컬링용)
  */
 bool SweptSpherePlaneIntersect(
 	float& OutT0,

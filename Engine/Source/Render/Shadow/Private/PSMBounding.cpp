@@ -1,4 +1,5 @@
-#include "Render/RenderPass/Public/PSMBounding.h"
+#include "pch.h"
+#include "Render/Shadow/Public/PSMBounding.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include <cmath>
 #include <algorithm>
@@ -6,7 +7,7 @@
 #define ALMOST_ZERO(F) (std::abs(F) < 1e-6f)
 #define IS_SPECIAL(F) (std::isnan(F) || std::isinf(F))
 
-// Helper function: Normalize plane (a, b, c, d)
+// 헬퍼 함수: 평면 정규화 (a, b, c, d)
 static FVector4 NormalizePlane(const FVector4& Plane)
 {
 	float Length = std::sqrt(Plane.X * Plane.X + Plane.Y * Plane.Y + Plane.Z * Plane.Z);
@@ -16,13 +17,13 @@ static FVector4 NormalizePlane(const FVector4& Plane)
 	return FVector4(Plane.X * InvLength, Plane.Y * InvLength, Plane.Z * InvLength, Plane.W * InvLength);
 }
 
-// Helper: Plane-point signed distance
+// 헬퍼: 평면-점 부호 있는 거리
 static float PlaneDistance(const FVector4& Plane, const FVector& Point)
 {
 	return Plane.X * Point.X + Plane.Y * Point.Y + Plane.Z * Point.Z + Plane.W;
 }
 
-// Helper: Three-plane intersection
+// 헬퍼: 세 평면 교차점
 static bool PlaneIntersection(FVector& OutPoint, const FVector4& P0, const FVector4& P1, const FVector4& P2)
 {
 	FVector N0(P0.X, P0.Y, P0.Z);
@@ -54,7 +55,7 @@ static bool PlaneIntersection(FVector& OutPoint, const FVector4& P0, const FVect
 
 bool FPSMBoundingBox::Intersect(float& OutHitDist, const FVector& Origin, const FVector& Direction) const
 {
-	// Slab method for ray-AABB intersection
+	// Slab 방식의 레이-AABB 교차 테스트
 	FVector4 Planes[6] = {
 		FVector4(1, 0, 0, -MinPt.X),  FVector4(-1, 0, 0, MaxPt.X),
 		FVector4(0, 1, 0, -MinPt.Y),  FVector4(0, -1, 0, MaxPt.Y),
@@ -83,7 +84,7 @@ bool FPSMBoundingBox::Intersect(float& OutHitDist, const FVector& Origin, const 
 		HitPoint = Origin + Direction * OutHitDist;
 		Inside = true;
 
-		// Check if hit point is inside AABB on other dimensions
+		// 히트 포인트가 다른 차원에서 AABB 내부에 있는지 확인
 		for (int j = 0; j < 6 && Inside; j++)
 		{
 			if (j == i)
@@ -109,7 +110,7 @@ FPSMBoundingSphere::FPSMBoundingSphere(const std::vector<FVector>& Points)
 		return;
 	}
 
-	// Ritter's bounding sphere algorithm (approximate)
+	// Ritter의 경계 구 알고리즘 (근사)
 	Center = Points[0];
 	Radius = 0.0f;
 
@@ -135,20 +136,20 @@ FPSMBoundingSphere::FPSMBoundingSphere(const std::vector<FVector>& Points)
 
 FPSMFrustum::FPSMFrustum(const FMatrix& ViewProj)
 {
-	// Extract frustum planes from view-projection matrix (DirectX row-major)
+	// 뷰-투영 행렬에서 프러스텀 평면 추출 (DirectX row-major)
 	FVector4 Col0(ViewProj.Data[0][0], ViewProj.Data[1][0], ViewProj.Data[2][0], ViewProj.Data[3][0]);
 	FVector4 Col1(ViewProj.Data[0][1], ViewProj.Data[1][1], ViewProj.Data[2][1], ViewProj.Data[3][1]);
 	FVector4 Col2(ViewProj.Data[0][2], ViewProj.Data[1][2], ViewProj.Data[2][2], ViewProj.Data[3][2]);
 	FVector4 Col3(ViewProj.Data[0][3], ViewProj.Data[1][3], ViewProj.Data[2][3], ViewProj.Data[3][3]);
 
-	Planes[0] = NormalizePlane(Col3 + Col0);  // Left
-	Planes[1] = NormalizePlane(Col3 - Col0);  // Right
-	Planes[2] = NormalizePlane(Col3 + Col1);  // Bottom
-	Planes[3] = NormalizePlane(Col3 - Col1);  // Top
+	Planes[0] = NormalizePlane(Col3 + Col0);  // 왼쪽
+	Planes[1] = NormalizePlane(Col3 - Col0);  // 오른쪽
+	Planes[2] = NormalizePlane(Col3 + Col1);  // 아래
+	Planes[3] = NormalizePlane(Col3 - Col1);  // 위
 	Planes[4] = NormalizePlane(Col3 + Col2);  // Near
 	Planes[5] = NormalizePlane(Col3 - Col2);  // Far
 
-	// Build vertex LUT for AABB test
+	// AABB 테스트용 정점 LUT 생성
 	for (int i = 0; i < 6; i++)
 	{
 		VertexLUT[i] = ((Planes[i].X < 0.0f) ? 1 : 0) |
@@ -156,7 +157,7 @@ FPSMFrustum::FPSMFrustum(const FMatrix& ViewProj)
 			((Planes[i].Z < 0.0f) ? 4 : 0);
 	}
 
-	// Compute frustum corners
+	// 프러스텀 모서리 계산
 	for (int i = 0; i < 8; i++)
 	{
 		const FVector4& P0 = (i & 1) ? Planes[4] : Planes[5];  // Near/Far
@@ -197,12 +198,12 @@ int FPSMFrustum::TestBox(const FPSMBoundingBox& Box) const
 		);
 
 		if (PlaneDistance(Planes[i], NVertex) < 0.0f)
-			return 0;  // Outside
+			return 0;  // 외부
 		if (PlaneDistance(Planes[i], PVertex) < 0.0f)
 			Intersect = true;
 	}
 
-	return Intersect ? 2 : 1;  // 2 = Intersecting, 1 = Fully inside
+	return Intersect ? 2 : 1;  // 2 = 교차, 1 = 완전히 내부
 }
 
 bool SweptSpherePlaneIntersect(
@@ -255,7 +256,7 @@ bool FPSMFrustum::TestSweptSphere(const FPSMBoundingSphere& Sphere, const FVecto
 	{
 		FPSMBoundingSphere DisplacedSphere = Sphere;
 		DisplacedSphere.Center = Sphere.Center + SweepDir * T;
-		DisplacedSphere.Radius *= 1.1f;  // Small tolerance
+		DisplacedSphere.Radius *= 1.1f;  // 작은 허용 오차
 		if (TestSphere(DisplacedSphere))
 			return true;
 	}
@@ -281,7 +282,7 @@ FPSMBoundingCone::FPSMBoundingCone(
 		return;
 	}
 
-	// Transform all box corners to post-projective space
+	// 모든 박스 모서리를 포스트-프로젝티브 공간으로 변환
 	std::vector<FVector> PPPoints;
 	PPPoints.reserve(Boxes.size() * 8);
 
@@ -310,20 +311,20 @@ FPSMBoundingCone::FPSMBoundingCone(
 		return;
 	}
 
-	// Compute bounding sphere to find optimal direction
+	// 최적 방향을 찾기 위한 경계 구 계산
 	FPSMBoundingSphere BSphere(PPPoints);
 	Direction = (BSphere.Center - Apex).GetNormalized();
 
-	// Choose up vector (Z-Up in FutureEngine, but in view space this might differ)
+	// 업 벡터 선택 (FutureEngine은 Z-Up이지만, 뷰 공간에서는 다를 수 있음)
 	FVector Up(0, 0, 1);
 	if (std::abs(Direction.Z) > 0.99f)
-		Up = FVector(1, 0, 0);  // Use X-Forward if direction is nearly vertical
+		Up = FVector(1, 0, 0);  // 방향이 거의 수직이면 X-Forward 사용
 
-	// Create LookAt matrix
+	// LookAt 행렬 생성
 	FVector Target = Apex + Direction;
 	LookAtMatrix = FMatrix::CreateLookAtLH(Apex, Target, Up);
 
-	// Transform points to light space and compute FOV
+	// 포인트를 라이트 공간으로 변환하고 FOV 계산
 	Near = FLT_MAX;
 	Far = -FLT_MAX;
 	float MaxX = 0.0f, MaxY = 0.0f;
@@ -331,7 +332,7 @@ FPSMBoundingCone::FPSMBoundingCone(
 	for (const auto& Pt : PPPoints)
 	{
 		FVector4 LSPoint = LookAtMatrix.TransformVector4(FVector4(Pt, 1.0f));
-		if (LSPoint.Z > 1e-6f)  // Z is depth in light space
+		if (LSPoint.Z > 1e-6f)  // Z는 라이트 공간에서의 깊이
 		{
 			MaxX = std::max(MaxX, std::abs(LSPoint.X / LSPoint.Z));
 			MaxY = std::max(MaxY, std::abs(LSPoint.Y / LSPoint.Z));
@@ -351,7 +352,7 @@ FPSMBoundingCone::FPSMBoundingCone(
 	const FVector& InDirection)
 	: Apex(InApex), Direction(InDirection.GetNormalized())
 {
-	// Choose up vector
+	// 업 벡터 선택
 	FVector Up(0, 0, 1);
 	if (std::abs(Direction.Z) > 0.99f)
 		Up = FVector(1, 0, 0);
@@ -359,7 +360,7 @@ FPSMBoundingCone::FPSMBoundingCone(
 	FVector Target = Apex + Direction;
 	LookAtMatrix = FMatrix::CreateLookAtLH(Apex, Target, Up);
 
-	// Transform all box corners
+	// 모든 박스 모서리 변환
 	std::vector<FVector> LSPoints;
 	LSPoints.reserve(Boxes.size() * 8);
 

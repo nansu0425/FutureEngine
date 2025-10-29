@@ -7,11 +7,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
-#include "Render/RenderPass/Public/PSMCalculator.h"
-
-// Include PSM implementation files directly to avoid vcxproj modification
-#include "Render/RenderPass/Private/PSMBounding.cpp"
-#include "Render/RenderPass/Private/PSMCalculator.cpp"
+#include "Render/Shadow/Public/PSMCalculator.h"
 
 #define MAX_LIGHT_NUM 8
 #define X_OFFSET 1024.0f
@@ -357,19 +353,19 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
-	// Check if PSM mode is enabled
+	// PSM 모드가 활성화되어 있는지 확인
 	uint8 ProjectionMode = Light->GetShadowProjectionMode();
-	bool bUsePSM = (ProjectionMode == 1);  // 1 = PSM mode
+	bool bUsePSM = (ProjectionMode == 1);  // 1 = PSM 모드
 
 	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
 	FCascadeShadowMapData CascadeShadowMapData;
 
 	if (bUsePSM)
 	{
-		// PSM Mode: Single shadow map with perspective projection
+		// PSM 모드: 원근 투영을 사용하는 단일 그림자 맵
 		CascadeShadowMapData.SplitNum = 1;
 
-		// Calculate PSM view-projection
+		// PSM 뷰-투영 계산
 		FMatrix LightView, LightProj;
 		CalculateDirectionalLightViewProj(Light, Meshes, InCamera, LightView, LightProj);
 
@@ -379,7 +375,7 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	}
 	else
 	{
-		// Uniform Mode: Use cascade shadow mapping
+		// Uniform 모드: 캐스케이드 그림자 매핑 사용
 		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
 	}
 
@@ -702,37 +698,37 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
 	const TArray<UStaticMeshComponent*>& Meshes, UCamera* InCamera, FMatrix& OutView, FMatrix& OutProj)
 {
-	// PSM (Perspective Shadow Map) Implementation
+	// PSM (Perspective Shadow Map) 구현
 	if (!InCamera)
 	{
-		// Fallback to identity if no camera
+		// 카메라가 없으면 단위 행렬로 폴백
 		OutView = FMatrix::Identity();
 		OutProj = FMatrix::Identity();
 		return;
 	}
 
-	// Get light direction
-	// NOTE: DirectionalLight's forward vector is opposite of actual light direction
-	// (180 degree rotation is applied in CascadeManager - see line 90)
+	// 빛 방향 가져오기
+	// 참고: DirectionalLight의 forward 벡터는 실제 빛 방향의 반대
+	// (CascadeManager에서 180도 회전 적용됨 - line 90 참조)
 	FVector LightDir = -Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);
 	else
 		LightDir = LightDir.GetNormalized();
 
-	// Setup PSM parameters from light component
+	// 라이트 컴포넌트로부터 PSM 파라미터 설정
 	FPSMParameters Params;
 	Params.MinInfinityZ = Light->GetPSMMinInfinityZ();
 	Params.bUnitCubeClip = Light->GetPSMUnitCubeClip();
 	Params.bSlideBackEnabled = Light->GetPSMSlideBackEnabled();
 
-	// Get shadow projection mode (0=Uniform, 1=PSM, 2=LSPSM, 3=TSM)
+	// 그림자 투영 모드 가져오기 (0=Uniform, 1=PSM, 2=LSPSM, 3=TSM)
 	EShadowProjectionMode Mode = static_cast<EShadowProjectionMode>(Light->GetShadowProjectionMode());
 
-	// Convert TArray to std::vector for PSM calculator
+	// PSM 계산기를 위해 TArray를 std::vector로 변환
 	std::vector<UStaticMeshComponent*> MeshesVec(Meshes.begin(), Meshes.end());
 
-	// Calculate shadow projection using PSM algorithm
+	// PSM 알고리즘을 사용하여 그림자 투영 계산
 	FPSMCalculator::CalculateShadowProjection(
 		Mode,
 		OutView,

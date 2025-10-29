@@ -1,4 +1,5 @@
-#include "Render/RenderPass/Public/PSMCalculator.h"
+#include "pch.h"
+#include "Render/Shadow/Public/PSMCalculator.h"
 #include "Editor/Public/Camera.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include <algorithm>
@@ -11,7 +12,7 @@ static const FVector ZUp(0, 0, 1);  // FutureEngine Z-Up
 static const FVector XForward(1, 0, 0);  // FutureEngine X-Forward
 
 //-----------------------------------------------------------------------------
-// Main Entry Point
+// 메인 진입점
 //-----------------------------------------------------------------------------
 
 void FPSMCalculator::CalculateShadowProjection(
@@ -23,14 +24,14 @@ void FPSMCalculator::CalculateShadowProjection(
 	const std::vector<UStaticMeshComponent*>& Meshes,
 	FPSMParameters& InOutParams)
 {
-	// Classify shadow casters and receivers
+	// 그림자 캐스터와 리시버 분류
 	std::vector<FPSMBoundingBox> ShadowCasters, ShadowReceivers;
 	ComputeVirtualCameraParameters(
 		LightDirection, Camera, Meshes,
 		ShadowCasters, ShadowReceivers, InOutParams
 	);
 
-	// Build projection matrix based on mode
+	// 모드에 따라 투영 행렬 생성
 	switch (Mode)
 	{
 	case EShadowProjectionMode::Uniform:
@@ -61,7 +62,7 @@ void FPSMCalculator::CalculateShadowProjection(
 }
 
 //-----------------------------------------------------------------------------
-// Shadow Caster/Receiver Classification
+// 그림자 캐스터/리시버 분류
 //-----------------------------------------------------------------------------
 
 void FPSMCalculator::ComputeVirtualCameraParameters(
@@ -78,41 +79,41 @@ void FPSMCalculator::ComputeVirtualCameraParameters(
 	if (!Camera)
 		return;
 
-	// Get camera matrices
+	// 카메라 행렬 가져오기
 	const FCameraConstants& CamConstants = Camera->GetFViewProjConstants();
 	FMatrix ViewMatrix = CamConstants.View;
 	FMatrix ProjMatrix = CamConstants.Projection;
 	FMatrix ViewProj = ViewMatrix * ProjMatrix;
 
-	// Create frustum for culling
+	// 컬링용 프러스텀 생성
 	FPSMFrustum SceneFrustum(ViewProj);
 
-	// Light sweep direction (opposite of light direction)
+	// 빛 스윕 방향 (빛 방향의 반대)
 	FVector SweepDir = -LightDirection.GetNormalized();
 
-	// Test each mesh
+	// 각 메시 테스트
 	for (auto* Mesh : Meshes)
 	{
 		if (!Mesh || !Mesh->IsVisible())
 			continue;
 
-		// Get mesh world AABB
+		// 메시 월드 AABB 가져오기
 		FPSMBoundingBox MeshBox;
 		GetMeshWorldBoundingBox(MeshBox, Mesh);
 
 		if (!MeshBox.IsValid())
 			continue;
 
-		// Test against frustum
+		// 프러스텀에 대해 테스트
 		int FrustumTest = SceneFrustum.TestBox(MeshBox);
 
-		// Transform to view space for storage
+		// 저장을 위해 뷰 공간으로 변환
 		FPSMBoundingBox ViewSpaceBox;
 		TransformBoundingBox(ViewSpaceBox, MeshBox, ViewMatrix);
 
 		switch (FrustumTest)
 		{
-		case 0:  // Outside frustum - test swept sphere for shadow casting
+		case 0:  // 프러스텀 밖 - 그림자 투사를 위해 swept sphere 테스트
 		{
 			FPSMBoundingSphere MeshSphere(MeshBox);
 			if (SceneFrustum.TestSweptSphere(MeshSphere, SweepDir))
@@ -122,19 +123,19 @@ void FPSMCalculator::ComputeVirtualCameraParameters(
 			break;
 		}
 
-		case 1:  // Fully inside - both caster and receiver
+		case 1:  // 완전히 내부 - 캐스터이자 리시버
 			OutShadowCasters.push_back(ViewSpaceBox);
 			OutShadowReceivers.push_back(ViewSpaceBox);
 			break;
 
-		case 2:  // Intersecting - both caster and receiver
+		case 2:  // 교차 - 캐스터이자 리시버
 			OutShadowCasters.push_back(ViewSpaceBox);
 			OutShadowReceivers.push_back(ViewSpaceBox);
 			break;
 		}
 	}
 
-	// Compute near/far from receivers
+	// 리시버로부터 near/far 계산
 	if (!OutShadowReceivers.empty())
 	{
 		float MinZ = FLT_MAX;
@@ -157,13 +158,13 @@ void FPSMCalculator::ComputeVirtualCameraParameters(
 
 	InOutParams.SlideBack = 0.0f;
 
-	// Compute gamma (angle between light and view direction)
-	FVector ViewDir(ViewMatrix.Data[0][2], ViewMatrix.Data[1][2], ViewMatrix.Data[2][2]);  // View forward (Z in view space)
+	// 감마 계산 (빛과 뷰 방향 사이의 각도)
+	FVector ViewDir(ViewMatrix.Data[0][2], ViewMatrix.Data[1][2], ViewMatrix.Data[2][2]);  // 뷰 전방 (뷰 공간의 Z)
 	InOutParams.CosGamma = LightDirection.GetNormalized().Dot(ViewDir);
 }
 
 //-----------------------------------------------------------------------------
-// Uniform Shadow Map (Orthographic)
+// Uniform 그림자 맵 (직교 투영)
 //-----------------------------------------------------------------------------
 
 void FPSMCalculator::BuildUniformShadowMap(
@@ -178,10 +179,10 @@ void FPSMCalculator::BuildUniformShadowMap(
 	const FCameraConstants& CamConstants = Camera->GetFViewProjConstants();
 	FMatrix CameraView = CamConstants.View;
 
-	// Get view space light direction
+	// 뷰 공간 빛 방향 가져오기
 	FVector ViewLightDir = CameraView.TransformVector(LightDirection.GetNormalized());
 
-	// Compute scene AABB
+	// 씬 AABB 계산
 	FPSMBoundingBox SceneBox;
 	if (Params.bUnitCubeClip)
 	{
@@ -189,7 +190,7 @@ void FPSMCalculator::BuildUniformShadowMap(
 	}
 	else
 	{
-		// Use camera frustum bounds
+		// 카메라 프러스텀 범위 사용
 		float Aspect = Camera->GetAspect();
 		float FOV = Camera->GetFovY();
 		float FarDist = Camera->GetFarZ();
@@ -200,45 +201,45 @@ void FPSMCalculator::BuildUniformShadowMap(
 		SceneBox.MaxPt = FVector(Width, Height, FarDist);
 	}
 
-	// Light position (far away from scene center, in opposite direction of light)
+	// 빛 위치 (씬 중심에서 멀리, 빛의 반대 방향)
 	FVector SceneCenter = SceneBox.GetCenter();
 	float SceneRadius = (SceneBox.MaxPt - SceneBox.MinPt).Length() * 0.5f;
 
-	// Light is at opposite direction of where it's shining
+	// 빛은 비추는 방향의 반대쪽에 위치
 	FVector LightPos = SceneCenter - ViewLightDir * (SceneRadius + 50.0f);
 
-	// Choose up vector
+	// 위쪽 벡터 선택
 	FVector Up = ZUp;
 	if (std::abs(ViewLightDir.Z) > 0.99f)
 		Up = XForward;
 
-	// Create light view matrix
+	// 라이트 뷰 행렬 생성
 	OutView = FMatrix::CreateLookAtLH(LightPos, SceneCenter, Up);
 
-	// Transform scene AABB to light space
+	// 씬 AABB를 라이트 공간으로 변환
 	FPSMBoundingBox LightSpaceBox;
 	TransformBoundingBox(LightSpaceBox, SceneBox, OutView);
 
-	// Also consider shadow casters
+	// 그림자 캐스터도 고려
 	if (!ShadowCasters.empty())
 	{
 		FPSMBoundingBox CasterBox(ShadowCasters);
 		FPSMBoundingBox LightSpaceCasterBox;
 		TransformBoundingBox(LightSpaceCasterBox, CasterBox, OutView);
 
-		// Extend box to include casters
+		// 캐스터를 포함하도록 박스 확장
 		LightSpaceBox.Merge(LightSpaceCasterBox.MinPt);
 		LightSpaceBox.Merge(LightSpaceCasterBox.MaxPt);
 	}
 
-	// Create orthographic projection
+	// 직교 투영 생성
 	OutProj = FMatrix::CreateOrthoOffCenterLH(
 		LightSpaceBox.MinPt.X, LightSpaceBox.MaxPt.X,
 		LightSpaceBox.MinPt.Y, LightSpaceBox.MaxPt.Y,
 		LightSpaceBox.MinPt.Z, LightSpaceBox.MaxPt.Z
 	);
 
-	// Combine with camera view
+	// 카메라 뷰와 결합
 	OutView = CameraView * OutView;
 
 	Params.PPNear = LightSpaceBox.MinPt.Z;
@@ -246,7 +247,7 @@ void FPSMCalculator::BuildUniformShadowMap(
 }
 
 //-----------------------------------------------------------------------------
-// PSM (Perspective Shadow Map)
+// PSM (원근 그림자 맵)
 //-----------------------------------------------------------------------------
 
 void FPSMCalculator::BuildPSMProjection(
@@ -262,7 +263,7 @@ void FPSMCalculator::BuildPSMProjection(
 	FMatrix CameraView = CamConstants.View;
 	FVector ViewLightDir = CameraView.TransformVector(LightDirection.GetNormalized());
 
-	// Step 1: Setup virtual camera with slide-back
+	// 단계 1: 슬라이드 백이 적용된 가상 카메라 설정
 	FMatrix VirtualCameraView = FMatrix::Identity();
 	FMatrix VirtualCameraProj;
 
@@ -272,7 +273,7 @@ void FPSMCalculator::BuildPSMProjection(
 
 	if (Params.bSlideBackEnabled)
 	{
-		// Compute infinity plane distance
+		// 무한 평면 거리 계산
 		float Infinity = ZFar / (ZFar - ZNear);
 		float MinInfZ = Params.MinInfinityZ;
 
@@ -288,9 +289,9 @@ void FPSMCalculator::BuildPSMProjection(
 
 		if (Params.bUnitCubeClip && !ShadowReceivers.empty())
 		{
-			// Compute tight FOV using bounding cone
+			// 경계 원뿔을 사용하여 타이트한 FOV 계산
 			FVector EyePos = FVector::ZeroVector();
-			FVector EyeDir = FVector(0, 0, 1);  // Z-Forward in view space (DirectX standard)
+			FVector EyeDir = FVector(0, 0, 1);  // 뷰 공간의 Z-Forward (DirectX 표준)
 			FPSMBoundingCone BC(ShadowReceivers, VirtualCameraView, EyePos, EyeDir);
 
 			float Width = 2.0f * std::tan(BC.FovX) * ZNear;
@@ -299,7 +300,7 @@ void FPSMCalculator::BuildPSMProjection(
 		}
 		else
 		{
-			// Use camera FOV with slide-back adjustment
+			// 슬라이드 백 조정이 적용된 카메라 FOV 사용
 			float FOV = Camera->GetFovY();
 			float Aspect = Camera->GetAspect();
 			float ViewHeight = std::tan(FOV * 0.5f) * Camera->GetFarZ();
@@ -324,22 +325,22 @@ void FPSMCalculator::BuildPSMProjection(
 	FMatrix VirtualCameraViewProj = CameraView * VirtualCameraView * VirtualCameraProj;
 	FMatrix EyeToPostProjective = VirtualCameraView * VirtualCameraProj;
 
-	// Step 2: Transform light direction to post-projective space
+	// 단계 2: 빛 방향을 포스트-프로젝티브 공간으로 변환
 	FVector4 LightDirW(ViewLightDir.X, ViewLightDir.Y, ViewLightDir.Z, 0.0f);
 	FVector4 PPLight = VirtualCameraProj.TransformVector4(LightDirW);
 
 	Params.bShadowTestInverted = (PPLight.W < 0.0f);
 
-	// Step 3: Determine projection type
+	// 단계 3: 투영 타입 결정
 	if (std::abs(PPLight.W) <= W_EPSILON)
 	{
-		// Light is at infinity - use orthographic
+		// 빛이 무한대에 있음 - 직교 투영 사용
 		BuildUniformShadowMap(OutView, OutProj, LightDirection, Camera,
 			ShadowCasters, ShadowReceivers, Params);
 		return;
 	}
 
-	// Step 4: Perspective PSM
+	// 단계 4: 원근 PSM
 	FVector PPLightPos(
 		PPLight.X / PPLight.W,
 		PPLight.Y / PPLight.W,
@@ -352,11 +353,11 @@ void FPSMCalculator::BuildPSMProjection(
 
 	if (Params.bShadowTestInverted)
 	{
-		// Inverse projection (light behind camera)
+		// 역 투영 (빛이 카메라 뒤에 있음)
 		FPSMBoundingCone ViewCone;
 		if (!Params.bUnitCubeClip)
 		{
-			// Project entire unit cube
+			// 전체 유닛 큐브 투영
 			std::vector<FPSMBoundingBox> UnitBox;
 			FPSMBoundingBox Cube;
 			Cube.MinPt = FVector(-1, -1, 0);
@@ -382,7 +383,7 @@ void FPSMCalculator::BuildPSMProjection(
 	}
 	else
 	{
-		// Regular projection
+		// 일반 투영
 		FVector LookAt = PPCubeCenter - PPLightPos;
 		float Distance = LookAt.Length();
 		LookAt = LookAt * (1.0f / Distance);
@@ -393,7 +394,7 @@ void FPSMCalculator::BuildPSMProjection(
 
 		if (!Params.bUnitCubeClip)
 		{
-			// Simple sphere-based FOV
+			// 간단한 구 기반 FOV
 			const float PPCubeRadius = 1.5f;
 
 			LightView = FMatrix::CreateLookAtLH(PPLightPos, PPCubeCenter, Up);
@@ -410,14 +411,14 @@ void FPSMCalculator::BuildPSMProjection(
 		}
 		else
 		{
-			// Unit cube clipping
+			// 유닛 큐브 클리핑
 			FPSMBoundingCone BC(ShadowReceivers, EyeToPostProjective, PPLightPos);
 
 			LightView = BC.LookAtMatrix;
 
 			float Fovy = 2.0f * BC.FovY;
 			float Aspect = BC.FovX / BC.FovY;
-			float FNear = BC.Near * 0.6f;  // Slight adjustment
+			float FNear = BC.Near * 0.6f;  // 약간의 조정
 			float FFar = BC.Far;
 
 			FNear = std::max(0.001f, FNear);
@@ -429,13 +430,13 @@ void FPSMCalculator::BuildPSMProjection(
 		}
 	}
 
-	// Step 5: Combine matrices
+	// 단계 5: 행렬 결합
 	FMatrix LightViewProj = LightView * LightProj;
 	OutView = VirtualCameraViewProj;
 	OutProj = LightViewProj;
 
-	// NOTE: In actual rendering, these are combined: FinalMatrix = View * VirtualView * VirtualProj * LightView * LightProj
-	// But for ShadowMapPass, we return the final combined matrix as ViewProj
+	// 참고: 실제 렌더링에서는 다음과 같이 결합됨: FinalMatrix = View * VirtualView * VirtualProj * LightView * LightProj
+	// 하지만 ShadowMapPass를 위해 최종 결합 행렬을 ViewProj로 반환
 	OutView = CameraView;
 	OutProj = VirtualCameraView * VirtualCameraProj * LightView * LightProj;
 
@@ -443,8 +444,8 @@ void FPSMCalculator::BuildPSMProjection(
 }
 
 //-----------------------------------------------------------------------------
-// LSPSM & TSM - Placeholder implementations
-// These are complex and can be added later if needed
+// LSPSM & TSM - 플레이스홀더 구현
+// 이들은 복잡하며, 필요시 나중에 추가될 수 있습니다
 //-----------------------------------------------------------------------------
 
 void FPSMCalculator::BuildLSPSMProjection(
@@ -456,7 +457,7 @@ void FPSMCalculator::BuildLSPSMProjection(
 	const std::vector<FPSMBoundingBox>& ShadowReceivers,
 	FPSMParameters& Params)
 {
-	// Fallback to uniform for now
+	// 현재는 uniform으로 대체
 	BuildUniformShadowMap(OutView, OutProj, LightDirection, Camera, ShadowCasters, ShadowReceivers, Params);
 }
 
@@ -469,6 +470,6 @@ void FPSMCalculator::BuildTSMProjection(
 	const std::vector<FPSMBoundingBox>& ShadowReceivers,
 	FPSMParameters& Params)
 {
-	// Fallback to uniform for now
+	// 현재는 uniform으로 대체
 	BuildUniformShadowMap(OutView, OutProj, LightDirection, Camera, ShadowCasters, ShadowReceivers, Params);
 }

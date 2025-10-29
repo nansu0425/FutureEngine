@@ -209,15 +209,15 @@ void UDirectionalLightComponentWidget::RenderWidget()
 			ImGui::EndCombo();
 		}
 
-		// Shadow Projection Mode (PSM)
+		// 그림자 투영 모드 (PSM)
 		ImGui::Separator();
-		ImGui::Text("Shadow Projection Settings");
+		ImGui::Text("그림자 투영 설정");
 
 		uint8 CurrentProjectionMode = DirectionalLightComponent->GetShadowProjectionMode();
-		const char* ProjectionModeNames[] = { "Uniform (Standard)", "PSM", "LSPSM (WIP)", "TSM (WIP)" };
+		const char* ProjectionModeNames[] = { "Uniform (표준)", "PSM", "LSPSM (개발중)", "TSM (개발중)" };
 		const char* CurrentProjectionModeName = ProjectionModeNames[CurrentProjectionMode];
 
-		if (ImGui::BeginCombo("Projection Mode", CurrentProjectionModeName))
+		if (ImGui::BeginCombo("투영 모드", CurrentProjectionModeName))
 		{
 			for (int i = 0; i < IM_ARRAYSIZE(ProjectionModeNames); ++i)
 			{
@@ -236,51 +236,51 @@ void UDirectionalLightComponentWidget::RenderWidget()
 		}
 		if (ImGui::IsItemHovered())
 		{
-			ImGui::SetTooltip("Shadow Projection Algorithm:\n"
-				"Uniform: Standard orthographic shadow mapping\n"
-				"PSM: Perspective Shadow Map (reduces perspective aliasing)\n"
-				"LSPSM/TSM: Advanced algorithms (not yet implemented)");
+			ImGui::SetTooltip("그림자 투영 알고리즘:\n"
+				"Uniform: 표준 직교 그림자 매핑\n"
+				"PSM: 원근 그림자 맵 (원근 앨리어싱 감소)\n"
+				"LSPSM/TSM: 고급 알고리즘 (아직 미구현)");
 		}
 
-		// PSM-specific settings (only show when PSM is selected)
+		// PSM 전용 설정 (PSM 선택 시에만 표시)
 		if (CurrentProjectionMode == 1)  // PSM
 		{
 			ImGui::Indent();
 
 			bool bSlideBackEnabled = DirectionalLightComponent->GetPSMSlideBackEnabled();
-			if (ImGui::Checkbox("Enable Slide-back", &bSlideBackEnabled))
+			if (ImGui::Checkbox("슬라이드 백 활성화", &bSlideBackEnabled))
 			{
 				DirectionalLightComponent->SetPSMSlideBackEnabled(bSlideBackEnabled);
 			}
 			if (ImGui::IsItemHovered())
 			{
-				ImGui::SetTooltip("Avoid infinity plane singularity by sliding virtual camera back");
+				ImGui::SetTooltip("가상 카메라를 뒤로 밀어서 무한 평면 특이점 회피");
 			}
 
 			if (bSlideBackEnabled)
 			{
 				float MinInfinityZ = DirectionalLightComponent->GetPSMMinInfinityZ();
-				if (ImGui::DragFloat("Min Infinity Z", &MinInfinityZ, 0.1f, 1.0f, 10.0f))
+				if (ImGui::DragFloat("최소 무한 Z", &MinInfinityZ, 0.1f, 1.0f, 10.0f))
 				{
 					DirectionalLightComponent->SetPSMMinInfinityZ(MinInfinityZ);
 				}
 				if (ImGui::IsItemHovered())
 				{
-					ImGui::SetTooltip("Minimum distance to infinity plane\n"
-						"Higher values = more slide-back (more stable, less precision)\n"
-						"Range: 1.0 ~ 10.0");
+					ImGui::SetTooltip("무한 평면까지의 최소 거리\n"
+						"높은 값 = 더 많은 슬라이드 백 (안정적이지만 정밀도 낮음)\n"
+						"범위: 1.0 ~ 10.0");
 				}
 			}
 
 			bool bUnitCubeClip = DirectionalLightComponent->GetPSMUnitCubeClip();
-			if (ImGui::Checkbox("Unit Cube Clipping", &bUnitCubeClip))
+			if (ImGui::Checkbox("유닛 큐브 클리핑", &bUnitCubeClip))
 			{
 				DirectionalLightComponent->SetPSMUnitCubeClip(bUnitCubeClip);
 			}
 			if (ImGui::IsItemHovered())
 			{
-				ImGui::SetTooltip("Optimize shadow map by clipping to visible receivers\n"
-					"Recommended: ON (better quality)");
+				ImGui::SetTooltip("보이는 리시버에 맞춰 그림자 맵 최적화\n"
+					"권장: ON (품질 향상)");
 			}
 
 			ImGui::Unindent();
