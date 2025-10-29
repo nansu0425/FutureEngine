@@ -1145,6 +1145,9 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     float3 LightDir = SafeNormalize3(-Info.Direction);
     float NdotL = saturate(dot(WorldNormal, LightDir));
 
+#if LIGHTING_MODEL_GOURAUD
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL;
+#else
     // Calculate shadow factor (0 = shadow, 1 = lit)
     float ShadowFactor = 1.0f;
     if (Info.ShadowModeIndex == SMI_UnFiltered)
@@ -1165,10 +1168,10 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
         float FilterRadiusPixels = lerp(0.0f, 10.0f, 1.0f - Info.ShadowSharpen);
         ShadowFactor = CalculateDirectionalSAVSMFactor(Info, WorldPos, FilterRadiusPixels);
     }
-
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * ShadowFactor;
-
+#endif
+    
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong) - also affected by shadow
     float3 WorldToCameraVector = SafeNormalize3(ViewPos - WorldPos); // 영벡터면 결과적으로 LightDir와 같은 셈이 됨
@@ -1177,7 +1180,12 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
+#endif
+
+#if LIGHTING_MODEL_BLINNPHONG
     Result.Specular = Info.Color * Info.Intensity * Spec * ShadowFactor;
+#elif LIGHTING_MODEL_GOURAUD
+    Result.Specular = Info.Color * Info.Intensity * Spec;
 #endif
 
     return Result;
@@ -1199,6 +1207,9 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
     // attenuation based on distance: (1 - d / R)^n
     float Attenuation = pow(saturate(1.0f - Distance / Info.Range), Info.DistanceFalloffExponent);
 
+#if LIGHTING_MODEL_GOURAUD
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation;
+#else
     // Calculate shadow factor (0 = shadow, 1 = lit)
     float ShadowFactor = 1.0f;
     if (Info.ShadowModeIndex == SMI_UnFiltered)
@@ -1216,6 +1227,7 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
 
     // diffuse illumination (affected by shadow)
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * Attenuation * ShadowFactor;
+#endif
 
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong) - also affected by shadow
@@ -1225,7 +1237,12 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
+#endif
+
+#if LIGHTING_MODEL_BLINNPHONG
     Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation * ShadowFactor;
+#elif LIGHTING_MODEL_GOURAUD
+    Result.Specular = Info.Color * Info.Intensity * Spec * Attenuation;
 #endif
 
     return Result;
@@ -1266,6 +1283,9 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
         AttenuationAngle = pow(saturate((CosAngle - CosOuter) / (CosInner - CosOuter)), Info.AngleFalloffExponent);
     }
 
+#if LIGHTING_MODEL_GOURAUD
+    Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle;
+#else
     // Shadow factor
     float ShadowFactor = 1.0f;
     if (Info.ShadowModeIndex == SMI_UnFiltered)
@@ -1288,7 +1308,8 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
     }
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
-
+#endif
+    
 #if LIGHTING_MODEL_BLINNPHONG || LIGHTING_MODEL_GOURAUD
     // Specular (Blinn-Phong)
     float3 WorldToCameraVector = SafeNormalize3(ViewPos - WorldPos);
@@ -1297,7 +1318,12 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
     float3 H = SafeNormalize3(WorldToLightVector + WorldToCameraVector); // H가 영벡터면 Specular도 영벡터
     float CosTheta = saturate(dot(WorldNormal, H));
     float Spec = CosTheta < 1e-6 ? 0.0f : ((Ns + 8.0f) / (8.0f * PI)) * pow(CosTheta, Ns); // 0^0 방지를 위해 이렇게 계산함
-    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * ShadowFactor;
+#endif
+    
+#if LIGHTING_MODEL_BLINNPHONG
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle * ShadowFactor;;
+#elif LIGHTING_MODEL_GOURAUD
+    Result.Specular = Info.Color * Info.Intensity * Spec * AttenuationDistance * AttenuationAngle;
 #endif
     
     return Result;
