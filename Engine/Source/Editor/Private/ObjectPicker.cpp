@@ -6,6 +6,16 @@
 #include "Global/Octree.h"
 #include "Physics/Public/AABB.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Manager/UI/Public/ViewportManager.h"
+#include "Render/HitProxy/Public/HitProxy.h"
+#include "Editor/Public/Editor.h"
+#include "Render/Renderer/Public/Renderer.h"
+#include "Render/UI/Viewport/Public/Viewport.h"
+
+UObjectPicker::~UObjectPicker()
+{
+	SafeRelease(HitProxyStagingTexture);
+}
 
 FRay UObjectPicker::GetModelRay(const FRay& Ray, UPrimitiveComponent* Primitive)
 {
@@ -439,4 +449,197 @@ void UObjectPicker::GatherCandidateTriangles(UPrimitiveComponent* Primitive, con
 		OutCandidateIndices.push_back(TriIndex);
 	}
 	return;
+}
+
+UPrimitiveComponent* UObjectPicker::PickPrimitiveFromHitProxy(UCamera* InActiveCamera, int32 MouseX, int32 MouseY)
+{
+	if (!InActiveCamera)
+	{
+		return nullptr;
+	}
+
+	// HitProxy 패스 실행 (Click On Demand)
+	URenderer& Renderer = URenderer::GetInstance();
+	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+
+	int32 ActiveViewportIndex = ViewportManager.GetActiveIndex();
+	if (ActiveViewportIndex < 0 || ActiveViewportIndex >= ViewportManager.GetViewports().size())
+	{
+		return nullptr;
+	}
+
+	FViewport* ActiveViewport = ViewportManager.GetViewports()[ActiveViewportIndex];
+	D3D11_VIEWPORT DXViewport = ActiveViewport->GetRenderRect();
+
+	// HitProxy 렌더링
+	Renderer.RenderHitProxyPass(InActiveCamera, DXViewport);
+
+	// HitProxy 텍스처 픽셀 읽기
+	FHitProxyId HitProxyId = ReadHitProxyAtLocation(MouseX, MouseY, DXViewport);
+
+	if (!HitProxyId.IsValid())
+	{
+		return nullptr;
+	}
+
+	// HitProxyId로 HitProxy 객체 조회
+	FHitProxyManager& HitProxyManager = FHitProxyManager::GetInstance();
+	HHitProxy* HitProxy = HitProxyManager.GetHitProxy(HitProxyId);
+
+	if (!HitProxy)
+	{
+		return nullptr;
+	}
+
+	// 기즈모 축인지 확인
+	if (HitProxy->IsWidgetAxis())
+	{
+		HWidgetAxis* WidgetAxis = static_cast<HWidgetAxis*>(HitProxy);
+
+		// 기즈모 축 설정 (Editor에서 드래그 처리)
+		UEditor* Editor = GEditor->GetEditorModule();
+		if (Editor && Editor->GetGizmo())
+		{
+			UGizmo* Gizmo = Editor->GetGizmo();
+
+			// EGizmoAxisType -> EGizmoDirection 변환
+			EGizmoDirection GizmoDir = EGizmoDirection::None;
+			switch (WidgetAxis->Axis)
+			{
+			case EGizmoAxisType::X:
+				GizmoDir = EGizmoDirection::Forward;
+				break;
+			case EGizmoAxisType::Y:
+				GizmoDir = EGizmoDirection::Right;
+				break;
+			case EGizmoAxisType::Z:
+				GizmoDir = EGizmoDirection::Up;
+				break;
+			default:
+				break;
+			}
+			Gizmo->SetGizmoDirection(GizmoDir);
+		}
+
+		return nullptr;
+	}
+
+	// 일반 컴포넌트인 경우
+	if (HitProxy->IsComponent())
+	{
+		HComponent* ComponentProxy = static_cast<HComponent*>(HitProxy);
+		UPrimitiveComponent* Component = ComponentProxy->Component;
+
+		if (Component)
+		{
+			return Component;
+		}
+	}
+
+	return nullptr;
+}
+
+FHitProxyId UObjectPicker::ReadHitProxyAtLocation(int32 X, int32 Y, const D3D11_VIEWPORT& Viewport)
+{
+	URenderer& Renderer = URenderer::GetInstance();
+	ID3D11Device* Device = Renderer.GetDevice();
+	ID3D11DeviceContext* DeviceContext = Renderer.GetDeviceContext();
+	UDeviceResources* DeviceResources = Renderer.GetDeviceResources();
+
+	ID3D11Texture2D* HitProxyTexture = DeviceResources->GetHitProxyTexture();
+	if (!HitProxyTexture)
+	{
+		return InvalidHitProxyId;
+	}
+
+	// Staging Texture 생성 (한 번만)
+	CreateStagingTextureIfNeeded();
+	if (!HitProxyStagingTexture)
+	{
+		return InvalidHitProxyId;
+	}
+
+	// HitProxy 텍스처 전체를 Staging으로 복사
+	DeviceContext->CopyResource(HitProxyStagingTexture, HitProxyTexture);
+
+	// GPU 커맨드 큐 플러시 (CopyResource가 완료될 때까지 대기)
+	DeviceContext->Flush();
+
+	// Staging 텍스처 맵핑 (블로킹, GPU 완료 대기)
+	// TODO(KHJ): Deferred 처리하면 성능상의 이점은 당연하나, 현재 전반적으로 Forward 처리함
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	HRESULT hr = DeviceContext->Map(HitProxyStagingTexture, 0, D3D11_MAP_READ, 0, &MappedResource);
+	if (FAILED(hr))
+	{
+		return InvalidHitProxyId;
+	}
+
+	// 뷰포트 크기 기준으로 바운드 체크
+	int32 ViewportWidth = static_cast<int32>(Viewport.Width);
+	int32 ViewportHeight = static_cast<int32>(Viewport.Height);
+
+	if (X < 0 || X >= ViewportWidth || Y < 0 || Y >= ViewportHeight)
+	{
+		DeviceContext->Unmap(HitProxyStagingTexture, 0);
+		return InvalidHitProxyId;
+	}
+
+	// 뷰포트 오프셋을 고려한 절대 좌표 계산
+	int32 AbsoluteX = static_cast<int32>(Viewport.TopLeftX) + X;
+	int32 AbsoluteY = static_cast<int32>(Viewport.TopLeftY) + Y;
+
+	// RGBA8 픽셀 읽기
+	uint8* RowStart = static_cast<uint8*>(MappedResource.pData) + AbsoluteY * MappedResource.RowPitch;
+	uint8* PixelData = RowStart + AbsoluteX * 4;
+
+	uint8 R = PixelData[0];
+	uint8 G = PixelData[1];
+	uint8 B = PixelData[2];
+
+	DeviceContext->Unmap(HitProxyStagingTexture, 0);
+
+	// HitProxyId 생성
+	FHitProxyId HitProxyId(R, G, B);
+
+	if (HitProxyId.IsValid())
+	{
+		UE_LOG_WARNING("ObjectPicker: ReadHitProxy at (%d, %d) -> RGB(%u, %u, %u) = ID %u",
+			X, Y, R, G, B, HitProxyId.Index);
+	}
+
+	return HitProxyId;
+}
+
+void UObjectPicker::CreateStagingTextureIfNeeded()
+{
+	if (HitProxyStagingTexture)
+	{
+		return;
+	}
+
+	URenderer& Renderer = URenderer::GetInstance();
+	ID3D11Device* Device = Renderer.GetDevice();
+	UDeviceResources* DeviceResources = Renderer.GetDeviceResources();
+
+	uint32 Width = DeviceResources->GetWidth();
+	uint32 Height = DeviceResources->GetHeight();
+
+	D3D11_TEXTURE2D_DESC StagingDesc = {};
+	StagingDesc.Width = Width;
+	StagingDesc.Height = Height;
+	StagingDesc.MipLevels = 1;
+	StagingDesc.ArraySize = 1;
+	StagingDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	StagingDesc.SampleDesc.Count = 1;
+	StagingDesc.SampleDesc.Quality = 0;
+	StagingDesc.Usage = D3D11_USAGE_STAGING;
+	StagingDesc.BindFlags = 0;
+	StagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	StagingDesc.MiscFlags = 0;
+
+	HRESULT hr = Device->CreateTexture2D(&StagingDesc, nullptr, &HitProxyStagingTexture);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("ObjectPicker: HitProxy Staging Texture 생성 실패");
+	}
 }

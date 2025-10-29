@@ -27,6 +27,7 @@
 #include "Render/RenderPass/Public/DecalPass.h"
 #include "Render/RenderPass/Public/FXAAPass.h"
 #include "Render/RenderPass/Public/FogPass.h"
+#include "Render/RenderPass/Public/HitProxyPass.h"
 #include "Render/RenderPass/Public/LightPass.h"
 #include "Render/RenderPass/Public/PointLightPass.h"
 #include "Render/RenderPass/Public/RenderPass.h"
@@ -35,6 +36,7 @@
 #include "Render/RenderPass/Public/ShadowMapPass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
+#include "Render/HitProxy/Public/HitProxy.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Overlay/Public/D2DOverlayManager.h"
@@ -70,6 +72,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateClusteredRenderingGrid();
 	CreateDepthOnlyShader();
 	CreatePointLightShadowShader();
+	CreateHitProxyShader();
 
 	//ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
@@ -120,7 +123,9 @@ void URenderer::Init(HWND InWindowHandle)
 	// ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11SamplerState* InSampler
 	FXAAPass = new FFXAAPass(Pipeline, DeviceResources, FXAAVertexShader, FXAAPixelShader, FXAAInputLayout, FXAASamplerState);
 	//RenderPasses.push_back(FXAAPass);
-	
+
+	HitProxyPass = new FHitProxyPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+		HitProxyVS, HitProxyPS, HitProxyInputLayout, DefaultDepthStencilState);
 }
 
 void URenderer::Release()
@@ -138,7 +143,13 @@ void URenderer::Release()
 	}
 	FXAAPass->Release();
 	SafeDelete(FXAAPass);
-	
+
+	if (HitProxyPass)
+	{
+		HitProxyPass->Release();
+		SafeDelete(HitProxyPass);
+	}
+
 	SafeDelete(ViewportClient);
 	SafeDelete(Pipeline);
 	SafeDelete(DeviceResources);
@@ -501,6 +512,64 @@ void URenderer::CreatePointLightShadowShader()
 	RegisterShaderReloadCache(ShaderPath, ShaderUsage::SHADOWMAP);
 }
 
+void URenderer::CreateHitProxyShader()
+{
+	std::filesystem::path ShaderPath = std::filesystem::current_path() / "Asset" / "Shader" / "HitProxyShader.hlsl";
+
+	ID3DBlob* VSBlob = nullptr;
+	ID3DBlob* PSBlob = nullptr;
+
+	HRESULT hr = D3DCompileFromFile(ShaderPath.c_str(), nullptr, nullptr, "mainVS", "vs_5_0", 0, 0, &VSBlob, nullptr);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("Renderer: HitProxyShader.hlsl VS 컴파일 실패");
+		return;
+	}
+
+	hr = GetDevice()->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), nullptr, &HitProxyVS);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("Renderer: HitProxy VertexShader 생성 실패");
+		SafeRelease(VSBlob);
+		return;
+	}
+
+	hr = D3DCompileFromFile(ShaderPath.c_str(), nullptr, nullptr, "mainPS", "ps_5_0", 0, 0, &PSBlob, nullptr);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("Renderer: HitProxyShader.hlsl PS 컴파일 실패");
+		SafeRelease(VSBlob);
+		return;
+	}
+
+	hr = GetDevice()->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), nullptr, &HitProxyPS);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("Renderer: HitProxy PixelShader 생성 실패");
+		SafeRelease(VSBlob);
+		SafeRelease(PSBlob);
+		return;
+	}
+
+	// InputLayout (Position + Normal)
+	D3D11_INPUT_ELEMENT_DESC InputElementDesc[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	hr = GetDevice()->CreateInputLayout(InputElementDesc, 2, VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &HitProxyInputLayout);
+	if (FAILED(hr))
+	{
+		UE_LOG_ERROR("Renderer: HitProxy InputLayout 생성 실패");
+	}
+
+	SafeRelease(VSBlob);
+	SafeRelease(PSBlob);
+
+	RegisterShaderReloadCache(ShaderPath, ShaderUsage::HITPROXY);
+}
+
 TSet<ShaderUsage> URenderer::GatherHotReloadTargets()
 {
 	TSet<ShaderUsage> HotReloadTargets = {};
@@ -667,6 +736,16 @@ void URenderer::HotReloadShaders()
 				ClusteredRenderingGridPass->SetInputLayout(ClusteredRenderingGridInputLayout);
 			}
 			break;
+		case ShaderUsage::HITPROXY:
+			SafeRelease(HitProxyInputLayout);
+			SafeRelease(HitProxyVS);
+			SafeRelease(HitProxyPS);
+			CreateHitProxyShader();
+			if (HitProxyPass)
+			{
+				HitProxyPass->SetShaders(HitProxyVS, HitProxyPS, HitProxyInputLayout);
+			}
+			break;
 		}
 	}
 }
@@ -716,6 +795,10 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(PointLightShadowVS);
 	SafeRelease(PointLightShadowPS);
 	SafeRelease(PointLightShadowInputLayout);
+
+	SafeRelease(HitProxyVS);
+	SafeRelease(HitProxyPS);
+	SafeRelease(HitProxyInputLayout);
 }
 
 void URenderer::ReleaseDepthStencilState()
@@ -1153,4 +1236,93 @@ void URenderer::ReleaseConstantBuffers()
 	SafeRelease(ConstantBufferModels);
 	SafeRelease(ConstantBufferColor);
 	SafeRelease(ConstantBufferViewProj);
+}
+
+void URenderer::RenderHitProxyPass(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
+{
+	if (!HitProxyPass || !InCamera)
+	{
+		if (!HitProxyPass)
+		{
+			UE_LOG_ERROR("Renderer: HitProxyPass가 null입니다 (셰이더 로드 실패?)");
+		}
+		return;
+	}
+
+	// 현재 활성 레벨의 컴포넌트 수집
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	if (!World)
+	{
+		return;
+	}
+
+	ULevel* CurrentLevel = World->GetLevel();
+	if (!CurrentLevel)
+	{
+		return;
+	}
+
+	// RenderingContext 구성
+	FRenderingContext Context;
+	Context.ViewProjConstants = nullptr;
+	Context.CurrentCamera = InCamera;
+	Context.ViewMode = EViewModeIndex::VMI_Unlit;
+	Context.ShowFlags = static_cast<uint64>(EEngineShowFlags::SF_StaticMesh);
+	Context.Viewport = InViewport;
+	Context.RenderTargetSize = FVector2(InViewport.Width, InViewport.Height);
+
+	// 모든 Primitive 컴포넌트 수집
+	TArray<UPrimitiveComponent*> AllVisiblePrims;
+
+	// Static Octree에서 정적 프리미티브 수집
+	if (FOctree* StaticOctree = CurrentLevel->GetStaticOctree())
+	{
+		TArray<UPrimitiveComponent*> AllStatics;
+		StaticOctree->GetAllPrimitives(AllStatics);
+		for (UPrimitiveComponent* Primitive : AllStatics)
+		{
+			if (Primitive && Primitive->IsVisible())
+			{
+				AllVisiblePrims.push_back(Primitive);
+			}
+		}
+	}
+
+	// 동적 프리미티브 수집
+	TArray<UPrimitiveComponent*>& DynamicPrimitives = CurrentLevel->GetDynamicPrimitives();
+	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
+	{
+		if (Primitive && Primitive->IsVisible())
+		{
+			AllVisiblePrims.push_back(Primitive);
+		}
+	}
+
+	// Primitive 타입별로 분류
+	for (auto& Prim : AllVisiblePrims)
+	{
+		if (auto StaticMesh = Cast<UStaticMeshComponent>(Prim))
+		{
+			Context.StaticMeshes.push_back(StaticMesh);
+		}
+		else if (auto EditorIcon = Cast<UEditorIconComponent>(Prim))
+		{
+			Context.EditorIcons.push_back(EditorIcon);
+		}
+		else if (auto BillBoard = Cast<UBillBoardComponent>(Prim))
+		{
+			Context.BillBoards.push_back(BillBoard);
+		}
+		// 필요하면 다른 타입도 추가 가능
+	}
+
+	// HitProxyPass 실행
+	HitProxyPass->Execute(Context);
+
+	// 기즈모도 HitProxy 렌더링 (UI 우선순위로 씬 오브젝트 위에 그려짐)
+	UEditor* Editor = GEditor->GetEditorModule();
+	if (Editor && Editor->GetSelectedComponent())
+	{
+		Editor->RenderGizmoForHitProxy(InCamera, InViewport);
+	}
 }

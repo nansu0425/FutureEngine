@@ -8,7 +8,7 @@ IMPLEMENT_SINGLETON_CLASS(UInputManager, UObject)
 UInputManager::UInputManager()
 	: MouseWheelDelta(0.0f)
 	  , bIsWindowFocused(true)
-	  , DoubleClickTime(0.5f)
+	  , DoubleClickTime(static_cast<float>(GetDoubleClickTime()) / 1000.0f)
 {
 	InitializeKeyMapping();
 	InitializeMouseClickStatus();
@@ -437,22 +437,16 @@ void UInputManager::SetWindowFocus(bool bInFocused)
 
 /**
  * @brief 더블클릭 감지 업데이트
- * 매 프레임마다 더블클릭 상태를 리셋하고 타임아웃 처리
+ * 타임아웃 기반 ClickCount 리셋 (DoubleClickState는 소비 기반)
  */
 void UInputManager::UpdateDoubleClickDetection()
 {
-	for (auto& Pair : DoubleClickState)
-	{
-		Pair.second = false;
-	}
-
 	float CurrentTime = static_cast<float>(GetTickCount64()) / 1000.0f;
 	for (auto& Pair : ClickCount)
 	{
 		EKeyInput MouseButton = Pair.first;
 		if (CurrentTime - LastClickTime[MouseButton] > DoubleClickTime)
 		{
-			// 클릭 카운트 리셋
 			Pair.second = 0;
 		}
 	}
@@ -474,16 +468,17 @@ void UInputManager::HandleConsoleShortcut()
 }
 
 /**
- * @brief 마우스 더블클릭 감지
+ * @brief 마우스 더블클릭 감지 (소비 기반, 읽으면 즉시 리셋)
  * @param InMouseButton 확인할 마우스 버튼
  * @return 더블클릭 되었으면 true, 아니면 false
  */
 bool UInputManager::IsMouseDoubleClicked(EKeyInput InMouseButton) const
 {
 	auto Iter = DoubleClickState.find(InMouseButton);
-	if (Iter != DoubleClickState.end())
+	if (Iter != DoubleClickState.end() && Iter->second)
 	{
-		return Iter->second;
+		const_cast<UInputManager*>(this)->DoubleClickState[InMouseButton] = false;
+		return true;
 	}
 	return false;
 }

@@ -126,9 +126,10 @@ public:
 
 	// Shared Ortho Zoom
 	float GetSharedOrthoZoom() const { return SharedOrthoZoom; }
+	void SetSharedOrthoZoom(float InZoom) { SharedOrthoZoom = InZoom; }
 	static constexpr float MIN_CAMERA_SPEED = 1.0f;
-	static constexpr float MAX_CAMERA_SPEED = 70.0f;
-	static constexpr float DEFAULT_CAMERA_SPEED = 20.0f;
+	static constexpr float MAX_CAMERA_SPEED = 100.0f;
+	static constexpr float DEFAULT_CAMERA_SPEED = 50.0f;
 
 	// PIE Active Viewport
 	int32 GetPIEActiveViewportIndex() const { return PIEActiveViewportIndex; }
