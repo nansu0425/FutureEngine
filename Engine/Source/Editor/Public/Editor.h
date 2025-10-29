@@ -49,6 +49,9 @@ public:
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 
+	// Pilot Mode Public Interface
+	void RequestExitPilotMode();
+
 private:
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터

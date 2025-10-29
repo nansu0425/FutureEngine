@@ -1836,3 +1836,11 @@ void UEditor::ExitPilotMode()
 	PilotedActor = nullptr;
 	PilotModeViewportIndex = -1;
 }
+
+/**
+ * @brief Pilot Mode 종료 요청을 위한 외부 호출 함수
+ */
+void UEditor::RequestExitPilotMode()
+{
+	ExitPilotMode();
+}
