@@ -118,14 +118,14 @@ void UViewportManager::Update()
 {
 	if (!Root)
 	{
-		UE_LOG_WARNING("ViewportManager::Update - Root가 null입니다!");
+		UE_LOG_WARNING("ViewportManager: Update: Root가 null입니다");
 		return;
 	}
 	
 	// 초기화 상태 확인
 	if (Viewports.empty() || Clients.empty())
 	{
-		UE_LOG_ERROR("ViewportManager::Update - Viewports(%zu) 또는 Clients(%zu)가 비어있습니다!", Viewports.size(), Clients.size());
+		UE_LOG_ERROR("ViewportManager: Update: Viewports(%zu) 또는 Clients(%zu)가 비어있습니다", Viewports.size(), Clients.size());
 		return;
 	}
 
@@ -150,12 +150,27 @@ void UViewportManager::Update()
 	const int32 ViewportHeight = Height - MenuAndLevelHeight - StatusBarHeight;
 	ActiveViewportRect = FRect{ 0, MenuAndLevelHeight, max(0, ViewportWidth), max(0, ViewportHeight) };
 
+	auto& InputManager = UInputManager::GetInstance();
+	int32 HoveringViewportIdx = GetMouseHoveredViewportIndex();
+
+	// 뷰포트 클릭 감지
+	if (InputManager.IsKeyPressed(EKeyInput::MouseLeft) ||
+		InputManager.IsKeyPressed(EKeyInput::MouseRight) ||
+		InputManager.IsKeyPressed(EKeyInput::MouseMiddle))
+	{
+		if (HoveringViewportIdx != -1)
+		{
+			LastClickedViewportIndex = HoveringViewportIdx;
+		}
+	}
+	
 	if (ViewportLayout == EViewportLayout::Quad)
 	{
 		if (QuadRoot)
 		{
 			QuadRoot->OnResize(ActiveViewportRect);
 		}
+
 		// SWindow 레이아웃의 최종 Rect를 FViewport에 동기화합니다.
 		// 이 작업을 통해 3D 렌더링이 올바른 화면 영역에 그려집니다.
 		for (int32 i = 0; i < 4; ++i)
@@ -174,11 +189,9 @@ void UViewportManager::Update()
 			}
 		}
 
-
-		int32 ViewportIndexUnderMouse = GetViewportIndexUnderMouse();
-		if (ViewportIndexUnderMouse != -1 && ActiveIndex!= ViewportIndexUnderMouse && !UInputManager::GetInstance().IsKeyDown(EKeyInput::MouseRight))
+		if (HoveringViewportIdx != -1 && HoveringViewportIdx != ActiveIndex)
 		{
-			ActiveIndex = ViewportIndexUnderMouse;
+			ActiveIndex = HoveringViewportIdx;
 		}
 	}
 	else 
@@ -191,7 +204,7 @@ void UViewportManager::Update()
 		}
 
 		// FutureEngine: 범위 체크
-		if (ActiveIndex < Viewports.size() && ActiveIndex < 4)
+		if (ActiveIndex < static_cast<int32>(Viewports.size()) && ActiveIndex < 4)
 		{
 			if (Viewports[ActiveIndex] && Leaves[ActiveIndex])
 			{
@@ -205,12 +218,11 @@ void UViewportManager::Update()
 
 	// 마우스 휠로 오쏘 뷰 줌 제어
 	{
-		auto& InputManager = UInputManager::GetInstance();
 		float WheelDelta = InputManager.GetMouseWheelDelta();
 
 		if (WheelDelta != 0.0f)
 		{
-			int32 Index = GetViewportIndexUnderMouse();
+			int32 Index = GetMouseHoveredViewportIndex();
 			if (Index >= 0 && Index < static_cast<int32>(Clients.size()))
 			{
 				FViewportClient* Client = Clients[Index];
@@ -273,15 +285,18 @@ void UViewportManager::Update()
 	UpdateViewportAnimation();
 }
 
-
 void UViewportManager::RenderOverlay()
 {
 	// FutureEngine 철학: Quad 모드나 애니메이션 중에만 스플리터 렌더링
 	if (!(ViewportLayout == EViewportLayout::Quad || ViewportAnimation.bIsAnimating))
+	{
 		return;
+	}
 
 	if (QuadRoot)
+	{
 		QuadRoot->OnPaint();
+	}
 }
 
 void UViewportManager::Release()
@@ -289,7 +304,10 @@ void UViewportManager::Release()
 	for (size_t Index = 0; Index < Viewports.size(); ++Index)
 	{
 		FViewport*& Viewport = Viewports[Index];
-		if (!Viewport) { continue; }
+		if (!Viewport)
+		{
+			continue;
+		}
 
 		if (Index < Clients.size())
 		{
@@ -443,7 +461,7 @@ void UViewportManager::GetLeafRects(TArray<FRect>& OutRects) const
 	Local::Collect(Root, OutRects);
 }
 
-int32 UViewportManager::GetViewportIndexUnderMouse() const
+int32 UViewportManager::GetMouseHoveredViewportIndex() const
 {
 	// 범위 검사
 	if (Viewports.empty())
@@ -462,7 +480,7 @@ int32 UViewportManager::GetViewportIndexUnderMouse() const
 		// FutureEngine: null 체크
 		if (!Viewports[i]) 
 		{
-			UE_LOG_WARNING("ViewportManager::GetViewportIndexUnderMouse - Viewports[%d]가 null", i);
+			UE_LOG_WARNING("ViewportManager: GetViewportIndexUnderMouse: Viewports[%d] is null", i);
 			continue;
 		}
 		
@@ -956,13 +974,13 @@ void UViewportManager::SerializeViewports(const bool bInIsLoading, JSON& InOutHa
 		int32 LoadedActiveIndex = 2;
 		float LoadedSplitterV = 0.5f;
 		float LoadedSplitterH = 0.5f;
-		float LoadedSharedOrthoZoom = 100.0f;
+		float LoadedSharedOrthoZoom = 500.0f;
 
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "Layout", LayoutInt, 0);
 		FJsonSerializer::ReadInt32(ViewportSystemJson, "ActiveIndex", LoadedActiveIndex, 2);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterV", LoadedSplitterV, 0.5f);
 		FJsonSerializer::ReadFloat(ViewportSystemJson, "SplitterH", LoadedSplitterH, 0.5f);
-		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
+		FJsonSerializer::ReadFloat(ViewportSystemJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 500.0f);
 
 		// Rotation Snap Settings
 		int32 LoadedRotationSnapEnabledInt = 1;
@@ -1228,13 +1246,13 @@ void UViewportManager::LoadViewportLayoutFromConfig()
 	int32 LoadedActiveIndex = 2;
 	float LoadedSplitterV = 0.5f;
 	float LoadedSplitterH = 0.5f;
-	float LoadedSharedOrthoZoom = 100.0f;
+	float LoadedSharedOrthoZoom = 500.0f;
 
 	FJsonSerializer::ReadInt32(LayoutJson, "Layout", LayoutInt, 0);
 	FJsonSerializer::ReadInt32(LayoutJson, "ActiveIndex", LoadedActiveIndex, 2);
 	FJsonSerializer::ReadFloat(LayoutJson, "SplitterV", LoadedSplitterV, 0.5f);
 	FJsonSerializer::ReadFloat(LayoutJson, "SplitterH", LoadedSplitterH, 0.5f);
-	FJsonSerializer::ReadFloat(LayoutJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 100.0f);
+	FJsonSerializer::ReadFloat(LayoutJson, "SharedOrthoZoom", LoadedSharedOrthoZoom, 500.0f);
 
 	// Rotation Snap Settings
 	int32 LoadedRotationSnapEnabledInt = 1;

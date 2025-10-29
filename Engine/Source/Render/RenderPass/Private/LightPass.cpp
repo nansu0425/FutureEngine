@@ -5,7 +5,9 @@
 #include "component/Public/DirectionalLightComponent.h"
 #include "component/Public/PointLightComponent.h"
 #include "Component/Public/SpotLightComponent.h"
+#include "Render/RenderPass/Public/ShadowMapPass.h"
 #include "Source/Editor/Public/Camera.h"
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
 constexpr uint32 CSNumThread = 128;
 
@@ -172,7 +174,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 
 	uint32 PointLightCount = static_cast<uint32>(PointLightDatas.size());
 	uint32 SpotLightCount = static_cast<uint32>(SpotLightDatas.size());
-	//최대갯수 재할당
+	// 최대갯수 재할당
 	if (PointLightBufferCount < PointLightCount)
 	{
 		while (PointLightBufferCount < PointLightCount)
@@ -203,7 +205,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	FRenderResourceFactory::UpdateStructuredBuffer(PointLightStructuredBuffer, PointLightDatas);
 	FRenderResourceFactory::UpdateStructuredBuffer(SpotLightStructuredBuffer, SpotLightDatas);
 
-	//Cluster AABB Set
+	// Cluster AABB Set
 	FCameraConstants Inv = Context.CurrentCamera->GetFViewProjConstantsInverse();
 	FMatrix ProjectionInv = Inv.Projection;
 	FMatrix ViewInv = Inv.View;
@@ -228,7 +230,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->DispatchCS(ViewClusterCS, ThreadGroupCount, 1, 1);
 
 
-	//Light 분류
+	// Light 분류
 	Pipeline->SetUnorderedAccessView(0, PointLightIndicesRWStructuredBufferUAV);
 	Pipeline->SetUnorderedAccessView(1, SpotLightIndicesRWStructuredBufferUAV);
 	Pipeline->SetShaderResourceView(0, EShaderType::CS, ClusterAABBRWStructuredBufferSRV);
@@ -241,7 +243,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(1, EShaderType::CS, nullptr);
 	Pipeline->SetShaderResourceView(2, EShaderType::CS, nullptr);
 
-	//클러스터 기즈모 제작
+	// 클러스터 기즈모 제작
 	if (bClusterGizmoSet == false) 
 	{
 		bClusterGizmoSet = true;
@@ -289,8 +291,7 @@ void FLightPass::Execute(FRenderingContext& Context)
 
 	}
 
-
-	//다음 메쉬 드로우를 위한 빛 관련 정보 업로드
+	// 다음 메쉬 드로우를 위한 빛 관련 정보 업로드
 	Pipeline->SetConstantBuffer(3, EShaderType::VS | EShaderType::PS, GlobalLightConstantBuffer);
 	Pipeline->SetConstantBuffer(4, EShaderType::VS | EShaderType::PS, ClusterSliceInfoConstantBuffer);
 	Pipeline->SetConstantBuffer(5, EShaderType::VS | EShaderType::PS, LightCountInfoConstantBuffer);
@@ -299,6 +300,54 @@ void FLightPass::Execute(FRenderingContext& Context)
 	Pipeline->SetShaderResourceView(7, EShaderType::VS | EShaderType::PS, SpotLightIndicesRWStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(8, EShaderType::VS | EShaderType::PS, PointLightStructuredBufferSRV);
 	Pipeline->SetShaderResourceView(9, EShaderType::VS | EShaderType::PS, SpotLightStructuredBufferSRV);
+
+	// 라이트 통계 기록
+	uint32 DirectionalCount = 0;
+	uint32 AmbientCount = 0;
+	if (!Context.DirectionalLights.empty())
+	{
+		for (UDirectionalLightComponent* Light : Context.DirectionalLights)
+		{
+			if (Light && Light->GetVisible() && Light->GetLightEnabled())
+			{
+				++DirectionalCount;
+			}
+		}
+	}
+	if (!Context.AmbientLights.empty())
+	{
+		for (UAmbientLightComponent* Light : Context.AmbientLights)
+		{
+			if (Light && Light->GetVisible() && Light->GetLightEnabled())
+			{
+				++AmbientCount;
+			}
+		}
+	}
+
+	// 섀도우맵 메모리 및 아틀라스 정보 계산
+	uint64 ShadowMapMemory = 0;
+	uint64 RenderTargetMemory = 0;
+	uint32 UsedAtlasTiles = 0;
+	uint32 MaxAtlasTiles = 0;
+
+	URenderer& Renderer = URenderer::GetInstance();
+	FShadowMapPass* ShadowMapPass = Renderer.GetShadowMapPass();
+	if (ShadowMapPass)
+	{
+		ShadowMapMemory = ShadowMapPass->GetTotalShadowMapMemory();
+		UsedAtlasTiles = ShadowMapPass->GetUsedAtlasTileCount();
+		MaxAtlasTiles = ShadowMapPass->GetMaxAtlasTileCount();
+	}
+
+	// 렌더 타겟 메모리 계산
+	UDeviceResources* DeviceResources = Renderer.GetDeviceResources();
+	if (DeviceResources)
+	{
+		RenderTargetMemory = DeviceResources->GetTotalRenderTargetMemory();
+	}
+
+	UStatOverlay::GetInstance().RecordShadowStats(DirectionalCount, PointLightCount, SpotLightCount, AmbientCount, ShadowMapMemory, RenderTargetMemory, UsedAtlasTiles, MaxAtlasTiles);
 }
 
 

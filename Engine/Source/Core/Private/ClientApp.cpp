@@ -121,10 +121,6 @@ void FClientApp::UpdateSystem() const
 	auto& UIManager = UUIManager::GetInstance();
 	auto& Renderer = URenderer::GetInstance();
 	{
-		TIME_PROFILE(GEditor)
-		GEditor->Tick(DT);
-	}
-	{
 		TIME_PROFILE(TimeManager)
 		TimeManager.Update();
 	}
@@ -135,6 +131,10 @@ void FClientApp::UpdateSystem() const
 	{
 		TIME_PROFILE(ViewportManager)
 		UViewportManager::GetInstance().Update();
+	}
+	{
+		TIME_PROFILE(GEditor)
+		GEditor->Tick(DT);
 	}
 	{
 		TIME_PROFILE(UIManager)

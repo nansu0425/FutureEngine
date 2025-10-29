@@ -649,7 +649,7 @@ path UMainBarWidget::OpenLoadFileDialog()
 	if (SUCCEEDED(hr) && pFileOpen)
 	{
 		COMDLG_FILTERSPEC fileTypes[] = {
-			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"Scene Files (*.scene)", L"*.scene"},
 			{L"All Files (*.*)", L"*.*"}
 		};
 		pFileOpen->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);
@@ -713,7 +713,7 @@ path UMainBarWidget::OpenSaveFileDialog()
 	if (SUCCEEDED(hr) && pFileSave)
 	{
 		COMDLG_FILTERSPEC fileTypes[] = {
-			{L"Scene Files (*.Scene)", L"*.Scene"},
+			{L"Scene Files (*.scene)", L"*.scene"},
 			{L"All Files (*.*)", L"*.*"}
 		};
 		pFileSave->SetFileTypes(ARRAYSIZE(fileTypes), fileTypes);

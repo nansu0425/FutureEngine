@@ -55,6 +55,12 @@ public:
 	uint32 GetHeight() const { return Height; }
 	void UpdateViewport(float InMenuBarHeight = 0.f);
 
+	/**
+	 * @brief 렌더 타겟 및 깊이 버퍼가 사용하는 총 메모리를 계산합니다.
+	 * @return 바이트 단위 메모리 사용량
+	 */
+	uint64 GetTotalRenderTargetMemory() const;
+
 	// Direct2D/DirectWrite factory getters
 	IDWriteFactory* GetDWriteFactory() const { return DWriteFactory; }
 	ID2D1Factory* GetD2DFactory() const { return D2DFactory; }
