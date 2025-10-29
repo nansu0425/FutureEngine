@@ -103,16 +103,15 @@ UClass* UDirectionalLightComponent::GetSpecificWidgetClass() const
 FVector UDirectionalLightComponent::GetForwardVector() const
 {
     FQuaternion LightRotation = GetWorldRotationAsQuaternion();
-
-    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), -90.0f * (PI / 180.0f));
-    FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
-
-    return FinalRotation.RotateVector(FVector::ForwardVector());
+    return LightRotation.RotateVector(FVector::ForwardVector());
 }
 
 void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 {
-    if (!InCamera) return;
+    if (!InCamera)
+    {
+        return;
+    }
 
     FVector LightLocation = GetWorldLocation();
     FQuaternion LightRotation = GetWorldRotationAsQuaternion();
@@ -148,11 +147,8 @@ void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera, co
         }
     }
 
-    FQuaternion ArrowToNegZ = FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(-90.0f));
-    FQuaternion FinalRotation = ArrowToNegZ * LightRotation;
-
     LightDirectionArrow.Location = LightLocation;
-    LightDirectionArrow.Rotation = FinalRotation;
+    LightDirectionArrow.Rotation = LightRotation;
     LightDirectionArrow.Scale = FVector(Scale, Scale, Scale);
 
     FRenderState RenderState;
