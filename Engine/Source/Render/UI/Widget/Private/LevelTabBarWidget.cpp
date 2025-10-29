@@ -482,6 +482,18 @@ void ULevelTabBarWidget::RenderWidget()
 				{
 					CascadeManager.SetLightViewVolumeZNearBias(LightViewVolumeZNearBias);
 				}
+
+				float BandingAreaFactor = CascadeManager.GetBandingAreaFactor();
+				// --- UI 렌더링 및 상호작용 ---
+				if (ImGui::SliderFloat(
+					"Banding Area Factor Bias",
+					&BandingAreaFactor,
+					UCascadeManager::BANDING_AREA_FACTOR_MIN,
+					UCascadeManager::BANDING_AREA_FACTOR_MAX,
+					"%.1f"))
+				{
+					CascadeManager.SetBandingAreaFactor(BandingAreaFactor);
+				}
 			}
 
 			ImGui::EndPopup();

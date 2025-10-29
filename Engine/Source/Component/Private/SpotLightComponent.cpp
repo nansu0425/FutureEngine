@@ -45,11 +45,6 @@ UObject* USpotLightComponent::Duplicate()
     return NewSpotLightComponent;
 }
 
-void USpotLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
-{
-    Super::DuplicateSubObjects(DuplicatedObject);
-}
-
 UClass* USpotLightComponent::GetSpecificWidgetClass() const
 {
     return USpotLightComponentWidget::StaticClass();

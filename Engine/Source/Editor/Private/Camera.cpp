@@ -42,8 +42,8 @@ FVector UCamera::UpdateInput()
 			if (Input.IsKeyDown(EKeyInput::D)) { Direction += Right * 2; }
 			if (Input.IsKeyDown(EKeyInput::W)) { Direction += Forward * 2; }
 			if (Input.IsKeyDown(EKeyInput::S)) { Direction += -Forward * 2; }
-			if (Input.IsKeyDown(EKeyInput::Q)) { Direction += -Up * 2; }
-			if (Input.IsKeyDown(EKeyInput::E)) { Direction += Up * 2; }
+			if (Input.IsKeyDown(EKeyInput::Q)) { Direction += FVector(0, 0, -2); }
+			if (Input.IsKeyDown(EKeyInput::E)) { Direction += FVector(0, 0, 2); }
 			if (Direction.LengthSquared() > MATH_EPSILON)
 			{
 				Direction.Normalize();

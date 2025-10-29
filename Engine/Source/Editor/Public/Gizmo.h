@@ -75,13 +75,25 @@ public:
 	void SetLocal() { bIsWorld = false; }
 	bool IsWorldMode() const { return bIsWorld; }
 
-	/**
-	 * @brief Getter
-	 */
+	// Pilot Mode 기즈모 고정 위치
+	void SetFixedLocation(const FVector& InFixedLocation) { bUseFixedLocation = true; FixedLocation = InFixedLocation; }
+	void ClearFixedLocation() { bUseFixedLocation = false; }
+	bool IsFixedLocation() const { return bUseFixedLocation; }
+	FVector GetFixedLocation() const { return FixedLocation; }
+
+	// Getter
 	float GetTranslateScale() const { return TranslateCollisionConfig.Scale; }
 	float GetRotateScale() const { return RotateCollisionConfig.Scale; }
 	EGizmoDirection GetGizmoDirection() const { return GizmoDirection; }
-	FVector GetGizmoLocation() { return Primitives[static_cast<int>(GizmoMode)].Location; }
+	FVector GetGizmoLocation()
+	{
+		// Pilot Mode일 때 고정 위치 사용
+		if (bUseFixedLocation)
+		{
+			return FixedLocation;
+		}
+		return Primitives[static_cast<int>(GizmoMode)].Location;
+	}
 	FQuaternion GetComponentRotation() const { return TargetComponent->GetWorldRotationAsQuaternion(); }
 	FVector GetComponentScale() const { return TargetComponent->GetWorldScale3D(); }
 	FVector GetDragStartMouseLocation() { return DragStartMouseLocation; }
@@ -165,9 +177,7 @@ public:
 		return std::round(CurrentRotationAngle / SnapAngleRadians) * SnapAngleRadians;
 	}
 
-	/**
-	 * @brief 마우스 관련
-	 */
+	// 마우스 관련
 	void EndDrag()
 	{
 		bIsDragging = false;
@@ -179,18 +189,6 @@ public:
 	void OnMouseRelease(EGizmoDirection DirectionReleased) {}
 
 private:
-	// 렌더 시 하이라이트 색상 계산 (상태 오염 방지)
-	FVector4 ColorFor(EGizmoDirection InAxis) const;
-
-	// Modular rendering functions
-	void RenderCenterSphere(const FEditorPrimitive& P, float RenderScale);
-	void RenderTranslatePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
-	void RenderScalePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
-	void RenderRotationCircles(const FEditorPrimitive& P, const FQuaternion& AxisRotation,
-		const FQuaternion& BaseRot, const FVector4& AxisColor);
-	void RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuaternion& BaseRot,
-		int32 AxisIndex, EGizmoDirection Direction, UCamera* InCamera);
-
 	TArray<FEditorPrimitive> Primitives;
 	USceneComponent* TargetComponent = nullptr;
 
@@ -219,4 +217,20 @@ private:
 	// 스크린 공간 드래그 상태
 	FVector2 DragStartScreenPos;      // 드래그 시작 시 스크린 좌표
 	FVector2 PreviousScreenPos;       // 이전 프레임 스크린 좌표
+
+	// Pilot Mode 고정 위치
+	bool bUseFixedLocation = false;
+	FVector FixedLocation;
+
+	// 렌더 시 하이라이트 색상 계산 (상태 오염 방지)
+	FVector4 ColorFor(EGizmoDirection InAxis) const;
+
+	// Modular rendering functions
+	void RenderCenterSphere(const FEditorPrimitive& P, float RenderScale);
+	void RenderTranslatePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
+	void RenderScalePlanes(const FEditorPrimitive& P, const FQuaternion& BaseRot, float RenderScale);
+	void RenderRotationCircles(const FEditorPrimitive& P, const FQuaternion& AxisRotation,
+		const FQuaternion& BaseRot, const FVector4& AxisColor);
+	void RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuaternion& BaseRot,
+		int32 AxisIndex, EGizmoDirection Direction, UCamera* InCamera);
 };

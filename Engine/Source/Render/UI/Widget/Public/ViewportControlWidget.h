@@ -124,8 +124,12 @@ private:
 	
 	// 카메라 설정 아이콘
 	UTexture* IconCamera = nullptr;
-	
+
 	bool bIconsLoaded = false;
+
+	// Pilot Mode UI 헬퍼
+	void RenderPilotModeExitButton(int32 ViewportIndex, ImVec2& InOutCursorPos);
+	bool IsPilotModeActive(int32 ViewportIndex) const;
 };
 
 

@@ -1,7 +1,43 @@
 #pragma once
-#include "Core/Public/NewObject.h"
+
 using std::string;
 using std::wstring;
+
+// ============================================================================
+// Math Utility Functions
+// ============================================================================
+
+/**
+ * @brief 선형 보간 (Linear Interpolation)
+ * @tparam T 보간할 타입 (float, FVector, FQuaternion 등)
+ * @param A 시작 값
+ * @param B 끝 값
+ * @param Alpha 보간 비율 [0, 1]
+ * @return 보간된 값
+ */
+template <typename T>
+T Lerp(const T& A, const T& B, float Alpha)
+{
+	return A * (1.0f - Alpha) + B * Alpha;
+}
+
+/**
+ * @brief 값을 min과 max 사이로 제한
+ * @tparam T 제한할 타입
+ * @param Value 제한할 값
+ * @param Min 최소값
+ * @param Max 최대값
+ * @return 제한된 값
+ */
+template <typename T>
+T Clamp(const T& Value, const T& Min, const T& Max)
+{
+	return (Value < Min) ? Min : (Value > Max) ? Max : Value;
+}
+
+// ============================================================================
+// Memory & COM Utilities
+// ============================================================================
 
 template <typename T>
 static void SafeDelete(T& InDynamicObject)

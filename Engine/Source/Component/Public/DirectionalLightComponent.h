@@ -27,8 +27,6 @@ public:
 
     virtual UObject* Duplicate() override;
 
-    virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
-
     /*-----------------------------------------------------------------------------
         UActorComponent Features
      -----------------------------------------------------------------------------*/

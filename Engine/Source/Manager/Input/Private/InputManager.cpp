@@ -8,7 +8,7 @@ IMPLEMENT_SINGLETON_CLASS(UInputManager, UObject)
 UInputManager::UInputManager()
 	: MouseWheelDelta(0.0f)
 	  , bIsWindowFocused(true)
-	  , DoubleClickTime(static_cast<float>(GetDoubleClickTime()) / 1000.0f)
+	  , DoubleClickTime(0.25f)
 {
 	InitializeKeyMapping();
 	InitializeMouseClickStatus();
@@ -27,6 +27,8 @@ void UInputManager::InitializeKeyMapping()
 	VirtualKeyMap['E'] = EKeyInput::E;
 	VirtualKeyMap['R'] = EKeyInput::R;
 	VirtualKeyMap['F'] = EKeyInput::F;
+	VirtualKeyMap['P'] = EKeyInput::P;
+	VirtualKeyMap['G'] = EKeyInput::G;
 
 	// 화살표 키 매핑
 	VirtualKeyMap[VK_UP] = EKeyInput::Up;

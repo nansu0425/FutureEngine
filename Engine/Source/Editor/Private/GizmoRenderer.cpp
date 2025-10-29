@@ -95,13 +95,23 @@ void UGizmo::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 	}
 
 	// 스크린에서 균일한 사이즈를 가지도록 하기 위한 스케일 조정
-	const FVector GizmoLocation = TargetComponent->GetWorldLocation();
+	FVector GizmoLocation;
+	if (bUseFixedLocation)
+	{
+		// Pilot Mode: 고정 위치 사용
+		GizmoLocation = FixedLocation;
+	}
+	else
+	{
+		GizmoLocation = TargetComponent->GetWorldLocation();
+	}
+
 	const float RenderScale = FGizmoMath::CalculateScreenSpaceScale(InCamera, InViewport, GizmoLocation, 120.0f);
 
 	URenderer& Renderer = URenderer::GetInstance();
 	const int Mode = static_cast<int>(GizmoMode);
 	auto& P = Primitives[Mode];
-	P.Location = TargetComponent->GetWorldLocation();
+	P.Location = GizmoLocation;
 
 	P.Scale = FVector(RenderScale, RenderScale, RenderScale);
 
