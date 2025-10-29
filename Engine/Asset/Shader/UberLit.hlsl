@@ -614,7 +614,8 @@ float2 GetPointLightShadowMapUVWithDirection(
 float CalculatePointPCFFactor(
     FPointLightInfo Light,
     uint LightIndex,
-    float3 WorldPos
+    float3 WorldPos,
+    float FilterRadiusInPixels
 )
 {
     // If shadow is disabled, return fully lit (1.0)
@@ -644,7 +645,8 @@ float CalculatePointPCFFactor(
 
     // PCF (Percentage Closer Filtering) for soft shadows
     // Filter radius controls shadow softness (larger = softer)
-    float FilterRadius = 0.003f;
+    float TexelSize = 1.0f / Light.Resolution;
+    float FilterRadius = FilterRadiusInPixels * TexelSize;
 
     float ShadowFactor = 0.0f;
     float TotalSamples = 1.0f;  // Start with 1 for center sample
@@ -1200,11 +1202,11 @@ FIllumination CalculatePointLight(FPointLightInfo Info, uint LightIndex, float3 
     float ShadowFactor = 1.0f;
     if (Info.ShadowModeIndex == SMI_UnFiltered)
     {
-        ShadowFactor = CalculatePointPCFFactor(Info, WorldPos, 0);
+        ShadowFactor = CalculatePointPCFFactor(Info, LightIndex, WorldPos, 0);
     }
     else if (Info.ShadowModeIndex == SMI_PCF)
     {
-        ShadowFactor = CalculatePointPCFFactor(Info, WorldPos, 1);
+        ShadowFactor = CalculatePointPCFFactor(Info, LightIndex, WorldPos, 1);
     }
     else if (Info.ShadowModeIndex == SMI_VSM || Info.ShadowModeIndex == SMI_VSM_BOX || Info.ShadowModeIndex == SMI_VSM_GAUSSIAN)
     {
