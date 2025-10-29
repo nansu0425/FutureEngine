@@ -26,7 +26,9 @@ public:
 
 	UClass* GetSpecificWidgetClass() const override;
 
-	static const FRenderState& GetClassDefaultRenderState(); 
+	static const FRenderState& GetClassDefaultRenderState();
+
+	UObject* Duplicate() override;
 
 private:
 	UTexture* Sprite = nullptr;

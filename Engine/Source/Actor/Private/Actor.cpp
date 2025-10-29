@@ -432,6 +432,63 @@ void AActor::DuplicateSubObjects(UObject* DuplicatedObject)
 	}
 }
 
+UObject* AActor::DuplicateForEditor()
+{
+	AActor* Actor = Cast<AActor>(NewObject(GetClass()));
+	Actor->bCanEverTick = bCanEverTick;
+	DuplicateSubObjectsForEditor(Actor);
+	return Actor;
+}
+
+void AActor::DuplicateSubObjectsForEditor(UObject* DuplicatedObject)
+{
+	Super::DuplicateSubObjects(DuplicatedObject);
+	AActor* DuplicatedActor = Cast<AActor>(DuplicatedObject);
+
+	// { 복제 전 Component, 복제 후 Component }
+	TMap<UActorComponent*, UActorComponent*> OldToNewComponentMap;
+
+	// EditorOnly 체크 없이 모든 컴포넌트를 복제해 맵에 저장
+	for (UActorComponent* OldComponent : OwnedComponents)
+	{
+		if (OldComponent)
+		{
+			UActorComponent* NewComponent = Cast<UActorComponent>(OldComponent->Duplicate());
+			NewComponent->SetOwner(DuplicatedActor);
+			DuplicatedActor->OwnedComponents.push_back(NewComponent);
+			OldToNewComponentMap[OldComponent] = NewComponent;
+		}
+	}
+
+	// 복제된 컴포넌트들 계층 구조 재조립
+	for (auto const& [OldComp, NewComp] : OldToNewComponentMap)
+	{
+		USceneComponent* OldSceneComp = Cast<USceneComponent>(OldComp);
+		if (!OldSceneComp)
+		{
+			continue;
+		}
+		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp);
+		USceneComponent* OldParent = OldSceneComp->GetAttachParent();
+
+		// 원본 부모가 있었다면, 그에 맞는 새 부모를 찾아 연결
+		if (OldParent)
+		{
+			auto FoundNewParentPtr = OldToNewComponentMap.find(OldParent);
+			if (FoundNewParentPtr != OldToNewComponentMap.end())
+			{
+				NewSceneComp->AttachToComponent(Cast<USceneComponent>(FoundNewParentPtr->second));
+			}
+		}
+	}
+
+	// Set Root Component
+	if (GetRootComponent() && OldToNewComponentMap.find(GetRootComponent()) != OldToNewComponentMap.end())
+	{
+		DuplicatedActor->SetRootComponent(Cast<USceneComponent>(OldToNewComponentMap[GetRootComponent()]));
+	}
+}
+
 void AActor::Tick(float DeltaTimes)
 {
 	for (auto& Component : OwnedComponents)

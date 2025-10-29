@@ -48,7 +48,19 @@ UObject* UObject::Duplicate()
 
 void UObject::DuplicateSubObjects(UObject* DuplicatedObject)
 {
-	
+
+}
+
+UObject* UObject::DuplicateForEditor()
+{
+	UObject* Object = NewObject(GetClass());
+	DuplicateSubObjectsForEditor(Object);
+	return Object;
+}
+
+void UObject::DuplicateSubObjectsForEditor(UObject* DuplicatedObject)
+{
+
 }
 
 void UObject::SetOuter(UObject* InObject)

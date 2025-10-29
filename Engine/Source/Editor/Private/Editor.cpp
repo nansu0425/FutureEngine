@@ -1585,21 +1585,21 @@ AActor* UEditor::DuplicateActor(AActor* InSourceActor)
 		return nullptr;
 	}
 
-	// 2. Level 가져오기
+	// Level 가져오기
 	ULevel* CurrentLevel = EditorWorld->GetLevel();
 	if (!CurrentLevel)
 	{
 		return nullptr;
 	}
 
-	// 3. Duplicate()를 통해 Actor 전체 복사 (모든 Component 포함)
-	AActor* NewActor = Cast<AActor>(InSourceActor->Duplicate());
+	// Actor 전체 복사 (EditorOnly Component 포함)
+	AActor* NewActor = Cast<AActor>(InSourceActor->DuplicateForEditor());
 	if (!NewActor)
 	{
 		return nullptr;
 	}
 
-	// 4. Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
+	// Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
 	NewActor->SetOuter(CurrentLevel);
 	for (UActorComponent* Component : NewActor->GetOwnedComponents())
 	{
@@ -1609,11 +1609,11 @@ AActor* UEditor::DuplicateActor(AActor* InSourceActor)
 		}
 	}
 
-	// 5. Level에 Actor 추가
+	// Level에 Actor 추가
 	CurrentLevel->AddActorToLevel(NewActor);
 	CurrentLevel->AddLevelComponent(NewActor);
 
-	// 6. BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
+	// BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
 	NewActor->BeginPlay();
 
 	return NewActor;
