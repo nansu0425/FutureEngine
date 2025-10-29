@@ -44,5 +44,6 @@ struct FCascadeShadowMapData
     FMatrix Proj[8];                     // 512 bytes
     FVector4 SplitDistance[8];         // 32 bytes (actual data)
     uint32 SplitNum = 0;                 // 4 bytes
-    uint32 Padding[3] = {};              // 12 bytes padding for 16-byte alignment
+    float BandingAreaFactor = 1.1f;
+    uint32 Padding[2] = {};              // 12 bytes padding for 16-byte alignment
 };

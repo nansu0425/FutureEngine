@@ -20,6 +20,9 @@ public:
     float GetLightViewVolumeZNearBias() const;
     void SetLightViewVolumeZNearBias(float InLightViewVolumeZNearBias);
 
+    float GetBandingAreaFactor() const;
+    void SetBandingAreaFactor(float InBandingAreaFactor);
+
     float CalculateFrustumXYWithZ(float Z, float Fov);
     FCascadeShadowMapData GetCascadeShadowMapData(
         UCamera* InCamera,
@@ -35,8 +38,12 @@ public:
     static constexpr float LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN = 0.0f;
     static constexpr float LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX = 1000.0f;
 
+    static constexpr float BANDING_AREA_FACTOR_MIN = 1.0f;
+    static constexpr float BANDING_AREA_FACTOR_MAX = 1.5f;
+
 private:
     int32 SplitNum = 8;
     float SplitBlendFactor = 0.5f;
     float LightViewVolumeZNearBias = 100.0f;
+    float BandingAreaFactor = 1.1f;
 };

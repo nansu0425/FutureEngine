@@ -88,6 +88,7 @@ cbuffer CascadeShadowMapData : register(b6)
     row_major float4x4 CascadeProj[8];   // 512 bytes
     float4 SplitDistance[8];    // 128 bytes (HLSL: each float is 16-byte aligned)
     uint SplitNum;             // 16 bytes (with padding)
+    float BandingAreaFactor;
     // Total: 720 bytes
 }
 
@@ -429,7 +430,7 @@ float CalculateDirectionalPCFFactor(
 
     // --- 3. SubFrustum 블렌딩 ---
     float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+    float OverlappedSectionMax = OverlappedSectionMin * BandingAreaFactor;
 
     if (CameraViewZ <= OverlappedSectionMax)
     {
@@ -789,7 +790,7 @@ float CalculateDirectionalVSMFactor(
 
     // --- 3. SubFrustum 블렌딩 ---
     float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+    float OverlappedSectionMax = OverlappedSectionMin * BandingAreaFactor;
 
     if (CameraViewZ <= OverlappedSectionMax)
     {
@@ -1045,7 +1046,7 @@ float CalculateDirectionalSAVSMFactor(
 
     // --- 3. SubFrustum 블렌딩 ---
     float OverlappedSectionMin = SplitDistance[SubFrustumNum - 1].r;
-    float OverlappedSectionMax = OverlappedSectionMin * 1.1f;
+    float OverlappedSectionMax = OverlappedSectionMin * BandingAreaFactor;
 
     if (CameraViewZ <= OverlappedSectionMax)
     {

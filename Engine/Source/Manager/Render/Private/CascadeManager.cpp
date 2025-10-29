@@ -41,7 +41,17 @@ void UCascadeManager::SetLightViewVolumeZNearBias(float InLightViewVolumeZNearBi
         InLightViewVolumeZNearBias,
         LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN,
         LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX
-        );
+    );
+}
+
+float UCascadeManager::GetBandingAreaFactor() const
+{
+    return BandingAreaFactor;
+}
+
+void UCascadeManager::SetBandingAreaFactor(float InBandingAreaFactor)
+{
+    BandingAreaFactor = std::clamp(InBandingAreaFactor, BANDING_AREA_FACTOR_MIN, BANDING_AREA_FACTOR_MAX);
 }
 
 float UCascadeManager::CalculateFrustumXYWithZ(float Z, float Fov)
@@ -60,6 +70,7 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
 
     FCascadeShadowMapData CascadeShadowMapData;
     CascadeShadowMapData.SplitNum = SplitNum;
+    CascadeShadowMapData.BandingAreaFactor = BandingAreaFactor;
 
     for (int i = 0; i < SplitNum; i++)
     {
@@ -137,7 +148,7 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
         // 마지막 SubFrustum이 아니면 10%의 추가 z길이를 부여한다.
         // 이 추가 Z 길이는 Cascade Banding에 사용한다.
         if (i < SplitNum - 1)
-            PlaneZ *= 1.1f;
+            PlaneZ *= BandingAreaFactor;
         
         float PlaneXY = CalculateFrustumXYWithZ(PlaneZ, Fov);
 
