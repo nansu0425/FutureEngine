@@ -1787,7 +1787,7 @@ void UGizmo::RenderRotationQuarterRing(const FEditorPrimitive& P, const FQuatern
 	FQuaternion AxisRots[3] = {
 		FQuaternion::Identity(),  // X링: YZ 평면
 		FQuaternion::FromAxisAngle(FVector::UpVector(), FVector::GetDegreeToRadian(-90.0f)),  // Y링: XZ 평면
-		FQuaternion::FromAxisAngle(FVector::ForwardVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면
+		FQuaternion::FromAxisAngle(FVector::RightVector(), FVector::GetDegreeToRadian(90.0f))  // Z링: XY 평면
 	};
 
 	if (bIsOrtho && bIsWorld)

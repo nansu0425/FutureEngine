@@ -1076,35 +1076,12 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 		return false;
 	}
 
-	// EditorIconComponent: 부모 LightComponent를 찾아서 처리, 없으면 자체 WorldLocation 사용
-	if (UEditorIconComponent* IconComp = Cast<UEditorIconComponent>(SceneComp))
+	// LightComponent: 10x10x10 박스 가정한 AABB
+	if (ULightComponent* LightComp = Cast<ULightComponent>(SceneComp))
 	{
-		USceneComponent* ParentComp = IconComp->GetAttachParent();
-		if (ULightComponent* ParentLight = Cast<ULightComponent>(ParentComp))
-		{
-			OutCenter = ParentLight->GetWorldLocation();
-			OutRadius = 50.0f;
-			UE_LOG("Editor: GetComponentFocusTarget: EditorIcon with LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
-		}
-		else
-		{
-			// 부모가 LightComponent가 아니거나 없는 경우
-			OutCenter = IconComp->GetWorldLocation();
-			OutRadius = 50.0f;
-			UE_LOG_WARNING("Editor: GetComponentFocusTarget: EditorIcon without LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
-		}
-		return true;
-	}
-
-	// LightComponent: WorldLocation 기반 (AABB가 없으므로)
-	if (Cast<ULightComponent>(SceneComp))
-	{
-		OutCenter = SceneComp->GetWorldLocation();
-		OutRadius = 50.0f;
-		UE_LOG("Editor: GetComponentFocusTarget: LightComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+		OutCenter = LightComp->GetWorldLocation();
+		// 10x10x10 박스의 반경 = sqrt(10^2 + 10^2 + 10^2) / 2 = 8.66
+		OutRadius = 8.66f;
 		return true;
 	}
 
@@ -1120,16 +1097,12 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 
 		// 최소 반경 보장 (너무 작은 오브젝트 대응)
 		OutRadius = max(OutRadius, 10.0f);
-		UE_LOG("Editor: GetComponentFocusTarget: PrimitiveComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 	// SceneComponent: WorldLocation 기반
 	else
 	{
 		OutCenter = SceneComp->GetWorldLocation();
 		OutRadius = 30.0f;
-		UE_LOG("Editor: GetComponentFocusTarget: SceneComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 
 	return true;
@@ -1166,10 +1139,10 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 		{
 			if (ULightComponent* LightComp = Cast<ULightComponent>(Comp))
 			{
-				OutCenter = LightComp->GetWorldLocation();
-				OutRadius = 50.0f;
-				UE_LOG("Editor: GetActorFocusTarget: Light Actor Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-					OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+				FVector LightLoc = LightComp->GetWorldLocation();
+				// 10x10x10 박스 가정
+				OutCenter = LightLoc;
+				OutRadius = 8.66f; // sqrt(10^2 + 10^2 + 10^2) / 2
 				return true;
 			}
 		}
