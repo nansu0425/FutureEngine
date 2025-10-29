@@ -5,6 +5,7 @@
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/BatchLines.h"
 #include "editor/Public/Camera.h"
+#include "Global/Function.h"
 
 class UPrimitiveComponent;
 class UUUIDTextComponent;
@@ -14,16 +15,10 @@ class ULevel;
 class USplitterWidget;
 struct FRay;
 
-enum class EViewportLayoutState
-{
-	Multi,
-	Single,
-	Animating,
-};
-
 class UEditor : public UObject
 {
 	DECLARE_CLASS(UEditor, UObject)
+
 public:
 	UEditor();
 	~UEditor();
@@ -34,46 +29,27 @@ public:
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmoForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 
-	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
-	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
-
-	// 레이아웃 제어는 ViewportManager가 담당
-
 	void SelectActor(AActor* InActor);
-	AActor* GetSelectedActor() const { return SelectedActor; }
 	void SelectComponent(UActorComponent* InComponent);
 	void SelectActorAndComponent(AActor* InActor, UActorComponent* InComponent);
 	void FocusOnSelectedActor();
-	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
 
-	// Alt + 드래그 복사 기능
+	// Alt + Drag 복사 기능
 	UActorComponent* DuplicateComponent(UActorComponent* InSourceComponent, AActor* InParentActor);
 	AActor* DuplicateActor(AActor* InSourceActor);
 
-// Getter
-public:
+	// Getter & Setter
+	EViewModeIndex GetViewMode() const { return CurrentViewMode; }
+	AActor* GetSelectedActor() const { return SelectedActor; }
+	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
+	bool IsPilotMode() const { return bIsPilotMode; }
+	AActor* GetPilotedActor() const { return PilotedActor; }
 	UBatchLines* GetBatchLines() { return &BatchLines; }
 	UGizmo* GetGizmo() { return &Gizmo; }
 
-	
+	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
+
 private:
-	void UpdateBatchLines();
-	void ProcessMouseInput();
-	
-	// 모든 기즈모 드래그 함수가 ActiveCamera를 받도록 통일
-	FVector GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay);
-	FQuaternion GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay);
-	FVector GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay);
-
-	inline float Lerp(const float A, const float B, const float Alpha)
-	{
-		return A * (1 - Alpha) + B * Alpha;
-	}
-
-	// Focus Target Calculation
-	bool GetComponentFocusTarget(UActorComponent* Component, FVector& OutCenter, float& OutRadius);
-	bool GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutRadius);
-
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터
 	UActorComponent* SelectedComponent = nullptr; // 선택된 컴포넌트
@@ -89,8 +65,6 @@ private:
 	UCamera* Camera;
 	UGizmo Gizmo;
 	UBatchLines BatchLines;
-
-	// InteractionViewport 제거: ViewportManager가 레이아웃 관리
 
 	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_BlinnPhong;
 
@@ -114,5 +88,30 @@ private:
 	TArray<float> OrthoZoomStart;
 	TArray<float> OrthoZoomTarget;
 	static constexpr float CAMERA_ANIMATION_DURATION = 0.3f;
+
+	// Pilot Mode
+	bool bIsPilotMode = false;
+	AActor* PilotedActor = nullptr;
+	int32 PilotModeViewportIndex = -1;
+	FVector PilotModeStartCameraLocation;
+	FVector PilotModeStartCameraRotation;
+	FVector PilotModeFixedGizmoLocation;
+
+	void UpdateBatchLines();
+	void ProcessMouseInput();
+	
+	// 모든 기즈모 드래그 함수가 ActiveCamera를 받도록 통일
+	FVector GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay);
+	FQuaternion GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay);
+	FVector GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay);
+
+	// Focus Target Calculation
+	bool GetComponentFocusTarget(UActorComponent* Component, FVector& OutCenter, float& OutRadius);
+	bool GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutRadius);
+
 	void UpdateCameraAnimation();
+	
+	void TogglePilotMode();
+	void UpdatePilotMode();
+	void ExitPilotMode();
 };

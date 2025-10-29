@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Core/Public/Object.h"
-#include "Core/Public/EngineStatics.h"
-#include "Core/Public/Name.h"
 
 #include <json.hpp>
+
+#include "Core/Public/EngineStatics.h"
+#include "Core/Public/Name.h"
+#include "Core/Public/NewObject.h"
 
 uint32 UEngineStatics::NextUUID = 0;
 
@@ -39,6 +41,9 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 }
 
+/**
+ * @brief PIE 시스템에 사용되는 복제 함수입니다. 상속받은 클래스에서 재정의함으로써 조율해야 합니다.
+ */
 UObject* UObject::Duplicate()
 {
 	UObject* Object = NewObject(GetClass());
@@ -51,6 +56,10 @@ void UObject::DuplicateSubObjects(UObject* DuplicatedObject)
 
 }
 
+/**
+ * @brief Editor 전용 복제 메서드 (EditorOnly 컴포넌트 포함)
+ * @return 복제된 Object
+ */
 UObject* UObject::DuplicateForEditor()
 {
 	UObject* Object = NewObject(GetClass());

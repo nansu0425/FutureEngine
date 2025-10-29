@@ -164,6 +164,36 @@ void UEditor::Update()
 
 	UpdateCameraAnimation();
 
+	// Pilot Mode 키 바인딩 처리
+	UInputManager& InputManager = UInputManager::GetInstance();
+
+	// Ctrl + Shift + P: Pilot Mode 진입
+	if (InputManager.IsKeyPressed(EKeyInput::P) &&
+		InputManager.IsKeyDown(EKeyInput::Ctrl) &&
+		InputManager.IsKeyDown(EKeyInput::Shift))
+	{
+		if (!bIsPilotMode)
+		{
+			TogglePilotMode();
+		}
+	}
+
+	// Alt + G: Pilot Mode 해제
+	if (InputManager.IsKeyPressed(EKeyInput::G) &&
+		InputManager.IsKeyDown(EKeyInput::Alt))
+	{
+		if (bIsPilotMode)
+		{
+			ExitPilotMode();
+		}
+	}
+
+	// Pilot Mode 업데이트
+	if (bIsPilotMode)
+	{
+		UpdatePilotMode();
+	}
+
 	ProcessMouseInput();
 }
 
@@ -201,6 +231,12 @@ void UEditor::RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport)
 		const TArray<ULightComponent*>& LightComponents = CurrentLevel->GetLightComponents();
 		for (ULightComponent* LightComp : LightComponents)
 		{
+			// Pilot Mode: 현재 조종 중인 Actor의 컴포넌트는 화살표 렌더링 스킵
+			if (bIsPilotMode && PilotedActor && LightComp->GetOwner() == PilotedActor)
+			{
+				continue;
+			}
+
 			if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(LightComp))
 			{
 				DirLight->RenderLightDirectionGizmo(InCamera, InViewport);
@@ -1487,7 +1523,7 @@ void UEditor::UpdateCameraAnimation()
 		// Orthographic 카메라는 줌 애니메이션 적용
 		else if (Cam->GetCameraType() == ECameraType::ECT_Orthographic)
 		{
-			float CurrentZoom = Lerp(OrthoZoomStart[Index], OrthoZoomTarget[Index], SmoothProgress);
+			float CurrentZoom = Lerp<float>(OrthoZoomStart[Index], OrthoZoomTarget[Index], SmoothProgress);
 			Cam->SetOrthoZoom(CurrentZoom);
 		}
 	}
@@ -1652,4 +1688,151 @@ AActor* UEditor::DuplicateActor(AActor* InSourceActor)
 	NewActor->BeginPlay();
 
 	return NewActor;
+}
+
+/**
+ * @brief Pilot Mode 진입 함수
+ */
+void UEditor::TogglePilotMode()
+{
+	// 진입 조건 검사
+	if (!SelectedActor)
+	{
+		UE_LOG_WARNING("Pilot Mode: No actor selected");
+		return;
+	}
+
+	if (!bIsActorSelected)
+	{
+		UE_LOG_WARNING("Pilot Mode: Component selection mode. Switch to Actor selection first");
+		return;
+	}
+
+	// 마지막으로 클릭한 뷰포트의 카메라 사용
+	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+	const int32 LastClickedIdx = ViewportManager.GetLastClickedViewportIndex();
+
+	if (LastClickedIdx < 0 || LastClickedIdx >= static_cast<int32>(Clients.size()))
+	{
+		UE_LOG_WARNING("Pilot Mode: Invalid viewport index");
+		return;
+	}
+
+	FViewportClient* TargetClient = Clients[LastClickedIdx];
+	if (!TargetClient || !TargetClient->GetCamera())
+	{
+		UE_LOG_WARNING("Pilot Mode: Target viewport has no camera");
+		return;
+	}
+
+	// Pilot Mode 진입
+	bIsPilotMode = true;
+	PilotedActor = SelectedActor;
+	PilotModeViewportIndex = LastClickedIdx;
+
+	// 현재 카메라 위치 저장, 이후 해제 시 복원 예정
+	UCamera* Cam = TargetClient->GetCamera();
+	PilotModeStartCameraLocation = Cam->GetLocation();
+	PilotModeStartCameraRotation = Cam->GetRotation();
+
+	// Actor의 Transform을 카메라에 적용
+	if (USceneComponent* RootComp = PilotedActor->GetRootComponent())
+	{
+		FVector ActorLocation = RootComp->GetWorldLocation();
+		FQuaternion ActorRotationQuat = RootComp->GetWorldRotationAsQuaternion();
+		FVector ActorRotationEuler = ActorRotationQuat.ToEuler();
+
+		Cam->SetLocation(ActorLocation);
+		Cam->SetRotation(ActorRotationEuler);
+
+		// 기즈모를 원래 Actor 위치에 고정
+		PilotModeFixedGizmoLocation = ActorLocation;
+		Gizmo.SetFixedLocation(PilotModeFixedGizmoLocation);
+
+		UE_LOG_INFO("Pilot Mode: Entered (Actor: %s)", PilotedActor->GetName().ToString().data());
+	}
+}
+
+/**
+ * @brief Pilot Mode 업데이트
+ */
+void UEditor::UpdatePilotMode()
+{
+	if (!bIsPilotMode || !PilotedActor)
+	{
+		return;
+	}
+
+	// Actor가 삭제되었는지 확인
+	if (PilotedActor->IsPendingDestroy())
+	{
+		ExitPilotMode();
+		return;
+	}
+
+	// 카메라의 현재 Transform을 Actor에 적용
+	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (PilotModeViewportIndex >= 0 && PilotModeViewportIndex < static_cast<int32>(Clients.size()))
+	{
+		FViewportClient* PilotClient = Clients[PilotModeViewportIndex];
+		if (PilotClient && PilotClient->GetCamera())
+		{
+			UCamera* Cam = PilotClient->GetCamera();
+			USceneComponent* RootComp = PilotedActor->GetRootComponent();
+
+			if (RootComp)
+			{
+				FVector CameraLocation = Cam->GetLocation();
+				FVector CameraRotationEuler = Cam->GetRotation();
+
+				// Camera와 동일한 방식으로 Rotation Matrix 생성 후 Quaternion으로 변환
+				FMatrix CameraRotationMatrix = FMatrix::RotationMatrix(FVector::GetDegreeToRadian(CameraRotationEuler));
+				FQuaternion CameraRotationQuat = FQuaternion::FromRotationMatrix(CameraRotationMatrix);
+
+				RootComp->SetWorldLocation(CameraLocation);
+				RootComp->SetWorldRotation(CameraRotationQuat);
+			}
+		}
+	}
+}
+
+/**
+ * @brief Pilot Mode 해제
+ */
+void UEditor::ExitPilotMode()
+{
+	if (!bIsPilotMode)
+	{
+		return;
+	}
+
+	// 카메라를 시작 위치로 복원
+	UViewportManager& ViewportManager = UViewportManager::GetInstance();
+	auto& Clients = ViewportManager.GetClients();
+
+	if (PilotModeViewportIndex >= 0 && PilotModeViewportIndex < static_cast<int32>(Clients.size()))
+	{
+		FViewportClient* PilotClient = Clients[PilotModeViewportIndex];
+		if (PilotClient && PilotClient->GetCamera())
+		{
+			UCamera* Cam = PilotClient->GetCamera();
+			Cam->SetLocation(PilotModeStartCameraLocation);
+			Cam->SetRotation(PilotModeStartCameraRotation);
+		}
+	}
+
+	if (PilotedActor)
+	{
+		UE_LOG_INFO("Pilot Mode: Exited (Actor: %s)", PilotedActor->GetName().ToString().data());
+	}
+
+	// 기즈모 고정 위치 해제
+	Gizmo.ClearFixedLocation();
+
+	bIsPilotMode = false;
+	PilotedActor = nullptr;
+	PilotModeViewportIndex = -1;
 }
