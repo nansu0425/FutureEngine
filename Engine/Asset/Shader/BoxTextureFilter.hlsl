@@ -55,6 +55,8 @@ void mainCS(
     
     float2 AccumulatedValue = float2(0.0f, 0.0f);
 
+    float ValidSampleCount = 0.0f;
+
     // KernelRadius에 따라 -R 부터 +R 까지 샘플링
     for (int i = -KERNEL_RADIUS; i <= KERNEL_RADIUS; ++i)
     {
@@ -64,32 +66,38 @@ void mainCS(
 #ifdef SCAN_DIRECTION_COLUMN
         // --- Vertical Pass 모드 ---
         // Y(행) 방향으로 샘플링
-        
-        int SampleRow = clamp((int)PixelCoord.y + CurrentOffset, RegionStartY, RegionStartY + RegionHeight - 1);
-        
-        SampleCoord = uint2(PixelCoord.x, (uint)SampleRow);
 
+        int SampleRow = (int)PixelCoord.y + CurrentOffset;
+        if (SampleRow >= (int)RegionStartY && SampleRow < (int)(RegionStartY + RegionHeight))
+        {
+            SampleCoord = uint2(PixelCoord.x, (uint)SampleRow);
+
+            AccumulatedValue += InputTexture[SampleCoord];
+            ValidSampleCount += 1.0f;
+        }
 #else
         // --- Horizontal Pass 모드 (Default) ---
         // X(열) 방향으로 샘플링
-        
-        int SampleCol = clamp((int)PixelCoord.x + CurrentOffset, RegionStartX, RegionStartX + RegionWidth - 1);
 
-        SampleCoord = uint2((uint)SampleCol, PixelCoord.y);
-        
+        int SampleCol = (int)PixelCoord.x + CurrentOffset;
+        if (SampleCol >= (int)RegionStartX && SampleCol < (int)(RegionStartX + RegionWidth))
+        {
+            SampleCoord = uint2((uint)SampleCol, PixelCoord.y);
+            
+            AccumulatedValue += InputTexture[SampleCoord];
+            ValidSampleCount += 1.0f;
+        }
 #endif
-
-        // --- 3. 값 누적 ---
-        
-        // 박스 필터는 가중치가 1.0이므로 바로 더함
-        AccumulatedValue += InputTexture[SampleCoord];
     }
 
     // --- 4. 데이터 저장 (Global Texture) ---
-    
-    // 총 샘플 수 (커널의 총 너비)
-    const float TotalSamples = (float)(KERNEL_RADIUS * 2 + 1);
-    
-    // 정규화 (총 샘플 수로 나누어 평균 계산)
-    OutputTexture[PixelCoord] = AccumulatedValue / TotalSamples;
+
+    if (ValidSampleCount > 0.0f)
+    {
+        OutputTexture[PixelCoord] = AccumulatedValue / ValidSampleCount;
+    }
+    else
+    {
+        OutputTexture[PixelCoord] = float2(1.0f, 1.0f);
+    }
 }

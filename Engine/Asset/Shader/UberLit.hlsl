@@ -186,6 +186,7 @@ StructuredBuffer<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePos : r
 SamplerState SamplerWrap : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
 SamplerState VarianceShadowSampler : register(s2);
+SamplerState PointShadowSampler : register(s3);
 
 // Material flags
 #define HAS_DIFFUSE_MAP  (1 << 0) // map_Kd
@@ -640,9 +641,6 @@ float CalculatePointPCFFactor(
     // Convert current distance to normalized [0,1] range
     float CurrentDistance = Distance / Light.Range;
 
-    // Add small bias to prevent shadow acne
-    float Bias = 0.005f;
-
     // PCF (Percentage Closer Filtering) for soft shadows
     // Filter radius controls shadow softness (larger = softer)
     float TexelSize = 1.0f / Light.Resolution;
@@ -654,9 +652,9 @@ float CalculatePointPCFFactor(
     float2 AtlasTexcoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex, Light.Resolution);
     
     //float StoredDistance = ShadowAtlas.Load(int3(AtlasTexcoord, 0)).r;
-    float StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
+    float StoredDistance = ShadowAtlas.Sample(PointShadowSampler, AtlasTexcoord).r;
 
-    ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+    ShadowFactor += CurrentDistance > StoredDistance ? 0.0f : 1.0f;
 
     [unroll]
     for (int i = 0; i < 20; i++)
@@ -666,10 +664,10 @@ float CalculatePointPCFFactor(
         AtlasTexcoord = GetPointLightShadowMapUVWithDirection(OffsetDir, LightIndex, Light.Resolution);
         
         // Sample shadow map with offset direction
-        StoredDistance = ShadowAtlas.Sample(SamplerWrap, AtlasTexcoord).r;
+        StoredDistance = ShadowAtlas.Sample(PointShadowSampler, AtlasTexcoord).r;
 
         // Compare and accumulate
-        ShadowFactor += (CurrentDistance - Bias) > StoredDistance ? 0.0f : 1.0f;
+        ShadowFactor += CurrentDistance > StoredDistance ? 0.0f : 1.0f;
         TotalSamples += 1.0f;
     }
 
@@ -892,7 +890,7 @@ float CalculatePointVSMFactor(
     float2 AtlasTexCoord = GetPointLightShadowMapUVWithDirection(SampleDir, LightIndex, LightInfo.Resolution);
 
     // --- 5. VSM 모멘트 샘플링 및 체비쇼프 부등식 계산 ---
-    float2 Moments = VarianceShadowAtlas.Sample(VarianceShadowSampler, AtlasTexCoord);
+    float2 Moments = VarianceShadowAtlas.Sample(PointShadowSampler, AtlasTexCoord);
 
     return CalculateChebyshevShadowFactor(CurrentDepth, Moments);
 }

@@ -239,6 +239,17 @@ void URenderer::CreateSamplerState()
 	VarianceShadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	VarianceShadowSamplerDesc.MipLODBias = 0;
 	GetDevice()->CreateSamplerState(&VarianceShadowSamplerDesc, &VarianceShadowSampler);
+
+	// Sampler for point light Atlas sampling
+	D3D11_SAMPLER_DESC PointShadowSamplerDesc = {};
+	PointShadowSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	PointShadowSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	PointShadowSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	PointShadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	PointShadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	PointShadowSamplerDesc.MinLOD = 0;
+	PointShadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	GetDevice()->CreateSamplerState(&PointShadowSamplerDesc, &PointShadowSampler);
 }
 
 void URenderer::RegisterShaderReloadCache(const std::filesystem::path& ShaderPath, ShaderUsage Usage)
@@ -730,6 +741,7 @@ void URenderer::ReleaseSamplerState()
 	SafeRelease(DefaultSampler);
 	SafeRelease(ShadowComparisonSampler);
 	SafeRelease(VarianceShadowSampler);
+	SafeRelease(PointShadowSampler);
 }
 
 void URenderer::Update()

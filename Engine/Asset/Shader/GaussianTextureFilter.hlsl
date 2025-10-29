@@ -78,36 +78,40 @@ void mainCS(
         uint2 SampleCoord; // 샘플링할 픽셀 좌표
         int CurrentOffset = i;
 
+        float Weight = WEIGHTS[abs(CurrentOffset)];
+
 #ifdef SCAN_DIRECTION_COLUMN
         // --- Vertical Pass 모드 ---
         // Y(행) 방향으로 샘플링
-        
-        int SampleRow = clamp((int)PixelCoord.y + CurrentOffset, RegionStartY, RegionStartY + RegionHeight - 1);
-        
-        SampleCoord = uint2(PixelCoord.x, (uint)SampleRow);
+        int SampleRow = (int)PixelCoord.y + CurrentOffset;
+        if (SampleRow >= (int)RegionStartY && SampleRow < (int)(RegionStartY + RegionHeight))
+        {
+            SampleCoord = uint2(PixelCoord.x, (uint)SampleRow);
 
+            AccumulatedValue += InputTexture[SampleCoord] * Weight;
+            TotalWeight += Weight;
+        }
 #else
         // --- Horizontal Pass 모드 (Default) ---
         // X(열) 방향으로 샘플링
-        
-        int SampleCol = clamp((int)PixelCoord.x + CurrentOffset, RegionStartX, RegionStartX + RegionWidth - 1);
+        int SampleCol = (int)PixelCoord.x + CurrentOffset;
+        if (SampleCol >= (int)RegionStartX && SampleCol < (int)(RegionStartX + RegionWidth))
+        {
+            SampleCoord = uint2((uint)SampleCol, PixelCoord.y);
 
-        SampleCoord = uint2((uint)SampleCol, PixelCoord.y);
-        
+            AccumulatedValue += InputTexture[SampleCoord] * Weight;
+            TotalWeight += Weight;
+        }
 #endif
-
-        // --- 3. 가중치 합산 ---
-        
-        // 가중치 (abs(i)를 인덱스로 사용)
-        float Weight = WEIGHTS[abs(CurrentOffset)];
-        
-        // 입력 텍스처에서 값 읽기
-        AccumulatedValue += InputTexture[SampleCoord] * Weight;
-        TotalWeight += Weight;
     }
 
     // --- 4. 데이터 저장 (Global Texture) ---
-    
-    // 정규화 (총 가중치로 나누어 평균 계산)
-    OutputTexture[PixelCoord] = AccumulatedValue / TotalWeight;
+    if (TotalWeight > 0.0f)
+    {
+        OutputTexture[PixelCoord] = AccumulatedValue / TotalWeight;
+    }
+    else
+    {
+        OutputTexture[PixelCoord] = float2(1.0f, 1.0f); 
+    }
 }

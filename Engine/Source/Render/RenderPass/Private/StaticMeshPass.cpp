@@ -46,6 +46,9 @@ void FStaticMeshPass::Execute(FRenderingContext& Context)
 	// Bind variance shadow sampler (s2 slot)
 	Pipeline->SetSamplerState(2, EShaderType::PS, Renderer.GetVarianceShadowSampler());
 
+	// Bind point shadow sampler (s3 slot)
+	Pipeline->SetSamplerState(3, EShaderType::PS, Renderer.GetPointShadowSampler());
+
 	FShadowMapPass* ShadowPass = Renderer.GetShadowMapPass();
 	if (ShadowPass)
 	{
