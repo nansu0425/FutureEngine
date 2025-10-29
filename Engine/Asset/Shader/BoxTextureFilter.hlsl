@@ -6,17 +6,22 @@
  * @date 2025-10-27
  */
 
-// --- 고정 매개변수 (커널 관련) ---
+/*-----------------------------------------------------------------------------
+    고정 매개변수 (커널 관련) 
+ -----------------------------------------------------------------------------*/
 
-// 1. 박스 커널 반지름 (Radius)
-// 0 ~ KERNEL_RADIUS까지 총 (KERNEL_RADIUS * 2 + 1)개의 픽셀을 샘플링.
-static const int KERNEL_RADIUS = 7;
-
-// (박스 필터는 모든 가중치가 1.0이므로 WEIGHTS 배열이 필요 없음)
+// 0.0 (블러 없음)일 때의 최소 커널 반지름
+static const int MIN_KERNEL_SIZE = 1;
+// 1.0 (최대 블러)일 때의 최대 커널 반지름
+static const int MAX_KERNEL_SIZE = 7;
 
 // --- 스레드 그룹 크기 (2D) ---
 #define THREAD_BLOCK_SIZE_X 16
 #define THREAD_BLOCK_SIZE_Y 16
+
+/*-----------------------------------------------------------------------------
+    GPU 자원
+ -----------------------------------------------------------------------------*/
 
 // 입력 텍스처 (이전 패스의 결과)
 Texture2D<float2> InputTexture : register(t0);
@@ -34,6 +39,15 @@ cbuffer TextureInfo : register(b0)
     uint TextureWidth;
     uint TextureHeight;
 }
+
+cbuffer FilterInfo : register(b1)
+{
+    float FilterStrength;
+}
+
+/*-----------------------------------------------------------------------------
+    컴퓨트 쉐이더
+ -----------------------------------------------------------------------------*/
 
 [numthreads(THREAD_BLOCK_SIZE_X, THREAD_BLOCK_SIZE_Y, 1)]
 void mainCS(
@@ -58,7 +72,8 @@ void mainCS(
     float ValidSampleCount = 0.0f;
 
     // KernelRadius에 따라 -R 부터 +R 까지 샘플링
-    for (int i = -KERNEL_RADIUS; i <= KERNEL_RADIUS; ++i)
+    int KernelRadius = (int)round(lerp((float)MIN_KERNEL_SIZE, (float)MAX_KERNEL_SIZE, FilterStrength));
+    for (int i = -KernelRadius; i <= KernelRadius; ++i)
     {
         uint2 SampleCoord; // 샘플링할 픽셀 좌표
         int CurrentOffset = i;

@@ -25,7 +25,8 @@ void FTextureFilter::FilterTexture(
     uint32 RegionStartX,
     uint32 RegionStartY,
     uint32 RegionWidth,
-    uint32 RegionHeight
+    uint32 RegionHeight,
+    float FilterStrength
     )
 {
     ID3D11DeviceContext* DeviceContext = URenderer::GetInstance().GetDeviceContext();
@@ -54,8 +55,13 @@ void FTextureFilter::FilterTexture(
     TextureInfo.TextureHeight = Desc.Height;
 
     FRenderResourceFactory::UpdateConstantBufferData(TextureInfoConstantBuffer.Get(), TextureInfo);
-
     Pipeline.SetConstantBuffer(0, EShaderType::CS, TextureInfoConstantBuffer.Get());
+
+    FFilterInfo FilterInfo = {};
+    FilterInfo.FilterStrength = FilterStrength;
+
+    FRenderResourceFactory::UpdateConstantBufferData(FilterInfoConstantBuffer.Get(), FilterInfo);
+    Pipeline.SetConstantBuffer(1, EShaderType::CS, FilterInfoConstantBuffer.Get());
 
     // --- 2. Row 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, InTexture);
@@ -83,7 +89,8 @@ void FTextureFilter::FilterTexture(
     uint32 RegionStartX,
     uint32 RegionStartY,
     uint32 RegionWidth,
-    uint32 RegionHeight
+    uint32 RegionHeight,
+    float FilterStrength
     )
 {
     ID3D11DeviceContext* DeviceContext = URenderer::GetInstance().GetDeviceContext();
@@ -112,8 +119,13 @@ void FTextureFilter::FilterTexture(
     TextureInfo.TextureHeight = Desc.Height;
 
     FRenderResourceFactory::UpdateConstantBufferData(TextureInfoConstantBuffer.Get(), TextureInfo);
-
     Pipeline.SetConstantBuffer(0, EShaderType::CS, TextureInfoConstantBuffer.Get());
+    
+    FFilterInfo FilterInfo = {};
+    FilterInfo.FilterStrength = FilterStrength;
+
+    FRenderResourceFactory::UpdateConstantBufferData(FilterInfoConstantBuffer.Get(), FilterInfo);
+    Pipeline.SetConstantBuffer(1, EShaderType::CS, FilterInfoConstantBuffer.Get());
 
     // --- 2. Row 방향 필터링 ---
     Pipeline.SetShaderResourceView(0, EShaderType::CS, InTexture);
@@ -154,6 +166,7 @@ void FTextureFilter::CreateShader(const FString& InShaderPath)
 void FTextureFilter::CreateConstantBuffer()
 {
     TextureInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FTextureInfo>();
+    FilterInfoConstantBuffer = FRenderResourceFactory::CreateConstantBuffer<FFilterInfo>();
 }
 
 void FTextureFilter::CreateTexture(uint32 InWidth, uint32 InHeight)

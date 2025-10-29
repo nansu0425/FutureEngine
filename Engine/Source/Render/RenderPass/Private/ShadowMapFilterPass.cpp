@@ -91,7 +91,7 @@ void FShadowMapFilterPass::Release()
 	TextureFilterMap.clear();	
 }
 
-void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightComponent, const FShadowMapResource* ShadowMap) 
+void FShadowMapFilterPass::FilterShadowMap(const ULightComponent* LightComponent, const FShadowMapResource* ShadowMap) 
 {
 	if (!ShadowMap || !ShadowMap->IsValid())
 	{
@@ -109,7 +109,8 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
 				NumGroupsX, NumGroupsY, NumGroupsZ,
-				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT
+				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT,
+				1.0f - LightComponent->GetShadowSharpen()
 			);
 			break;
 		}
@@ -122,7 +123,8 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
 				NumGroupsX, NumGroupsY, NumGroupsZ,
-				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT
+				0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT,
+				1.0f - LightComponent->GetShadowSharpen()
 			);
 			break;
 		}
@@ -143,7 +145,7 @@ void FShadowMapFilterPass::FilterShadowMap(const ULightComponentBase* LightCompo
 	}
 }
 
-void FShadowMapFilterPass::FilterShadowAtlasMap(const ULightComponentBase* LightComponent,
+void FShadowMapFilterPass::FilterShadowAtlasMap(const ULightComponent* LightComponent,
 	const FShadowMapResource* ShadowMap, uint32 RegionStartX, uint32 RegionStartY, uint32 RegionWidth, uint32 RegionHeight)
 {
 	if (!ShadowMap || !ShadowMap->IsValid())
@@ -162,7 +164,8 @@ void FShadowMapFilterPass::FilterShadowAtlasMap(const ULightComponentBase* Light
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
 				NumGroupsX, NumGroupsY, NumGroupsZ,
-				RegionStartX, RegionStartY, RegionWidth, RegionHeight
+				RegionStartX, RegionStartY, RegionWidth, RegionHeight,
+				1.0f - LightComponent->GetShadowSharpen()
 			);
 			break;
 		}
@@ -175,7 +178,8 @@ void FShadowMapFilterPass::FilterShadowAtlasMap(const ULightComponentBase* Light
 				ShadowMap->VarianceShadowSRV.Get(),
 				ShadowMap->VarianceShadowUAV.Get(),
 				NumGroupsX, NumGroupsY, NumGroupsZ,
-				RegionStartX, RegionStartY, RegionWidth, RegionHeight
+				RegionStartX, RegionStartY, RegionWidth, RegionHeight,
+				1.0f - LightComponent->GetShadowSharpen()
 			);
 			break;
 		}

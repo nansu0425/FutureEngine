@@ -2,37 +2,29 @@
  * @file GaussianTextureFilter.hlsl
  * @brief 분리 가능한 가우시안 필터 - Row/Column 통합 셰이더
  *
- * @details
- * 가우시안 커널 가중치는 셰이더 내에 상수로 고정되어 있다.
- *
  * @author geb0598
  * @date 2025-10-27
  */
 
-// --- 고정 매개변수 (커널 관련) ---
+/*-----------------------------------------------------------------------------
+    고정 매개변수 (커널 관련) 
+ -----------------------------------------------------------------------------*/
 
-// 1. 가우시안 커널 반지름 (Radius)
+// --- 가우시안 커널 반지름 (Radius) ---
 // 0 ~ KERNEL_RADIUS까지 총 (KERNEL_RADIUS * 2 + 1)개의 픽셀을 샘플링.
 static const int KERNEL_RADIUS = 7;
 
-// 2. 가우시안 가중치 (미리 계산된 값)
-// sigma = 2.5 기준으로 계산된 값 (정규화 불필요)
-// Weights[0] = 중앙값, Weights[1] = 1칸 떨어진 값, ...
-static const float WEIGHTS[KERNEL_RADIUS + 1] = 
-{
-    1.000000, // 0
-    0.923116, // 1
-    0.726149, // 2
-    0.486752, // 3
-    0.278037, // 4
-    0.135335, // 5
-    0.056102, // 6
-    0.019829  // 7
-};
+// --- 표준편차 ---
+static const float MIN_SIGMA = 0.1f;
+static const float MAX_SIGMA = KERNEL_RADIUS / 2.0f;
 
 // --- 스레드 그룹 크기 (2D) ---
 #define THREAD_BLOCK_SIZE_X 16
 #define THREAD_BLOCK_SIZE_Y 16
+
+/*-----------------------------------------------------------------------------
+    GPU 자원
+ -----------------------------------------------------------------------------*/
 
 // 입력 텍스처 (이전 패스의 결과)
 Texture2D<float2> InputTexture : register(t0);
@@ -51,23 +43,59 @@ cbuffer TextureInfo : register(b0)
     uint TextureHeight; 
 }
 
+cbuffer FilterInfo : register(b1)
+{
+    float FilterStrength;
+}
+
+groupshared float Weights[KERNEL_RADIUS + 1];
+
+/*-----------------------------------------------------------------------------
+    컴퓨트 쉐이더
+ -----------------------------------------------------------------------------*/
+
 [numthreads(THREAD_BLOCK_SIZE_X, THREAD_BLOCK_SIZE_Y, 1)]
 void mainCS(
+    uint GroupIndex        : SV_GroupIndex,
     uint3 DispatchThreadID : SV_DispatchThreadID
     )
 {
+    // --- 1. 가중치 계산 (그룹당 1회) ---
+    if (GroupIndex == 0)
+    {
+        float Sigma = lerp(MIN_SIGMA, MAX_SIGMA, FilterStrength);
+
+        if (Sigma < 0.001f)
+        {
+            Weights[0] = 1.0f;
+            for (int i = 1; i <= KERNEL_RADIUS; ++i)
+            {
+                Weights[i] = 0.0f;
+            }
+        }
+        else
+        {
+            for (int i = 0; i <= KERNEL_RADIUS; ++i)
+            {
+                float X = (float)i;
+                Weights[i] = exp(-(X * X) / (2.0f * Sigma * Sigma));
+            }
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+    
     // 텍스처 경계 검사 (cbuffer 값 사용)
     if (DispatchThreadID.x >= RegionWidth || DispatchThreadID.y >= RegionHeight)
     {
         return;
     }
     
-    // --- 1. 인덱스 계산 ---
+    // --- 2. 인덱스 계산 ---
     
     // 현재 스레드가 처리할 픽셀의 2D 좌표
     uint2 PixelCoord = DispatchThreadID.xy + uint2(RegionStartX, RegionStartY);
 
-    // --- 2. 가우시안 컨볼루션 (가중치 합) ---
+    // --- 3. 가우시안 컨볼루션 (가중치 합) ---
     
     float2 AccumulatedValue = float2(0.0f, 0.0f);
     float  TotalWeight = 0.0f;
@@ -78,7 +106,7 @@ void mainCS(
         uint2 SampleCoord; // 샘플링할 픽셀 좌표
         int CurrentOffset = i;
 
-        float Weight = WEIGHTS[abs(CurrentOffset)];
+        float Weight = Weights[abs(CurrentOffset)];
 
 #ifdef SCAN_DIRECTION_COLUMN
         // --- Vertical Pass 모드 ---

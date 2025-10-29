@@ -36,7 +36,7 @@ private:
      * 1. 가로(Row) 패스: 원본 섀도우 맵(SRV) -> 임시 텍스처(UAV)
      * 2. 세로(Column) 패스: 임시 텍스처(SRV) -> 원본 섀도우 맵(UAV)
      */
-    void FilterShadowMap(const ULightComponentBase* LightComponent, const FShadowMapResource* ShadowMap);
+    void FilterShadowMap(const ULightComponent* LightComponent, const FShadowMapResource* ShadowMap);
 
     /**
      * @brief 아틀라스 섀도우 맵에 분리 가능한(separable) 필터링을 적용한다.
@@ -45,7 +45,7 @@ private:
      * 1. 가로(Row) 패스: 원본 섀도우 맵(SRV) -> 임시 텍스처(UAV)
      * 2. 세로(Column) 패스: 임시 텍스처(SRV) -> 원본 섀도우 맵(UAV)
      */
-    void FilterShadowAtlasMap(const ULightComponentBase* LightComponent, const FShadowMapResource* ShadowMap, uint32 RegionStartX, uint32 RegionStartY, uint32 RegionWidth, uint32 RegionHeight);
+    void FilterShadowAtlasMap(const ULightComponent* LightComponent, const FShadowMapResource* ShadowMap, uint32 RegionStartX, uint32 RegionStartY, uint32 RegionWidth, uint32 RegionHeight);
 
     // @todo: 쉐도우 맵 크기 동적조정 기능 추가전까지 사용
     static constexpr uint32 TEXTURE_WIDTH = 1024;

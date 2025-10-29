@@ -49,6 +49,7 @@ public:
      * @param RegionStartY 필터링할 영역의 시작 Y 좌표.
      * @param RegionWidth 필터링할 영역의 너비.
      * @param RegionHeight 필터링할 영역의 높이.
+     * @param FilterStrength 필터링 강도 (0.0f - 1.0f)
      */
     void FilterTexture(
         ID3D11ShaderResourceView* InTexture,
@@ -59,7 +60,8 @@ public:
         uint32 RegionStartX,
         uint32 RegionStartY,
         uint32 RegionWidth,
-        uint32 RegionHeight
+        uint32 RegionHeight,
+        float FilterStrength = 1.0f
     );
 
     /**
@@ -84,6 +86,7 @@ public:
      * @param RegionStartY 필터링할 영역의 시작 Y 좌표.
      * @param RegionWidth 필터링할 영역의 너비.
      * @param RegionHeight 필터링할 영역의 높이.
+     * @param FilterStrength 필터링 강도 (0.0f - 1.0f)
      */
     void FilterTexture(
         ID3D11ShaderResourceView* InTexture,
@@ -92,7 +95,8 @@ public:
         uint32 RegionStartX,
         uint32 RegionStartY,
         uint32 RegionWidth,
-        uint32 RegionHeight
+        uint32 RegionHeight,
+        float FilterStrength = 1.0f
     );
 
 private:
@@ -137,6 +141,11 @@ private:
         uint32 TextureHeight;
     };
     Microsoft::WRL::ComPtr<ID3D11Buffer> TextureInfoConstantBuffer;
+    struct FFilterInfo
+    {
+        float FilterStrength;
+    };
+    Microsoft::WRL::ComPtr<ID3D11Buffer> FilterInfoConstantBuffer;
 
     // Double Buffering용 임시 버퍼
     // @note R32G32 format만 지원한다. (VSM의 1차 모멘트, 2차 모멘트 저장용)
