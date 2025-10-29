@@ -543,3 +543,65 @@ FQuaternion FMatrix::ToQuaternion() const
 }
 
 
+
+
+// PSM helper functions
+FVector4 FMatrix::TransformVector4(const FVector4& V) const
+{
+    return V * (*this);
+}
+
+FVector FMatrix::TransformVector(const FVector& V) const
+{
+    // Transform vector without translation (direction vector)
+    return FVector(
+        V.X * Data[0][0] + V.Y * Data[1][0] + V.Z * Data[2][0],
+        V.X * Data[0][1] + V.Y * Data[1][1] + V.Z * Data[2][1],
+        V.X * Data[0][2] + V.Y * Data[1][2] + V.Z * Data[2][2]
+    );
+}
+
+FMatrix FMatrix::CreatePerspectiveLH(float Width, float Height, float Near, float Far)
+{
+    FMatrix Result;
+    Result.Data[0][0] = (2.0f * Near) / Width;
+    Result.Data[1][1] = (2.0f * Near) / Height;
+    Result.Data[2][2] = Far / (Far - Near);
+    Result.Data[2][3] = 1.0f;
+    Result.Data[3][2] = -(Far * Near) / (Far - Near);
+    Result.Data[3][3] = 0.0f;
+    return Result;
+}
+
+FMatrix FMatrix::CreatePerspectiveFovLH(float FovY, float AspectRatio, float Near, float Far)
+{
+    float YScale = 1.0f / std::tan(FovY * 0.5f);
+    float XScale = YScale / AspectRatio;
+
+    FMatrix Result;
+    Result.Data[0][0] = XScale;
+    Result.Data[1][1] = YScale;
+    Result.Data[2][2] = Far / (Far - Near);
+    Result.Data[2][3] = 1.0f;
+    Result.Data[3][2] = -(Far * Near) / (Far - Near);
+    Result.Data[3][3] = 0.0f;
+    return Result;
+}
+
+FMatrix FMatrix::CreateOrthoOffCenterLH(float Left, float Right, float Bottom, float Top, float Near, float Far)
+{
+    FMatrix Result;
+    Result.Data[0][0] = 2.0f / (Right - Left);
+    Result.Data[1][1] = 2.0f / (Top - Bottom);
+    Result.Data[2][2] = 1.0f / (Far - Near);
+    Result.Data[3][0] = -(Right + Left) / (Right - Left);
+    Result.Data[3][1] = -(Top + Bottom) / (Top - Bottom);
+    Result.Data[3][2] = -Near / (Far - Near);
+    Result.Data[3][3] = 1.0f;
+    return Result;
+}
+
+FMatrix FMatrix::CreateTranslation(const FVector& Translation)
+{
+    return TranslationMatrix(Translation);
+}

@@ -7,6 +7,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/Shadow/Public/PSMCalculator.h"
 
 #define MAX_LIGHT_NUM 8
 #define X_OFFSET 1024.0f
@@ -352,33 +353,70 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
+	// 그림자 매핑 모드 확인
+	// 0 = Uniform SM (단일), 1 = PSM (단일), 2 = CSM (캐스케이드)
+	uint8 ProjectionMode = Light->GetShadowProjectionMode();
+
 	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
-	FCascadeShadowMapData CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+	FCascadeShadowMapData CascadeShadowMapData;
+	int NumCascades = 1;
+
+	// CSM split 수 임시 저장
+	int32 OriginalSplitNum = CascadeManager.GetSplitNum();
+
+	if (ProjectionMode == 4)
+	{
+		// 모드 4: Cascaded Shadow Maps (다중 캐스케이드)
+		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+		NumCascades = OriginalSplitNum;
+	}
+	else if (ProjectionMode >= 1 && ProjectionMode <= 3)
+	{
+		// 모드 1, 2, 3: PSM / LiSPSM / TSM (단일 원근 그림자 맵)
+		// CalculateDirectionalLightViewProj 내부에서 PSMCalculator를 통해 모드별로 분기
+		CascadeShadowMapData.SplitNum = 1;
+
+		FMatrix LightView, LightProj;
+		CalculateDirectionalLightViewProj(Light, Meshes, InCamera, LightView, LightProj);
+
+		CascadeShadowMapData.View = LightView;
+		CascadeShadowMapData.Proj[0] = LightProj;
+		CascadeShadowMapData.SplitDistance[0] = FVector4(InCamera->GetFarZ(), 0, 0, 0);
+		NumCascades = 1;
+	}
+	else  // ProjectionMode == 0
+	{
+		// 모드 0: Uniform Shadow Map (단일 직교 그림자 맵)
+		// Sample 버전 사용: 모든 메시의 AABB 기반으로 계산
+		CascadeShadowMapData.SplitNum = 1;
+
+		FMatrix LightView, LightProj;
+		CalculateUniformShadowMapViewProj(Light, Meshes, LightView, LightProj);
+
+		CascadeShadowMapData.View = LightView;
+		CascadeShadowMapData.Proj[0] = LightProj;
+		CascadeShadowMapData.SplitDistance[0] = FVector4(InCamera->GetFarZ(), 0, 0, 0);
+		NumCascades = 1;
+	}
 
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantCascadeData, CascadeShadowMapData);
 	Pipeline->SetConstantBuffer(6, EShaderType::VS | EShaderType::PS, ConstantCascadeData);
-	
-	for (int i = 0; i < CascadeManager.GetSplitNum(); i++)
+
+	for (int i = 0; i < NumCascades; i++)
 	{
 		D3D11_VIEWPORT ShadowViewport;
-	
+
 		ShadowViewport.Width = Light->GetShadowResolutionScale();
 		ShadowViewport.Height = Light->GetShadowResolutionScale();
 		ShadowViewport.MinDepth = 0.0f;
 		ShadowViewport.MaxDepth = 1.0f;
 		ShadowViewport.TopLeftX = SHADOW_MAP_RESOLUTION * i;
 		ShadowViewport.TopLeftY = 0.0f;
-	
+
 		DeviceContext->RSSetViewports(1, &ShadowViewport);
 
 		ShadowAtlasDirectionalLightTilePosArray[i] = {{static_cast<uint32>(i), 0}, {}};
 
-		// 4. Light view-projection 계산
-		// FMatrix LightView, LightProj;
-		// CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
-
-		// Store the calculated shadow view-projection matrix in the light component
-		//FMatrix LightViewProj = LightView * LightProj;
 		FMatrix LightView = CascadeShadowMapData.View;
 		FMatrix LightProj = CascadeShadowMapData.Proj[i];
 		FMatrix LightViewProj = LightView * LightProj;
@@ -676,8 +714,52 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 }
 
 void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
+	const TArray<UStaticMeshComponent*>& Meshes, UCamera* InCamera, FMatrix& OutView, FMatrix& OutProj)
+{
+	// PSM (Perspective Shadow Map) 구현
+	if (!InCamera)
+	{
+		// 카메라가 없으면 단위 행렬로 폴백
+		OutView = FMatrix::Identity();
+		OutProj = FMatrix::Identity();
+		return;
+	}
+
+	// 빛 방향 가져오기 (빛이 비추는 방향)
+	FVector LightDir = Light->GetForwardVector();
+	if (LightDir.Length() < 1e-6f)
+		LightDir = FVector(0, 0, -1);
+	else
+		LightDir = LightDir.GetNormalized();
+
+	// 라이트 컴포넌트로부터 PSM 파라미터 설정
+	FPSMParameters Params;
+	Params.MinInfinityZ = Light->GetPSMMinInfinityZ();
+	Params.bUnitCubeClip = Light->GetPSMUnitCubeClip();
+	Params.bSlideBackEnabled = Light->GetPSMSlideBackEnabled();
+
+	// 그림자 투영 모드 가져오기 (0=Uniform, 1=PSM, 2=LSPSM, 3=TSM)
+	EShadowProjectionMode Mode = static_cast<EShadowProjectionMode>(Light->GetShadowProjectionMode());
+
+	// PSM 계산기를 위해 TArray를 std::vector로 변환
+	std::vector<UStaticMeshComponent*> MeshesVec(Meshes.begin(), Meshes.end());
+
+	// PSM 알고리즘을 사용하여 그림자 투영 계산
+	FPSMCalculator::CalculateShadowProjection(
+		Mode,
+		OutView,
+		OutProj,
+		LightDir,
+		InCamera,
+		MeshesVec,
+		Params
+	);
+}
+
+void FShadowMapPass::CalculateUniformShadowMapViewProj(UDirectionalLightComponent* Light,
 	const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj)
 {
+	// Sample 버전의 Uniform Shadow Map 구현
 	// 1. 모든 메시의 AABB를 포함하는 bounding box 계산
 	FVector MinBounds(FLT_MAX, FLT_MAX, FLT_MAX);
 	FVector MaxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -712,6 +794,7 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	}
 
 	// 2. Light direction 기준으로 view matrix 생성
+	// Sample 버전과 동일하게 GetForwardVector() 직접 사용
 	FVector LightDir = Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);
@@ -729,7 +812,7 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
 		Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
 
-	OutView = ShadowMatrixHelper::CreateLookAtLH(LightPos, SceneCenter, Up);
+	OutView = FMatrix::CreateLookAtLH(LightPos, SceneCenter, Up);
 
 	// 3. AABB를 light view space로 변환하여 orthographic projection 범위 계산
 	FVector LightSpaceMin(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -773,9 +856,12 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	float Far = LightSpaceMax.Z + Padding;
 
 	// Near는 음수가 되면 안됨 (orthographic에서는 괜찮지만, 안전을 위해)
-	Near = std::max(Near, 0.1f);
+	if (Near < 0.1f)
+	{
+		Near = 0.1f;
+	}
 
-	OutProj = ShadowMatrixHelper::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
+	OutProj = FMatrix::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
 }
 
 void FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light,

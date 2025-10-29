@@ -208,6 +208,108 @@ void UDirectionalLightComponentWidget::RenderWidget()
 			}
 			ImGui::EndCombo();
 		}
+
+		// 그림자 매핑 방식 선택
+		ImGui::Separator();
+		ImGui::Text("그림자 매핑 방식");
+
+		uint8 CurrentProjectionMode = DirectionalLightComponent->GetShadowProjectionMode();
+
+		// 작동하는 모드만 표시: Uniform SM (0), PSM (1), CSM (4)
+		const char* ProjectionModeNames[] = { "Uniform SM", "PSM", "CSM" };
+		const uint8 ModeMapping[] = { 0, 1, 4 };  // UI index → internal mode
+
+		// Current mode를 UI index로 변환
+		int CurrentUIIndex = 0;
+		for (int i = 0; i < IM_ARRAYSIZE(ModeMapping); ++i)
+		{
+			if (ModeMapping[i] == CurrentProjectionMode)
+			{
+				CurrentUIIndex = i;
+				break;
+			}
+		}
+
+		const char* CurrentProjectionModeName = ProjectionModeNames[CurrentUIIndex];
+
+		if (ImGui::BeginCombo("투영 방식", CurrentProjectionModeName))
+		{
+			for (int i = 0; i < IM_ARRAYSIZE(ProjectionModeNames); ++i)
+			{
+				bool bIsSelected = (CurrentUIIndex == i);
+				if (ImGui::Selectable(ProjectionModeNames[i], bIsSelected))
+				{
+					DirectionalLightComponent->SetShadowProjectionMode(ModeMapping[i]);
+				}
+
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("그림자 매핑 방식:\n\n"
+				"[Uniform SM] 단일 직교 투영\n"
+				"  - 간단하고 안정적, 품질: 낮음\n\n"
+				"[PSM] 단일 원근 투영\n"
+				"  - 카메라 근처 해상도 향상\n"
+				"  - 품질: 중간\n\n"
+				"[CSM] 캐스케이드 분할 (8개)\n"
+				"  - 거리별 분할, 품질: 매우 높음");
+		}
+
+		// PSM 전용 설정 (Mode 1)
+		if (CurrentProjectionMode == 1)
+		{
+			ImGui::Indent();
+
+			bool bSlideBackEnabled = DirectionalLightComponent->GetPSMSlideBackEnabled();
+			if (ImGui::Checkbox("슬라이드 백 활성화", &bSlideBackEnabled))
+			{
+				DirectionalLightComponent->SetPSMSlideBackEnabled(bSlideBackEnabled);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("가상 카메라를 뒤로 밀어서 무한 평면 특이점 회피 (PSM 전용)");
+			}
+
+			if (bSlideBackEnabled)
+			{
+				float MinInfinityZ = DirectionalLightComponent->GetPSMMinInfinityZ();
+				if (ImGui::DragFloat("최소 무한 Z", &MinInfinityZ, 0.1f, 1.0f, 10.0f))
+				{
+					DirectionalLightComponent->SetPSMMinInfinityZ(MinInfinityZ);
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("무한 평면까지의 최소 거리 (PSM 전용)");
+				}
+			}
+
+			bool bUnitCubeClip = DirectionalLightComponent->GetPSMUnitCubeClip();
+			if (ImGui::Checkbox("유닛 큐브 클리핑", &bUnitCubeClip))
+			{
+				DirectionalLightComponent->SetPSMUnitCubeClip(bUnitCubeClip);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("보이는 리시버에 맞춰 그림자 맵 최적화");
+			}
+
+			// LiSPSM 전용 파라미터
+			if (CurrentProjectionMode == 2)  // LiSPSM
+			{
+				ImGui::Separator();
+				// LSPSMNoptWeight는 FPSMParameters에 있지만 DirectionalLightComponent에 노출 안 됨
+				// 필요시 추가 가능
+				ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "LiSPSM은 빛 방향과 카메라 각도를 고려합니다");
+			}
+
+			ImGui::Unindent();
+		}
     }
 
     if (ImGui::Button("Override Camera With Light's Perspective"))
