@@ -724,10 +724,8 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 		return;
 	}
 
-	// 빛 방향 가져오기
-	// 참고: PSM 계산에서는 "빛의 반대 방향"이 필요함 (빛이 오는 방향)
-	// GetForwardVector()는 빛이 나아가는 방향이므로 음수로 반전
-	FVector LightDir = -Light->GetForwardVector();
+	// 빛 방향 가져오기 (빛이 비추는 방향)
+	FVector LightDir = Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);
 	else

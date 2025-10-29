@@ -180,7 +180,9 @@ void FPSMCalculator::BuildUniformShadowMap(
 	FMatrix CameraView = CamConstants.View;
 
 	// 뷰 공간 빛 방향 가져오기
-	FVector ViewLightDir = CameraView.TransformVector(LightDirection.GetNormalized());
+	// PSM 알고리즘은 Sample PracticalPSM과 동일하게 "씬에서 빛을 향하는 방향"을 사용
+	// GetForwardVector()는 "빛이 비추는 방향"이므로 부호를 반전
+	FVector ViewLightDir = CameraView.TransformVector(-LightDirection.GetNormalized());
 
 	// 씬 AABB 계산
 	FPSMBoundingBox SceneBox;
@@ -261,7 +263,9 @@ void FPSMCalculator::BuildPSMProjection(
 {
 	const FCameraConstants& CamConstants = Camera->GetFViewProjConstants();
 	FMatrix CameraView = CamConstants.View;
-	FVector ViewLightDir = CameraView.TransformVector(LightDirection.GetNormalized());
+	// PSM 알고리즘은 Sample PracticalPSM과 동일하게 "씬에서 빛을 향하는 방향"을 사용
+	// GetForwardVector()는 "빛이 비추는 방향"이므로 부호를 반전
+	FVector ViewLightDir = CameraView.TransformVector(-LightDirection.GetNormalized());
 
 	// 단계 1: 슬라이드 백이 적용된 가상 카메라 설정
 	FMatrix VirtualCameraView = FMatrix::Identity();
