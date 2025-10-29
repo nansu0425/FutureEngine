@@ -393,6 +393,9 @@
     <ClInclude Include="Source\Editor\Public\Editor.h" />
     <ClInclude Include="Source\Editor\Public\EditorPrimitive.h" />
     <ClInclude Include="Source\Editor\Public\Gizmo.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoGeometry.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoMath.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoTypes.h" />
     <ClInclude Include="Source\Editor\Public\Grid.h" />
     <ClInclude Include="Source\Editor\Public\ObjectPicker.h" />
     <ClInclude Include="Source\Global\Constant.h" />
@@ -649,6 +652,9 @@
     <ClCompile Include="Source\Core\Public\WindowsBinReader.cpp" />
     <ClCompile Include="Source\Editor\Private\EditorEngine.cpp">
     </ClCompile>
+    <ClCompile Include="Source\Editor\Private\GizmoGeometry.cpp" />
+    <ClCompile Include="Source\Editor\Private\GizmoMath.cpp" />
+    <ClCompile Include="Source\Editor\Private\GizmoRenderer.cpp" />
     <ClCompile Include="Source\Global\BVH.cpp" />
     <ClCompile Include="Source\Global\Octree.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />

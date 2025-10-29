@@ -1,46 +1,47 @@
 #pragma once
 #include "Editor/Public/EditorPrimitive.h"
+#include "Editor/Public/GizmoTypes.h"
 #include "Core/Public/Object.h"
 #include "Actor/Public/Actor.h"
 
 class UCamera;
 
-enum class EGizmoMode
+/**
+ * @brief Gizmo 렌더링용 배칭 구조체
+ * - 여러 메쉬를 한 번에 수집하고 일괄 렌더링
+ * - 버퍼 생성/해제 보일러플레이트 제거
+ */
+struct FGizmoBatchRenderer
 {
-	Translate,
-	Rotate,
-	Scale
-};
+	struct FBatchedMesh
+	{
+		TArray<FNormalVertex> Vertices;
+		TArray<uint32> Indices;
+		FVector4 Color;
+		FVector Location;
+		FQuaternion Rotation;
+		FVector Scale;
+		bool bAlwaysVisible;
 
-enum class EGizmoDirection
-{
-	Right,
-	Up,
-	Forward,
-	XY_Plane,  // Z축 수직 평면 (X, Y 두 축 동시 제어)
-	XZ_Plane,  // Y축 수직 평면 (X, Z 두 축 동시 제어)
-	YZ_Plane,  // X축 수직 평면 (Y, Z 두 축 동시 제어)
-	Center,    // 중심점 (Translation: 카메라 평면 드래그, Scale: 균일 스케일)
-	None
-};
+		FBatchedMesh()
+			: Color(1, 1, 1, 1)
+			, Location(0, 0, 0)
+			, Rotation(FQuaternion::Identity())
+			, Scale(1, 1, 1)
+			, bAlwaysVisible(true)
+		{}
+	};
 
-struct FGizmoTranslationCollisionConfig
-{
-	FGizmoTranslationCollisionConfig() = default;
+	TArray<FBatchedMesh> Meshes;
 
-	float Radius = 0.04f;
-	float Height = 0.9f;
-	float Scale = 2.f;
-};
+	void AddMesh(const TArray<FNormalVertex>& InVertices, const TArray<uint32>& InIndices,
+	             const FVector4& InColor, const FVector& InLocation,
+	             const FQuaternion& InRotation = FQuaternion::Identity(),
+	             const FVector& InScale = FVector(1, 1, 1));
 
-struct FGizmoRotateCollisionConfig
-{
-	FGizmoRotateCollisionConfig() = default;
+	void FlushAndRender(const FRenderState& InRenderState);
 
-	float OuterRadius = 1.0f;  // 링 큰 반지름
-	float InnerRadius = 0.89f;  // 링 안쪽 반지름
-	float Thickness = 0.04f;   // 링의 3D 두께
-	float Scale = 2.0f;
+	void Clear();
 };
 
 class UGizmo :
@@ -52,17 +53,17 @@ class UGizmo :
 public:
 	UGizmo();
 	~UGizmo() override;
-	void UpdateScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void UpdateScale(const UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderGizmo(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderForHitProxy(UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
-	void CollectRotationAngleOverlay(class FD2DOverlayManager& Manager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
+	void CollectRotationAngleOverlay(class FD2DOverlayManager& OverlayManager, UCamera* InCamera, const D3D11_VIEWPORT& InViewport);
 	void ChangeGizmoMode();
 	void SetGizmoMode(EGizmoMode Mode) { GizmoMode = Mode; }
 
 	/**
 	 * @brief Setter
 	 */
-	void SetLocation(const FVector& Location);
+	void SetLocation(const FVector& Location) const;
 	void SetGizmoDirection(EGizmoDirection Direction) { GizmoDirection = Direction; }
 	void SetComponentRotation(const FQuaternion& Rotation) const { TargetComponent->SetWorldRotationPreservingChildren(Rotation); }
 	void SetComponentScale(const FVector& Scale) const { TargetComponent->SetWorldScale3D(Scale); }
@@ -152,7 +153,7 @@ public:
 	USceneComponent* GetTargetComponent() const { return TargetComponent; }
 	void SetSelectedComponent(USceneComponent* InComponent) { TargetComponent = InComponent; }
 	USceneComponent* GetSelectedComponent() const { return TargetComponent; }
-	bool IsInRadius(float Radius);
+	bool IsInRadius(float Radius) const;
 	bool HasComponent() const { return TargetComponent; }
 	FVector GetPreviousMouseLocation() const { return PreviousMouseLocation; }
 	FVector2 GetPreviousScreenPos() const { return PreviousScreenPos; }
@@ -164,10 +165,6 @@ public:
 		return std::round(CurrentRotationAngle / SnapAngleRadians) * SnapAngleRadians;
 	}
 
-	// Quarter ring camera alignment
-	void CalculateQuarterRingDirections(UCamera* InCamera,
-		EGizmoDirection InAxis, FVector& OutStartDir, FVector& OutEndDir) const;
-
 	/**
 	 * @brief 마우스 관련
 	 */
@@ -178,30 +175,12 @@ public:
 	}
 	bool IsDragging() const { return bIsDragging; }
 	void OnMouseHovering() {}
-	void OnMouseDragStart(FVector& CollisionPoint);
+	void OnMouseDragStart(const FVector& CollisionPoint);
 	void OnMouseRelease(EGizmoDirection DirectionReleased) {}
 
 private:
-	static int AxisIndex(EGizmoDirection InDirection)
-	{
-		switch (InDirection)
-		{
-		case EGizmoDirection::Forward:	return 0;
-		case EGizmoDirection::Right:	return 1;
-		case EGizmoDirection::Up:		return 2;
-		// 평면은 법선 축의 인덱스 사용
-		case EGizmoDirection::XY_Plane:	return 2;  // Z축 (파란색)
-		case EGizmoDirection::XZ_Plane:	return 1;  // Y축 (초록색)
-		case EGizmoDirection::YZ_Plane:	return 0;  // X축 (빨간색)
-		default:						return 2;
-		}
-	}
-
 	// 렌더 시 하이라이트 색상 계산 (상태 오염 방지)
 	FVector4 ColorFor(EGizmoDirection InAxis) const;
-
-	// Screen-space uniform scale calculation
-	float CalculateScreenSpaceScale(UCamera* InCamera, const D3D11_VIEWPORT& InViewport, float InDesiredPixelSize) const;
 
 	// Modular rendering functions
 	void RenderCenterSphere(const FEditorPrimitive& P, float RenderScale);

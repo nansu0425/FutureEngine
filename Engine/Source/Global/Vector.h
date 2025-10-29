@@ -274,19 +274,19 @@ struct alignas(16) FVector4
 	/**
 	 * @brief FVector 기본 생성자
 	 */
-	FVector4();
+	constexpr FVector4() : X(0), Y(0), Z(0), W(0) {}
 
 	/**
 	 * @brief FVector의 멤버값을 Param으로 넘기는 생성자
 	 */
-	FVector4(float InX, float InY, float InZ, float InW);
+	constexpr FVector4(float InX, float InY, float InZ, float InW) : X(InX), Y(InY), Z(InZ), W(InW) {}
 
-	FVector4(const FVector& InVt3, float InW);
+	constexpr FVector4(const FVector& InVt3, float InW) : X(InVt3.X), Y(InVt3.Y), Z(InVt3.Z), W(InW) {}
 
 	/**
 	 * @brief FVector를 Param으로 넘기는 생성자
 	 */
-	FVector4(const FVector4& InOther);
+	constexpr FVector4(const FVector4& InOther) : X(InOther.X), Y(InOther.Y), Z(InOther.Z), W(InOther.W) {}
 
 	/**
 	 * @brief 두 벡터를 더한 새로운 벡터를 반환하는 함수

@@ -2,6 +2,7 @@
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Gizmo.h"
+#include "Editor/Public/GizmoMath.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Global/Octree.h"
 #include "Physics/Public/AABB.h"
@@ -224,7 +225,8 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 
 						// Quarter ring 시작/끝 방향 즉시 계산 (언리얼 방식 - 뷰포트별)
 						FVector StartDir, EndDir;
-						Gizmo.CalculateQuarterRingDirections(InActiveCamera, Dirs[a], StartDir, EndDir);
+						const FVector GizmoLocation = Gizmo.GetGizmoLocation();
+						FGizmoMath::CalculateQuarterRingDirections(InActiveCamera, Dirs[a], GizmoLocation, StartDir, EndDir);
 						StartDir.Normalize();
 						EndDir.Normalize();
 
