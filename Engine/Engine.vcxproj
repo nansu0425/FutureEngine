@@ -445,6 +445,8 @@
     <ClInclude Include="Source\Render\RenderPass\Public\ShadowMapPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\StaticMeshPass.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\TextPass.h" />
+    <ClInclude Include="Source\Render\Shadow\Public\PSMBounding.h" />
+    <ClInclude Include="Source\Render\Shadow\Public\PSMCalculator.h" />
     <ClInclude Include="Source\Render\UI\Overlay\Public\D2DOverlayManager.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\ShadowMapFilterPass.h" />
     <ClInclude Include="Source\Texture\Public\ShadowMapResources.h" />
@@ -724,6 +726,8 @@
     <ClCompile Include="Source\Render\RenderPass\Private\StaticMeshPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\TextPass.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\ShadowMapFilterPass.cpp" />
+    <ClCompile Include="Source\Render\Shadow\Private\PSMBounding.cpp" />
+    <ClCompile Include="Source\Render\Shadow\Private\PSMCalculator.cpp" />
     <ClCompile Include="Source\Render\UI\Overlay\Private\D2DOverlayManager.cpp" />
     <ClCompile Include="Source\Render\UI\Overlay\Private\StatOverlay.cpp" />
     <ClCompile Include="Source\Texture\Private\ShadowMapResources.cpp" />

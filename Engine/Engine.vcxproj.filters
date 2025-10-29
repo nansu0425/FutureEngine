@@ -46,12 +46,9 @@
     <FxCompile Include="Asset\Shader\ViewClusterCS.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Asset\Shader\DepthOnlyVS.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Asset\Shader\PointLightShadowDepth.hlsl">
-      <Filter>Asset\Shader</Filter>
-    </FxCompile>
+    <FxCompile Include="Asset\Shader\HitProxyShader.hlsl" />
+    <FxCompile Include="Asset\Shader\DepthOnly.hlsl" />
+    <FxCompile Include="Asset\Shader\LinearDepthOnly.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Utility\Private\ScopeCycleCounter.cpp">
@@ -512,9 +509,26 @@
     <ClCompile Include="Source\Texture\Private\ShadowMapResources.cpp">
       <Filter>Source\Texture\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Render\Renderer\Private\D2DOverlayManager.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\ShadowData.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\StatusBarWidget.cpp" />
+    <ClCompile Include="Source\Component\Private\EditorIconComponent.cpp" />
+    <ClCompile Include="Source\Editor\Private\GizmoGeometry.cpp" />
+    <ClCompile Include="Source\Editor\Private\GizmoMath.cpp" />
+    <ClCompile Include="Source\Editor\Private\GizmoRenderer.cpp" />
+    <ClCompile Include="Source\Manager\Render\Private\CascadeManager.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\EditorIconPass.cpp" />
+    <ClCompile Include="Source\Render\HitProxy\Private\HitProxy.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\HitProxyPass.cpp" />
+    <ClCompile Include="Source\Render\RenderPass\Private\ShadowMapFilterPass.cpp" />
+    <ClCompile Include="Source\Render\UI\Overlay\Private\D2DOverlayManager.cpp" />
+    <ClCompile Include="Source\Texture\Private\TextureFilter.cpp" />
+    <ClCompile Include="Source\Utility\Private\LogFileWriter.cpp" />
+    <ClCompile Include="Source\Render\Shadow\Private\PSMBounding.cpp">
+      <Filter>Source\Render\Shadow\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Render\Shadow\Private\PSMCalculator.cpp">
+      <Filter>Source\Render\Shadow\Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Global\BVH.h">
@@ -1025,9 +1039,26 @@
     <ClInclude Include="Source\Texture\Public\ShadowMapResources.h">
       <Filter>Source\Texture\Public</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\Renderer\Public\D2DOverlayManager.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\ShadowData.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\StatusBarWidget.h" />
+    <ClInclude Include="Source\Component\Public\EditorIconComponent.h" />
+    <ClInclude Include="Source\Manager\Render\Public\CascadeManager.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoGeometry.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoMath.h" />
+    <ClInclude Include="Source\Editor\Public\GizmoTypes.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\EditorIconPass.h" />
+    <ClInclude Include="Source\Render\HitProxy\Public\HitProxy.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\HitProxyPass.h" />
+    <ClInclude Include="Source\Render\UI\Overlay\Public\D2DOverlayManager.h" />
+    <ClInclude Include="Source\Render\RenderPass\Public\ShadowMapFilterPass.h" />
+    <ClInclude Include="Source\Texture\Public\TextureFilter.h" />
+    <ClInclude Include="Source\Utility\Public\LogFileWriter.h" />
+    <ClInclude Include="Source\Render\Shadow\Public\PSMBounding.h">
+      <Filter>Source\Render\Shadow\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\Shadow\Public\PSMCalculator.h">
+      <Filter>Source\Render\Shadow\Public</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\ClusteredRenderingCS.hlsli">
@@ -1286,6 +1317,15 @@
     </Filter>
     <Filter Include="Source\Optimization\Private">
       <UniqueIdentifier>{ba726c8f-3f6b-4f0f-a75e-e05349c1fd52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow">
+      <UniqueIdentifier>{6c1e3446-bfa0-48b6-842e-30caa5b9ab5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow\Public">
+      <UniqueIdentifier>{ab879cc1-7bc1-4931-8470-db7df07cc770}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Render\Shadow\Private">
+      <UniqueIdentifier>{cde83c49-b938-4180-8c80-3ce4999f87ea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

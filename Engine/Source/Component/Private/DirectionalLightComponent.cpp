@@ -81,7 +81,30 @@ void UDirectionalLightComponent::EnsureVisualizationIcon()
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
-    
+
+    // PSM Settings
+    if (bInIsLoading)
+    {
+        int32 LoadedMode = ShadowProjectionMode;
+        FJsonSerializer::ReadInt32(InOutHandle, "ShadowProjectionMode", LoadedMode);
+        ShadowProjectionMode = (uint8)LoadedMode;
+
+        FJsonSerializer::ReadFloat(InOutHandle, "PSMMinInfinityZ", PSMMinInfinityZ);
+
+        // Bool values - read directly from JSON since FJsonSerializer doesn't have ReadBool
+        if (InOutHandle.hasKey("PSMUnitCubeClip"))
+            bPSMUnitCubeClip = InOutHandle["PSMUnitCubeClip"].ToBool();
+
+        if (InOutHandle.hasKey("PSMSlideBackEnabled"))
+            bPSMSlideBackEnabled = InOutHandle["PSMSlideBackEnabled"].ToBool();
+    }
+    else
+    {
+        InOutHandle["ShadowProjectionMode"] = (int)ShadowProjectionMode;
+        InOutHandle["PSMMinInfinityZ"] = PSMMinInfinityZ;
+        InOutHandle["PSMUnitCubeClip"] = bPSMUnitCubeClip;
+        InOutHandle["PSMSlideBackEnabled"] = bPSMSlideBackEnabled;
+    }
 }
 
 UObject* UDirectionalLightComponent::Duplicate()

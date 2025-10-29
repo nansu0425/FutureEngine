@@ -136,10 +136,21 @@ private:
 	 * @brief Directional light의 view-projection 행렬을 계산합니다.
 	 * @param Light Directional light component
 	 * @param Meshes 렌더링할 메시 목록 (AABB 계산용)
+	 * @param InCamera Scene camera for PSM calculation
 	 * @param OutView 출력 view matrix
 	 * @param OutProj 출력 projection matrix
 	 */
 	void CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
+		const TArray<UStaticMeshComponent*>& Meshes, UCamera* InCamera, FMatrix& OutView, FMatrix& OutProj);
+
+	/**
+	 * @brief Uniform Shadow Map의 view-projection 행렬을 계산합니다 (Sample 버전).
+	 * @param Light Directional light component
+	 * @param Meshes 렌더링할 메시 목록
+	 * @param OutView 출력 view matrix
+	 * @param OutProj 출력 projection matrix
+	 */
+	void CalculateUniformShadowMapViewProj(UDirectionalLightComponent* Light,
 		const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj);
 
 	/**
