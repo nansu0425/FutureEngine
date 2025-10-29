@@ -1160,7 +1160,9 @@ FIllumination CalculateDirectionalLight(FDirectionalLightInfo Info, float3 World
     }
     else if (Info.ShadowModeIndex == SMI_SAVSM)
     {
-        ShadowFactor = CalculateDirectionalSAVSMFactor(Info, WorldPos, 4.0f);
+        // [1x1] - [21x21] 커널 크기 
+        float FilterRadiusPixels = lerp(0.0f, 10.0f, Info.ShadowSharpen);
+        ShadowFactor = CalculateDirectionalSAVSMFactor(Info, WorldPos, FilterRadiusPixels);
     }
 
     // diffuse illumination (affected by shadow)
@@ -1279,7 +1281,9 @@ FIllumination CalculateSpotLight(FSpotLightInfo Info, uint LightIndex, float3 Wo
     }
     else if (Info.ShadowModeIndex == SMI_SAVSM)
     {
-        ShadowFactor = CalculateSpotSAVSMFactor(Info, LightIndex, WorldPos, 4.0f);
+        // [1x1] - [21x21] 커널 크기 
+        float FilterRadiusPixels = lerp(0.0f, 10.0f, Info.ShadowSharpen);
+        ShadowFactor = CalculateSpotSAVSMFactor(Info, LightIndex, WorldPos, FilterRadiusPixels);
     }
 
     Result.Diffuse = Info.Color * Info.Intensity * NdotL * AttenuationDistance * AttenuationAngle * ShadowFactor;
