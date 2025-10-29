@@ -125,6 +125,8 @@ private:
 	
 public:
 	virtual UObject* Duplicate() override;
-
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
+
+	virtual UObject* DuplicateForEditor() override;
+	virtual void DuplicateSubObjectsForEditor(UObject* DuplicatedObject) override;
 };

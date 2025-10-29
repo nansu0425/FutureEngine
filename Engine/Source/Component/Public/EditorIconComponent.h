@@ -33,6 +33,8 @@ public:
 
 	static const FRenderState& GetClassDefaultRenderState();
 
+	UObject* Duplicate() override;
+
 private:
 	UTexture* Sprite = nullptr;
 	FVector4 SpriteTint = FVector4::OneVector();

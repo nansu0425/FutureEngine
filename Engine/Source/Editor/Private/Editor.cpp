@@ -459,42 +459,55 @@ void UEditor::ProcessMouseInput()
 						{
 							if (USceneComponent* Parent = ScenePrim->GetAttachParent())
 							{
-								// 부모 컴포넌트를 선택
 								ComponentToSelect = Parent;
 							}
 						}
 					}
 
-					// 더블 클릭: Component 선택 (실제 클릭한 Component)
-					// 단일 클릭:
-					// - Actor 선택 상태: Actor 선택 유지
-					// - Component 선택 상태: 같은 Actor면 Component 전환, 다른 Actor면 Actor 선택
 					if (bIsDoubleClick)
 					{
-						// 더블클릭: Component 선택 모드로 진입
+						// 더블클릭: Component 피킹 모드로 진입
 						SelectActorAndComponent(ActorPicked, ComponentToSelect);
 						bIsActorSelected = false;
 					}
 					else // bIsSingleClick
 					{
-						if (bIsActorSelected)
+						AActor* CurrentSelectedActor = GetSelectedActor();
+
+						if (!CurrentSelectedActor)
 						{
-							// Actor 선택 상태에서 단일 클릭: Actor 선택 유지
+							// 선택 없음 상태: Actor 선택
 							SelectActor(ActorPicked);
 							bIsActorSelected = true;
 						}
+						else if (bIsActorSelected)
+						{
+							// Actor 선택 상태에서 단일 클릭
+							if (CurrentSelectedActor == ActorPicked)
+							{
+								// 같은 Actor: Actor 선택 유지
+								SelectActor(ActorPicked);
+								bIsActorSelected = true;
+							}
+							else
+							{
+								// 다른 Actor: 새로운 Actor 선택
+								SelectActor(ActorPicked);
+								bIsActorSelected = true;
+							}
+						}
 						else
 						{
-							// Component 선택 상태에서 단일 클릭
-							if (GetSelectedActor() == ActorPicked)
+							// Component 피킹 모드에서 단일 클릭
+							if (CurrentSelectedActor == ActorPicked)
 							{
-								// 같은 Actor: Component 전환
+								// 같은 Actor 내 컴포넌트: Component 전환
 								SelectActorAndComponent(ActorPicked, ComponentToSelect);
 								bIsActorSelected = false;
 							}
 							else
 							{
-								// 다른 Actor: Actor 선택으로 전환
+								// 다른 Actor: Component 피킹 모드 해제 -> Actor 선택
 								SelectActor(ActorPicked);
 								bIsActorSelected = true;
 							}
@@ -503,6 +516,7 @@ void UEditor::ProcessMouseInput()
 				}
 				else
 				{
+					// 빈 공간 클릭: 선택 해제
 					SelectActor(nullptr);
 					bIsActorSelected = true;
 				}
@@ -574,6 +588,26 @@ FVector UEditor::GetGizmoDragLocation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
+
+	// Center 구체 드래그 처리
+	// UE 기준 카메라 NDC 평면에 평행하게 이동
+	if (Gizmo.GetGizmoDirection() == EGizmoDirection::Center)
+	{
+		// 카메라의 Forward 방향을 평면 법선로 사용
+		FVector PlaneNormal = InActiveCamera->GetForward();
+
+		// 드래그 시작 지점의 마우스 위치를 평면 원점으로 사용
+		FVector FixedPlaneOrigin = Gizmo.GetDragStartMouseLocation();
+
+		// 레이와 카메라 평면 교차점 계산
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, FixedPlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 시작점으로부터 이동 거리 계산
+			FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+			return Gizmo.GetDragStartActorLocation() + MouseDelta;
+		}
+		return Gizmo.GetGizmoLocation();
+	}
 
 	// 평면 드래그 처리
 	if (Gizmo.IsPlaneDirection())
@@ -813,6 +847,41 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	FVector PlaneOrigin = Gizmo.GetGizmoLocation();
 	FQuaternion Quat = Gizmo.GetTargetComponent()->GetWorldRotationAsQuaternion();
 	const FVector CameraLocation = InActiveCamera->GetLocation();
+
+	// Center 구체 드래그 처리 (균일 스케일, 모든 축 동일하게)
+	if (Gizmo.GetGizmoDirection() == EGizmoDirection::Center)
+	{
+		// 카메라 Forward 방향의 평면에서 드래그
+		FVector PlaneNormal = InActiveCamera->GetForward();
+
+		if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, PlaneNormal, MouseWorld))
+		{
+			// 드래그 벡터 계산
+			const FVector MouseDelta = MouseWorld - Gizmo.GetDragStartMouseLocation();
+
+			// 카메라 Right 방향으로의 드래그 거리 사용 (수평 드래그)
+			const FVector CamRight = InActiveCamera->GetRight();
+			const float DragDistance = MouseDelta.Dot(CamRight);
+
+			// 스케일 민감도 조정
+			const float DistanceToGizmo = (PlaneOrigin - CameraLocation).Length();
+			constexpr float BaseSensitivity = 0.03f;
+			const float ScaleSensitivity = BaseSensitivity * DistanceToGizmo;
+			const float ScaleDelta = DragDistance * ScaleSensitivity;
+
+			// 모든 축에 동일한 스케일 적용 (균일 스케일)
+			const FVector DragStartScale = Gizmo.GetDragStartActorScale();
+			const float UniformScale = max(1.0f + ScaleDelta / DragStartScale.X, MIN_SCALE_VALUE);
+
+			FVector NewScale;
+			NewScale.X = max(DragStartScale.X * UniformScale, MIN_SCALE_VALUE);
+			NewScale.Y = max(DragStartScale.Y * UniformScale, MIN_SCALE_VALUE);
+			NewScale.Z = max(DragStartScale.Z * UniformScale, MIN_SCALE_VALUE);
+
+			return NewScale;
+		}
+		return Gizmo.GetComponentScale();
+	}
 
 	// 평면 스케일 처리
 	if (Gizmo.IsPlaneDirection())
@@ -1076,35 +1145,12 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 		return false;
 	}
 
-	// EditorIconComponent: 부모 LightComponent를 찾아서 처리, 없으면 자체 WorldLocation 사용
-	if (UEditorIconComponent* IconComp = Cast<UEditorIconComponent>(SceneComp))
+	// LightComponent: 10x10x10 박스 가정한 AABB
+	if (ULightComponent* LightComp = Cast<ULightComponent>(SceneComp))
 	{
-		USceneComponent* ParentComp = IconComp->GetAttachParent();
-		if (ULightComponent* ParentLight = Cast<ULightComponent>(ParentComp))
-		{
-			OutCenter = ParentLight->GetWorldLocation();
-			OutRadius = 50.0f;
-			UE_LOG("Editor: GetComponentFocusTarget: EditorIcon with LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
-		}
-		else
-		{
-			// 부모가 LightComponent가 아니거나 없는 경우
-			OutCenter = IconComp->GetWorldLocation();
-			OutRadius = 50.0f;
-			UE_LOG_WARNING("Editor: GetComponentFocusTarget: EditorIcon without LightParent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-				OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
-		}
-		return true;
-	}
-
-	// LightComponent: WorldLocation 기반 (AABB가 없으므로)
-	if (Cast<ULightComponent>(SceneComp))
-	{
-		OutCenter = SceneComp->GetWorldLocation();
-		OutRadius = 50.0f;
-		UE_LOG("Editor: GetComponentFocusTarget: LightComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+		OutCenter = LightComp->GetWorldLocation();
+		// 10x10x10 박스의 반경 = sqrt(10^2 + 10^2 + 10^2) / 2 = 8.66
+		OutRadius = 8.66f;
 		return true;
 	}
 
@@ -1120,16 +1166,12 @@ bool UEditor::GetComponentFocusTarget(UActorComponent* Component, FVector& OutCe
 
 		// 최소 반경 보장 (너무 작은 오브젝트 대응)
 		OutRadius = max(OutRadius, 10.0f);
-		UE_LOG("Editor: GetComponentFocusTarget: PrimitiveComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 	// SceneComponent: WorldLocation 기반
 	else
 	{
 		OutCenter = SceneComp->GetWorldLocation();
 		OutRadius = 30.0f;
-		UE_LOG("Editor: GetComponentFocusTarget: SceneComponent Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-			OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
 	}
 
 	return true;
@@ -1166,10 +1208,10 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 		{
 			if (ULightComponent* LightComp = Cast<ULightComponent>(Comp))
 			{
-				OutCenter = LightComp->GetWorldLocation();
-				OutRadius = 50.0f;
-				UE_LOG("Editor: GetActorFocusTarget: Light Actor Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-					OutCenter.X, OutCenter.Y, OutCenter.Z, OutRadius);
+				FVector LightLoc = LightComp->GetWorldLocation();
+				// 10x10x10 박스 가정
+				OutCenter = LightLoc;
+				OutRadius = 8.66f; // sqrt(10^2 + 10^2 + 10^2) / 2
 				return true;
 			}
 		}
@@ -1543,21 +1585,21 @@ AActor* UEditor::DuplicateActor(AActor* InSourceActor)
 		return nullptr;
 	}
 
-	// 2. Level 가져오기
+	// Level 가져오기
 	ULevel* CurrentLevel = EditorWorld->GetLevel();
 	if (!CurrentLevel)
 	{
 		return nullptr;
 	}
 
-	// 3. Duplicate()를 통해 Actor 전체 복사 (모든 Component 포함)
-	AActor* NewActor = Cast<AActor>(InSourceActor->Duplicate());
+	// Actor 전체 복사 (EditorOnly Component 포함)
+	AActor* NewActor = Cast<AActor>(InSourceActor->DuplicateForEditor());
 	if (!NewActor)
 	{
 		return nullptr;
 	}
 
-	// 4. Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
+	// Outer 설정 (Level이 Actor의 Outer, Actor가 Component들의 Outer)
 	NewActor->SetOuter(CurrentLevel);
 	for (UActorComponent* Component : NewActor->GetOwnedComponents())
 	{
@@ -1567,11 +1609,11 @@ AActor* UEditor::DuplicateActor(AActor* InSourceActor)
 		}
 	}
 
-	// 5. Level에 Actor 추가
+	// Level에 Actor 추가
 	CurrentLevel->AddActorToLevel(NewActor);
 	CurrentLevel->AddLevelComponent(NewActor);
 
-	// 6. BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
+	// BeginPlay 호출 (에디터에서 생성된 Actor는 즉시 활성화)
 	NewActor->BeginPlay();
 
 	return NewActor;

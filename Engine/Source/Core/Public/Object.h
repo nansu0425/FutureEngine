@@ -42,8 +42,20 @@ public:
 public:
 	virtual UObject* Duplicate();
 
+	/**
+	 * @brief Editor 전용 복제 메서드 (EditorOnly 컴포넌트 포함)
+	 * @return 복제된 Object
+	 */
+	virtual UObject* DuplicateForEditor();
+
 protected:
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject);
+
+	/**
+	 * @brief Editor 전용 하위 오브젝트 복제 (EditorOnly 포함)
+	 * @param DuplicatedObject 복제된 객체
+	 */
+	virtual void DuplicateSubObjectsForEditor(UObject* DuplicatedObject);
 
 private:
 	// 4. Private 멤버 함수

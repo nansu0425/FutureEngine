@@ -28,7 +28,7 @@ void FShadowMapFilterPass::Execute(FRenderingContext& Context)
 		auto DirLight = Context.DirectionalLights[i];
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
-			for (uint32 j = 0; j < UCascadeManager::GetInstance().GetSplitNum(); j++)
+			for (int32 j = 0; j < UCascadeManager::GetInstance().GetSplitNum(); ++j)
 			{
 				FShadowMapResource* ShadowMap = ShadowMapPass->GetShadowAtlas();
 				FShadowAtlasTilePos AtlasTilePos = ShadowMapPass->GetDirectionalAtlasTilePos(j);

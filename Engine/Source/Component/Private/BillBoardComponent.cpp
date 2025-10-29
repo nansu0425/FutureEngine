@@ -119,3 +119,18 @@ const FRenderState& UBillBoardComponent::GetClassDefaultRenderState()
     static FRenderState DefaultRenderState { ECullMode::Back, EFillMode::Solid };
     return DefaultRenderState;
 }
+
+UObject* UBillBoardComponent::Duplicate()
+{
+    UBillBoardComponent* BillboardComponent = Cast<UBillBoardComponent>(Super::Duplicate());
+
+    // Sprite 텍스처 복사
+    BillboardComponent->Sprite = Sprite;
+    BillboardComponent->SpriteTint = SpriteTint;
+
+    // Screen size 설정 복사
+    BillboardComponent->bScreenSizeScaled = bScreenSizeScaled;
+    BillboardComponent->ScreenSize = ScreenSize;
+
+    return BillboardComponent;
+}

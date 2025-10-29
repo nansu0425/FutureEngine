@@ -127,3 +127,18 @@ const FRenderState& UEditorIconComponent::GetClassDefaultRenderState()
 	static FRenderState DefaultRenderState{ ECullMode::Back, EFillMode::Solid };
 	return DefaultRenderState;
 }
+
+UObject* UEditorIconComponent::Duplicate()
+{
+	UEditorIconComponent* IconComponent = Cast<UEditorIconComponent>(Super::Duplicate());
+
+	// Sprite 텍스처 복사
+	IconComponent->Sprite = Sprite;
+	IconComponent->SpriteTint = SpriteTint;
+
+	// Screen size 설정 복사
+	IconComponent->bScreenSizeScaled = bScreenSizeScaled;
+	IconComponent->ScreenSize = ScreenSize;
+
+	return IconComponent;
+}

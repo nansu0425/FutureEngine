@@ -124,7 +124,7 @@ void UDirectionalLightComponent::RenderLightDirectionGizmo(UCamera* InCamera, co
     const float ViewportHeight = InViewport.Height;
 
     float Scale = 1.0f;
-    const float DesiredPixelSize = 120.0f;
+    const float DesiredPixelSize = 60.0f;
 
     if (ViewportHeight > 1.0f)
     {

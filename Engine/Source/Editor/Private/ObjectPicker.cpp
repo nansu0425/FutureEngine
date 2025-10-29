@@ -2,6 +2,7 @@
 #include "Editor/Public/ObjectPicker.h"
 #include "Editor/Public/Camera.h"
 #include "Editor/Public/Gizmo.h"
+#include "Editor/Public/GizmoMath.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Global/Octree.h"
 #include "Physics/Public/AABB.h"
@@ -141,7 +142,28 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 			}
 		}
 
-		// 평면과 충돌하지 않았으면 축 충돌 검사
+		// 중심 구체 충돌 검사
+		{
+			const float SphereRadius = Gizmo.GetTranslateRadius() * 2.5f;
+			FVector ToSphere = GizmoLocation - WorldRayOrigin;
+			float ProjectionLength = ToSphere.Dot(WorldRayDirection);
+
+			if (ProjectionLength > 0.0f)
+			{
+				FVector ClosestPoint = WorldRayOrigin + WorldRayDirection * ProjectionLength;
+				float DistanceToRay = (ClosestPoint - GizmoLocation).Length();
+
+				if (DistanceToRay <= SphereRadius)
+				{
+					// 구체와 충돌
+					CollisionPoint = ClosestPoint;
+					Gizmo.SetGizmoDirection(EGizmoDirection::Center);
+					return;
+				}
+			}
+		}
+
+		// 평면과 중심 구체와 충돌하지 않았으면 축 충돌 검사
 		FVector GizmoDistanceVector = WorldRayOrigin - GizmoLocation;
 		bool bIsCollide = false;
 
@@ -224,7 +246,8 @@ void UObjectPicker::PickGizmo(UCamera* InActiveCamera, const FRay& WorldRay, UGi
 
 						// Quarter ring 시작/끝 방향 즉시 계산 (언리얼 방식 - 뷰포트별)
 						FVector StartDir, EndDir;
-						Gizmo.CalculateQuarterRingDirections(InActiveCamera, Dirs[a], StartDir, EndDir);
+						const FVector GizmoLocation = Gizmo.GetGizmoLocation();
+						FGizmoMath::CalculateQuarterRingDirections(InActiveCamera, Dirs[a], GizmoLocation, StartDir, EndDir);
 						StartDir.Normalize();
 						EndDir.Normalize();
 
@@ -514,6 +537,9 @@ UPrimitiveComponent* UObjectPicker::PickPrimitiveFromHitProxy(UCamera* InActiveC
 				break;
 			case EGizmoAxisType::Z:
 				GizmoDir = EGizmoDirection::Up;
+				break;
+			case EGizmoAxisType::Center:
+				GizmoDir = EGizmoDirection::Center;
 				break;
 			default:
 				break;
