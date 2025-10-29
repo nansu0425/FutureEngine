@@ -79,6 +79,11 @@ public:
 	 */
 	FShadowAtlasTilePos GetSpotAtlasTilePos(uint32 Index) const;
 
+	// Shadow stat information
+	uint64 GetTotalShadowMapMemory() const;
+	uint32 GetUsedAtlasTileCount() const;
+	static uint32 GetMaxAtlasTileCount();
+
 	/**
 	 * @brief Point Light의 Atlas Tile 위치를 가져옵니다.
 	 * @param Index Point Light의 인덱스
@@ -168,13 +173,7 @@ private:
 	 */
 	FCubeShadowMapResource* GetOrCreateCubeShadowMap(UPointLightComponent* Light);
 
-	/**
-	 * @brief 메시를 shadow depth로 렌더링합니다.
-	 * @param Mesh Static mesh component
-	 * @param View Light space view 행렬
-	 * @param Proj Light space projection 행렬
-	 */
-	void RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj);
+	void RenderMeshDepth(const UStaticMeshComponent* InMesh, const FMatrix& InView, const FMatrix& InProj) const;
 
 	// /**
 	//  * @brief Directional light의 rasterizer state를 가져오거나 생성합니다.
@@ -250,7 +249,13 @@ private:
 	TArray<FShadowAtlasTilePos> ShadowAtlasDirectionalLightTilePosArray;
 	TArray<FShadowAtlasTilePos> ShadowAtlasSpotLightTilePosArray;
 	TArray<FShadowAtlasPointLightTilePos> ShadowAtlasPointLightTilePosArray;
-	
+
+	// 실제 렌더링된 라이트 개수 및 타일 개수
+	uint32 ActiveDirectionalLightCount = 0; // Directional Light 개수 (0 또는 1)
+	uint32 ActiveDirectionalCascadeCount = 0; // CSM Cascade Count (1 ~ 8)
+	uint32 ActiveSpotLightCount = 0;
+	uint32 ActivePointLightCount = 0;
+
 	ID3D11Buffer* ShadowAtlasDirectionalLightTilePosStructuredBuffer = nullptr;
 	ID3D11ShaderResourceView* ShadowAtlasDirectionalLightTilePosStructuredSRV = nullptr;
 	

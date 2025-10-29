@@ -434,6 +434,44 @@ void UDeviceResources::UpdateViewport(float InMenuBarHeight)
 	Height = SwapChainDescription.BufferDesc.Height;
 }
 
+uint64 UDeviceResources::GetTotalRenderTargetMemory() const
+{
+	uint64 TotalBytes = 0;
+	const uint64 PixelCount = static_cast<uint64>(Width) * Height;
+
+	// FrameBuffer: BGRA8 SRGB (4 bytes per pixel)
+	if (FrameBuffer)
+	{
+		TotalBytes += PixelCount * 4;
+	}
+
+	// NormalBuffer: RGBA16F (8 bytes per pixel)
+	if (NormalBuffer)
+	{
+		TotalBytes += PixelCount * 8;
+	}
+
+	// DepthBuffer: D24_UNORM_S8_UINT (4 bytes per pixel)
+	if (DepthBuffer)
+	{
+		TotalBytes += PixelCount * 4;
+	}
+
+	// SceneColorTexture: RGBA16F (8 bytes per pixel)
+	if (SceneColorTexture)
+	{
+		TotalBytes += PixelCount * 8;
+	}
+
+	// HitProxyTexture: RGBA8 (4 bytes per pixel)
+	if (HitProxyTexture)
+	{
+		TotalBytes += PixelCount * 4;
+	}
+
+	return TotalBytes;
+}
+
 void UDeviceResources::CreateFactories()
 {
 	// Direct2D 팩토리 생성

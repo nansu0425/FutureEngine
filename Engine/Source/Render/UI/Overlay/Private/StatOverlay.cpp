@@ -41,6 +41,10 @@ void UStatOverlay::Render()
     {
         RenderDecalInfo();
     }
+    if (IsStatEnabled(EStatType::Shadow))
+    {
+        RenderShadowInfo();
+    }
 }
 
 void UStatOverlay::RenderFPS()
@@ -95,31 +99,27 @@ void UStatOverlay::RenderPicking()
 
 void UStatOverlay::RenderDecalInfo()
 {
+    char Buf[128];
+    (void)sprintf_s(Buf, sizeof(Buf), "Rendered Decals: %u (Collided: %u)",
+        RenderedDecal, CollidedCompCount);
+    FString Text = Buf;
+
+    float OffsetY = 0.0f;
+    if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
+
+    float r = 0.5f, g = 1.0f, b = 0.5f;
+    if (RenderedDecal > 100)
     {
-        char Buf[128];
-        (void)sprintf_s(Buf, sizeof(Buf), "Rendered Decal: %d (Collided Components: %d)",
-            RenderedDecal, CollidedCompCount);
-        FString Text = Buf;
-
-        float OffsetY = 0.0f;
-        if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
-        if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
-        if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
-
-        RenderText(Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
+        r = 1.0f; g = 1.0f; b = 0.0f;
+    }
+    if (RenderedDecal > 500)
+    {
+        r = 1.0f; g = 0.0f; b = 0.0f;
     }
 
-    {
-        char Buf[128];
-        (void)sprintf_s(Buf, sizeof(Buf), "Decal Pass Time: %.4f ms", FScopeCycleCounter::GetTimeProfile("DecalPass").Milliseconds);
-        FString Text = Buf;
-
-        float OffsetY = 20.0f;
-        if (IsStatEnabled(EStatType::FPS))      OffsetY += 20.0f;
-        if (IsStatEnabled(EStatType::Memory))   OffsetY += 20.0f;
-        if (IsStatEnabled(EStatType::Picking))  OffsetY += 20.0f;
-        RenderText(Text, OverlayX, OverlayY + OffsetY, 0.f, 1.f, 0.f);
-    }
+    RenderText(Text, OverlayX, OverlayY + OffsetY, r, g, b);
 }
 
 void UStatOverlay::RenderTimeInfo()
@@ -130,7 +130,8 @@ void UStatOverlay::RenderTimeInfo()
     if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
-    if (IsStatEnabled(EStatType::Decal))  OffsetY += 40.0f;
+    if (IsStatEnabled(EStatType::Decal))  OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Shadow)) OffsetY += 140.0f;
 
     float CurrentY = OverlayY + OffsetY;
     const float LineHeight = 20.0f;
@@ -147,6 +148,125 @@ void UStatOverlay::RenderTimeInfo()
         if (Profile.Milliseconds > 1.0f) { r = 1.0f; g = 1.0f; b = 0.0f; }
 
         RenderText(text, OverlayX, CurrentY, r, g, b);
+        CurrentY += LineHeight;
+    }
+}
+
+void UStatOverlay::RenderShadowInfo()
+{
+    float OffsetY = 0.0f;
+    if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Decal))  OffsetY += 40.0f;
+
+    float CurrentY = OverlayY + OffsetY;
+    constexpr float LineHeight = 20.0f;
+
+    // 라이트 개수별 정보
+    {
+        char Buf[256];
+        (void)sprintf_s(Buf, sizeof(Buf), "Lights: Directional %u, Point %u, Spot %u, Ambient %u",
+            DirectionalLightCount, PointLightCount, SpotLightCount, AmbientLightCount);
+        FString Text = Buf;
+        RenderText(Text, OverlayX, CurrentY, 1.0f, 0.8f, 0.0f);
+        CurrentY += LineHeight;
+    }
+
+    // 총 라이트 개수
+    {
+        const uint32 TotalLights = DirectionalLightCount + PointLightCount + SpotLightCount + AmbientLightCount;
+        char Buf[128];
+        (void)sprintf_s(Buf, sizeof(Buf), "Total Lights: %u", TotalLights);
+        FString Text = Buf;
+        RenderText(Text, OverlayX, CurrentY, 1.0f, 0.8f, 0.0f);
+        CurrentY += LineHeight;
+    }
+
+    // 섀도우맵 메모리 사용량
+    {
+        const float ShadowMemoryMB = static_cast<float>(ShadowMapMemoryBytes) / (1024.0f * 1024.0f);
+        char Buf[128];
+        (void)sprintf_s(Buf, sizeof(Buf), "Shadow Map Memory: %.2f MB", ShadowMemoryMB);
+        FString Text = Buf;
+
+        float r = 1.0f, g = 0.8f, b = 0.0f;
+        if (ShadowMemoryMB > 500.0f)
+        {
+            r = 1.0f; g = 0.0f; b = 0.0f;
+        }
+        else if (ShadowMemoryMB > 200.0f)
+        {
+            r = 1.0f; g = 1.0f; b = 0.0f;
+        }
+
+        RenderText(Text, OverlayX, CurrentY, r, g, b);
+        CurrentY += LineHeight;
+    }
+
+    // 렌더 타겟 메모리 사용량
+    {
+        const float RenderTargetMemoryMB = static_cast<float>(RenderTargetMemoryBytes) / (1024.0f * 1024.0f);
+        char Buf[128];
+        (void)sprintf_s(Buf, sizeof(Buf), "Render Target Memory: %.2f MB", RenderTargetMemoryMB);
+        FString Text = Buf;
+
+        float r = 1.0f, g = 0.8f, b = 0.0f;
+        if (RenderTargetMemoryMB > 200.0f)
+        {
+            r = 1.0f; g = 0.0f; b = 0.0f;
+        }
+        else if (RenderTargetMemoryMB > 100.0f)
+        {
+            r = 1.0f; g = 1.0f; b = 0.0f;
+        }
+
+        RenderText(Text, OverlayX, CurrentY, r, g, b);
+        CurrentY += LineHeight;
+    }
+
+    // Shadow 전용 GPU 메모리 사용량
+    {
+        const float TotalGPUMemoryMB = static_cast<float>(ShadowMapMemoryBytes + RenderTargetMemoryBytes) / (1024.0f * 1024.0f);
+        char Buf[128];
+        (void)sprintf_s(Buf, sizeof(Buf), "Shadow GPU Memory: %.2f MB", TotalGPUMemoryMB);
+        FString Text = Buf;
+
+        float r = 0.5f, g = 1.0f, b = 0.5f;
+        if (TotalGPUMemoryMB > 700.0f)
+        {
+            r = 1.0f; g = 0.0f; b = 0.0f;
+        }
+        else if (TotalGPUMemoryMB > 300.0f)
+        {
+            r = 1.0f; g = 1.0f; b = 0.0f;
+        }
+
+        RenderText(Text, OverlayX, CurrentY, r, g, b);
+        CurrentY += LineHeight;
+    }
+
+    // Shadow Atlas 사용 현황
+    {
+        char Buf[128];
+        (void)sprintf_s(Buf, sizeof(Buf), "Atlas Tiles: %u / %u", UsedAtlasTiles, MaxAtlasTiles);
+        FString Text = Buf;
+
+        float r = 0.5f, g = 1.0f, b = 0.5f;
+        if (MaxAtlasTiles > 0)
+        {
+            float UsageRatio = static_cast<float>(UsedAtlasTiles) / static_cast<float>(MaxAtlasTiles);
+            if (UsageRatio > 0.9f)
+            {
+                r = 1.0f; g = 0.0f; b = 0.0f;
+            }
+            else if (UsageRatio > 0.7f)
+            {
+                r = 1.0f; g = 1.0f; b = 0.0f;
+            }
+        }
+
+        RenderText(Text, OverlayX, CurrentY, r, g, b);
         CurrentY += LineHeight;
     }
 }
@@ -170,7 +290,7 @@ void UStatOverlay::RenderText(const FString& Text, float x, float y, float r, fl
     constexpr float PaddingTop = 1.0f;
     constexpr float PaddingBottom = 1.0f;
     D2D1_RECT_F BGRect = D2D1::RectF(x - PaddingLeft, y - PaddingTop, x + 560.0f, y + 20.0f + PaddingBottom);
-    const D2D1_COLOR_F ColorGrayBG = D2D1::ColorF(0.2f, 0.2f, 0.2f, 0.5f);
+    const D2D1_COLOR_F ColorGrayBG = D2D1::ColorF(0.2f, 0.2f, 0.2f, 0.8f);
     D2DManager.AddRectangle(BGRect, ColorGrayBG, true);
 
     D2DManager.AddText(WideText.c_str(), Rect, color, 15.0f, false, false, L"Consolas");
@@ -213,4 +333,16 @@ void UStatOverlay::RecordDecalStats(uint32 InRenderedDecal, uint32 InCollidedCom
 {
     RenderedDecal = InRenderedDecal;
     CollidedCompCount = InCollidedCompCount;
+}
+
+void UStatOverlay::RecordShadowStats(uint32 InDirectionalLightCount, uint32 InPointLightCount, uint32 InSpotLightCount, uint32 InAmbientLightCount, uint64 InShadowMapMemoryBytes, uint64 InRenderTargetMemoryBytes, uint32 InUsedAtlasTiles, uint32 InMaxAtlasTiles)
+{
+    DirectionalLightCount = InDirectionalLightCount;
+    PointLightCount = InPointLightCount;
+    SpotLightCount = InSpotLightCount;
+    AmbientLightCount = InAmbientLightCount;
+    ShadowMapMemoryBytes = InShadowMapMemoryBytes;
+    RenderTargetMemoryBytes = InRenderTargetMemoryBytes;
+    UsedAtlasTiles = InUsedAtlasTiles;
+    MaxAtlasTiles = InMaxAtlasTiles;
 }

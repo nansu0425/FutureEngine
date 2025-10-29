@@ -292,7 +292,7 @@ bool UEditorEngine::CreateNewLevel(const FString& InLevelName)
 path UEditorEngine::GenerateLevelFilePath(const FString& InLevelName)
 {
     path LevelDirectory = GetLevelDirectory();
-    path FileName = InLevelName + ".Scene";
+    path FileName = InLevelName + ".scene";
     return LevelDirectory / FileName;
 }
 

@@ -238,14 +238,18 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 	const float ClearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DeviceContext->ClearRenderTargetView(ShadowAtlas.VarianceShadowRTV.Get(), ClearColor);
 	DeviceContext->ClearDepthStencilView(ShadowAtlas.ShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-	
+
 	// Phase 1: Directional Lights
+	ActiveDirectionalLightCount = 0;
+	ActiveDirectionalCascadeCount = 0;
 	for (auto DirLight : Context.DirectionalLights)
 	{
 		if (DirLight->GetCastShadows() && DirLight->GetLightEnabled())
 		{
 			// 유효한 첫번째 Dir Light만 사용
 			RenderDirectionalShadowMap(DirLight, Context.StaticMeshes, Context.CurrentCamera);
+			ActiveDirectionalLightCount = 1;
+			ActiveDirectionalCascadeCount = UCascadeManager::GetInstance().GetSplitNum();
 			break;
 		}
 	}
@@ -264,6 +268,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 		}
 	}
 
+	ActiveSpotLightCount = static_cast<uint32>(ValidSpotLights.size());
 	for (int32 i = 0; i < ValidSpotLights.size(); i++)
 	{
 		RenderSpotShadowMap(ValidSpotLights[i], i, Context.StaticMeshes);
@@ -282,6 +287,7 @@ void FShadowMapPass::Execute(FRenderingContext& Context)
 		}
 	}
 
+	ActivePointLightCount = static_cast<uint32>(ValidPointLights.size());
 	for (int32 i = 0; i < ValidPointLights.size(); i++)
 	{
 		RenderPointShadowMap(ValidPointLights[i], i, Context.StaticMeshes);
@@ -959,31 +965,112 @@ FShadowAtlasPointLightTilePos FShadowMapPass::GetPointAtlasTilePos(uint32 Index)
 	return ShadowAtlasPointLightTilePosArray[Index];
 }
 
-void FShadowMapPass::RenderMeshDepth(UStaticMeshComponent* Mesh, const FMatrix& View, const FMatrix& Proj)
+/**
+ * @brief 모든 섀도우맵이 사용 중인 총 메모리를 계산
+ * @return 바이트 단위 메모리 사용량
+ */
+uint64 FShadowMapPass::GetTotalShadowMapMemory() const
 {
-	// 1. Constant buffer 업데이트 (DepthOnlyVS.hlsl의 ViewProj 구조체에 맞춤)
+	uint64 TotalBytes = 0;
+
+	// Shadow Atlas 메모리 계산 (각 Depth 32bit + Variance Map RGBA 32bit)
+	if (ShadowAtlas.IsValid())
+	{
+		const uint64 DepthBytes = static_cast<uint64>(ShadowAtlas.Resolution) * ShadowAtlas.Resolution * 4;  // 32-bit depth
+		const uint64 VarianceBytes = static_cast<uint64>(ShadowAtlas.Resolution) * ShadowAtlas.Resolution * 16;  // RGBA32F (4 channels * 4 bytes)
+		TotalBytes += DepthBytes + VarianceBytes;
+	}
+
+	// Directional Light 섀도우맵 메모리
+	for (const auto& Pair : DirectionalShadowMaps)
+	{
+		if (Pair.second && Pair.second->IsValid())
+		{
+			const uint64 DepthBytes = static_cast<uint64>(Pair.second->Resolution) * Pair.second->Resolution * 4;
+			const uint64 VarianceBytes = static_cast<uint64>(Pair.second->Resolution) * Pair.second->Resolution * 16;
+			TotalBytes += DepthBytes + VarianceBytes;
+		}
+	}
+
+	// Spot Light 섀도우맵 메모리
+	for (const auto& Pair : SpotShadowMaps)
+	{
+		if (Pair.second && Pair.second->IsValid())
+		{
+			const uint64 DepthBytes = static_cast<uint64>(Pair.second->Resolution) * Pair.second->Resolution * 4;
+			const uint64 VarianceBytes = static_cast<uint64>(Pair.second->Resolution) * Pair.second->Resolution * 16;
+			TotalBytes += DepthBytes + VarianceBytes;
+		}
+	}
+
+	// Point Light 큐브맵 섀도우맵 메모리 (6면)
+	for (const auto& Pair : PointShadowMaps)
+	{
+		if (Pair.second && Pair.second->IsValid())
+		{
+			const uint64 DepthBytesPerFace = static_cast<uint64>(Pair.second->Resolution) * Pair.second->Resolution * 4;
+			TotalBytes += DepthBytesPerFace * 6;
+		}
+	}
+
+	return TotalBytes;
+}
+
+/**
+ * @brief 사용 중인 아틀라스 타일 개수를 반환
+ * @return 현재 사용 중인 타일 개수
+ */
+uint32 FShadowMapPass::GetUsedAtlasTileCount() const
+{
+	// 실제 사용 중인 타일 개수 계산
+	// Directional CSM Count + Spot * 1 + Point * 6 (큐브맵 6면)
+	return ActiveDirectionalCascadeCount + ActiveSpotLightCount + (ActivePointLightCount * 6);
+}
+
+/**
+ * @brief 아틀라스의 최대 타일 개수를 반환
+ * @return 최대 타일 개수 (4x4 = 16)
+ */
+uint32 FShadowMapPass::GetMaxAtlasTileCount()
+{
+	// 8x8 아틀라스 = 64 타일 (8192 / 1024 = 8)
+	// TODO(KHJ): 일단은 고정값, 필요 시 따로 값을 받아올 것
+	return 64;
+}
+
+/**
+ * @brief 메시를 shadow depth로 렌더링
+ * @param InMesh Static mesh component
+ * @param InView Light space view 행렬
+ * @param InProj Light space projection 행렬
+ */
+void FShadowMapPass::RenderMeshDepth(const UStaticMeshComponent* InMesh, const FMatrix& InView, const FMatrix& InProj) const
+{
+	// Constant buffer 업데이트
 	FShadowViewProjConstant CBData;
-	CBData.ViewProjection = View * Proj;  // View와 Projection을 곱해서 전달
+	CBData.ViewProjection = InView * InProj;
 	FRenderResourceFactory::UpdateConstantBufferData(ShadowViewProjConstantBuffer, CBData);
 	Pipeline->SetConstantBuffer(1, EShaderType::VS, ShadowViewProjConstantBuffer);
 
-	// 2. Model transform 업데이트
-	FMatrix WorldMatrix = Mesh->GetWorldTransformMatrix();
+	// Model transform 업데이트
+	FMatrix WorldMatrix = InMesh->GetWorldTransformMatrix();
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, WorldMatrix);
 	Pipeline->SetConstantBuffer(0, EShaderType::VS, ConstantBufferModel);
 
-	// 3. Vertex/Index buffer 바인딩
-	ID3D11Buffer* VertexBuffer = Mesh->GetVertexBuffer();
-	ID3D11Buffer* IndexBuffer = Mesh->GetIndexBuffer();
-	uint32 IndexCount = Mesh->GetNumIndices();
+	// Vertex/Index buffer 바인딩
+	ID3D11Buffer* VertexBuffer = InMesh->GetVertexBuffer();
+	ID3D11Buffer* IndexBuffer = InMesh->GetIndexBuffer();
+	uint32 IndexCount = InMesh->GetNumIndices();
 
 	if (!VertexBuffer || !IndexBuffer || IndexCount == 0)
+	{
 		return;
+	}
 
 	Pipeline->SetVertexBuffer(VertexBuffer, sizeof(FNormalVertex));
 	Pipeline->SetIndexBuffer(IndexBuffer, 0);
 
-	// 4. Draw call
+	// Draw call
 	Pipeline->DrawIndexed(IndexCount, 0, 0);
 }
 

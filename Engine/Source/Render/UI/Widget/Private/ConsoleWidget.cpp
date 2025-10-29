@@ -806,6 +806,7 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		AddLog(ELogType::Info, "  STAT FPS - Show FPS overlay");
 		AddLog(ELogType::Info, "  STAT MEMORY - Show memory overlay");
 		AddLog(ELogType::Info, "  STAT PICK - Show picking performance overlay");
+		AddLog(ELogType::Info, "  STAT SHADOW - Show light and shadow map stats");
 		AddLog(ELogType::Info, "  STAT NONE - Hide all overlays");
 		AddLog(ELogType::Info, "  UE_LOG(\"String with format\", Args...) - Enhanced printf Formatting");
 		AddLog(ELogType::Debug, "    기본 예제: UE_LOG(\"Hello World %%d\", 2025)");
@@ -861,6 +862,11 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 		StatOverlay.ShowDecal();
 		AddLog(ELogType::Success, "Decal overlay enabled");
 	}
+	else if (StatCommand == "shadow")
+	{
+		StatOverlay.ShowShadow();
+		AddLog(ELogType::Success, "Shadow overlay enabled");
+	}
 	else if (StatCommand == "all")
 	{
 		StatOverlay.ShowAll();
@@ -874,7 +880,7 @@ void UConsoleWidget::HandleStatCommand(const FString& StatCommand)
 	else
 	{
 		AddLog(ELogType::Error, "Unknown stat command: %s", StatCommand.data());
-		AddLog(ELogType::Info, "Available: fps, memory, pick, time, decal, all, none");
+		AddLog(ELogType::Info, "Available: fps, memory, pick, time, decal, shadow, all, none");
 	}
 }
 
