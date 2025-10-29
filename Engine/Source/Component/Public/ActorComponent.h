@@ -46,6 +46,15 @@ private:
 public:
 	virtual UObject* Duplicate() override;
 
+	/**
+	 * @brief DuplicateSubObjects를 외부에서 호출하기 위한 public wrapper
+	 * @param DuplicatedObject 복제된 객체
+	 */
+	void CallDuplicateSubObjects(UObject* DuplicatedObject)
+	{
+		DuplicateSubObjects(DuplicatedObject);
+	}
+
 protected:
 	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 

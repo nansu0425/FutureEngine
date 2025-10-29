@@ -8,7 +8,7 @@ IMPLEMENT_SINGLETON_CLASS(UInputManager, UObject)
 UInputManager::UInputManager()
 	: MouseWheelDelta(0.0f)
 	  , bIsWindowFocused(true)
-	  , DoubleClickTime(static_cast<float>(GetDoubleClickTime()) / 1000.0f)
+	  , DoubleClickTime(0.25f)
 {
 	InitializeKeyMapping();
 	InitializeMouseClickStatus();

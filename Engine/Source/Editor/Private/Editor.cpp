@@ -1561,7 +1561,7 @@ UActorComponent* UEditor::DuplicateComponent(UActorComponent* InSourceComponent,
 		return nullptr;
 	}
 
-	// Duplicate()를 통해 Component 복사 (child는 복사되지 않음)
+	// Component 복사
 	UActorComponent* NewComponent = Cast<UActorComponent>(InSourceComponent->Duplicate());
 	if (!NewComponent)
 	{
@@ -1571,6 +1571,9 @@ UActorComponent* UEditor::DuplicateComponent(UActorComponent* InSourceComponent,
 	// Owner 설정 및 Parent Actor에 등록
 	NewComponent->SetOwner(InParentActor);
 	InParentActor->GetOwnedComponents().push_back(NewComponent);
+
+	// DuplicateSubObjects 호출하여 서브 객체 복사
+	InSourceComponent->CallDuplicateSubObjects(NewComponent);
 
 	// SceneComponent인 경우 계층 구조 설정
 	USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewComponent);

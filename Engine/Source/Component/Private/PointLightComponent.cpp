@@ -31,11 +31,6 @@ UObject* UPointLightComponent::Duplicate()
 	return PointLightComponent;
 }
 
-void UPointLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
-{
-	Super::DuplicateSubObjects(DuplicatedObject);
-}
-
 UClass* UPointLightComponent::GetSpecificWidgetClass() const
 {
     return UPointLightComponentWidget::StaticClass();
