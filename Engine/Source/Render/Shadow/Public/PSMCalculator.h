@@ -126,8 +126,7 @@ private:
 		FMatrix& OutProj,
 		const FVector& LightDirection,
 		UCamera* Camera,
-		const std::vector<FPSMBoundingBox>& ShadowCasters,
-		const std::vector<FPSMBoundingBox>& ShadowReceivers,
+		const std::vector<UStaticMeshComponent*>& Meshes,
 		FPSMParameters& Params
 	);
 

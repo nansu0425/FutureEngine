@@ -364,15 +364,16 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	// CSM split 수 임시 저장
 	int32 OriginalSplitNum = CascadeManager.GetSplitNum();
 
-	if (ProjectionMode == 2)
+	if (ProjectionMode == 4)
 	{
-		// 모드 2: Cascaded Shadow Maps (다중 캐스케이드)
+		// 모드 4: Cascaded Shadow Maps (다중 캐스케이드)
 		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
 		NumCascades = OriginalSplitNum;
 	}
-	else if (ProjectionMode == 1)
+	else if (ProjectionMode >= 1 && ProjectionMode <= 3)
 	{
-		// 모드 1: PSM (단일 원근 그림자 맵)
+		// 모드 1, 2, 3: PSM / LiSPSM / TSM (단일 원근 그림자 맵)
+		// CalculateDirectionalLightViewProj 내부에서 PSMCalculator를 통해 모드별로 분기
 		CascadeShadowMapData.SplitNum = 1;
 
 		FMatrix LightView, LightProj;
