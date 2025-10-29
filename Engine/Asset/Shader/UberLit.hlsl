@@ -777,7 +777,7 @@ float CalculateDirectionalVSMFactor(
             mul(CascadeView, CascadeProj[SubFrustumNum]),
             WorldPos,
             LightInfo.Resolution,
-            ShadowAtlas,
+            VarianceShadowAtlas,
             ShadowAtlasDirectionalLightTilePos[SubFrustumNum].UV
         );
 
@@ -798,7 +798,7 @@ float CalculateDirectionalVSMFactor(
                 mul(CascadeView, CascadeProj[SubFrustumNum - 1]),
                 WorldPos,
                 LightInfo.Resolution,
-                ShadowAtlas,
+                VarianceShadowAtlas,
                 ShadowAtlasDirectionalLightTilePos[SubFrustumNum - 1].UV
             );
 
