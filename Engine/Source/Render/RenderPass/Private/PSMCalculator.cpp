@@ -200,11 +200,12 @@ void FPSMCalculator::BuildUniformShadowMap(
 		SceneBox.MaxPt = FVector(Width, Height, FarDist);
 	}
 
-	// Light position (far away from scene center)
+	// Light position (far away from scene center, in opposite direction of light)
 	FVector SceneCenter = SceneBox.GetCenter();
 	float SceneRadius = (SceneBox.MaxPt - SceneBox.MinPt).Length() * 0.5f;
 
-	FVector LightPos = SceneCenter + ViewLightDir * (SceneRadius + 50.0f);
+	// Light is at opposite direction of where it's shining
+	FVector LightPos = SceneCenter - ViewLightDir * (SceneRadius + 50.0f);
 
 	// Choose up vector
 	FVector Up = ZUp;

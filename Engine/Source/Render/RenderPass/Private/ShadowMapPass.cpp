@@ -712,7 +712,9 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	}
 
 	// Get light direction
-	FVector LightDir = Light->GetForwardVector();
+	// NOTE: DirectionalLight's forward vector is opposite of actual light direction
+	// (180 degree rotation is applied in CascadeManager - see line 90)
+	FVector LightDir = -Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);
 	else
