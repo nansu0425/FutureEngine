@@ -84,12 +84,20 @@ FCascadeShadowMapData UCascadeManager::GetCascadeShadowMapData(
 
     FMatrix CameraViewInverse = InCamera->GetFViewProjConstantsInverse().View;
 
-    // Directional Light가 (0, 0, 0) Rotation일 때 땅을 보게 하기 위해 기본적으로 돌아간 상태이므로
-    // 해당 사항을 반영하여 View를 계산해야 합니다 - by HSH
-    FQuaternion LightRotationInverse = InDirectionalLight->GetWorldRotationAsQuaternion().Inverse();
-    FQuaternion ArrowToPosZ = FQuaternion::FromAxisAngle(FVector::RightVector(), 180.0f * ToRad);
-    FQuaternion FinalRotation = LightRotationInverse * ArrowToPosZ;
-    CascadeShadowMapData.View = FinalRotation.ToRotationMatrix();
+    // Directional Light의 View Matrix를 Camera와 동일한 방식으로 계산
+    // Camera는 Right, Up, Forward를 cross product로 계산하여 좌표축 재정의 수행
+    FQuaternion LightRotation = InDirectionalLight->GetWorldRotationAsQuaternion();
+    FVector Forward = LightRotation.RotateVector(FVector::ForwardVector());
+    FVector WorldUp = LightRotation.RotateVector(FVector::UpVector());
+    FVector Right = WorldUp.Cross(Forward);
+    Right.Normalize();
+    FVector Up = Forward.Cross(Right);
+    Up.Normalize();
+
+    // View Matrix = [Right | Up | Forward]^T (Camera와 동일한 구조)
+    FMatrix ViewRot = FMatrix(Right, Up, Forward);
+    ViewRot = ViewRot.Transpose();
+    CascadeShadowMapData.View = ViewRot;
     
     FMatrix CameraViewToCascadeView = CameraViewInverse * CascadeShadowMapData.View;
 
