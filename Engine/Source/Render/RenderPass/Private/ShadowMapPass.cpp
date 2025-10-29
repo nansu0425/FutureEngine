@@ -386,10 +386,15 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	else  // ProjectionMode == 0
 	{
 		// 모드 0: Uniform Shadow Map (단일 직교 그림자 맵)
-		// CSM을 사용하되 캐스케이드 수를 1로 설정
-		CascadeManager.SetSplitNum(1);
-		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
-		CascadeManager.SetSplitNum(OriginalSplitNum);  // 복원
+		// Sample 버전 사용: 모든 메시의 AABB 기반으로 계산
+		CascadeShadowMapData.SplitNum = 1;
+
+		FMatrix LightView, LightProj;
+		CalculateUniformShadowMapViewProj(Light, Meshes, LightView, LightProj);
+
+		CascadeShadowMapData.View = LightView;
+		CascadeShadowMapData.Proj[0] = LightProj;
+		CascadeShadowMapData.SplitDistance[0] = FVector4(InCamera->GetFarZ(), 0, 0, 0);
 		NumCascades = 1;
 	}
 
@@ -750,6 +755,114 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 		MeshesVec,
 		Params
 	);
+}
+
+void FShadowMapPass::CalculateUniformShadowMapViewProj(UDirectionalLightComponent* Light,
+	const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj)
+{
+	// Sample 버전의 Uniform Shadow Map 구현
+	// 1. 모든 메시의 AABB를 포함하는 bounding box 계산
+	FVector MinBounds(FLT_MAX, FLT_MAX, FLT_MAX);
+	FVector MaxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	bool bHasValidMeshes = false;
+	for (auto Mesh : Meshes)
+	{
+		if (!Mesh->IsVisible())
+			continue;
+
+		// 메시의 world AABB 가져오기
+		FVector WorldMin, WorldMax;
+		Mesh->GetWorldAABB(WorldMin, WorldMax);
+
+		MinBounds.X = std::min(MinBounds.X, WorldMin.X);
+		MinBounds.Y = std::min(MinBounds.Y, WorldMin.Y);
+		MinBounds.Z = std::min(MinBounds.Z, WorldMin.Z);
+
+		MaxBounds.X = std::max(MaxBounds.X, WorldMax.X);
+		MaxBounds.Y = std::max(MaxBounds.Y, WorldMax.Y);
+		MaxBounds.Z = std::max(MaxBounds.Z, WorldMax.Z);
+
+		bHasValidMeshes = true;
+	}
+
+	// 메시가 없으면 기본 행렬 반환
+	if (!bHasValidMeshes)
+	{
+		OutView = FMatrix::Identity();
+		OutProj = FMatrix::Identity();
+		return;
+	}
+
+	// 2. Light direction 기준으로 view matrix 생성
+	// Sample 버전과 동일하게 GetForwardVector() 직접 사용
+	FVector LightDir = Light->GetForwardVector();
+	if (LightDir.Length() < 1e-6f)
+		LightDir = FVector(0, 0, -1);
+	else
+		LightDir = LightDir.GetNormalized();
+
+	FVector SceneCenter = (MinBounds + MaxBounds) * 0.5f;
+	float SceneRadius = (MaxBounds - MinBounds).Length() * 0.5f;
+
+	// Light position은 scene 중심에서 light direction 반대로 충분히 멀리
+	FVector LightPos = SceneCenter - LightDir * (SceneRadius + 50.0f);
+
+	// Up vector 계산 (Z-Up, X-Forward, Y-Right Left-Handed 좌표계)
+	FVector Up = FVector(0, 0, 1);  // Z-Up
+	if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
+		Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
+
+	OutView = FMatrix::CreateLookAtLH(LightPos, SceneCenter, Up);
+
+	// 3. AABB를 light view space로 변환하여 orthographic projection 범위 계산
+	FVector LightSpaceMin(FLT_MAX, FLT_MAX, FLT_MAX);
+	FVector LightSpaceMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	// AABB의 8개 코너를 light view space로 변환
+	FVector Corners[8] = {
+		FVector(MinBounds.X, MinBounds.Y, MinBounds.Z),
+		FVector(MaxBounds.X, MinBounds.Y, MinBounds.Z),
+		FVector(MinBounds.X, MaxBounds.Y, MinBounds.Z),
+		FVector(MaxBounds.X, MaxBounds.Y, MinBounds.Z),
+		FVector(MinBounds.X, MinBounds.Y, MaxBounds.Z),
+		FVector(MaxBounds.X, MinBounds.Y, MaxBounds.Z),
+		FVector(MinBounds.X, MaxBounds.Y, MaxBounds.Z),
+		FVector(MaxBounds.X, MaxBounds.Y, MaxBounds.Z)
+	};
+
+	for (int i = 0; i < 8; i++)
+	{
+		FVector LightSpaceCorner = OutView.TransformPosition(Corners[i]);
+
+		LightSpaceMin.X = std::min(LightSpaceMin.X, LightSpaceCorner.X);
+		LightSpaceMin.Y = std::min(LightSpaceMin.Y, LightSpaceCorner.Y);
+		LightSpaceMin.Z = std::min(LightSpaceMin.Z, LightSpaceCorner.Z);
+
+		LightSpaceMax.X = std::max(LightSpaceMax.X, LightSpaceCorner.X);
+		LightSpaceMax.Y = std::max(LightSpaceMax.Y, LightSpaceCorner.Y);
+		LightSpaceMax.Z = std::max(LightSpaceMax.Z, LightSpaceCorner.Z);
+	}
+
+	// 4. Orthographic projection 생성
+	// Scene 크기에 비례한 padding 사용 (씬이 크면 padding도 크게)
+	float SceneSizeZ = LightSpaceMax.Z - LightSpaceMin.Z;
+	float Padding = std::max(SceneSizeZ * 0.5f, 50.0f);  // 최소 50, 씬 깊이의 50%
+
+	float Left = LightSpaceMin.X;
+	float Right = LightSpaceMax.X;
+	float Bottom = LightSpaceMin.Y;
+	float Top = LightSpaceMax.Y;
+	float Near = LightSpaceMin.Z - Padding;
+	float Far = LightSpaceMax.Z + Padding;
+
+	// Near는 음수가 되면 안됨 (orthographic에서는 괜찮지만, 안전을 위해)
+	if (Near < 0.1f)
+	{
+		Near = 0.1f;
+	}
+
+	OutProj = FMatrix::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
 }
 
 void FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light,
