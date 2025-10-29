@@ -2,6 +2,7 @@
 #include "Core/Public/Object.h"
 #include "Component/Public/ActorComponent.h"
 #include "Component/Public/SceneComponent.h"
+#include "Core/Public/NewObject.h"
 
 class UUUIDTextComponent;
 /**

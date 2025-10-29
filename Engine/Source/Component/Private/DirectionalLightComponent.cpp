@@ -90,11 +90,6 @@ UObject* UDirectionalLightComponent::Duplicate()
     return DirectionalLightComponent;
 }
 
-void UDirectionalLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
-{
-    Super::DuplicateSubObjects(DuplicatedObject);
-}
-
 UClass* UDirectionalLightComponent::GetSpecificWidgetClass() const
 {
     return UDirectionalLightComponentWidget::StaticClass();

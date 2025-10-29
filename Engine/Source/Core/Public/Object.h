@@ -16,10 +16,10 @@ public:
 	UObject();
 	virtual ~UObject();
 
-	// 2. 가상 함수 (인터페이스)
+	// 가상 함수 (인터페이스)
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle);
 
-	// 3. Public 멤버 함수
+	// Public 멤버 함수
 	bool IsA(UClass* InClass) const;
 	bool IsExactly(UClass* InClass) const;
 	void AddMemoryUsage(uint64 InBytes, uint32 InCount);
@@ -35,17 +35,11 @@ public:
 	FName GetName() { return Name; }
 	void SetName(const FName& InName) { Name = InName; }
 	void SetOuter(UObject* InObject);
-	
-	/* *
-	* @brief PIE 시스템에 사용되는 복제 함수입니다. 상속받은 클래스에서 재정의함으로써 조율해야 합니다.
-	*/
-public:
-	virtual UObject* Duplicate();
 
-	/**
-	 * @brief Editor 전용 복제 메서드 (EditorOnly 컴포넌트 포함)
-	 * @return 복제된 Object
-	 */
+	template<typename T>
+	T* GetTypedOuter() const;
+
+	virtual UObject* Duplicate();
 	virtual UObject* DuplicateForEditor();
 
 protected:
@@ -58,17 +52,16 @@ protected:
 	virtual void DuplicateSubObjectsForEditor(UObject* DuplicatedObject);
 
 private:
-	// 4. Private 멤버 함수
-	void PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta);
-
-private:
-	// 5. Private 멤버 변수
+	// Private 멤버 변수
 	uint32 UUID;
 	uint32 InternalIndex;
 	FName Name;
 	UObject* Outer;
 	uint64 AllocatedBytes = 0;
 	uint32 AllocatedCounts = 0;
+
+	// Private 멤버 함수
+	void PropagateMemoryChange(uint64 InBytesDelta, uint32 InCountDelta);
 };
 
 /**
@@ -119,6 +112,28 @@ const T* Cast(const UObject* InObject)
 		return static_cast<const T*>(InObject);
 	}
 
+	return nullptr;
+}
+
+/**
+ * @brief Outer 체인을 타고 올라가며 특정 타입의 Outer 탐색하는 함수
+ * @tparam T 찾을 Outer 타입 (UObject 상속)
+ * @return 찾은 Outer 또는 nullptr
+ */
+template<typename T>
+T* UObject::GetTypedOuter() const
+{
+	static_assert(std::is_base_of_v<UObject, T>, "GetTypedOuter<T>: T must inherit from UObject");
+
+	UObject* CurrentOuter = Outer;
+	while (CurrentOuter)
+	{
+		if (T* TypedOuter = Cast<T>(CurrentOuter))
+		{
+			return TypedOuter;
+		}
+		CurrentOuter = CurrentOuter->GetOuter();
+	}
 	return nullptr;
 }
 

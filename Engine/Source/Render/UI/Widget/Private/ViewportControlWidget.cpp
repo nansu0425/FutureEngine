@@ -4,9 +4,11 @@
 #include "Render/UI/Viewport/Public/Viewport.h"
 #include "Render/UI/Viewport/Public/ViewportClient.h"
 #include "Editor/Public/Editor.h"
+#include "Editor/Public/EditorEngine.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Texture/Public/Texture.h"
+#include "Actor/Public/Actor.h"
 
 // 정적 멤버 정의 - KTLWeek07의 뷰 모드 기능 사용
 const char* UViewportControlWidget::ViewModeLabels[] = {
@@ -428,11 +430,35 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		}
 
 		// 우측 정렬할 버튼들의 총 너비 계산
-		constexpr float RightViewTypeButtonWidth = 110.0f;
+		bool bInPilotMode = IsPilotModeActive(ViewportIndex);
+		UEditor* Editor = GEditor ? GEditor->GetEditorModule() : nullptr;
+		AActor* PilotedActor = (Editor && bInPilotMode) ? Editor->GetPilotedActor() : nullptr;
+
+		// ViewType 버튼 폭 계산
+		constexpr float RightViewTypeButtonWidthDefault = 110.0f;
+		constexpr float RightViewTypeIconSize = 16.0f;
+		constexpr float RightViewTypePadding = 4.0f;
+		float RightViewTypeButtonWidth = RightViewTypeButtonWidthDefault;
+
+		// Actor 이름 저장용
+		static FString CachedActorName;
+
+		if (bInPilotMode && PilotedActor)
+		{
+			CachedActorName = PilotedActor->GetName().ToString();
+			const ImVec2 ActorNameTextSize = ImGui::CalcTextSize(CachedActorName.c_str());
+			// 아이콘 + 패딩 + 텍스트 + 패딩
+			RightViewTypeButtonWidth = RightViewTypePadding + RightViewTypeIconSize + RightViewTypePadding + ActorNameTextSize.x + RightViewTypePadding;
+			// 최소 / 최대 폭 제한
+			RightViewTypeButtonWidth = Clamp(RightViewTypeButtonWidth, 110.0f, 250.0f);
+		}
+
 		constexpr float CameraSpeedButtonWidth = 70.0f; // 아이콘 + 숫자 표시를 위해 확장
 		constexpr float LayoutToggleButtonSize = 24.0f;
 		constexpr float RightButtonSpacing = 6.0f;
-		constexpr float TotalRightButtonsWidth = RightViewTypeButtonWidth + RightButtonSpacing + CameraSpeedButtonWidth + RightButtonSpacing + LayoutToggleButtonSize;
+		constexpr float PilotExitButtonSize = 24.0f;
+		const float PilotModeExtraWidth = bInPilotMode ? (PilotExitButtonSize + RightButtonSpacing) : 0.0f;
+		const float TotalRightButtonsWidth = RightViewTypeButtonWidth + RightButtonSpacing + PilotModeExtraWidth + CameraSpeedButtonWidth + RightButtonSpacing + LayoutToggleButtonSize;
 
 		// 우측 정렬 시작
 		{
@@ -444,7 +470,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			ImGui::SetCursorPosX(RightAlignedX);
 		}
 
-		// 우측 버튼 1: 카메라 뷰 타입
+		// 우측 버튼 1: 카메라 뷰 타입 (파일럿 모드 지원)
 		{
 			// 현재 뷰 타입 정보
 			EViewType CurrentViewType = Clients[ViewportIndex]->GetViewType();
@@ -464,24 +490,65 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 				case EViewType::OrthoBack: RightViewTypeIcon = IconBack; break;
 			}
 
+			// 표시할 텍스트 (파일럿 모드면 Actor 이름, 아니면 ViewType)
+			static char TruncatedActorName[128] = "";
+			const char* DisplayText = ViewTypeLabels[CurrentViewTypeIndex];
+
+			if (bInPilotMode && PilotedActor && !CachedActorName.empty())
+			{
+				// 최대 표시 가능한 텍스트 폭 계산 (버튼 폭 - 아이콘 - 패딩들)
+				const float MaxTextWidth = 250.0f - RightViewTypePadding - RightViewTypeIconSize - RightViewTypePadding * 2;
+				const ImVec2 ActorNameSize = ImGui::CalcTextSize(CachedActorName.c_str());
+
+				if (ActorNameSize.x > MaxTextWidth)
+				{
+					// 텍스트가 너무 길면 "..." 축약
+					size_t Len = CachedActorName.length();
+
+					// "..." 제외한 텍스트 길이를 줄여가며 맞춤
+					while (Len > 3)
+					{
+						std::string Truncated = CachedActorName.substr(0, Len - 3) + "...";
+						ImVec2 TruncatedSize = ImGui::CalcTextSize(Truncated.c_str());
+						if (TruncatedSize.x <= MaxTextWidth)
+						{
+							(void)snprintf(TruncatedActorName, sizeof(TruncatedActorName), "%s", Truncated.c_str());
+							break;
+						}
+						Len--;
+					}
+					DisplayText = TruncatedActorName;
+				}
+				else
+				{
+					DisplayText = CachedActorName.c_str();
+				}
+			}
+
 			constexpr float RightViewTypeButtonHeight = 24.0f;
-			constexpr float RightViewTypeIconSize = 16.0f;
-			constexpr float RightViewTypePadding = 4.0f;
 
 			ImVec2 RightViewTypeButtonPos = ImGui::GetCursorScreenPos();
 			ImGui::InvisibleButton("##RightViewTypeButton", ImVec2(RightViewTypeButtonWidth, RightViewTypeButtonHeight));
 			bool bRightViewTypeClicked = ImGui::IsItemClicked();
 			bool bRightViewTypeHovered = ImGui::IsItemHovered();
 
-			// 버튼 배경 그리기
+			// 버튼 배경 그리기 (파일럿 모드면 강조 색상)
 			ImDrawList* RightViewTypeDrawList = ImGui::GetWindowDrawList();
-			ImU32 RightViewTypeBgColor = bRightViewTypeHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
+			ImU32 RightViewTypeBgColor;
+			if (bInPilotMode)
+			{
+				RightViewTypeBgColor = bRightViewTypeHovered ? IM_COL32(40, 60, 80, 255) : IM_COL32(30, 50, 70, 255);
+			}
+			else
+			{
+				RightViewTypeBgColor = bRightViewTypeHovered ? IM_COL32(26, 26, 26, 255) : IM_COL32(0, 0, 0, 255);
+			}
 			if (ImGui::IsItemActive())
 			{
-				RightViewTypeBgColor = IM_COL32(38, 38, 38, 255);
+				RightViewTypeBgColor = bInPilotMode ? IM_COL32(50, 70, 90, 255) : IM_COL32(38, 38, 38, 255);
 			}
 			RightViewTypeDrawList->AddRectFilled(RightViewTypeButtonPos, ImVec2(RightViewTypeButtonPos.x + RightViewTypeButtonWidth, RightViewTypeButtonPos.y + RightViewTypeButtonHeight), RightViewTypeBgColor, 4.0f);
-			RightViewTypeDrawList->AddRect(RightViewTypeButtonPos, ImVec2(RightViewTypeButtonPos.x + RightViewTypeButtonWidth, RightViewTypeButtonPos.y + RightViewTypeButtonHeight), IM_COL32(96, 96, 96, 255), 4.0f);
+			RightViewTypeDrawList->AddRect(RightViewTypeButtonPos, ImVec2(RightViewTypeButtonPos.x + RightViewTypeButtonWidth, RightViewTypeButtonPos.y + RightViewTypeButtonHeight), bInPilotMode ? IM_COL32(100, 150, 200, 255) : IM_COL32(96, 96, 96, 255), 4.0f);
 
 			// 아이콘 그리기
 			if (RightViewTypeIcon && RightViewTypeIcon->GetTextureSRV())
@@ -496,7 +563,7 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 
 			// 텍스트 그리기
 			const ImVec2 RightViewTypeTextPos = ImVec2(RightViewTypeButtonPos.x + RightViewTypePadding + RightViewTypeIconSize + RightViewTypePadding, RightViewTypeButtonPos.y + (RightViewTypeButtonHeight - ImGui::GetTextLineHeight()) * 0.5f);
-			RightViewTypeDrawList->AddText(RightViewTypeTextPos, IM_COL32(220, 220, 220, 255), ViewTypeLabels[CurrentViewTypeIndex]);
+			RightViewTypeDrawList->AddText(RightViewTypeTextPos, bInPilotMode ? IM_COL32(180, 220, 255, 255) : IM_COL32(220, 220, 220, 255), DisplayText);
 
 			if (bRightViewTypeClicked)
 			{
@@ -508,6 +575,22 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 			{
 				ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
+				// 파일럿 모드 항목 (최상단, 선택된 상태로 표시)
+				if (bInPilotMode && PilotedActor && !CachedActorName.empty())
+				{
+					if (IconPerspective && IconPerspective->GetTextureSRV())
+					{
+						ImGui::Image((ImTextureID)IconPerspective->GetTextureSRV(), ImVec2(16, 16));
+						ImGui::SameLine();
+					}
+
+					// 선택된 상태로 표시 (체크마크) - CachedActorName 사용
+					ImGui::MenuItem(CachedActorName.c_str(), nullptr, true, false); // 선택됨, 비활성화
+
+					ImGui::Separator();
+				}
+
+				// 일반 ViewType 항목들
 				for (int i = 0; i < IM_ARRAYSIZE(ViewTypeLabels); ++i)
 				{
 					if (ViewTypeIcons[i] && ViewTypeIcons[i]->GetTextureSRV())
@@ -516,8 +599,15 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 						ImGui::SameLine();
 					}
 
-					if (ImGui::MenuItem(ViewTypeLabels[i], nullptr, i == CurrentViewTypeIndex))
+					bool bIsCurrentViewType = (i == CurrentViewTypeIndex && !bInPilotMode);
+					if (ImGui::MenuItem(ViewTypeLabels[i], nullptr, bIsCurrentViewType))
 					{
+						// ViewType 변경 시 파일럿 모드 종료
+						if (bInPilotMode && Editor)
+						{
+							Editor->RequestExitPilotMode();
+						}
+
 						EViewType NewType = static_cast<EViewType>(i);
 						Clients[ViewportIndex]->SetViewType(NewType);
 						UE_LOG("ViewportControlWidget: Viewport[%d]의 ViewType을 %s로 변경",
@@ -531,6 +621,15 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 		}
 
 		ImGui::SameLine(0.0f, RightButtonSpacing);
+
+		// 파일럿 모드 Exit 버튼 (ViewType 버튼 옆)
+		if (IsPilotModeActive(ViewportIndex))
+		{
+			ImVec2 ExitButtonCursorPos = ImGui::GetCursorScreenPos();
+			RenderPilotModeExitButton(ViewportIndex, ExitButtonCursorPos);
+			ImGui::SetCursorScreenPos(ExitButtonCursorPos);
+			ImGui::SameLine(0.0f, RightButtonSpacing);
+		}
 
 		// 우측 버튼 2: 카메라 속도 (아이콘 + 숫자 표시)
 		if (IconCamera && IconCamera->GetTextureSRV())
@@ -803,5 +902,75 @@ void UViewportControlWidget::RenderViewportToolbar(int32 ViewportIndex)
 	ImGui::PopID();
 }
 
+bool UViewportControlWidget::IsPilotModeActive(int32 ViewportIndex) const
+{
+	if (!GEditor)
+	{
+		return false;
+	}
 
+	UEditor* Editor = GEditor->GetEditorModule();
+	if (!Editor || !Editor->IsPilotMode())
+	{
+		return false;
+	}
 
+	// 현재 뷰포트가 파일럿 모드를 사용 중인지 확인
+	auto& ViewportManager = UViewportManager::GetInstance();
+	return (ViewportManager.GetLastClickedViewportIndex() == ViewportIndex);
+}
+
+void UViewportControlWidget::RenderPilotModeExitButton(int32 ViewportIndex, ImVec2& InOutCursorPos)
+{
+	if (!GEditor)
+	{
+		return;
+	}
+
+	UEditor* Editor = GEditor->GetEditorModule();
+	if (!Editor || !Editor->IsPilotMode())
+	{
+		return;
+	}
+
+	// △ 아이콘 버튼 (파일럿 모드 종료)
+	constexpr float ExitButtonSize = 24.0f;
+	constexpr float TriangleSize = 8.0f;
+
+	ImVec2 ExitButtonPos = InOutCursorPos;
+	ImGui::SetCursorScreenPos(ExitButtonPos);
+	ImGui::InvisibleButton("##PilotModeExit", ImVec2(ExitButtonSize, ExitButtonSize));
+	bool bExitClicked = ImGui::IsItemClicked();
+	bool bExitHovered = ImGui::IsItemHovered();
+
+	// 버튼 배경
+	ImDrawList* DrawList = ImGui::GetWindowDrawList();
+	ImU32 BgColor = bExitHovered ? IM_COL32(60, 40, 40, 255) : IM_COL32(40, 20, 20, 255);
+	if (ImGui::IsItemActive())
+	{
+		BgColor = IM_COL32(80, 50, 50, 255);
+	}
+	DrawList->AddRectFilled(ExitButtonPos, ImVec2(ExitButtonPos.x + ExitButtonSize, ExitButtonPos.y + ExitButtonSize), BgColor, 4.0f);
+	DrawList->AddRect(ExitButtonPos, ImVec2(ExitButtonPos.x + ExitButtonSize, ExitButtonPos.y + ExitButtonSize), IM_COL32(160, 80, 80, 255), 4.0f);
+
+	// △ 아이콘 그리기 (Eject 느낌)
+	ImVec2 Center = ImVec2(ExitButtonPos.x + ExitButtonSize * 0.5f, ExitButtonPos.y + ExitButtonSize * 0.5f);
+	ImVec2 P1 = ImVec2(Center.x, Center.y - TriangleSize * 0.6f);
+	ImVec2 P2 = ImVec2(Center.x - TriangleSize * 0.5f, Center.y + TriangleSize * 0.4f);
+	ImVec2 P3 = ImVec2(Center.x + TriangleSize * 0.5f, Center.y + TriangleSize * 0.4f);
+	DrawList->AddTriangleFilled(P1, P2, P3, IM_COL32(220, 180, 180, 255));
+
+	if (bExitClicked)
+	{
+		Editor->RequestExitPilotMode();
+		UE_LOG_INFO("ViewportControlWidget: Pilot mode exited via UI button");
+	}
+
+	if (bExitHovered)
+	{
+		ImGui::SetTooltip("Exit Pilot Mode (Alt + G)");
+	}
+
+	// 커서 위치 업데이트 (다음 버튼 배치용)
+	InOutCursorPos.x += ExitButtonSize + 6.0f;
+}

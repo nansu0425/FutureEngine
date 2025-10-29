@@ -17,11 +17,6 @@ UObject* UAmbientLightComponent::Duplicate()
 	return AmbientLightComponent;
 }
 
-void  UAmbientLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
-{
-	Super::DuplicateSubObjects(DuplicatedObject);
-}
-
 UClass* UAmbientLightComponent::GetSpecificWidgetClass() const
 {
 	return UAmbientLightComponentWidget::StaticClass();

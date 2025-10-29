@@ -14,24 +14,6 @@
 #include "Manager/Input/Public/InputManager.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Utility/Public/JsonSerializer.h"
-#include "Global/Enum.h"
-namespace
-{
-	template <typename T>
-	constexpr T Lerp(const T& A, const T& B, const T& Alpha)
-	{
-		return A + (B - A) * Alpha;
-	}
-
-	void SyncEditorViewMode(EViewModeIndex InMode)
-	{
-		if (UEditor* Editor = GEditor->GetEditorModule())
-		{
-			Editor->SetViewMode(InMode);
-		}
-	}
-}
-
 
 IMPLEMENT_SINGLETON_CLASS(UViewportManager,UObject)
 

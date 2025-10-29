@@ -1015,6 +1015,7 @@ void URenderer::RenderLevel(FViewport* InViewport, int32 ViewportIndex)
 		InViewport->GetRenderRect(),
 		{DeviceResources->GetViewportInfo().Width, DeviceResources->GetViewportInfo().Height}
 		);
+
 	// 1. Sort visible primitive components
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
 	for (auto& Prim : FinalVisiblePrims)
@@ -1029,7 +1030,20 @@ void URenderer::RenderLevel(FViewport* InViewport, int32 ViewportIndex)
 		}
 		else if (auto EditorIcon = Cast<UEditorIconComponent>(Prim))
 		{
-			RenderingContext.EditorIcons.push_back(EditorIcon);
+			// Pilot Mode: 현재 조종 중인 Actor의 아이콘은 렌더링 스킵
+			UEditor* Editor = GEditor ? GEditor->GetEditorModule() : nullptr;
+			bool bShouldSkip = false;
+
+			if (Editor && Editor->IsPilotMode() && Editor->GetPilotedActor())
+			{
+				AActor* OwnerActor = EditorIcon->GetTypedOuter<AActor>();
+				bShouldSkip = (OwnerActor == Editor->GetPilotedActor());
+			}
+
+			if (!bShouldSkip)
+			{
+				RenderingContext.EditorIcons.push_back(EditorIcon);
+			}
 		}
 		else if (auto Text = Cast<UTextComponent>(Prim))
 		{
@@ -1307,7 +1321,20 @@ void URenderer::RenderHitProxyPass(UCamera* InCamera, const D3D11_VIEWPORT& InVi
 		}
 		else if (auto EditorIcon = Cast<UEditorIconComponent>(Prim))
 		{
-			Context.EditorIcons.push_back(EditorIcon);
+			// Pilot Mode: 현재 조종 중인 Actor의 아이콘은 렌더링 스킵
+			// Outer 체인을 타고 올라가며 AActor 찾기
+			UEditor* Editor = GEditor ? GEditor->GetEditorModule() : nullptr;
+			bool bShouldSkip = false;
+			if (Editor && Editor->IsPilotMode() && Editor->GetPilotedActor())
+			{
+				AActor* OwnerActor = EditorIcon->GetTypedOuter<AActor>();
+				bShouldSkip = (OwnerActor == Editor->GetPilotedActor());
+			}
+
+			if (!bShouldSkip)
+			{
+				Context.EditorIcons.push_back(EditorIcon);
+			}
 		}
 		else if (auto BillBoard = Cast<UBillBoardComponent>(Prim))
 		{

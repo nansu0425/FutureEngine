@@ -55,6 +55,30 @@ UObject* ULightComponent::Duplicate()
 void ULightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 {
 	Super::DuplicateSubObjects(DuplicatedObject);
+
+	ULightComponent* DuplicatedLight = Cast<ULightComponent>(DuplicatedObject);
+	if (!DuplicatedLight)
+	{
+		return;
+	}
+
+	// VisualizationIcon 복사
+	if (VisualizationIcon)
+	{
+		UEditorIconComponent* DuplicatedIcon = Cast<UEditorIconComponent>(VisualizationIcon->Duplicate());
+		if (DuplicatedIcon)
+		{
+			DuplicatedIcon->SetOwner(DuplicatedLight->GetOwner());
+			DuplicatedIcon->AttachToComponent(DuplicatedLight);
+			DuplicatedLight->SetEditorIconComponent(DuplicatedIcon);
+
+			// Owner Actor에 등록
+			if (AActor* OwnerActor = DuplicatedLight->GetOwner())
+			{
+				OwnerActor->RegisterComponent(DuplicatedIcon);
+			}
+		}
+	}
 }
 
 
