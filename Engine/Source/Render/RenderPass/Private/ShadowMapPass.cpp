@@ -7,6 +7,11 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/PointLightComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/RenderPass/Public/PSMCalculator.h"
+
+// Include PSM implementation files directly to avoid vcxproj modification
+#include "Render/RenderPass/Private/PSMBounding.cpp"
+#include "Render/RenderPass/Private/PSMCalculator.cpp"
 
 #define MAX_LIGHT_NUM 8
 #define X_OFFSET 1024.0f
@@ -352,33 +357,52 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
+	// Check if PSM mode is enabled
+	uint8 ProjectionMode = Light->GetShadowProjectionMode();
+	bool bUsePSM = (ProjectionMode == 1);  // 1 = PSM mode
+
 	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
-	FCascadeShadowMapData CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+	FCascadeShadowMapData CascadeShadowMapData;
+
+	if (bUsePSM)
+	{
+		// PSM Mode: Single shadow map with perspective projection
+		CascadeShadowMapData.SplitNum = 1;
+
+		// Calculate PSM view-projection
+		FMatrix LightView, LightProj;
+		CalculateDirectionalLightViewProj(Light, Meshes, InCamera, LightView, LightProj);
+
+		CascadeShadowMapData.View = LightView;
+		CascadeShadowMapData.Proj[0] = LightProj;
+		CascadeShadowMapData.SplitDistance[0] = FVector4(InCamera->GetFarZ(), 0, 0, 0);
+	}
+	else
+	{
+		// Uniform Mode: Use cascade shadow mapping
+		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+	}
 
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantCascadeData, CascadeShadowMapData);
 	Pipeline->SetConstantBuffer(6, EShaderType::VS | EShaderType::PS, ConstantCascadeData);
-	
-	for (int i = 0; i < CascadeManager.GetSplitNum(); i++)
+
+	int NumCascades = bUsePSM ? 1 : CascadeManager.GetSplitNum();
+
+	for (int i = 0; i < NumCascades; i++)
 	{
 		D3D11_VIEWPORT ShadowViewport;
-	
+
 		ShadowViewport.Width = Light->GetShadowResolutionScale();
 		ShadowViewport.Height = Light->GetShadowResolutionScale();
 		ShadowViewport.MinDepth = 0.0f;
 		ShadowViewport.MaxDepth = 1.0f;
 		ShadowViewport.TopLeftX = SHADOW_MAP_RESOLUTION * i;
 		ShadowViewport.TopLeftY = 0.0f;
-	
+
 		DeviceContext->RSSetViewports(1, &ShadowViewport);
 
 		ShadowAtlasDirectionalLightTilePosArray[i] = {{static_cast<uint32>(i), 0}, {}};
 
-		// 4. Light view-projection 계산
-		// FMatrix LightView, LightProj;
-		// CalculateDirectionalLightViewProj(Light, Meshes, LightView, LightProj);
-
-		// Store the calculated shadow view-projection matrix in the light component
-		//FMatrix LightViewProj = LightView * LightProj;
 		FMatrix LightView = CascadeShadowMapData.View;
 		FMatrix LightProj = CascadeShadowMapData.Proj[i];
 		FMatrix LightViewProj = LightView * LightProj;
@@ -676,106 +700,46 @@ void FShadowMapPass::SetShadowAtlasTilePositionStructuredBuffer()
 }
 
 void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponent* Light,
-	const TArray<UStaticMeshComponent*>& Meshes, FMatrix& OutView, FMatrix& OutProj)
+	const TArray<UStaticMeshComponent*>& Meshes, UCamera* InCamera, FMatrix& OutView, FMatrix& OutProj)
 {
-	// 1. 모든 메시의 AABB를 포함하는 bounding box 계산
-	FVector MinBounds(FLT_MAX, FLT_MAX, FLT_MAX);
-	FVector MaxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-	bool bHasValidMeshes = false;
-	for (auto Mesh : Meshes)
+	// PSM (Perspective Shadow Map) Implementation
+	if (!InCamera)
 	{
-		if (!Mesh->IsVisible())
-			continue;
-
-		// 메시의 world AABB 가져오기
-		FVector WorldMin, WorldMax;
-		Mesh->GetWorldAABB(WorldMin, WorldMax);
-
-		MinBounds.X = std::min(MinBounds.X, WorldMin.X);
-		MinBounds.Y = std::min(MinBounds.Y, WorldMin.Y);
-		MinBounds.Z = std::min(MinBounds.Z, WorldMin.Z);
-
-		MaxBounds.X = std::max(MaxBounds.X, WorldMax.X);
-		MaxBounds.Y = std::max(MaxBounds.Y, WorldMax.Y);
-		MaxBounds.Z = std::max(MaxBounds.Z, WorldMax.Z);
-
-		bHasValidMeshes = true;
-	}
-
-	// 메시가 없으면 기본 행렬 반환
-	if (!bHasValidMeshes)
-	{
+		// Fallback to identity if no camera
 		OutView = FMatrix::Identity();
 		OutProj = FMatrix::Identity();
 		return;
 	}
 
-	// 2. Light direction 기준으로 view matrix 생성
+	// Get light direction
 	FVector LightDir = Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);
 	else
 		LightDir = LightDir.GetNormalized();
 
-	FVector SceneCenter = (MinBounds + MaxBounds) * 0.5f;
-	float SceneRadius = (MaxBounds - MinBounds).Length() * 0.5f;
+	// Setup PSM parameters from light component
+	FPSMParameters Params;
+	Params.MinInfinityZ = Light->GetPSMMinInfinityZ();
+	Params.bUnitCubeClip = Light->GetPSMUnitCubeClip();
+	Params.bSlideBackEnabled = Light->GetPSMSlideBackEnabled();
 
-	// Light position은 scene 중심에서 light direction 반대로 충분히 멀리
-	FVector LightPos = SceneCenter - LightDir * (SceneRadius + 50.0f);
+	// Get shadow projection mode (0=Uniform, 1=PSM, 2=LSPSM, 3=TSM)
+	EShadowProjectionMode Mode = static_cast<EShadowProjectionMode>(Light->GetShadowProjectionMode());
 
-	// Up vector 계산 (Z-Up, X-Forward, Y-Right Left-Handed 좌표계)
-	FVector Up = FVector(0, 0, 1);  // Z-Up
-	if (std::abs(LightDir.Z) > 0.99f)  // Light가 거의 수직(Z축과 평행)이면
-		Up = FVector(1, 0, 0);  // X-Forward를 fallback으로
+	// Convert TArray to std::vector for PSM calculator
+	std::vector<UStaticMeshComponent*> MeshesVec(Meshes.begin(), Meshes.end());
 
-	OutView = ShadowMatrixHelper::CreateLookAtLH(LightPos, SceneCenter, Up);
-
-	// 3. AABB를 light view space로 변환하여 orthographic projection 범위 계산
-	FVector LightSpaceMin(FLT_MAX, FLT_MAX, FLT_MAX);
-	FVector LightSpaceMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-	// AABB의 8개 코너를 light view space로 변환
-	FVector Corners[8] = {
-		FVector(MinBounds.X, MinBounds.Y, MinBounds.Z),
-		FVector(MaxBounds.X, MinBounds.Y, MinBounds.Z),
-		FVector(MinBounds.X, MaxBounds.Y, MinBounds.Z),
-		FVector(MaxBounds.X, MaxBounds.Y, MinBounds.Z),
-		FVector(MinBounds.X, MinBounds.Y, MaxBounds.Z),
-		FVector(MaxBounds.X, MinBounds.Y, MaxBounds.Z),
-		FVector(MinBounds.X, MaxBounds.Y, MaxBounds.Z),
-		FVector(MaxBounds.X, MaxBounds.Y, MaxBounds.Z)
-	};
-
-	for (int i = 0; i < 8; i++)
-	{
-		FVector LightSpaceCorner = OutView.TransformPosition(Corners[i]);
-
-		LightSpaceMin.X = std::min(LightSpaceMin.X, LightSpaceCorner.X);
-		LightSpaceMin.Y = std::min(LightSpaceMin.Y, LightSpaceCorner.Y);
-		LightSpaceMin.Z = std::min(LightSpaceMin.Z, LightSpaceCorner.Z);
-
-		LightSpaceMax.X = std::max(LightSpaceMax.X, LightSpaceCorner.X);
-		LightSpaceMax.Y = std::max(LightSpaceMax.Y, LightSpaceCorner.Y);
-		LightSpaceMax.Z = std::max(LightSpaceMax.Z, LightSpaceCorner.Z);
-	}
-
-	// 4. Orthographic projection 생성
-	// Scene 크기에 비례한 padding 사용 (씬이 크면 padding도 크게)
-	float SceneSizeZ = LightSpaceMax.Z - LightSpaceMin.Z;
-	float Padding = std::max(SceneSizeZ * 0.5f, 50.0f);  // 최소 50, 씬 깊이의 50%
-
-	float Left = LightSpaceMin.X;
-	float Right = LightSpaceMax.X;
-	float Bottom = LightSpaceMin.Y;
-	float Top = LightSpaceMax.Y;
-	float Near = LightSpaceMin.Z - Padding;
-	float Far = LightSpaceMax.Z + Padding;
-
-	// Near는 음수가 되면 안됨 (orthographic에서는 괜찮지만, 안전을 위해)
-	Near = std::max(Near, 0.1f);
-
-	OutProj = ShadowMatrixHelper::CreateOrthoLH(Left, Right, Bottom, Top, Near, Far);
+	// Calculate shadow projection using PSM algorithm
+	FPSMCalculator::CalculateShadowProjection(
+		Mode,
+		OutView,
+		OutProj,
+		LightDir,
+		InCamera,
+		MeshesVec,
+		Params
+	);
 }
 
 void FShadowMapPass::CalculateSpotLightViewProj(USpotLightComponent* Light,

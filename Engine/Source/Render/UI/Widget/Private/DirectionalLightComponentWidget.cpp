@@ -208,6 +208,83 @@ void UDirectionalLightComponentWidget::RenderWidget()
 			}
 			ImGui::EndCombo();
 		}
+
+		// Shadow Projection Mode (PSM)
+		ImGui::Separator();
+		ImGui::Text("Shadow Projection Settings");
+
+		uint8 CurrentProjectionMode = DirectionalLightComponent->GetShadowProjectionMode();
+		const char* ProjectionModeNames[] = { "Uniform (Standard)", "PSM", "LSPSM (WIP)", "TSM (WIP)" };
+		const char* CurrentProjectionModeName = ProjectionModeNames[CurrentProjectionMode];
+
+		if (ImGui::BeginCombo("Projection Mode", CurrentProjectionModeName))
+		{
+			for (int i = 0; i < IM_ARRAYSIZE(ProjectionModeNames); ++i)
+			{
+				bool bIsSelected = (CurrentProjectionMode == i);
+				if (ImGui::Selectable(ProjectionModeNames[i], bIsSelected))
+				{
+					DirectionalLightComponent->SetShadowProjectionMode(static_cast<uint8>(i));
+				}
+
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Shadow Projection Algorithm:\n"
+				"Uniform: Standard orthographic shadow mapping\n"
+				"PSM: Perspective Shadow Map (reduces perspective aliasing)\n"
+				"LSPSM/TSM: Advanced algorithms (not yet implemented)");
+		}
+
+		// PSM-specific settings (only show when PSM is selected)
+		if (CurrentProjectionMode == 1)  // PSM
+		{
+			ImGui::Indent();
+
+			bool bSlideBackEnabled = DirectionalLightComponent->GetPSMSlideBackEnabled();
+			if (ImGui::Checkbox("Enable Slide-back", &bSlideBackEnabled))
+			{
+				DirectionalLightComponent->SetPSMSlideBackEnabled(bSlideBackEnabled);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Avoid infinity plane singularity by sliding virtual camera back");
+			}
+
+			if (bSlideBackEnabled)
+			{
+				float MinInfinityZ = DirectionalLightComponent->GetPSMMinInfinityZ();
+				if (ImGui::DragFloat("Min Infinity Z", &MinInfinityZ, 0.1f, 1.0f, 10.0f))
+				{
+					DirectionalLightComponent->SetPSMMinInfinityZ(MinInfinityZ);
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("Minimum distance to infinity plane\n"
+						"Higher values = more slide-back (more stable, less precision)\n"
+						"Range: 1.0 ~ 10.0");
+				}
+			}
+
+			bool bUnitCubeClip = DirectionalLightComponent->GetPSMUnitCubeClip();
+			if (ImGui::Checkbox("Unit Cube Clipping", &bUnitCubeClip))
+			{
+				DirectionalLightComponent->SetPSMUnitCubeClip(bUnitCubeClip);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Optimize shadow map by clipping to visible receivers\n"
+					"Recommended: ON (better quality)");
+			}
+
+			ImGui::Unindent();
+		}
     }
 
     if (ImGui::Button("Override Camera With Light's Perspective"))
