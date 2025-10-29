@@ -353,36 +353,48 @@ void FShadowMapPass::RenderDirectionalShadowMap(
 	};
 	Pipeline->UpdatePipeline(ShadowPipelineInfo);
 
-	// PSM 모드가 활성화되어 있는지 확인
+	// 그림자 매핑 모드 확인
+	// 0 = Uniform SM (단일), 1 = PSM (단일), 2 = CSM (캐스케이드)
 	uint8 ProjectionMode = Light->GetShadowProjectionMode();
-	bool bUsePSM = (ProjectionMode == 1);  // 1 = PSM 모드
 
 	UCascadeManager& CascadeManager = UCascadeManager::GetInstance();
 	FCascadeShadowMapData CascadeShadowMapData;
+	int NumCascades = 1;
 
-	if (bUsePSM)
+	// CSM split 수 임시 저장
+	int32 OriginalSplitNum = CascadeManager.GetSplitNum();
+
+	if (ProjectionMode == 2)
 	{
-		// PSM 모드: 원근 투영을 사용하는 단일 그림자 맵
+		// 모드 2: Cascaded Shadow Maps (다중 캐스케이드)
+		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+		NumCascades = OriginalSplitNum;
+	}
+	else if (ProjectionMode == 1)
+	{
+		// 모드 1: PSM (단일 원근 그림자 맵)
 		CascadeShadowMapData.SplitNum = 1;
 
-		// PSM 뷰-투영 계산
 		FMatrix LightView, LightProj;
 		CalculateDirectionalLightViewProj(Light, Meshes, InCamera, LightView, LightProj);
 
 		CascadeShadowMapData.View = LightView;
 		CascadeShadowMapData.Proj[0] = LightProj;
 		CascadeShadowMapData.SplitDistance[0] = FVector4(InCamera->GetFarZ(), 0, 0, 0);
+		NumCascades = 1;
 	}
-	else
+	else  // ProjectionMode == 0
 	{
-		// Uniform 모드: 캐스케이드 그림자 매핑 사용
+		// 모드 0: Uniform Shadow Map (단일 직교 그림자 맵)
+		// CSM을 사용하되 캐스케이드 수를 1로 설정
+		CascadeManager.SetSplitNum(1);
 		CascadeShadowMapData = CascadeManager.GetCascadeShadowMapData(InCamera, Light);
+		CascadeManager.SetSplitNum(OriginalSplitNum);  // 복원
+		NumCascades = 1;
 	}
 
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantCascadeData, CascadeShadowMapData);
 	Pipeline->SetConstantBuffer(6, EShaderType::VS | EShaderType::PS, ConstantCascadeData);
-
-	int NumCascades = bUsePSM ? 1 : CascadeManager.GetSplitNum();
 
 	for (int i = 0; i < NumCascades; i++)
 	{
@@ -708,8 +720,8 @@ void FShadowMapPass::CalculateDirectionalLightViewProj(UDirectionalLightComponen
 	}
 
 	// 빛 방향 가져오기
-	// 참고: DirectionalLight의 forward 벡터는 실제 빛 방향의 반대
-	// (CascadeManager에서 180도 회전 적용됨 - line 90 참조)
+	// 참고: PSM 계산에서는 "빛의 반대 방향"이 필요함 (빛이 오는 방향)
+	// GetForwardVector()는 빛이 나아가는 방향이므로 음수로 반전
 	FVector LightDir = -Light->GetForwardVector();
 	if (LightDir.Length() < 1e-6f)
 		LightDir = FVector(0, 0, -1);

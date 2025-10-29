@@ -209,15 +209,15 @@ void UDirectionalLightComponentWidget::RenderWidget()
 			ImGui::EndCombo();
 		}
 
-		// 그림자 투영 모드 (PSM)
+		// 그림자 매핑 방식 선택
 		ImGui::Separator();
-		ImGui::Text("그림자 투영 설정");
+		ImGui::Text("그림자 매핑 방식");
 
 		uint8 CurrentProjectionMode = DirectionalLightComponent->GetShadowProjectionMode();
-		const char* ProjectionModeNames[] = { "Uniform (표준)", "PSM", "LSPSM (개발중)", "TSM (개발중)" };
+		const char* ProjectionModeNames[] = { "Uniform SM (단일)", "PSM (단일)", "CSM (캐스케이드)" };
 		const char* CurrentProjectionModeName = ProjectionModeNames[CurrentProjectionMode];
 
-		if (ImGui::BeginCombo("투영 모드", CurrentProjectionModeName))
+		if (ImGui::BeginCombo("투영 방식", CurrentProjectionModeName))
 		{
 			for (int i = 0; i < IM_ARRAYSIZE(ProjectionModeNames); ++i)
 			{
@@ -236,10 +236,16 @@ void UDirectionalLightComponentWidget::RenderWidget()
 		}
 		if (ImGui::IsItemHovered())
 		{
-			ImGui::SetTooltip("그림자 투영 알고리즘:\n"
-				"Uniform: 표준 직교 그림자 매핑\n"
-				"PSM: 원근 그림자 맵 (원근 앨리어싱 감소)\n"
-				"LSPSM/TSM: 고급 알고리즘 (아직 미구현)");
+			ImGui::SetTooltip("그림자 매핑 방식:\n\n"
+				"[0] Uniform SM (단일): 단일 직교 투영 그림자 맵\n"
+				"    - 간단하고 안정적\n"
+				"    - 품질: 낮음\n\n"
+				"[1] PSM (단일): 단일 원근 투영 그림자 맵\n"
+				"    - 카메라 근처 해상도 향상\n"
+				"    - 품질: 중간, 실험적\n\n"
+				"[2] CSM (캐스케이드): 다중 Uniform 그림자 맵\n"
+				"    - 거리별 캐스케이드 분할 (8개)\n"
+				"    - 품질: 높음, 추천");
 		}
 
 		// PSM 전용 설정 (PSM 선택 시에만 표시)
@@ -266,9 +272,7 @@ void UDirectionalLightComponentWidget::RenderWidget()
 				}
 				if (ImGui::IsItemHovered())
 				{
-					ImGui::SetTooltip("무한 평면까지의 최소 거리\n"
-						"높은 값 = 더 많은 슬라이드 백 (안정적이지만 정밀도 낮음)\n"
-						"범위: 1.0 ~ 10.0");
+					ImGui::SetTooltip("무한 평면까지의 최소 거리");
 				}
 			}
 
@@ -279,8 +283,7 @@ void UDirectionalLightComponentWidget::RenderWidget()
 			}
 			if (ImGui::IsItemHovered())
 			{
-				ImGui::SetTooltip("보이는 리시버에 맞춰 그림자 맵 최적화\n"
-					"권장: ON (품질 향상)");
+				ImGui::SetTooltip("보이는 리시버에 맞춰 그림자 맵 최적화");
 			}
 
 			ImGui::Unindent();
