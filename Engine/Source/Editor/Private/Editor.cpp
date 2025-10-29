@@ -459,42 +459,55 @@ void UEditor::ProcessMouseInput()
 						{
 							if (USceneComponent* Parent = ScenePrim->GetAttachParent())
 							{
-								// 부모 컴포넌트를 선택
 								ComponentToSelect = Parent;
 							}
 						}
 					}
 
-					// 더블 클릭: Component 선택 (실제 클릭한 Component)
-					// 단일 클릭:
-					// - Actor 선택 상태: Actor 선택 유지
-					// - Component 선택 상태: 같은 Actor면 Component 전환, 다른 Actor면 Actor 선택
 					if (bIsDoubleClick)
 					{
-						// 더블클릭: Component 선택 모드로 진입
+						// 더블클릭: Component 피킹 모드로 진입
 						SelectActorAndComponent(ActorPicked, ComponentToSelect);
 						bIsActorSelected = false;
 					}
 					else // bIsSingleClick
 					{
-						if (bIsActorSelected)
+						AActor* CurrentSelectedActor = GetSelectedActor();
+
+						if (!CurrentSelectedActor)
 						{
-							// Actor 선택 상태에서 단일 클릭: Actor 선택 유지
+							// 선택 없음 상태: Actor 선택
 							SelectActor(ActorPicked);
 							bIsActorSelected = true;
 						}
+						else if (bIsActorSelected)
+						{
+							// Actor 선택 상태에서 단일 클릭
+							if (CurrentSelectedActor == ActorPicked)
+							{
+								// 같은 Actor: Actor 선택 유지
+								SelectActor(ActorPicked);
+								bIsActorSelected = true;
+							}
+							else
+							{
+								// 다른 Actor: 새로운 Actor 선택
+								SelectActor(ActorPicked);
+								bIsActorSelected = true;
+							}
+						}
 						else
 						{
-							// Component 선택 상태에서 단일 클릭
-							if (GetSelectedActor() == ActorPicked)
+							// Component 피킹 모드에서 단일 클릭
+							if (CurrentSelectedActor == ActorPicked)
 							{
-								// 같은 Actor: Component 전환
+								// 같은 Actor 내 컴포넌트: Component 전환
 								SelectActorAndComponent(ActorPicked, ComponentToSelect);
 								bIsActorSelected = false;
 							}
 							else
 							{
-								// 다른 Actor: Actor 선택으로 전환
+								// 다른 Actor: Component 피킹 모드 해제 -> Actor 선택
 								SelectActor(ActorPicked);
 								bIsActorSelected = true;
 							}
@@ -503,6 +516,7 @@ void UEditor::ProcessMouseInput()
 				}
 				else
 				{
+					// 빈 공간 클릭: 선택 해제
 					SelectActor(nullptr);
 					bIsActorSelected = true;
 				}
