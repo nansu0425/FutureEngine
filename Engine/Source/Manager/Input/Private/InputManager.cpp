@@ -75,6 +75,7 @@ void UInputManager::InitializeKeyMapping()
 		EKeyInput Key = static_cast<EKeyInput>(i);
 		CurrentKeyState[Key] = false;
 		PreviousKeyState[Key] = false;
+		PendingMouseState[Key] = false;
 	}
 }
 
@@ -100,6 +101,11 @@ void UInputManager::Update(const FAppWindow* InWindow)
 {
 	// 이전 프레임 상태를 현재 프레임 상태로 복사
 	PreviousKeyState = CurrentKeyState;
+
+	// 대기 중인 마우스 상태를 현재 프레임에 적용
+	CurrentKeyState[EKeyInput::MouseLeft] = PendingMouseState[EKeyInput::MouseLeft];
+	CurrentKeyState[EKeyInput::MouseRight] = PendingMouseState[EKeyInput::MouseRight];
+	CurrentKeyState[EKeyInput::MouseMiddle] = PendingMouseState[EKeyInput::MouseMiddle];
 
 	// 윈도우가 포커스를 잃었을 때는 입력 처리를 중단
 	if (!bIsWindowFocused)
@@ -239,7 +245,7 @@ void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LP
 	{
 	case WM_LBUTTONDOWN:
 		{
-			CurrentKeyState[EKeyInput::MouseLeft] = true;
+			PendingMouseState[EKeyInput::MouseLeft] = true;
 
 			// Double click
 			float CurrentTime = static_cast<float>(GetTickCount64()) / 1000.0f;
@@ -266,12 +272,12 @@ void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LP
 		break;
 
 	case WM_LBUTTONUP:
-		CurrentKeyState[EKeyInput::MouseLeft] = false;
+		PendingMouseState[EKeyInput::MouseLeft] = false;
 		break;
 
 	case WM_RBUTTONDOWN:
 		{
-			CurrentKeyState[EKeyInput::MouseRight] = true;
+			PendingMouseState[EKeyInput::MouseRight] = true;
 
 			// Double click
 			float CurrentTime = static_cast<float>(GetTickCount64()) / 1000.0f;
@@ -298,12 +304,12 @@ void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LP
 		break;
 
 	case WM_RBUTTONUP:
-		CurrentKeyState[EKeyInput::MouseRight] = false;
+		PendingMouseState[EKeyInput::MouseRight] = false;
 		break;
 
 	case WM_MBUTTONDOWN:
 		{
-			CurrentKeyState[EKeyInput::MouseMiddle] = true;
+			PendingMouseState[EKeyInput::MouseMiddle] = true;
 
 			// Double click
 			float CurrentTime = static_cast<float>(GetTickCount64()) / 1000.0f;
@@ -330,7 +336,7 @@ void UInputManager::ProcessKeyMessage(uint32 InMessage, WPARAM WParam, LPARAM LP
 		break;
 
 	case WM_MBUTTONUP:
-		CurrentKeyState[EKeyInput::MouseMiddle] = false;
+		PendingMouseState[EKeyInput::MouseMiddle] = false;
 		break;
 
 	case WM_MOUSEWHEEL:

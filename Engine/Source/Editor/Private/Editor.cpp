@@ -52,7 +52,7 @@ void UEditor::Update()
 	}
 
 	// KTLWeek07: 각 뷰포트에서 마우스 우클릭 시 해당 카메라만 입력 활성화
-	int32 HoveredViewportIndex = ViewportManager.GetViewportIndexUnderMouse();
+	int32 HoveredViewportIndex = ViewportManager.GetMouseHoveredViewportIndex();
 	bool bIsRightMouseDown = Input.IsKeyDown(EKeyInput::MouseRight);
 
 	// 드래그 시작 시 뷰포트 고정, 드래그 종료 시 해제
@@ -1250,32 +1250,6 @@ bool UEditor::GetActorFocusTarget(AActor* Actor, FVector& OutCenter, float& OutR
 
 void UEditor::FocusOnSelectedActor()
 {
-	FVector Center;
-	float BoundingRadius;
-	bool bSuccess = false;
-
-	// Component 선택 모드: 선택된 Component에 포커싱
-	if (!bIsActorSelected && SelectedComponent)
-	{
-		UE_LOG("Editor: FocusOnSelectedActor: Component mode - %s", SelectedComponent->GetName().ToString().data());
-		bSuccess = GetComponentFocusTarget(SelectedComponent, Center, BoundingRadius);
-	}
-	// Actor 선택 모드: Actor 전체에 포커싱
-	else if (SelectedActor)
-	{
-		UE_LOG("Editor: FocusOnSelectedActor: Actor mode - %s", SelectedActor->GetName().ToString().data());
-		bSuccess = GetActorFocusTarget(SelectedActor, Center, BoundingRadius);
-	}
-
-	if (!bSuccess)
-	{
-		UE_LOG_WARNING("Editor: FocusOnSelectedActor: Failed to get focus target");
-		return;
-	}
-
-	UE_LOG("Editor: FocusOnSelectedActor: Success - Center=(%.1f,%.1f,%.1f) Radius=%.1f",
-		Center.X, Center.Y, Center.Z, BoundingRadius);
-
 	auto& ViewportManager = UViewportManager::GetInstance();
 	auto& Viewports = ViewportManager.GetViewports();
 	auto& Clients = ViewportManager.GetClients();
@@ -1287,26 +1261,79 @@ void UEditor::FocusOnSelectedActor()
 
 	const int32 ViewportCount = static_cast<int32>(Viewports.size());
 
+	// 마지막 클릭한 뷰포트의 카메라 타입 가져오기
+	const int32 LastClickedIdx = ViewportManager.GetLastClickedViewportIndex();
+	if (LastClickedIdx < 0 || LastClickedIdx >= ViewportCount || !Clients[LastClickedIdx])
+	{
+		return;
+	}
+
+	UCamera* LastClickedCam = Clients[LastClickedIdx]->GetCamera();
+	if (!LastClickedCam)
+	{
+		return;
+	}
+
+	const ECameraType LastClickedCameraType = LastClickedCam->GetCameraType();
+	const bool bIsOrtho = LastClickedCameraType == ECameraType::ECT_Orthographic;
+
+	FVector Center;
+	float BoundingRadius;
+	bool bSuccess = false;
+
+	// Component 선택 모드: 선택된 Component에 포커싱
+	if (!bIsActorSelected && SelectedComponent)
+	{
+		if (bIsOrtho)
+		{
+			// Ortho 뷰: 로컬 원점(0,0,0) 사용
+			if (USceneComponent* SceneComp = Cast<USceneComponent>(SelectedComponent))
+			{
+				Center = SceneComp->GetWorldLocation();
+				BoundingRadius = 50.0f;
+				bSuccess = true;
+			}
+		}
+		else
+		{
+			// Perspective 뷰: AABB 중심 사용
+			bSuccess = GetComponentFocusTarget(SelectedComponent, Center, BoundingRadius);
+		}
+	}
+
+	// Actor 선택 모드: Actor 전체에 포커싱
+	else if (SelectedActor)
+	{
+		if (bIsOrtho)
+		{
+			// Ortho 뷰: RootComponent의 월드 위치 사용
+			if (USceneComponent* RootComp = SelectedActor->GetRootComponent())
+			{
+				Center = RootComp->GetWorldLocation();
+				BoundingRadius = 100.0f;
+				bSuccess = true;
+			}
+		}
+		else
+		{
+			// Perspective 뷰: AABB 중심 사용
+			bSuccess = GetActorFocusTarget(SelectedActor, Center, BoundingRadius);
+		}
+	}
+
+	if (!bSuccess)
+	{
+		return;
+	}
+
 	CameraStartLocation.resize(ViewportCount);
 	CameraStartRotation.resize(ViewportCount);
 	CameraTargetLocation.resize(ViewportCount);
 	CameraTargetRotation.resize(ViewportCount);
+	OrthoZoomStart.resize(ViewportCount);
+	OrthoZoomTarget.resize(ViewportCount);
 
-	// 활성 뷰포트의 카메라 타입 가져오기
-	const int32 ActiveIdx = ViewportManager.GetActiveIndex();
-	if (ActiveIdx < 0 || ActiveIdx >= ViewportCount || !Clients[ActiveIdx])
-	{
-		return;
-	}
-
-	UCamera* ActiveCam = Clients[ActiveIdx]->GetCamera();
-	if (!ActiveCam)
-	{
-		return;
-	}
-
-	const ECameraType ActiveCameraType = ActiveCam->GetCameraType();
-	AnimatingCameraType = ActiveCameraType;
+	AnimatingCameraType = LastClickedCameraType;
 
 	for (int32 i = 0; i < ViewportCount; ++i)
 	{
@@ -1318,12 +1345,19 @@ void UEditor::FocusOnSelectedActor()
 		CameraStartLocation[i] = Cam->GetLocation();
 		CameraStartRotation[i] = Cam->GetRotation();
 
-		// 활성 뷰포트와 동일한 카메라 타입만 목표 위치 계산
-		if (Cam->GetCameraType() != ActiveCameraType)
+		// 오쏘 카메라면 현재 줌 값도 저장
+		if (Cam->GetCameraType() == ECameraType::ECT_Orthographic)
+		{
+			OrthoZoomStart[i] = Cam->GetOrthoZoom();
+		}
+
+		// 마지막 클릭한 뷰포트와 동일한 카메라 타입만 목표 위치 계산
+		if (Cam->GetCameraType() != LastClickedCameraType)
 		{
 			// 타입이 다르면 현재 위치를 목표로 (애니메이션 안 함)
 			CameraTargetLocation[i] = CameraStartLocation[i];
 			CameraTargetRotation[i] = CameraStartRotation[i];
+			OrthoZoomTarget[i] = OrthoZoomStart[i];
 			continue;
 		}
 
@@ -1352,10 +1386,13 @@ void UEditor::FocusOnSelectedActor()
 
 			// 목표 회전은 현재 회전 유지 (카메라 각도가 바뀌지 않음)
 			CameraTargetRotation[i] = Cam->GetRotation();
+
+			// Perspective는 줌 애니메이션 없음
+			OrthoZoomTarget[i] = OrthoZoomStart[i];
 		}
 		else
 		{
-			// Orthographic: 물체 중심으로 카메라 이동 + 줌 고정값으로 리셋
+			// Orthographic: 물체 중심으로 카메라 이동 + 줌 애니메이션
 			const FVector Forward = Cam->GetForward();
 
 			// 현재 카메라에서 물체 중심까지의 Forward 방향 투영 거리 계산
@@ -1367,27 +1404,13 @@ void UEditor::FocusOnSelectedActor()
 
 			// 회전은 현재 유지
 			CameraTargetRotation[i] = CameraStartRotation[i];
+
+			// 오쏘 줌 목표값 설정 (애니메이션으로 전환)
+			OrthoZoomTarget[i] = 500.0f;
 		}
 	}
 
-	// Orthographic 포커싱 시 SharedOrthoZoom 동기화
-	if (ActiveCameraType == ECameraType::ECT_Orthographic)
-	{
-		constexpr float FocusOrthoZoom = 500.0f;
-		ViewportManager.SetSharedOrthoZoom(FocusOrthoZoom);
-
-		// 모든 ortho 카메라에 동일한 줌 적용
-		for (int32 i = 0; i < ViewportCount; ++i)
-		{
-			if (!Clients[i]) continue;
-			UCamera* Cam = Clients[i]->GetCamera();
-			if (Cam && Cam->GetCameraType() == ECameraType::ECT_Orthographic)
-			{
-				Cam->SetOrthoZoom(FocusOrthoZoom);
-			}
-		}
-	}
-
+	// 애니메이션 시작
 	bIsCameraAnimating = true;
 	CameraAnimationTime = 0.0f;
 }
@@ -1461,11 +1484,20 @@ void UEditor::UpdateCameraAnimation()
 			FVector CurrentRotation = CameraStartRotation[Index] + (CameraTargetRotation[Index] - CameraStartRotation[Index]) * SmoothProgress;
 			Cam->SetRotation(CurrentRotation);
 		}
+		// Orthographic 카메라는 줌 애니메이션 적용
+		else if (Cam->GetCameraType() == ECameraType::ECT_Orthographic)
+		{
+			float CurrentZoom = Lerp(OrthoZoomStart[Index], OrthoZoomTarget[Index], SmoothProgress);
+			Cam->SetOrthoZoom(CurrentZoom);
+		}
 	}
 
-	// 애니메이션 완료 시 오쏘 뷰의 InitialOffsets 및 공유 센터 업데이트
+	// 애니메이션 완료 시 오쏘 뷰의 InitialOffsets, SharedOrthoZoom 및 공유 센터 업데이트
 	if (bAnimationCompleted && AnimatingCameraType == ECameraType::ECT_Orthographic)
 	{
+		// SharedOrthoZoom 업데이트 (목표 줌 값으로 설정)
+		ViewportManager.SetSharedOrthoZoom(500.0f);
+
 		// 먼저 애니메이션 타겟 위치 기반으로 새로운 공유 센터 계산
 		// 첫 번째 오쏘 뷰를 기준으로 공유 센터 설정
 		FVector NewSharedCenter = FVector::ZeroVector();

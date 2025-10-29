@@ -111,6 +111,8 @@ private:
 	TArray<FVector> CameraStartRotation;
 	TArray<FVector> CameraTargetLocation;
 	TArray<FVector> CameraTargetRotation;
+	TArray<float> OrthoZoomStart;
+	TArray<float> OrthoZoomTarget;
 	static constexpr float CAMERA_ANIMATION_DURATION = 0.3f;
 	void UpdateCameraAnimation();
 };

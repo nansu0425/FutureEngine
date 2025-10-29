@@ -37,8 +37,8 @@ public:
 	// 리프 Rect 수집
 	void GetLeafRects(TArray<FRect>& OutRects) const;
 
-	// 현재 마우스가 위치한 뷰포트 인덱스(-1이면 없음)
-	int32 GetViewportIndexUnderMouse() const;
+	// 현재 마우스가 호버링 중인 뷰포트 인덱스
+	int32 GetMouseHoveredViewportIndex() const;
 
 	// 주어진 뷰포트 인덱스 기준으로 로컬 NDC 계산(true면 성공)
 	bool ComputeLocalNDCForViewport(int32 Index, float& OutNdcX, float& OutNdcY) const;

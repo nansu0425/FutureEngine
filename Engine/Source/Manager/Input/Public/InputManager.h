@@ -53,6 +53,7 @@ private:
 	// Key Status
 	TMap<EKeyInput, bool> CurrentKeyState;
 	TMap<EKeyInput, bool> PreviousKeyState;
+	TMap<EKeyInput, bool> PendingMouseState;
 	TMap<int32, EKeyInput> VirtualKeyMap;
 	TArray<EKeyInput> KeysInStatus;
 
