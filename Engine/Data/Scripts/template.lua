@@ -38,12 +38,13 @@ function EndPlay()
     obj:PrintLocation()
 end
 
+-- TODO: overlapped function
 -- Called when overlapping with another Actor
 -- @param OtherActor: The Actor that overlapped with this one
-function OnOverlap(OtherActor)
-    print("[OnOverlap] Collided with: " .. OtherActor:GetName())
-    OtherActor:PrintLocation()
-end
+-- function OnOverlap(OtherActor)
+--     print("[OnOverlap] Collided with: " .. OtherActor:GetName())
+--     OtherActor:PrintLocation()
+-- end
 
 -- Called every frame
 -- @param dt: Delta time in seconds
