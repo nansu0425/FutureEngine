@@ -25,10 +25,8 @@ UEditorEngine::UEditorEngine()
         GWorld = EditorWorld;
     }
     EditorModule = NewObject<UEditor>();
-    
-    FString LastSavedLevelPath = UConfigManager::GetInstance().GetLastSavedLevelPath();
-    bool bSuccessLoad = LoadLevel(LastSavedLevelPath);
-    if (!bSuccessLoad) { CreateNewLevel(); }
+
+    CreateNewLevel();
     EditorWorld->BeginPlay();
 }
 

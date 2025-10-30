@@ -842,7 +842,14 @@ void URenderer::Update()
     RenderBegin();
 
     TArray<FViewport*>& Viewports = UViewportManager::GetInstance().GetViewports();
-    for (int32 ViewportIndex = 0; ViewportIndex < Viewports.size(); ++ViewportIndex)
+    UViewportManager& ViewportMgr = UViewportManager::GetInstance();
+    EViewportLayout CurrentLayout = ViewportMgr.GetViewportLayout();
+
+    // Single layout이면 ActiveIndex만, Quad layout이면 전체 렌더링
+    int32 StartIndex = (CurrentLayout == EViewportLayout::Single) ? ViewportMgr.GetActiveIndex() : 0;
+    int32 EndIndex = (CurrentLayout == EViewportLayout::Single) ? (StartIndex + 1) : static_cast<int32>(Viewports.size());
+
+    for (int32 ViewportIndex = StartIndex; ViewportIndex < EndIndex; ++ViewportIndex)
     {
         FViewport* Viewport = Viewports[ViewportIndex];
 
@@ -892,7 +899,7 @@ void URenderer::Update()
     }
 
     // D2D 오버레이는 FXAA 후 각 뷰포트마다 독립적으로 렌더링
-    for (size_t ViewportIndex = 0; ViewportIndex < Viewports.size(); ++ViewportIndex)
+    for (int32 ViewportIndex = StartIndex; ViewportIndex < EndIndex; ++ViewportIndex)
     {
         FViewport* Viewport = Viewports[ViewportIndex];
         if (!Viewport)
