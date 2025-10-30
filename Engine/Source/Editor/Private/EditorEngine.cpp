@@ -64,7 +64,11 @@ void UEditorEngine::Tick(float DeltaSeconds)
         {
             if (World->GetWorldType() == EWorldType::Editor)
             {
-                World->Tick(DeltaSeconds);
+                // PIE 모드가 아닐 때만 EditorWorld를 tick
+                if (PIEState == EPIEState::Stopped)
+                {
+                    World->Tick(DeltaSeconds);
+                }
             }
             else if (World->GetWorldType() == EWorldType::PIE)
             {

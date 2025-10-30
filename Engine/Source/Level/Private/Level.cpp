@@ -282,6 +282,9 @@ bool ULevel::DestroyActor(AActor* InActor)
 		Editor->SelectComponent(nullptr);
 	}
 
+	// EndPlay 호출 (Lua EndPlay 등 정리 로직 실행)
+	InActor->EndPlay();
+
 	// Remove
 	SafeDelete(InActor);
 

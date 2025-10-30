@@ -93,6 +93,9 @@ public:
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+	// PIE 복제 시 Lua 리소스 초기화
+	virtual UObject* Duplicate() override;
+
 private:
 	/**
 	 * Lua 스크립트 로드 및 격리된 환경 생성
@@ -122,9 +125,16 @@ void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 
 	try
 	{
-		// 테스트: globals에서 함수 찾기
 		UScriptManager& ScriptMgr = UScriptManager::GetInstance();
 		sol::state& lua = ScriptMgr.GetLuaState();
+
+		// CRITICAL: globals의 obj를 현재 컴포넌트의 ObjTable로 동기화
+		// 여러 World가 같은 Lua state를 공유하므로, 함수 호출 전에 반드시 obj를 설정해야 함
+		if (ObjTable)
+		{
+			lua["obj"] = *ObjTable;
+		}
+
 		sol::optional<sol::function> func = lua[FunctionName];
 		if (func)
 		{

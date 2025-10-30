@@ -13,6 +13,8 @@ UScriptComponent::UScriptComponent()
 	, ObjTable(nullptr)
 	, bScriptLoaded(false)
 {
+	// Tick 활성화
+	bCanEverTick = true;
 }
 
 UScriptComponent::~UScriptComponent()
@@ -93,6 +95,19 @@ void UScriptComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	}
 }
 
+UObject* UScriptComponent::Duplicate()
+{
+	UScriptComponent* DuplicatedComp = Cast<UScriptComponent>(Super::Duplicate());
+
+	// PIE 복제 시 Lua 리소스는 nullptr로 초기화
+	// BeginPlay()에서 각 World별로 독립적인 리소스 생성
+	DuplicatedComp->ObjTable = nullptr;
+	DuplicatedComp->ScriptEnv = nullptr;
+	DuplicatedComp->bScriptLoaded = false;
+
+	return DuplicatedComp;
+}
+
 bool UScriptComponent::LoadScript()
 {
 	UScriptManager& ScriptMgr = UScriptManager::GetInstance();
@@ -100,48 +115,6 @@ bool UScriptComponent::LoadScript()
 
 	try
 	{
-		// 디버깅: Vector가 globals에 제대로 등록되었는지 확인
-		sol::object vec_in_globals = lua["Vector"];
-		UE_LOG("Vector in globals - type: %d, valid: %d", (int)vec_in_globals.get_type(), vec_in_globals.valid());
-
-		// Vector의 타입이 userdata인지 확인
-		if (vec_in_globals.is<sol::table>()) {
-			sol::table vec_table = vec_in_globals.as<sol::table>();
-			UE_LOG("Vector is a table");
-
-			// Metatable 확인
-			sol::optional<sol::table> mt = vec_table[sol::metatable_key];
-			if (mt) {
-				UE_LOG("Vector has metatable");
-
-				// __call 메타메서드 확인
-				sol::object call_meta = (*mt)[sol::meta_function::call];
-				if (call_meta.valid()) {
-					UE_LOG("Vector metatable has __call: type=%d", (int)call_meta.get_type());
-				} else {
-					UE_LOG_ERROR("Vector metatable has NO __call!");
-				}
-			} else {
-				UE_LOG_ERROR("Vector has NO metatable!");
-			}
-		}
-
-		// 테스트: Lua에서 직접 Vector 호출 시도
-		lua.script(R"(
-			print("Testing Vector call from C++...")
-			local success, result = pcall(function()
-				local v = Vector(1, 2, 3)
-				print("Vector created successfully!")
-				return v
-			end)
-			if not success then
-				print("Vector call failed: " .. tostring(result))
-			end
-		)");
-
-		// 환경 없이 직접 globals 사용 (테스트)
-		ScriptEnv = nullptr;
-
 		// Owner Actor를 래핑하는 "obj" 테이블 생성
 		CreateObjTable();
 
@@ -184,6 +157,13 @@ void UScriptComponent::CreateObjTable()
 	sol::state& lua = ScriptMgr.GetLuaState();
 
 	AActor* OwnerActor = GetOwner();
+
+	// 기존 ObjTable이 있으면 먼저 정리 (PIE 복제로 인한 메모리 누수 및 dangling pointer 방지)
+	if (ObjTable)
+	{
+		delete ObjTable;
+		ObjTable = nullptr;
+	}
 
 	// obj 테이블 생성
 	ObjTable = new sol::table(lua.create_table());

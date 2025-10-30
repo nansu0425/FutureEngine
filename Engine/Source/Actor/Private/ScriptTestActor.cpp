@@ -8,6 +8,12 @@ IMPLEMENT_CLASS(AScriptTestActor, AActor)
 
 AScriptTestActor::AScriptTestActor()
 {
+	// Tick 활성화 (PIE/Game 모드에서 Tick 호출)
+	bCanEverTick = true;
+
+	// 에디터에서도 Tick 활성화 (에디터 모드에서도 움직이게 하려면)
+	bTickInEditor = true;
+
 	// 루트 컴포넌트 생성
 	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>("Root");
 	SetRootComponent(Root);
