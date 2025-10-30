@@ -1,5 +1,9 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/ConsoleWidget.h"
+
+#include "Component/Public/LightComponentBase.h"
+#include "Level/Public/Level.h"
+#include "Manager/Render/Public/CascadeManager.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/UELogParser.h"
 #include "Utility/Public/ScopeCycleCounter.h"
@@ -795,6 +799,178 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		HandleStatCommand(StatCommand);
 	}
 
+	// shadow_filter 명령어 처리
+	else if (FString CommandLower = InCommand;
+		std::transform(CommandLower.begin(), CommandLower.end(), CommandLower.begin(), ::tolower),
+		CommandLower.length() > 14 && CommandLower.substr(0, 14) == "shadow_filter ")
+	{
+		FString FilterName = CommandLower.substr(14);
+		std::transform(FilterName.begin(), FilterName.end(), FilterName.begin(), ::tolower);
+
+		EShadowModeIndex NewMode = EShadowModeIndex::SMI_UnFiltered;
+		bool bValidFilter = false;
+
+		if (FilterName == "vsm")
+		{
+			NewMode = EShadowModeIndex::SMI_VSM;
+			bValidFilter = true;
+		}
+		else if (FilterName == "pcf")
+		{
+			NewMode = EShadowModeIndex::SMI_PCF;
+			bValidFilter = true;
+		}
+		else if (FilterName == "unfiltered" || FilterName == "none")
+		{
+			NewMode = EShadowModeIndex::SMI_UnFiltered;
+			bValidFilter = true;
+		}
+		else if (FilterName == "vsm_box")
+		{
+			NewMode = EShadowModeIndex::SMI_VSM_BOX;
+			bValidFilter = true;
+		}
+		else if (FilterName == "vsm_gaussian")
+		{
+			NewMode = EShadowModeIndex::SMI_VSM_GAUSSIAN;
+			bValidFilter = true;
+		}
+		else if (FilterName == "savsm")
+		{
+			NewMode = EShadowModeIndex::SMI_SAVSM;
+			bValidFilter = true;
+		}
+
+		if (bValidFilter)
+		{
+			// 전체 Light Component에 일괄 적용
+			ULevel* CurrentLevel = GWorld->GetLevel();
+			if (CurrentLevel)
+			{
+				int32 LightCount = 0;
+				for (AActor* Actor : CurrentLevel->GetLevelActors())
+				{
+					if (!Actor)
+					{
+						continue;
+					}
+
+					for (UActorComponent* Component : Actor->GetOwnedComponents())
+					{
+						if (ULightComponentBase* LightComp = Cast<ULightComponentBase>(Component))
+						{
+							LightComp->SetShadowModeIndex(NewMode);
+							LightCount++;
+						}
+					}
+				}
+
+				const char* FilterNameStr = FilterName.data();
+				AddLog(ELogType::Success, "Shadow filter '%s' applied to %d light(s)", FilterNameStr, LightCount);
+			}
+		}
+		else
+		{
+			AddLog(ELogType::Error, "Invalid shadow filter: %s", FilterName.data());
+			AddLog(ELogType::Info, "Available filters: VSM, PCF, UnFiltered, VSM_BOX, VSM_GAUSSIAN, SAVSM");
+		}
+	}
+
+	// shadow.csm 명령어 처리
+	else if (FString CommandLower = InCommand;
+		std::transform(CommandLower.begin(), CommandLower.end(), CommandLower.begin(), ::tolower),
+		CommandLower.length() > 11 && CommandLower.substr(0, 11) == "shadow.csm.")
+	{
+		FString SubCommand = CommandLower.substr(11);
+
+		// shadow.csm.numcascades <value>
+		if (SubCommand.length() > 13 && SubCommand.substr(0, 13) == "numcascades ")
+		{
+			FString ValueStr = SubCommand.substr(13);
+			try
+			{
+				int32 NewSplitNum = std::stoi(ValueStr);
+				UCascadeManager& CascadeMgr = UCascadeManager::GetInstance();
+
+				if (NewSplitNum >= UCascadeManager::SPLIT_NUM_MIN && NewSplitNum <= UCascadeManager::SPLIT_NUM_MAX)
+				{
+					CascadeMgr.SetSplitNum(NewSplitNum);
+					AddLog(ELogType::Success, "Cascade split number set to %d", NewSplitNum);
+				}
+				else
+				{
+					AddLog(ELogType::Error, "Invalid split number. Valid range: %d ~ %d",
+						UCascadeManager::SPLIT_NUM_MIN, UCascadeManager::SPLIT_NUM_MAX);
+				}
+			}
+			catch (...)
+			{
+				AddLog(ELogType::Error, "Invalid number format: %s", ValueStr.data());
+			}
+		}
+		// shadow.csm.distribution <value>
+		else if (SubCommand.length() > 13 && SubCommand.substr(0, 13) == "distribution ")
+		{
+			FString ValueStr = SubCommand.substr(13);
+			try
+			{
+				float NewBlendFactor = std::stof(ValueStr);
+				UCascadeManager& CascadeMgr = UCascadeManager::GetInstance();
+
+				if (NewBlendFactor >= UCascadeManager::SPLIT_BLEND_FACTOR_MIN &&
+					NewBlendFactor <= UCascadeManager::SPLIT_BLEND_FACTOR_MAX)
+				{
+					CascadeMgr.SetSplitBlendFactor(NewBlendFactor);
+					AddLog(ELogType::Success, "Cascade distribution factor set to %.2f", NewBlendFactor);
+				}
+				else
+				{
+					AddLog(ELogType::Error, "Invalid distribution factor. Valid range: %.1f ~ %.1f",
+						UCascadeManager::SPLIT_BLEND_FACTOR_MIN, UCascadeManager::SPLIT_BLEND_FACTOR_MAX);
+				}
+			}
+			catch (...)
+			{
+				AddLog(ELogType::Error, "Invalid number format: %s", ValueStr.data());
+			}
+		}
+		// shadow.csm.nearbias <value>
+		else if (SubCommand.length() > 10 && SubCommand.substr(0, 10) == "nearbias ")
+		{
+			FString ValueStr = SubCommand.substr(10);
+			try
+			{
+				float NewNearBias = std::stof(ValueStr);
+				UCascadeManager& CascadeMgr = UCascadeManager::GetInstance();
+
+				if (NewNearBias >= UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN &&
+					NewNearBias <= UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX)
+				{
+					CascadeMgr.SetLightViewVolumeZNearBias(NewNearBias);
+					AddLog(ELogType::Success, "Cascade near plane bias set to %.1f", NewNearBias);
+				}
+				else
+				{
+					AddLog(ELogType::Error, "Invalid near bias. Valid range: %.1f ~ %.1f",
+						UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MIN,
+						UCascadeManager::LIGHT_VIEW_VOLUME_ZNEAR_BIAS_MAX);
+				}
+			}
+			catch (...)
+			{
+				AddLog(ELogType::Error, "Invalid number format: %s", ValueStr.data());
+			}
+		}
+		else
+		{
+			AddLog(ELogType::Error, "Unknown CSM command: %s", SubCommand.data());
+			AddLog(ELogType::Info, "Available CSM commands:");
+			AddLog(ELogType::Info, "  shadow.csm.numcascades <1-8>");
+			AddLog(ELogType::Info, "  shadow.csm.distribution <0.0-1.0>");
+			AddLog(ELogType::Info, "  shadow.csm.nearbias <0.0-1000.0>");
+		}
+	}
+
 	// Help 명령어 입력
 	else if (FString CommandLower = InCommand;
 		std::transform(CommandLower.begin(), CommandLower.end(), CommandLower.begin(), ::tolower),
@@ -808,6 +984,12 @@ void UConsoleWidget::ProcessCommand(const char* InCommand)
 		AddLog(ELogType::Info, "  STAT PICK - Show picking performance overlay");
 		AddLog(ELogType::Info, "  STAT SHADOW - Show light and shadow map stats");
 		AddLog(ELogType::Info, "  STAT NONE - Hide all overlays");
+		AddLog(ELogType::Info, "  SHADOW_FILTER <filter> - Apply shadow filter to all lights");
+		AddLog(ELogType::Debug, "    Available filters: VSM, PCF, UnFiltered, VSM_BOX, VSM_GAUSSIAN, SAVSM");
+		AddLog(ELogType::Debug, "    Example: shadow_filter VSM");
+		AddLog(ELogType::Info, "  SHADOW.CSM.NUMCASCADES <1-8> - Set cascade split number");
+		AddLog(ELogType::Info, "  SHADOW.CSM.DISTRIBUTION <0.0-1.0> - Set cascade distribution factor");
+		AddLog(ELogType::Info, "  SHADOW.CSM.NEARBIAS <0.0-1000.0> - Set cascade near plane bias");
 		AddLog(ELogType::Info, "  UE_LOG(\"String with format\", Args...) - Enhanced printf Formatting");
 		AddLog(ELogType::Debug, "    기본 예제: UE_LOG(\"Hello World %%d\", 2025)");
 		AddLog(ELogType::Debug, "    문자열: UE_LOG(\"User: %%s\", \"John\")");

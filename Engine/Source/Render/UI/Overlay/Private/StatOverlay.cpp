@@ -3,6 +3,7 @@
 #include "Manager/Time/Public/TimeManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/UI/Overlay/Public/D2DOverlayManager.h"
+#include "Manager/Render/Public/CascadeManager.h"
 
 IMPLEMENT_SINGLETON_CLASS(UStatOverlay, UObject)
 
@@ -131,7 +132,16 @@ void UStatOverlay::RenderTimeInfo()
     if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
     if (IsStatEnabled(EStatType::Decal))  OffsetY += 20.0f;
-    if (IsStatEnabled(EStatType::Shadow)) OffsetY += 140.0f;
+    if (IsStatEnabled(EStatType::Shadow))
+    {
+        // Shadow Stat: 7 lines base + 3 lines CSM (if directional light exists)
+        // DirectionalLightCount가 0보다 크면 추가 3줄
+        OffsetY += 140.0f;
+        if (DirectionalLightCount > 0)
+        {
+            OffsetY += 60.0f;
+        }
+    }
 
     float CurrentY = OverlayY + OffsetY;
     const float LineHeight = 20.0f;
@@ -268,6 +278,39 @@ void UStatOverlay::RenderShadowInfo()
 
         RenderText(Text, OverlayX, CurrentY, r, g, b);
         CurrentY += LineHeight;
+    }
+
+    // CSM (Cascade Shadow Map) 정보
+    if (DirectionalLightCount > 0)
+    {
+        UCascadeManager& CascadeMgr = UCascadeManager::GetInstance();
+
+        // Cascade Split Number
+        {
+            char Buf[128];
+            (void)sprintf_s(Buf, sizeof(Buf), "CSM Cascades: %d", CascadeMgr.GetSplitNum());
+            FString Text = Buf;
+            RenderText(Text, OverlayX, CurrentY, 0.0f, 1.0f, 1.0f);
+            CurrentY += LineHeight;
+        }
+
+        // Distribution Factor
+        {
+            char Buf[128];
+            (void)sprintf_s(Buf, sizeof(Buf), "CSM Distribution: %.2f", CascadeMgr.GetSplitBlendFactor());
+            FString Text = Buf;
+            RenderText(Text, OverlayX, CurrentY, 0.0f, 1.0f, 1.0f);
+            CurrentY += LineHeight;
+        }
+
+        // Near Bias
+        {
+            char Buf[128];
+            (void)sprintf_s(Buf, sizeof(Buf), "CSM Near Bias: %.1f", CascadeMgr.GetLightViewVolumeZNearBias());
+            FString Text = Buf;
+            RenderText(Text, OverlayX, CurrentY, 0.0f, 1.0f, 1.0f);
+            CurrentY += LineHeight;
+        }
     }
 }
 
