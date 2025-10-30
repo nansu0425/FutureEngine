@@ -100,18 +100,60 @@ bool UScriptComponent::LoadScript()
 
 	try
 	{
-		// 이 스크립트를 위한 격리된 환경 생성
-		ScriptEnv = new sol::environment(lua, sol::create, lua.globals());
+		// 디버깅: Vector가 globals에 제대로 등록되었는지 확인
+		sol::object vec_in_globals = lua["Vector"];
+		UE_LOG("Vector in globals - type: %d, valid: %d", (int)vec_in_globals.get_type(), vec_in_globals.valid());
+
+		// Vector의 타입이 userdata인지 확인
+		if (vec_in_globals.is<sol::table>()) {
+			sol::table vec_table = vec_in_globals.as<sol::table>();
+			UE_LOG("Vector is a table");
+
+			// Metatable 확인
+			sol::optional<sol::table> mt = vec_table[sol::metatable_key];
+			if (mt) {
+				UE_LOG("Vector has metatable");
+
+				// __call 메타메서드 확인
+				sol::object call_meta = (*mt)[sol::meta_function::call];
+				if (call_meta.valid()) {
+					UE_LOG("Vector metatable has __call: type=%d", (int)call_meta.get_type());
+				} else {
+					UE_LOG_ERROR("Vector metatable has NO __call!");
+				}
+			} else {
+				UE_LOG_ERROR("Vector has NO metatable!");
+			}
+		}
+
+		// 테스트: Lua에서 직접 Vector 호출 시도
+		lua.script(R"(
+			print("Testing Vector call from C++...")
+			local success, result = pcall(function()
+				local v = Vector(1, 2, 3)
+				print("Vector created successfully!")
+				return v
+			end)
+			if not success then
+				print("Vector call failed: " .. tostring(result))
+			end
+		)");
+
+		// 환경 없이 직접 globals 사용 (테스트)
+		ScriptEnv = nullptr;
 
 		// Owner Actor를 래핑하는 "obj" 테이블 생성
 		CreateObjTable();
+
+		// obj를 globals에 직접 설정
+		lua["obj"] = *ObjTable;
 
 		// 전체 스크립트 경로 구성
 		path FullPath = UPathManager::GetInstance().GetDataPath() / "Scripts" / ScriptPath.c_str();
 		FString FullPathStr = FullPath.string();
 
-		// 격리된 환경에서 스크립트 파일 로드 및 실행
-		sol::protected_function_result result = lua.script_file(FullPathStr.c_str(), *ScriptEnv);
+		// 테스트: 환경 없이 직접 실행 (globals 사용)
+		sol::protected_function_result result = lua.script_file(FullPathStr.c_str());
 
 		if (!result.valid())
 		{
@@ -135,7 +177,7 @@ bool UScriptComponent::LoadScript()
 
 void UScriptComponent::CreateObjTable()
 {
-	if (!ScriptEnv || !GetOwner())
+	if (!GetOwner())
 		return;
 
 	UScriptManager& ScriptMgr = UScriptManager::GetInstance();
@@ -213,8 +255,8 @@ void UScriptComponent::CreateObjTable()
 	// 메타테이블 부착
 	obj[sol::metatable_key] = mt;
 
-	// 스크립트 환경에 obj 등록
-	(*ScriptEnv)["obj"] = obj;
+	// 테스트: globals 사용 시에는 여기서 obj를 등록하지 않음
+	// (LoadScript에서 lua["obj"] = *ObjTable로 설정함)
 }
 
 void UScriptComponent::CleanupLuaResources()

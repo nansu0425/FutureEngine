@@ -9,6 +9,9 @@ using JSON = json::JSON;
 #define SOL_ALL_SAFETIES_ON 1
 #include <Sol2/sol.hpp>
 
+// ScriptManager 헤더 (템플릿 함수에서 사용)
+#include "Manager/Script/Public/ScriptManager.h"
+
 /**
  * UScriptComponent
  *
@@ -114,12 +117,15 @@ private:
 template<typename... Args>
 void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 {
-	if (!bScriptLoaded || !ScriptEnv)
+	if (!bScriptLoaded)
 		return;
 
 	try
 	{
-		sol::optional<sol::function> func = (*ScriptEnv)[FunctionName];
+		// 테스트: globals에서 함수 찾기
+		UScriptManager& ScriptMgr = UScriptManager::GetInstance();
+		sol::state& lua = ScriptMgr.GetLuaState();
+		sol::optional<sol::function> func = lua[FunctionName];
 		if (func)
 		{
 			sol::protected_function_result result = (*func)(std::forward<Args>(args)...);

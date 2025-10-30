@@ -143,9 +143,16 @@ void UScriptManager::RegisterCoreTypes()
 	// ====================================================================
 	// FVector - 연산자 오버로딩이 있는 3D 벡터
 	// ====================================================================
-	lua.new_usertype<FVector>("Vector",
-		// 생성자
-		sol::constructors<FVector(), FVector(float, float, float)>(),
+
+	// Vector 생성자 함수 등록 (호출 가능하게)
+	lua.set_function("Vector", sol::overload(
+		[]() { return FVector(0.0f, 0.0f, 0.0f); },
+		[](float x, float y, float z) { return FVector(x, y, z); }
+	));
+
+	// FVector usertype 등록 (메서드와 프로퍼티)
+	lua.new_usertype<FVector>("FVector",
+		sol::no_constructor,  // 생성자는 위에서 Vector 함수로 등록했음
 
 		// Properties
 		"x", &FVector::X,
@@ -174,8 +181,16 @@ void UScriptManager::RegisterCoreTypes()
 	// ====================================================================
 	// FQuaternion - Rotation representation
 	// ====================================================================
-	lua.new_usertype<FQuaternion>("Quaternion",
-		sol::constructors<FQuaternion(), FQuaternion(float, float, float, float)>(),
+
+	// Quaternion 생성자 함수 등록 (호출 가능하게)
+	lua.set_function("Quaternion", sol::overload(
+		[]() { return FQuaternion(); },
+		[](float x, float y, float z, float w) { return FQuaternion(x, y, z, w); }
+	));
+
+	// FQuaternion usertype 등록 (메서드와 프로퍼티)
+	lua.new_usertype<FQuaternion>("FQuaternion",
+		sol::no_constructor,  // 생성자는 위에서 Quaternion 함수로 등록했음
 		"x", &FQuaternion::X,
 		"y", &FQuaternion::Y,
 		"z", &FQuaternion::Z,
