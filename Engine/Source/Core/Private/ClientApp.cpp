@@ -14,6 +14,9 @@
 #include "Manager/Script/Public/ScriptManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
+// Script Test Actor
+#include "Actor/Public/ScriptTestActor.h"
+
 #include "Render/UI/Window/Public/ConsoleWindow.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/ScopeCycleCounter.h"
@@ -97,6 +100,9 @@ int FClientApp::InitializeSystem() const
 	// 스크립트 매니저 초기화
 	auto& ScriptManager = UScriptManager::GetInstance();
 	ScriptManager.Initialize();
+
+	// ScriptTestActor 클래스 등록 (UI 메뉴에 표시하기 위함)
+	AScriptTestActor::StaticClass();
 
 	// StatOverlay Initialize
 	auto& StatOverlay = UStatOverlay::GetInstance();
