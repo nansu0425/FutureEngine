@@ -415,6 +415,10 @@ void UScriptManager::HotReloadScripts()
 			continue;
 		}
 
+		// 변경 감지 로그 (디버깅용)
+		UE_LOG_WARNING("ScriptManager: Script file changed detected - %s (Affected components: %d)",
+			ScriptPath.c_str(), static_cast<int32>(It->second.size()));
+
 		// IMPORTANT: 순회 중 UnregisterScriptComponent()로 인한 iterator invalidation 방지
 		// ReloadScript() → CleanupLuaResources() → UnregisterScriptComponent()가 호출되면
 		// 현재 순회 중인 set이 수정되므로, 복사본을 만들어서 순회
@@ -431,7 +435,7 @@ void UScriptManager::HotReloadScripts()
 			if (Comp)
 			{
 				Comp->ReloadScript();
-				UE_LOG_SUCCESS("ScriptManager: Script reloaded - %s", ScriptPath.c_str());
+				// 성공/실패 로그는 ReloadScript() 내부에서 출력됨
 			}
 		}
 	}

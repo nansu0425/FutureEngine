@@ -292,11 +292,24 @@ void UScriptComponent::ReloadScript()
 
 	UE_LOG_INFO("ScriptComponent: 스크립트 리로드 시작 - %s", ScriptPath.c_str());
 
-	// 1. EndPlay 호출 (스크립트 정리)
-	if (bScriptLoaded)
+	// ========== 백업: 기존 상태 저장 (Rollback용) ==========
+	sol::table* OldObjTable = ObjTable;
+	sol::environment* OldScriptEnv = ScriptEnv;
+	bool bWasLoaded = bScriptLoaded;
+
+	// 새 리소스로 초기화 (백업은 유지)
+	ObjTable = nullptr;
+	ScriptEnv = nullptr;
+	bScriptLoaded = false;
+
+	// 1. EndPlay 호출 (백업된 리소스 사용)
+	if (bWasLoaded && OldObjTable)
 	{
 		try
 		{
+			UScriptManager& ScriptMgr = UScriptManager::GetInstance();
+			sol::state& lua = ScriptMgr.GetLuaState();
+			lua["obj"] = *OldObjTable;
 			CallLuaFunction("EndPlay");
 		}
 		catch (const std::exception& e)
@@ -305,12 +318,29 @@ void UScriptComponent::ReloadScript()
 		}
 	}
 
-	// 2. Lua 리소스 정리
-	CleanupLuaResources();
-
-	// 3. 스크립트 재로드
-	if (LoadScript())
+	// 2. ScriptManager에서 임시 등록 해제 (재등록은 LoadScript에서 수행)
+	if (bWasLoaded)
 	{
+		UScriptManager::GetInstance().UnregisterScriptComponent(this);
+	}
+
+	// 3. 스크립트 재로드 시도
+	bool bReloadSuccess = LoadScript();
+
+	if (bReloadSuccess)
+	{
+		// ========== 성공: 백업 삭제 ==========
+		if (OldObjTable)
+		{
+			delete OldObjTable;
+			OldObjTable = nullptr;
+		}
+		if (OldScriptEnv)
+		{
+			delete OldScriptEnv;
+			OldScriptEnv = nullptr;
+		}
+
 		// 4. BeginPlay 재호출
 		try
 		{
@@ -324,6 +354,45 @@ void UScriptComponent::ReloadScript()
 	}
 	else
 	{
-		UE_LOG_ERROR("ScriptComponent: 스크립트 리로드 실패 - %s", ScriptPath.c_str());
+		// ========== 실패: Rollback (이전 상태로 복원) ==========
+
+		// 새로 생성된 리소스 정리 (실패했으므로)
+		if (ObjTable)
+		{
+			delete ObjTable;
+			ObjTable = nullptr;
+		}
+		if (ScriptEnv)
+		{
+			delete ScriptEnv;
+			ScriptEnv = nullptr;
+		}
+
+		// 백업된 리소스 복원
+		ObjTable = OldObjTable;
+		ScriptEnv = OldScriptEnv;
+		bScriptLoaded = bWasLoaded;
+
+		// Lua globals에 obj 복원
+		if (bWasLoaded && ObjTable)
+		{
+			UScriptManager& ScriptMgr = UScriptManager::GetInstance();
+			sol::state& lua = ScriptMgr.GetLuaState();
+			lua["obj"] = *ObjTable;
+
+			// ScriptManager에 재등록 (rollback 상태)
+			ScriptMgr.RegisterScriptComponent(this, ScriptPath);
+		}
+
+		// ========== Rollback 에러 로그 (디버깅용) ==========
+		if (bWasLoaded)
+		{
+			UE_LOG_ERROR("ScriptComponent: Hot Reload 실패! 이전 정상 상태로 Rollback 완료 - %s", ScriptPath.c_str());
+			UE_LOG_WARNING("  -> Actor는 이전 스크립트로 계속 동작합니다.");
+		}
+		else
+		{
+			UE_LOG_ERROR("ScriptComponent: 스크립트 리로드 실패 (이전 상태 없음) - %s", ScriptPath.c_str());
+		}
 	}
 }
