@@ -116,8 +116,30 @@ bool UScriptComponent::LoadScript()
 		// obj를 globals에 직접 설정
 		lua["obj"] = *ObjTable;
 
-		// 전체 스크립트 경로 구성
-		path FullPath = UPathManager::GetInstance().GetDataPath() / "Scripts" / ScriptPath.c_str();
+		// 전체 스크립트 경로 구성 (Engine 우선, 없으면 Build)
+		UPathManager& PathMgr = UPathManager::GetInstance();
+		path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
+		path BuildScriptPath = PathMgr.GetDataPath() / "Scripts" / ScriptPath.c_str();
+
+		path FullPath;
+		if (std::filesystem::exists(EngineScriptPath))
+		{
+			FullPath = EngineScriptPath;
+			UE_LOG_INFO("Lua 스크립트 로드 (Engine): %s", FullPath.string().c_str());
+		}
+		else if (std::filesystem::exists(BuildScriptPath))
+		{
+			FullPath = BuildScriptPath;
+			UE_LOG_INFO("Lua 스크립트 로드 (Build): %s", FullPath.string().c_str());
+		}
+		else
+		{
+			UE_LOG_ERROR("Lua 스크립트 파일을 찾을 수 없습니다: %s (Engine: %s, Build: %s)",
+				ScriptPath.c_str(), EngineScriptPath.string().c_str(), BuildScriptPath.string().c_str());
+			CleanupLuaResources();
+			return false;
+		}
+
 		FString FullPathStr = FullPath.string();
 
 		// 테스트: 환경 없이 직접 실행 (globals 사용)

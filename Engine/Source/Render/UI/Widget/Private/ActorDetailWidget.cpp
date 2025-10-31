@@ -487,27 +487,53 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 
 		// 2. template.lua 복제 및 경로 설정
 		UPathManager& PathMgr = UPathManager::GetInstance();
-		path ScriptsDir = PathMgr.GetDataPath() / "Scripts";
-		path TemplatePath = ScriptsDir / "template.lua";
+
+		// Engine/Data/Scripts (원본 편집용)
+		path EngineScriptsDir = PathMgr.GetEngineDataPath() / "Scripts";
+		path EngineTemplatePath = EngineScriptsDir / "template.lua";
+
+		// Build/Data/Scripts (실행용)
+		path BuildScriptsDir = PathMgr.GetDataPath() / "Scripts";
+		path BuildTemplatePath = BuildScriptsDir / "template.lua";
 
 		FString ActorName = InSelectedActor->GetName().ToString();
 		FString NewScriptName = ActorName + ".lua";
-		path NewScriptPath = ScriptsDir / NewScriptName.c_str();
+
+		path EngineNewScriptPath = EngineScriptsDir / NewScriptName.c_str();
+		path BuildNewScriptPath = BuildScriptsDir / NewScriptName.c_str();
 
 		try
 		{
-			if (std::filesystem::exists(TemplatePath))
+			// template.lua 위치 확인 (Engine 우선, 없으면 Build)
+			path TemplateSourcePath;
+			if (std::filesystem::exists(EngineTemplatePath))
 			{
-				// 파일 복제
-				std::filesystem::copy_file(TemplatePath, NewScriptPath, std::filesystem::copy_options::overwrite_existing);
-
-				// 스크립트 경로 설정
-				ScriptComp->SetScriptPath(NewScriptName);
-				UE_LOG_SUCCESS("ScriptComponent: 스크립트 '%s' 설정 완료", NewScriptName.c_str());
+				TemplateSourcePath = EngineTemplatePath;
+			}
+			else if (std::filesystem::exists(BuildTemplatePath))
+			{
+				TemplateSourcePath = BuildTemplatePath;
 			}
 			else
 			{
-				UE_LOG_ERROR("ScriptComponent: template.lua 파일을 찾을 수 없습니다: %s", TemplatePath.string().c_str());
+				UE_LOG_ERROR("ScriptComponent: template.lua 파일을 찾을 수 없습니다. 경로: %s 또는 %s",
+					EngineTemplatePath.string().c_str(), BuildTemplatePath.string().c_str());
+				TemplateSourcePath = "";
+			}
+
+			if (!TemplateSourcePath.empty())
+			{
+				// Engine/Data/Scripts에 원본 복사
+				std::filesystem::copy_file(TemplateSourcePath, EngineNewScriptPath, std::filesystem::copy_options::overwrite_existing);
+				UE_LOG_SUCCESS("ScriptComponent: Engine 스크립트 저장 완료 - %s", EngineNewScriptPath.string().c_str());
+
+				// Build/Data/Scripts에 실행용 복사
+				std::filesystem::copy_file(TemplateSourcePath, BuildNewScriptPath, std::filesystem::copy_options::overwrite_existing);
+				UE_LOG_SUCCESS("ScriptComponent: Build 스크립트 저장 완료 - %s", BuildNewScriptPath.string().c_str());
+
+				// 스크립트 경로 설정 (상대 경로)
+				ScriptComp->SetScriptPath(NewScriptName);
+				UE_LOG_SUCCESS("ScriptComponent: 스크립트 '%s' 설정 완료", NewScriptName.c_str());
 			}
 		}
 		catch (const std::exception& e)
