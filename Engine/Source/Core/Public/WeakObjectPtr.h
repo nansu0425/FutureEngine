@@ -22,13 +22,13 @@ public:
 
     FWeakObjectPtr(UObject* InObject);
 
-    ~FWeakObjectPtr() = default;
-
     FWeakObjectPtr(const FWeakObjectPtr& Other) = default;
     FWeakObjectPtr& operator=(const FWeakObjectPtr& Other) = default;
 
     FWeakObjectPtr(FWeakObjectPtr&& Other) = default;
     FWeakObjectPtr& operator=(FWeakObjectPtr&& Other) = default;
+    
+    ~FWeakObjectPtr() = default;
 
     /**
      * @brief 이 약한 포인터가 가리키는 실제 UObject 포인터를 반환한다.
@@ -48,11 +48,9 @@ public:
      * @return 객체가 유효하면 true, 소멸되었거나 nullptr이면 false를 반환한다.
      */
     bool IsValid() const;
-    
-    /*-----------------------------------------------------------------------------
-        연산자 오버로딩
-     -----------------------------------------------------------------------------*/
 
+    // --- 연산자 오버로딩 ---
+    
     explicit operator bool() const;
 
     UObject* operator->() const;
