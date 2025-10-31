@@ -39,8 +39,7 @@ void UPathManager::InitializeRootPath()
  */
 void UPathManager::GetEssentialPath()
 {
-	// Add Essential
-
+	// Build directory paths (runtime)
 	DataPath = RootPath / L"Data";
 	AssetPath = RootPath / L"Asset";
 	ShaderPath = AssetPath / L"Shader";
@@ -50,6 +49,17 @@ void UPathManager::GetEssentialPath()
 	WorldPath = AssetPath / "World";
 	ConfigPath = AssetPath / "Config";
 	FontPath = AssetPath / "Font";
+
+	// Engine source directory paths (for editing)
+	// RootPath is Build/{Configuration}/, so Engine is ../../Engine/
+	EngineRootPath = (RootPath / ".." / ".." / "Engine").lexically_normal();
+	EngineDataPath = EngineRootPath / "Data";
+
+	// Validate Engine paths exist
+	if (!exists(EngineRootPath))
+	{
+		UE_LOG_WARNING("PathManager: Engine root path does not exist: %s", EngineRootPath.string().c_str());
+	}
 }
 
 /**
@@ -65,7 +75,9 @@ void UPathManager::ValidateAndCreateDirectories() const
 		AudioPath,
 		WorldPath,
 		ConfigPath,
-		FontPath
+		FontPath,
+		EngineDataPath,
+		EngineDataPath / "Scripts"
 	};
 
 	for (const auto& Directory : DirectoriesToCreate)

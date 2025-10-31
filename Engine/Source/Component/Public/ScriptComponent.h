@@ -90,6 +90,12 @@ public:
 	 */
 	void TriggerOnOverlap(AActor* OtherActor);
 
+	/**
+	 * 스크립트 Hot Reload (ScriptManager가 호출)
+	 * 기존 스크립트를 정리하고 재로드합니다.
+	 */
+	void ReloadScript();
+
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
