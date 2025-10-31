@@ -219,7 +219,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_DEVELOP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;$(SolutionDir)External\Include\Lua</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -229,10 +229,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>;$(SolutionDir)External\Library</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)External\Library\Lua\lua54.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y</Command>
-      <Command>xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
+xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">
@@ -242,7 +244,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;IS_OBJ_VIEWER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;$(SolutionDir)External\Include\Lua</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -252,10 +254,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>;$(SolutionDir)External\Library</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)External\Library\Lua\lua54.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y</Command>
-      <Command>xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
+xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -267,7 +271,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;$(SolutionDir)External\Include\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -277,10 +281,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>;$(SolutionDir)External\Library</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)External\Library\Lua\lua54.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y</Command>
-      <Command>xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
+xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
@@ -292,7 +298,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions); _DEVELOP=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)External\Include;$(SolutionDir)External\Include\Lua</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -302,10 +308,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>;$(SolutionDir)External\Library</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)External\Library\Lua\lua54.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y</Command>
-      <Command>xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
+      <Command>xcopy "$(ProjectDir)Asset" "$(OutDir)Asset" /E /I /Y
+xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y
+xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -348,6 +356,7 @@
     <ClInclude Include="Source\Component\Public\ProjectileMovementComponent.h" />
     <ClInclude Include="Source\Component\Public\RotatingMovementComponent.h" />
     <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
+    <ClInclude Include="Source\Component\Public\ScriptComponent.h" />
     <ClInclude Include="Source\Component\Public\SpotLightComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\LightComponent.h" />
@@ -373,6 +382,7 @@
     </ClInclude>
     <ClInclude Include="Source\Manager\Asset\Public\TextureManager.h" />
     <ClInclude Include="Source\Manager\Render\Public\CascadeManager.h" />
+    <ClInclude Include="Source\Manager\Script\Public\ScriptManager.h" />
     <ClInclude Include="Source\Manager\UI\Public\ViewportManager.h" />
     <ClInclude Include="Source\Optimization\Public\OcclusionCuller.h" />
     <ClInclude Include="Source\Optimization\Public\ViewVolumeCuller.h" />
@@ -642,6 +652,7 @@
     <ClCompile Include="Source\Component\Private\ProjectileMovementComponent.cpp" />
     <ClCompile Include="Source\Component\Private\RotatingMovementComponent.cpp" />
     <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\ScriptComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SpotLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
@@ -670,6 +681,7 @@
     </ClCompile>
     <ClCompile Include="Source\Manager\Asset\Private\TextureManager.cpp" />
     <ClCompile Include="Source\Manager\Render\Private\CascadeManager.cpp" />
+    <ClCompile Include="Source\Manager\Script\Private\ScriptManager.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Optimization\Private\OcclusionCuller.cpp" />
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp" />

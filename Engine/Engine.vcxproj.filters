@@ -329,6 +329,9 @@
     <ClCompile Include="Source\Component\Private\SpotLightComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Component\Private\ScriptComponent.cpp">
+      <Filter>Source\Component\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Component\Private\TextComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
@@ -403,6 +406,9 @@
     </ClCompile>
     <ClCompile Include="Source\Manager\Time\Private\TimeManager.cpp">
       <Filter>Source\Manager\Time\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Manager\Script\Private\ScriptManager.cpp">
+      <Filter>Source\Manager\Script\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Manager\UI\Private\UIManager.cpp">
       <Filter>Source\Manager\UI\Private</Filter>
@@ -811,6 +817,9 @@
     <ClInclude Include="Source\Component\Public\SpotLightComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Component\Public\ScriptComponent.h">
+      <Filter>Source\Component\Public</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Component\Public\TextComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
@@ -891,6 +900,9 @@
     </ClInclude>
     <ClInclude Include="Source\Manager\Time\Public\TimeManager.h">
       <Filter>Source\Manager\Time\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Manager\Script\Public\ScriptManager.h">
+      <Filter>Source\Manager\Script\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Manager\UI\Public\UIManager.h">
       <Filter>Source\Manager\UI\Public</Filter>
@@ -1257,6 +1269,15 @@
     </Filter>
     <Filter Include="Source\Manager\Time\Public">
       <UniqueIdentifier>{a2f6c2f7-6364-4b17-bffd-735b058b148f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Manager\Script">
+      <UniqueIdentifier>{9a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Manager\Script\Private">
+      <UniqueIdentifier>{6b7c8d9e-0f1a-2b3c-4d5e-6f7a8b9c0d1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Manager\Script\Public">
+      <UniqueIdentifier>{7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Utility">
       <UniqueIdentifier>{628732d9-d875-4155-8ec0-5bec9654c169}</UniqueIdentifier>

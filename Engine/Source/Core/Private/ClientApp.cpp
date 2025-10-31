@@ -11,6 +11,7 @@
 
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/Config/Public/ConfigManager.h"
+#include "Manager/Script/Public/ScriptManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 
 #include "Render/UI/Window/Public/ConsoleWindow.h"
@@ -92,6 +93,10 @@ int FClientApp::InitializeSystem() const
 	Renderer.Init(Window->GetWindowHandle());
 
 	UAssetManager::GetInstance().Initialize();
+
+	// 스크립트 매니저 초기화
+	auto& ScriptManager = UScriptManager::GetInstance();
+	ScriptManager.Initialize();
 
 	// StatOverlay Initialize
 	auto& StatOverlay = UStatOverlay::GetInstance();
@@ -205,6 +210,7 @@ void FClientApp::ShutdownSystem() const
 	
 	UStatOverlay::GetInstance().Release();
 	UUIManager::GetInstance().Shutdown();
+	UScriptManager::GetInstance().Shutdown();
 	UAssetManager::GetInstance().Release();
 	FObjManager::Release();
 	URenderer::GetInstance().Release();

@@ -388,6 +388,11 @@ void AActor::DuplicateSubObjects(UObject* DuplicatedObject)
 	Super::DuplicateSubObjects(DuplicatedObject);
 	AActor* DuplicatedActor = Cast<AActor>(DuplicatedObject);
 
+	// 생성자에서 생성된 컴포넌트 제거 (중복 방지)
+	// NewObject()가 생성자를 호출하여 CreateDefaultSubobject()로 컴포넌트가 이미 생성되어 있음
+	DuplicatedActor->OwnedComponents.clear();
+	DuplicatedActor->SetRootComponent(nullptr);
+
 	// { 복제 전 Component, 복제 후 Component }
 	TMap<UActorComponent*, UActorComponent*> OldToNewComponentMap;
 
