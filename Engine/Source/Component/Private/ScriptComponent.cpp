@@ -46,13 +46,9 @@ void UScriptComponent::TickComponent(float DeltaTime)
 
 	if (bScriptLoaded)
 	{
-		// obj.Location을 Actor와 동기화 (Lua 외부에서 수정된 경우 대비)
-		if (ObjTable && GetOwner())
-		{
-			(*ObjTable)["Location"] = GetOwner()->GetActorLocation();
-		}
-
 		// Tick 호출
+		// Note: obj.Location은 메타테이블의 __index를 통해 Actor의 실시간 위치를 가져옵니다.
+		// 테이블에 Location 키를 직접 저장하면 메타테이블이 우회되므로, 여기서는 동기화하지 않습니다.
 		CallLuaFunction("Tick", DeltaTime);
 	}
 }
@@ -104,6 +100,9 @@ UObject* UScriptComponent::Duplicate()
 	DuplicatedComp->ObjTable = nullptr;
 	DuplicatedComp->ScriptEnv = nullptr;
 	DuplicatedComp->bScriptLoaded = false;
+
+	// ScriptPath 복사 (Super::Duplicate()는 NewObject()를 호출하여 생성자에서 초기화되므로 명시적 복사 필요)
+	DuplicatedComp->ScriptPath = ScriptPath;
 
 	return DuplicatedComp;
 }
@@ -218,6 +217,7 @@ void UScriptComponent::CreateObjTable()
 		if (key == "Location")
 		{
 			FVector newLoc = value.as<FVector>();
+			UE_LOG_DEBUG("Lua __newindex: Setting Location to (%.2f, %.2f, %.2f)", newLoc.X, newLoc.Y, newLoc.Z);
 			actor->SetActorLocation(newLoc);
 		}
 		else if (key == "Rotation")
