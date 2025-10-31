@@ -496,8 +496,15 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		path BuildScriptsDir = PathMgr.GetDataPath() / "Scripts";
 		path BuildTemplatePath = BuildScriptsDir / "template.lua";
 
+		// 스크립트 이름 생성: SceneName_ActorName.lua
+		FString SceneName = "Untitled";
+		if (GWorld && GWorld->GetLevel())
+		{
+			SceneName = GWorld->GetLevel()->GetName().ToString();
+		}
+
 		FString ActorName = InSelectedActor->GetName().ToString();
-		FString NewScriptName = ActorName + ".lua";
+		FString NewScriptName = SceneName + "_" + ActorName + ".lua";
 
 		path EngineNewScriptPath = EngineScriptsDir / NewScriptName.c_str();
 		path BuildNewScriptPath = BuildScriptsDir / NewScriptName.c_str();
