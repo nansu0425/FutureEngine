@@ -287,6 +287,9 @@
     <ClCompile Include="Source\Actor\Private\TriangleActor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Actor\Private\CollisionTestActor.cpp">
+      <Filter>Source\Actor\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp">
       <Filter>Source\Component\Private</Filter>
     </ClCompile>
@@ -340,6 +343,18 @@
     </ClCompile>
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp">
       <Filter>Source\Component\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Component\Shape\Private\ShapeComponent.cpp">
+      <Filter>Source\Component\Shape\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Component\Shape\Private\BoxComponent.cpp">
+      <Filter>Source\Component\Shape\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Component\Shape\Private\SphereComponent.cpp">
+      <Filter>Source\Component\Shape\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Component\Shape\Private\CapsuleComponent.cpp">
+      <Filter>Source\Component\Shape\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Component\Private\SceneComponent.cpp">
       <Filter>Source\Component\Private</Filter>
@@ -426,6 +441,12 @@
       <Filter>Source\Physics\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Physics\Private\OBB.cpp">
+      <Filter>Source\Physics\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\Private\BoundingCapsule.cpp">
+      <Filter>Source\Physics\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Physics\Private\CollisionDetection.cpp">
       <Filter>Source\Physics\Private</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Public\WindowsBinReader.cpp">
@@ -778,6 +799,9 @@
     <ClInclude Include="Source\Actor\Public\TriangleActor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Actor\Public\CollisionTestActor.h">
+      <Filter>Source\Actor\Public</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Component\Public\ActorComponent.h">
       <Filter>Source\Component\Public</Filter>
     </ClInclude>
@@ -831,6 +855,18 @@
     </ClInclude>
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h">
       <Filter>Source\Component\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\Shape\Public\ShapeComponent.h">
+      <Filter>Source\Component\Shape\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\Shape\Public\BoxComponent.h">
+      <Filter>Source\Component\Shape\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\Shape\Public\SphereComponent.h">
+      <Filter>Source\Component\Shape\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\Shape\Public\CapsuleComponent.h">
+      <Filter>Source\Component\Shape\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\Public\SceneComponent.h">
       <Filter>Source\Component\Public</Filter>
@@ -926,6 +962,15 @@
       <Filter>Source\Physics\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\Public\OBB.h">
+      <Filter>Source\Physics\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Public\BoundingCapsule.h">
+      <Filter>Source\Physics\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Public\CollisionTypes.h">
+      <Filter>Source\Physics\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\Public\CollisionDetection.h">
       <Filter>Source\Physics\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Public\Archive.h">
@@ -1215,6 +1260,15 @@
     </Filter>
     <Filter Include="Source\Component\Mesh\Public">
       <UniqueIdentifier>{9736d5f1-510a-4852-91f0-ff1d3fef5999}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Component\Shape">
+      <UniqueIdentifier>{a1b2c3d4-5e6f-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Component\Shape\Private">
+      <UniqueIdentifier>{b2c3d4e5-6f78-9012-bcde-f12345678901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Component\Shape\Public">
+      <UniqueIdentifier>{c3d4e5f6-7890-1234-cdef-123456789012}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor">
       <UniqueIdentifier>{1c568c5c-1df9-4a7a-bb79-d21b64430ac8}</UniqueIdentifier>

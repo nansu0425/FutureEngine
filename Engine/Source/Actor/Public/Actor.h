@@ -113,6 +113,9 @@ public:
 	bool IsPendingDestroy() const { return bIsPendingDestroy; }
 	void SetIsPendingDestroy(bool bInIsPendingDestroy) { bIsPendingDestroy = bInIsPendingDestroy; }
 
+	// Collision & Overlap
+	bool IsOverlappingActor(const AActor* Other) const;
+
 protected:
 	bool bCanEverTick = false;
 	bool bTickInEditor = false;

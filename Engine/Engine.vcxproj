@@ -362,6 +362,10 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     <ClInclude Include="Source\Component\Public\LightComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h" />
+    <ClInclude Include="Source\Component\Shape\Public\ShapeComponent.h" />
+    <ClInclude Include="Source\Component\Shape\Public\BoxComponent.h" />
+    <ClInclude Include="Source\Component\Shape\Public\SphereComponent.h" />
+    <ClInclude Include="Source\Component\Shape\Public\CapsuleComponent.h" />
     <ClInclude Include="Source\Component\Public\SceneComponent.h" />
     <ClInclude Include="Source\Component\Mesh\Public\VertexDatas.h" />
     <ClInclude Include="Source\Core\Public\Archive.h" />
@@ -389,6 +393,9 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     <ClInclude Include="Source\Physics\Public\AABB.h" />
     <ClInclude Include="Source\Physics\Public\BoundingSphere.h" />
     <ClInclude Include="Source\Physics\Public\BoundingVolume.h" />
+    <ClInclude Include="Source\Physics\Public\BoundingCapsule.h" />
+    <ClInclude Include="Source\Physics\Public\CollisionTypes.h" />
+    <ClInclude Include="Source\Physics\Public\CollisionDetection.h" />
     <ClInclude Include="Source\Core\Public\AppWindow.h" />
     <ClInclude Include="Source\Core\Public\Class.h" />
     <ClInclude Include="Source\Core\Public\ClientApp.h" />
@@ -657,6 +664,10 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp" />
+    <ClCompile Include="Source\Component\Shape\Private\ShapeComponent.cpp" />
+    <ClCompile Include="Source\Component\Shape\Private\BoxComponent.cpp" />
+    <ClCompile Include="Source\Component\Shape\Private\SphereComponent.cpp" />
+    <ClCompile Include="Source\Component\Shape\Private\CapsuleComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SceneComponent.cpp" />
     <ClCompile Include="Source\Component\Mesh\Private\VertexDatas.cpp" />
     <ClCompile Include="Source\Core\Private\Archive.cpp" />
@@ -687,6 +698,8 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     <ClCompile Include="Source\Optimization\Private\ViewVolumeCuller.cpp" />
     <ClCompile Include="Source\Physics\Private\AABB.cpp" />
     <ClCompile Include="Source\Physics\Private\BoundingSphere.cpp" />
+    <ClCompile Include="Source\Physics\Private\BoundingCapsule.cpp" />
+    <ClCompile Include="Source\Physics\Private\CollisionDetection.cpp" />
     <ClCompile Include="Source\Core\Private\AppWindow.cpp" />
     <ClCompile Include="Source\Core\Private\Class.cpp" />
     <ClCompile Include="Source\Core\Private\ClientApp.cpp" />

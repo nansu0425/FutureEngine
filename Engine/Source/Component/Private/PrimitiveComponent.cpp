@@ -193,3 +193,121 @@ void UPrimitiveComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	}
 
 }
+
+// Collision & Overlap Implementation
+
+bool UPrimitiveComponent::IsOverlappingComponent(const UPrimitiveComponent* Other) const
+{
+	if (!Other)
+		return false;
+
+	for (const FOverlapInfo& Info : OverlapInfos)
+	{
+		if (Info.OverlappingComponent == Other)
+			return true;
+	}
+
+	return false;
+}
+
+bool UPrimitiveComponent::IsOverlappingActor(const AActor* Other) const
+{
+	if (!Other)
+		return false;
+
+	for (const FOverlapInfo& Info : OverlapInfos)
+	{
+		if (Info.OverlappingComponent && Info.OverlappingComponent->GetOwner() == Other)
+			return true;
+	}
+
+	return false;
+}
+
+void UPrimitiveComponent::AddOverlapInfo(const FOverlapInfo& Info)
+{
+	// 중복 체크
+	for (const FOverlapInfo& ExistingInfo : OverlapInfos)
+	{
+		if (ExistingInfo == Info)
+			return;
+	}
+
+	OverlapInfos.push_back(Info);
+}
+
+void UPrimitiveComponent::RemoveOverlapInfo(const UPrimitiveComponent* Component)
+{
+	for (auto It = OverlapInfos.begin(); It != OverlapInfos.end(); ++It)
+	{
+		if (It->OverlappingComponent == Component)
+		{
+			OverlapInfos.erase(It);
+			return;
+		}
+	}
+}
+
+bool UPrimitiveComponent::CheckOverlapWith(const UPrimitiveComponent* Other) const
+{
+	// 기본 구현: 항상 false 반환
+	// Shape Component들이 오버라이드하여 실제 충돌 체크 수행
+	return false;
+}
+
+void UPrimitiveComponent::UpdateOverlaps(const TArray<UPrimitiveComponent*>& AllComponents)
+{
+	if (!bGenerateOverlapEvents)
+		return;
+
+	TArray<FOverlapInfo> NewOverlapInfos;
+
+	// 모든 컴포넌트와 충돌 체크
+	for (UPrimitiveComponent* Other : AllComponents)
+	{
+		if (Other == this || !Other->bGenerateOverlapEvents)
+			continue;
+
+		if (CheckOverlapWith(Other))
+		{
+			NewOverlapInfos.push_back(FOverlapInfo(Other));
+		}
+	}
+
+	// 새로 겹친 것 확인 (BeginOverlap)
+	for (const FOverlapInfo& NewInfo : NewOverlapInfos)
+	{
+		auto It = std::find(OverlapInfos.begin(), OverlapInfos.end(), NewInfo);
+		if (It == OverlapInfos.end())
+		{
+			// 새로 겹침 - 로그 출력
+			AActor* MyOwner = GetOwner();
+			AActor* OtherOwner = NewInfo.OverlappingComponent->GetOwner();
+			UE_LOG_SUCCESS("BeginOverlap: [%s]%s <-> [%s]%s",
+				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+				GetName().ToString().c_str(),
+				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+				NewInfo.OverlappingComponent->GetName().ToString().c_str());
+		}
+	}
+
+	// 분리된 것 확인 (EndOverlap)
+	for (const FOverlapInfo& OldInfo : OverlapInfos)
+	{
+		auto It = std::find(NewOverlapInfos.begin(), NewOverlapInfos.end(), OldInfo);
+		if (It == NewOverlapInfos.end())
+		{
+			// 분리됨 - 로그 출력
+			AActor* MyOwner = GetOwner();
+			AActor* OtherOwner = OldInfo.OverlappingComponent->GetOwner();
+			UE_LOG_WARNING("EndOverlap: [%s]%s <-> [%s]%s",
+				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+				GetName().ToString().c_str(),
+				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+				OldInfo.OverlappingComponent->GetName().ToString().c_str());
+		}
+	}
+
+	// 새로운 Overlap 정보로 업데이트
+	OverlapInfos = NewOverlapInfos;
+}

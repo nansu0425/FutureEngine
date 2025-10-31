@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 #include "Component/Public/SceneComponent.h"
 #include "Physics/Public/BoundingVolume.h"
+#include "Physics/Public/CollisionTypes.h"
 
 UCLASS()
 class UPrimitiveComponent : public USceneComponent
@@ -43,6 +44,25 @@ public:
 
 	virtual void MarkAsDirty() override;
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
+	// Collision & Overlap
+	bool GetGenerateOverlapEvents() const { return bGenerateOverlapEvents; }
+	void SetGenerateOverlapEvents(bool bInGenerateOverlapEvents) { bGenerateOverlapEvents = bInGenerateOverlapEvents; }
+
+	bool GetBlockComponent() const { return bBlockComponent; }
+	void SetBlockComponent(bool bInBlockComponent) { bBlockComponent = bInBlockComponent; }
+
+	bool IsOverlappingComponent(const UPrimitiveComponent* Other) const;
+	bool IsOverlappingActor(const AActor* Other) const;
+
+	const TArray<FOverlapInfo>& GetOverlapInfos() const { return OverlapInfos; }
+	void ClearOverlapInfos() { OverlapInfos.clear(); }
+	void AddOverlapInfo(const FOverlapInfo& Info);
+	void RemoveOverlapInfo(const UPrimitiveComponent* Component);
+
+	virtual bool CheckOverlapWith(const UPrimitiveComponent* Other) const;
+	void UpdateOverlaps(const TArray<UPrimitiveComponent*>& AllComponents);
+
 	// 데칼에 덮일 수 있는가
 	bool bReceivesDecals = true;
 
@@ -74,6 +94,11 @@ protected:
 	mutable FVector CachedWorldMin;
 	mutable FVector CachedWorldMax;
 	mutable bool bIsAABBCacheDirty = true;
+
+	// Collision
+	bool bGenerateOverlapEvents = false;
+	bool bBlockComponent = false;
+	TArray<FOverlapInfo> OverlapInfos;
 
 public:
 	virtual UObject* Duplicate() override;
