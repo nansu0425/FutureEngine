@@ -751,7 +751,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		ImGui::PopStyleColor(3);
 
 		// 스크립트 로드 상태 표시
-		if (ScriptComp->IsScriptLoaded())
+		if (UScriptManager::GetInstance().IsLoadedScript(ScriptComp->GetScriptPath()))
 		{
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Script Loaded: %s", ScriptComp->GetScriptPath().c_str());
 		}
@@ -769,10 +769,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		{
 			if (ImGui::Button("Reload Script"))
 			{
-				// 스크립트 재로드 (EndPlay -> BeginPlay)
-				ScriptComp->EndPlay();
-				ScriptComp->BeginPlay();
-				UE_LOG_SUCCESS("ScriptComponent: 스크립트 재로드됨");
+				UScriptManager::GetInstance().LoadLuaScript(ScriptComp->GetScriptPath());
 			}
 
 			// Edit Script 버튼 (같은 줄에 배치)
@@ -1320,12 +1317,6 @@ void UActorDetailWidget::BrowseScriptFile(UScriptComponent* ScriptComp)
 		std::replace(RelativePathStr.begin(), RelativePathStr.end(), '\\', '/');
 
 		UE_LOG_INFO("ActorDetailWidget: 스크립트 파일 선택됨 - %s", RelativePathStr.c_str());
-
-		// 기존 스크립트 종료
-		if (ScriptComp->IsScriptLoaded())
-		{
-			ScriptComp->EndPlay();
-		}
 
 		// 새 스크립트 경로 설정 및 로드
 		ScriptComp->SetScriptPath(RelativePathStr);

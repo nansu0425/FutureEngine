@@ -2,14 +2,19 @@
 #include "Core/Public/Object.h"
 #include <filesystem>
 
-// Sol2 전방 선언
-namespace sol
-{
-	class state;
-}
+// Sol2 헤더 (단일 헤더 라이브러리)
+#define SOL_ALL_SAFETIES_ON 1
+#include <Sol2/sol.hpp>
 
 // 전방 선언
 class UScriptComponent;
+
+struct FLuaScript
+{
+	FString Path;
+	std::filesystem::file_time_type LastCompileTime;
+	sol::table GlobalTable;
+};
 
 /**
  * UScriptManager
@@ -28,10 +33,7 @@ private:
 
 	// Hot Reload 시스템
 	/** 스크립트 경로 → 마지막 수정 시간 */
-	TMap<FString, std::filesystem::file_time_type> ScriptFileLastWriteTimeMap;
-
-	/** 스크립트 경로 → 이 스크립트를 사용하는 컴포넌트들 */
-	TMap<FString, TSet<UScriptComponent*>> ScriptComponentMap;
+	TMap<FString, FLuaScript> LuaScriptMap;
 
 	/** Hot Reload 체크 주기 (초 단위) */
 	static constexpr float HotReloadCheckInterval = 0.5f;
@@ -71,19 +73,10 @@ public:
 	 */
 	bool ExecuteString(const FString& Code);
 
-	// Hot Reload 시스템
-	/**
-	 * ScriptComponent를 등록하여 해당 스크립트 파일 변경 추적
-	 * @param Comp - 등록할 ScriptComponent
-	 * @param ScriptPath - 스크립트 파일 경로 (상대 경로)
-	 */
-	void RegisterScriptComponent(UScriptComponent* Comp, const FString& ScriptPath);
-
-	/**
-	 * ScriptComponent 등록 해제
-	 * @param Comp - 해제할 ScriptComponent
-	 */
-	void UnregisterScriptComponent(UScriptComponent* Comp);
+	
+	bool LoadLuaScript(const FString& ScriptPath);
+	sol::table GetTable(const FString& ScriptPath);
+	bool IsLoadedScript(const FString& ScriptPath);
 
 	/**
 	 * 변경된 스크립트 파일 경로 수집

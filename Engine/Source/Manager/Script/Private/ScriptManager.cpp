@@ -1,9 +1,6 @@
 #include "pch.h"
 #include "Manager/Script/Public/ScriptManager.h"
 
-// Sol2 헤더 (단일 헤더 라이브러리)
-#define SOL_ALL_SAFETIES_ON 1
-#include <Sol2/sol.hpp>
 
 // 엔진 인클루드
 #include "Global/Vector.h"
@@ -79,6 +76,75 @@ sol::state& UScriptManager::GetLuaState()
 		return dummy;
 	}
 	return *LuaState;
+}
+sol::table UScriptManager::GetTable(const FString& ScriptPath)
+{
+	auto it = LuaScriptMap.find(ScriptPath);
+	if (it != LuaScriptMap.end())
+	{
+		return LuaScriptMap[ScriptPath].GlobalTable;
+	}
+	return LuaState->create_table();
+}
+bool UScriptManager::IsLoadedScript(const FString& ScriptPath)
+{
+	auto it = LuaScriptMap.find(ScriptPath);
+	if (it != LuaScriptMap.end())
+	{
+		return true;
+	}
+	return false;
+}
+
+bool UScriptManager::LoadLuaScript(const FString& ScriptPath)
+{
+	// 파일 수정 시간 기록 (Engine 경로 우선)
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
+	path BuildScriptPath = PathMgr.GetDataPath() / "Scripts" / ScriptPath.c_str();
+
+	path FullPath;
+	if (std::filesystem::exists(EngineScriptPath))
+	{
+		FullPath = EngineScriptPath;
+	}
+	else if (std::filesystem::exists(BuildScriptPath))
+	{
+		FullPath = BuildScriptPath;
+	}
+	else
+	{
+		UE_LOG_WARNING("ScriptManager: 스크립트 파일을 찾을 수 없어 Hot Reload 등록 실패: %s", ScriptPath.c_str());
+		return false;
+	}
+
+	std::error_code ErrorCode;
+	auto LastWriteTime = std::filesystem::last_write_time(FullPath, ErrorCode);
+	if (!ErrorCode)
+	{
+		UE_LOG_INFO("루아 스크립트 로드 시작 - %s", ScriptPath.c_str());
+
+		try 
+		{
+			sol::table GlobalTable = LuaState->script_file(FullPath.string());
+			LuaScriptMap[ScriptPath].Path = ScriptPath;
+			LuaScriptMap[ScriptPath].LastCompileTime = LastWriteTime;
+			LuaScriptMap[ScriptPath].GlobalTable = GlobalTable;
+		}
+		catch (const sol::error& e) 
+		{
+			UE_LOG_ERROR("Lua compile/load error: %s", e.what());
+			return false;
+		}
+	
+		UE_LOG_INFO("ScriptManager: Hot Reload 등록 완료 - %s", ScriptPath.c_str());
+		return true;
+	}
+	else
+	{
+		UE_LOG_WARNING("ScriptManager: 스크립트 수정 시간 조회 실패: %s (%s)", ScriptPath.c_str(), ErrorCode.message().c_str());
+		return false;
+	}
 }
 
 bool UScriptManager::ExecuteFile(const FString& FilePath)
@@ -323,88 +389,16 @@ void UScriptManager::RegisterGlobalFunctions()
 	Hot Reload System
 -----------------------------------------------------------------------------*/
 
-void UScriptManager::RegisterScriptComponent(UScriptComponent* Comp, const FString& ScriptPath)
-{
-	if (!Comp || ScriptPath.empty())
-	{
-		return;
-	}
-
-	// 컴포넌트 맵에 추가
-	ScriptComponentMap[ScriptPath].insert(Comp);
-
-	// 파일 수정 시간 기록 (Engine 경로 우선)
-	UPathManager& PathMgr = UPathManager::GetInstance();
-	path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
-	path BuildScriptPath = PathMgr.GetDataPath() / "Scripts" / ScriptPath.c_str();
-
-	path FullPath;
-	if (std::filesystem::exists(EngineScriptPath))
-	{
-		FullPath = EngineScriptPath;
-	}
-	else if (std::filesystem::exists(BuildScriptPath))
-	{
-		FullPath = BuildScriptPath;
-	}
-	else
-	{
-		UE_LOG_WARNING("ScriptManager: 스크립트 파일을 찾을 수 없어 Hot Reload 등록 실패: %s", ScriptPath.c_str());
-		return;
-	}
-
-	std::error_code ErrorCode;
-	auto LastWriteTime = std::filesystem::last_write_time(FullPath, ErrorCode);
-	if (!ErrorCode)
-	{
-		ScriptFileLastWriteTimeMap[ScriptPath] = LastWriteTime;
-		UE_LOG_INFO("ScriptManager: Hot Reload 등록 완료 - %s", ScriptPath.c_str());
-	}
-	else
-	{
-		UE_LOG_WARNING("ScriptManager: 스크립트 수정 시간 조회 실패: %s (%s)", ScriptPath.c_str(), ErrorCode.message().c_str());
-	}
-}
-
-void UScriptManager::UnregisterScriptComponent(UScriptComponent* Comp)
-{
-	if (!Comp)
-	{
-		return;
-	}
-
-	// 모든 스크립트 경로에서 해당 컴포넌트 제거
-	for (auto& Pair : ScriptComponentMap)
-	{
-		Pair.second.erase(Comp);
-	}
-
-	// 빈 항목 정리
-	for (auto It = ScriptComponentMap.begin(); It != ScriptComponentMap.end(); )
-	{
-		if (It->second.empty())
-		{
-			FString ScriptPath = It->first;
-			ScriptFileLastWriteTimeMap.erase(ScriptPath);
-			It = ScriptComponentMap.erase(It);
-		}
-		else
-		{
-			++It;
-		}
-	}
-}
-
 TSet<FString> UScriptManager::GatherHotReloadTargets()
 {
 	TSet<FString> HotReloadTargets;
 
 	UPathManager& PathMgr = UPathManager::GetInstance();
 
-	for (const auto& Pair : ScriptFileLastWriteTimeMap)
+	for (const auto& Pair : LuaScriptMap)
 	{
 		const FString& ScriptPath = Pair.first;
-		const auto& CachedLastWriteTime = Pair.second;
+		const auto& CachedLastWriteTime = Pair.second.LastCompileTime;
 
 		// Engine 경로 우선 확인
 		path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
@@ -437,7 +431,6 @@ TSet<FString> UScriptManager::GatherHotReloadTargets()
 		{
 			HotReloadTargets.insert(ScriptPath);
 			// 수정 시간 업데이트
-			ScriptFileLastWriteTimeMap[ScriptPath] = CurrentLastWriteTime;
 		}
 	}
 
@@ -470,34 +463,12 @@ void UScriptManager::HotReloadScripts()
 
 	for (const FString& ScriptPath : HotReloadTargets)
 	{
-		auto It = ScriptComponentMap.find(ScriptPath);
-		if (It == ScriptComponentMap.end())
+		auto It = LuaScriptMap.find(ScriptPath);
+		if (It == LuaScriptMap.end())
 		{
 			continue;
 		}
 
-		// 변경 감지 로그 (디버깅용)
-		UE_LOG_WARNING("ScriptManager: Script file changed detected - %s (Affected components: %d)",
-			ScriptPath.c_str(), static_cast<int32>(It->second.size()));
-
-		// IMPORTANT: 순회 중 UnregisterScriptComponent()로 인한 iterator invalidation 방지
-		// ReloadScript() → CleanupLuaResources() → UnregisterScriptComponent()가 호출되면
-		// 현재 순회 중인 set이 수정되므로, 복사본을 만들어서 순회
-		TArray<UScriptComponent*> ComponentsCopy;
-		ComponentsCopy.reserve(It->second.size());
-		for (UScriptComponent* Comp : It->second)
-		{
-			ComponentsCopy.push_back(Comp);
-		}
-
-		// 복사본으로 순회 (안전)
-		for (UScriptComponent* Comp : ComponentsCopy)
-		{
-			if (Comp)
-			{
-				Comp->ReloadScript();
-				// 성공/실패 로그는 ReloadScript() 내부에서 출력됨
-			}
-		}
+		LoadLuaScript(ScriptPath);
 	}
 }
