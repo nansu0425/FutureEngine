@@ -28,7 +28,6 @@ void UScriptComponent::BeginPlay()
 
 	if (ScriptPath.empty())
 	{
-		UE_LOG_WARNING("ScriptComponent on %s has no script path set", GetOwner()->GetName().ToString().c_str());
 		return;
 	}
 
@@ -46,9 +45,6 @@ void UScriptComponent::TickComponent(float DeltaTime)
 
 	if (bScriptLoaded)
 	{
-		// Tick 호출
-		// Note: obj.Location은 메타테이블의 __index를 통해 Actor의 실시간 위치를 가져옵니다.
-		// 테이블에 Location 키를 직접 저장하면 메타테이블이 우회되므로, 여기서는 동기화하지 않습니다.
 		CallLuaFunction("Tick", DeltaTime);
 	}
 }
@@ -136,7 +132,6 @@ bool UScriptComponent::LoadScript()
 		}
 
 		bScriptLoaded = true;
-		UE_LOG_SUCCESS("Lua 스크립트 로드 완료: %s", ScriptPath.c_str());
 		return true;
 	}
 	catch (const std::exception& e)
@@ -217,7 +212,6 @@ void UScriptComponent::CreateObjTable()
 		if (key == "Location")
 		{
 			FVector newLoc = value.as<FVector>();
-			UE_LOG_DEBUG("Lua __newindex: Setting Location to (%.2f, %.2f, %.2f)", newLoc.X, newLoc.Y, newLoc.Z);
 			actor->SetActorLocation(newLoc);
 		}
 		else if (key == "Rotation")

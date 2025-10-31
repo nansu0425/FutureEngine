@@ -494,37 +494,16 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		FString NewScriptName = ActorName + ".lua";
 		path NewScriptPath = ScriptsDir / NewScriptName.c_str();
 
-		UE_LOG_DEBUG("ScriptComponent: Scripts 디렉토리: %s", ScriptsDir.string().c_str());
-		UE_LOG_DEBUG("ScriptComponent: Template 경로: %s", TemplatePath.string().c_str());
-		UE_LOG_DEBUG("ScriptComponent: 새 스크립트 경로: %s", NewScriptPath.string().c_str());
-
 		try
 		{
 			if (std::filesystem::exists(TemplatePath))
 			{
-				UE_LOG_SUCCESS("ScriptComponent: template.lua 파일 존재 확인됨: %s", TemplatePath.string().c_str());
-
 				// 파일 복제
 				std::filesystem::copy_file(TemplatePath, NewScriptPath, std::filesystem::copy_options::overwrite_existing);
-				UE_LOG_SUCCESS("ScriptComponent: template.lua를 '%s'로 복제했습니다.", NewScriptName.c_str());
-
-				// 복제 후 파일 존재 확인
-				if (std::filesystem::exists(NewScriptPath))
-				{
-					UE_LOG_SUCCESS("ScriptComponent: 복제된 파일 존재 확인됨: %s", NewScriptPath.string().c_str());
-
-					// 파일 크기 확인
-					auto fileSize = std::filesystem::file_size(NewScriptPath);
-					UE_LOG_DEBUG("ScriptComponent: 복제된 파일 크기: %lld bytes", fileSize);
-				}
-				else
-				{
-					UE_LOG_ERROR("ScriptComponent: 복제 실패! 파일이 존재하지 않음: %s", NewScriptPath.string().c_str());
-				}
 
 				// 스크립트 경로 설정
 				ScriptComp->SetScriptPath(NewScriptName);
-				UE_LOG_SUCCESS("ScriptComponent: 스크립트 경로를 '%s'로 설정했습니다.", NewScriptName.c_str());
+				UE_LOG_SUCCESS("ScriptComponent: 스크립트 '%s' 설정 완료", NewScriptName.c_str());
 			}
 			else
 			{
@@ -536,14 +515,19 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 			UE_LOG_ERROR("ScriptComponent: 스크립트 복제 중 예외 발생: %s", e.what());
 		}
 
-		// 3. 컴포넌트 등록
+		// 3. Actor의 Tick 자동 활성화 (스크립트가 Tick을 사용하므로 필수)
+		if (!InSelectedActor->CanTick())
+		{
+			InSelectedActor->SetCanTick(true);
+		}
+
+		// 4. 컴포넌트 등록
 		InSelectedActor->RegisterComponent(ScriptComp);
 
-		// 4. BeginPlay 호출 (스크립트 로드)
+		// 5. BeginPlay 호출 (스크립트 로드)
 		ScriptComp->BeginPlay();
 
 		NewComponent = ScriptComp;
-		UE_LOG_SUCCESS("ScriptComponent '%s'를 액터에 추가하고 스크립트를 로드했습니다.", ScriptComp->GetName().ToString().data());
 	}
 	else
 	{

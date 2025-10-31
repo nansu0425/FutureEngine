@@ -23,19 +23,13 @@
 
 -- Called once when the Actor begins play
 function BeginPlay()
-    print("[BeginPlay] Actor UUID: " .. obj.UUID)
-    obj:PrintLocation()
-
     -- Initialize velocity (dynamic property)
     obj.Velocity = Vector(10, 0, 0)
-
-    print("Velocity initialized: " .. obj.Velocity.x .. ", " .. obj.Velocity.y .. ", " .. obj.Velocity.z)
 end
 
 -- Called once when the Actor ends play
 function EndPlay()
-    print("[EndPlay] Actor UUID: " .. obj.UUID)
-    obj:PrintLocation()
+    -- Cleanup code here
 end
 
 -- TODO: overlapped function
@@ -51,11 +45,4 @@ end
 function Tick(dt)
     -- Update location based on velocity
     obj.Location = obj.Location + obj.Velocity * dt
-
-    -- Print location every 60 frames (approximately 1 second at 60 FPS)
-    frameCount = (frameCount or 0) + 1
-    if frameCount >= 60 then
-        obj:PrintLocation()
-        frameCount = 0
-    end
 end

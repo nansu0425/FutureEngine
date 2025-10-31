@@ -330,7 +330,6 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
     <ClInclude Include="Source\Actor\Public\PointLight.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
-    <ClInclude Include="Source\Actor\Public\ScriptTestActor.h" />
     <ClInclude Include="Source\Actor\Public\SpotLight.h" />
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
       <DeploymentContent>false</DeploymentContent>
@@ -624,7 +623,6 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </ClCompile>
     <ClCompile Include="Source\Actor\Private\PointLight.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
-    <ClCompile Include="Source\Actor\Private\ScriptTestActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SpotLight.cpp" />
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">
       <DeploymentContent>false</DeploymentContent>

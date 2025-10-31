@@ -275,9 +275,6 @@
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Actor\Private\ScriptTestActor.cpp">
-      <Filter>Source\Actor\Private</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Actor\Private\SpotLight.cpp">
       <Filter>Source\Actor\Private</Filter>
     </ClCompile>
@@ -767,9 +764,6 @@
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Actor\Public\SphereActor.h">
-      <Filter>Source\Actor\Public</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Actor\Public\ScriptTestActor.h">
       <Filter>Source\Actor\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Actor\Public\SpotLight.h">

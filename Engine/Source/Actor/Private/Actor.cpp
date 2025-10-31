@@ -182,12 +182,7 @@ void AActor::SetActorLocation(const FVector& InLocation) const
 {
 	if (RootComponent)
 	{
-		UE_LOG_DEBUG("Actor::SetActorLocation: Setting location to (%.2f, %.2f, %.2f)", InLocation.X, InLocation.Y, InLocation.Z);
 		RootComponent->SetRelativeLocation(InLocation);
-	}
-	else
-	{
-		UE_LOG_WARNING("Actor::SetActorLocation: RootComponent is nullptr for actor '%s'", GetName().ToString().c_str());
 	}
 }
 
