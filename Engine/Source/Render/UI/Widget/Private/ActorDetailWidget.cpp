@@ -753,7 +753,7 @@ void UActorDetailWidget::RenderTransformEdit()
 			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "No script path set");
 		}
 
-		// Reload Script 버튼 (BeginPlay가 이미 호출된 경우)
+		// Reload Script 버튼과 Edit Script 버튼
 		if (!ScriptComp->GetScriptPath().empty())
 		{
 			if (ImGui::Button("Reload Script"))
@@ -762,6 +762,13 @@ void UActorDetailWidget::RenderTransformEdit()
 				ScriptComp->EndPlay();
 				ScriptComp->BeginPlay();
 				UE_LOG_SUCCESS("ScriptComponent: 스크립트 재로드됨");
+			}
+
+			// Edit Script 버튼 (같은 줄에 배치)
+			ImGui::SameLine();
+			if (ImGui::Button("Edit Script"))
+			{
+				OpenScriptInEditor(ScriptComp);
 			}
 		}
 
@@ -1199,6 +1206,54 @@ void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
 				SceneA->AttachToComponent(ParentB);
 				SceneB->AttachToComponent(ParentA);
 			}
+	}
+}
+
+void UActorDetailWidget::OpenScriptInEditor(UScriptComponent* ScriptComp)
+{
+	if (!ScriptComp)
+	{
+		UE_LOG_WARNING("ActorDetailWidget: ScriptComponent가 null입니다.");
+		return;
+	}
+
+	FString ScriptPath = ScriptComp->GetScriptPath();
+	if (ScriptPath.empty())
+	{
+		UE_LOG_WARNING("ActorDetailWidget: 스크립트 경로가 비어있습니다.");
+		return;
+	}
+
+	// Engine/Data/Scripts 경로 구성 (편집은 Engine 경로에서)
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
+
+	if (!std::filesystem::exists(EngineScriptPath))
+	{
+		UE_LOG_ERROR("ActorDetailWidget: 스크립트 파일을 찾을 수 없습니다: %s", EngineScriptPath.string().c_str());
+		return;
+	}
+
+	// Windows ShellExecute로 기본 편집기 실행
+	FString FullPath = EngineScriptPath.string();
+	HINSTANCE result = ShellExecuteA(
+		nullptr,                 // 부모 윈도우 핸들
+		"open",                  // 동작 ("open"은 연결된 프로그램 실행)
+		FullPath.c_str(),        // 파일 경로
+		nullptr,                 // 파라미터
+		nullptr,                 // 작업 디렉토리
+		SW_SHOWNORMAL            // 표시 방법
+	);
+
+	// ShellExecute 결과 확인 (32 이하는 에러)
+	if ((INT_PTR)result <= 32)
+	{
+		UE_LOG_ERROR("ActorDetailWidget: 스크립트 편집기 실행 실패 (Error code: %d) - %s",
+			(int32)(INT_PTR)result, FullPath.c_str());
+	}
+	else
+	{
+		UE_LOG_SUCCESS("ActorDetailWidget: 스크립트 편집기 열림 - %s", FullPath.c_str());
 	}
 }
 
