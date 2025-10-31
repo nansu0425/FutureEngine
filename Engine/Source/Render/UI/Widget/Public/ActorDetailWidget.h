@@ -49,6 +49,7 @@ private:
 
 	// ScriptComponent helper
 	void OpenScriptInEditor(class UScriptComponent* ScriptComp);
+	void BrowseScriptFile(class UScriptComponent* ScriptComp);
 
 	void DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLocation, FVector& OutRotation, FVector& OutScale);
 

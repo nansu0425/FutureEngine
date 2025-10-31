@@ -710,7 +710,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		ImGui::Text("Script Properties");
 		ImGui::PushID("ScriptComponent");
 
-		// Script Path 입력 필드
+		// Script Path 표시 (읽기 전용)
 		static char ScriptPathBuffer[256] = {};
 
 		// 현재 스크립트 경로를 버퍼에 복사 (처음 렌더링 시 또는 컴포넌트가 변경되었을 때)
@@ -722,19 +722,30 @@ void UActorDetailWidget::RenderTransformEdit()
 			ScriptPathBuffer[sizeof(ScriptPathBuffer) - 1] = '\0';
 		}
 
-		// 입력 필드 색상 설정
+		// 읽기 전용 입력 필드 색상 설정
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 
 		ImGui::Text("Script Path:");
 		ImGui::SameLine();
-		ImGui::SetNextItemWidth(-1.0f);
-		if (ImGui::InputText("##ScriptPath", ScriptPathBuffer, sizeof(ScriptPathBuffer), ImGuiInputTextFlags_EnterReturnsTrue))
+
+		// Browse 버튼 너비만큼 Input 필드 줄이기
+		float buttonWidth = 80.0f;
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x);
+
+		// 읽기 전용 입력 필드
+		ImGui::InputText("##ScriptPath", ScriptPathBuffer, sizeof(ScriptPathBuffer), ImGuiInputTextFlags_ReadOnly);
+
+		// Browse 버튼 (같은 줄)
+		ImGui::SameLine();
+		if (ImGui::Button("Browse...", ImVec2(buttonWidth, 0)))
 		{
-			// Enter 키를 누르면 스크립트 경로 설정
-			ScriptComp->SetScriptPath(ScriptPathBuffer);
-			UE_LOG_SUCCESS("ScriptComponent: 스크립트 경로 설정됨 - %s", ScriptPathBuffer);
+			BrowseScriptFile(ScriptComp);
+
+			// 버튼 클릭 후 버퍼 업데이트
+			strncpy_s(ScriptPathBuffer, ScriptComp->GetScriptPath().c_str(), sizeof(ScriptPathBuffer) - 1);
+			ScriptPathBuffer[sizeof(ScriptPathBuffer) - 1] = '\0';
 		}
 
 		ImGui::PopStyleColor(3);
@@ -1254,6 +1265,78 @@ void UActorDetailWidget::OpenScriptInEditor(UScriptComponent* ScriptComp)
 	else
 	{
 		UE_LOG_SUCCESS("ActorDetailWidget: 스크립트 편집기 열림 - %s", FullPath.c_str());
+	}
+}
+
+void UActorDetailWidget::BrowseScriptFile(UScriptComponent* ScriptComp)
+{
+	if (!ScriptComp)
+	{
+		UE_LOG_WARNING("ActorDetailWidget: ScriptComponent가 null입니다.");
+		return;
+	}
+
+	// Engine/Data/Scripts 경로를 기본 경로로 설정
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path ScriptsDir = PathMgr.GetEngineDataPath() / "Scripts";
+	FString InitialDir = ScriptsDir.string();
+
+	// 파일 선택 대화상자 구조체 초기화
+	OPENFILENAMEA ofn = {};
+	char szFile[260] = {};
+
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = "Lua Scripts (*.lua)\0*.lua\0All Files (*.*)\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = InitialDir.c_str();
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+	// 파일 선택 대화상자 표시
+	if (GetOpenFileNameA(&ofn) == TRUE)
+	{
+		path SelectedFilePath = ofn.lpstrFile;
+
+		// 절대 경로를 Engine/Data/Scripts 기준 상대 경로로 변환
+		path RelativePath;
+		try
+		{
+			RelativePath = std::filesystem::relative(SelectedFilePath, ScriptsDir);
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG_ERROR("ActorDetailWidget: 상대 경로 변환 실패: %s", e.what());
+			return;
+		}
+
+		// 상대 경로 문자열 추출
+		FString RelativePathStr = RelativePath.string();
+
+		// Windows 경로 구분자를 /로 변환
+		std::replace(RelativePathStr.begin(), RelativePathStr.end(), '\\', '/');
+
+		UE_LOG_INFO("ActorDetailWidget: 스크립트 파일 선택됨 - %s", RelativePathStr.c_str());
+
+		// 기존 스크립트 종료
+		if (ScriptComp->IsScriptLoaded())
+		{
+			ScriptComp->EndPlay();
+		}
+
+		// 새 스크립트 경로 설정 및 로드
+		ScriptComp->SetScriptPath(RelativePathStr);
+		ScriptComp->BeginPlay();
+
+		UE_LOG_SUCCESS("ActorDetailWidget: 스크립트 로드 완료 - %s", RelativePathStr.c_str());
+	}
+	else
+	{
+		// 사용자가 취소를 누름
+		UE_LOG_INFO("ActorDetailWidget: 파일 선택 취소됨");
 	}
 }
 
