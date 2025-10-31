@@ -154,6 +154,10 @@ bool UScriptComponent::LoadScript()
 		}
 
 		bScriptLoaded = true;
+
+		// ScriptManager에 Hot Reload 등록
+		ScriptMgr.RegisterScriptComponent(this, ScriptPath);
+
 		return true;
 	}
 	catch (const std::exception& e)
@@ -257,6 +261,12 @@ void UScriptComponent::CreateObjTable()
 
 void UScriptComponent::CleanupLuaResources()
 {
+	// ScriptManager에서 등록 해제
+	if (bScriptLoaded)
+	{
+		UScriptManager::GetInstance().UnregisterScriptComponent(this);
+	}
+
 	if (ObjTable)
 	{
 		delete ObjTable;
@@ -270,4 +280,50 @@ void UScriptComponent::CleanupLuaResources()
 	}
 
 	bScriptLoaded = false;
+}
+
+void UScriptComponent::ReloadScript()
+{
+	if (ScriptPath.empty())
+	{
+		UE_LOG_WARNING("ScriptComponent: 리로드할 스크립트 경로가 비어있습니다.");
+		return;
+	}
+
+	UE_LOG_INFO("ScriptComponent: 스크립트 리로드 시작 - %s", ScriptPath.c_str());
+
+	// 1. EndPlay 호출 (스크립트 정리)
+	if (bScriptLoaded)
+	{
+		try
+		{
+			CallLuaFunction("EndPlay");
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG_WARNING("ScriptComponent: EndPlay 호출 중 예외 발생 (무시됨): %s", e.what());
+		}
+	}
+
+	// 2. Lua 리소스 정리
+	CleanupLuaResources();
+
+	// 3. 스크립트 재로드
+	if (LoadScript())
+	{
+		// 4. BeginPlay 재호출
+		try
+		{
+			CallLuaFunction("BeginPlay");
+			UE_LOG_SUCCESS("ScriptComponent: 스크립트 Hot Reload 완료 - %s", ScriptPath.c_str());
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG_ERROR("ScriptComponent: BeginPlay 호출 중 예외 발생: %s", e.what());
+		}
+	}
+	else
+	{
+		UE_LOG_ERROR("ScriptComponent: 스크립트 리로드 실패 - %s", ScriptPath.c_str());
+	}
 }
