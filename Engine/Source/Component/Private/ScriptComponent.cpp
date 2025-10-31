@@ -31,11 +31,19 @@ void UScriptComponent::BeginPlay()
 		return;
 	}
 
+	// ScriptManager에 Hot Reload 등록 (로드 성공 여부와 무관)
+	// 처음부터 에러가 있는 스크립트도 수정 시 Hot Reload 되도록
+	UScriptManager::GetInstance().RegisterScriptComponent(this, ScriptPath);
+
 	// 스크립트 로드
 	if (LoadScript())
 	{
 		// BeginPlay 호출
 		CallLuaFunction("BeginPlay");
+	}
+	else
+	{
+		UE_LOG_WARNING("ScriptComponent: 초기 로드 실패. Hot Reload 대기 중 - %s", ScriptPath.c_str());
 	}
 }
 
@@ -136,7 +144,12 @@ bool UScriptComponent::LoadScript()
 		{
 			UE_LOG_ERROR("Lua 스크립트 파일을 찾을 수 없습니다: %s (Engine: %s, Build: %s)",
 				ScriptPath.c_str(), EngineScriptPath.string().c_str(), BuildScriptPath.string().c_str());
-			CleanupLuaResources();
+
+			// Lua 리소스만 정리 (등록 해제는 하지 않음 - Hot Reload 대상 유지)
+			if (ObjTable) { delete ObjTable; ObjTable = nullptr; }
+			if (ScriptEnv) { delete ScriptEnv; ScriptEnv = nullptr; }
+			bScriptLoaded = false;
+
 			return false;
 		}
 
@@ -149,21 +162,30 @@ bool UScriptComponent::LoadScript()
 		{
 			sol::error err = result;
 			UE_LOG_ERROR("Lua 스크립트 로드 실패 %s: %s", ScriptPath.c_str(), err.what());
-			CleanupLuaResources();
+
+			// Lua 리소스만 정리 (등록 해제는 하지 않음 - Hot Reload 대상 유지)
+			if (ObjTable) { delete ObjTable; ObjTable = nullptr; }
+			if (ScriptEnv) { delete ScriptEnv; ScriptEnv = nullptr; }
+			bScriptLoaded = false;
+
 			return false;
 		}
 
 		bScriptLoaded = true;
 
-		// ScriptManager에 Hot Reload 등록
-		ScriptMgr.RegisterScriptComponent(this, ScriptPath);
+		// Hot Reload 등록은 BeginPlay()에서 이미 처리됨
 
 		return true;
 	}
 	catch (const std::exception& e)
 	{
 		UE_LOG_ERROR("Lua 스크립트 로드 중 예외 발생 %s: %s", ScriptPath.c_str(), e.what());
-		CleanupLuaResources();
+
+		// Lua 리소스만 정리 (등록 해제는 하지 않음 - Hot Reload 대상 유지)
+		if (ObjTable) { delete ObjTable; ObjTable = nullptr; }
+		if (ScriptEnv) { delete ScriptEnv; ScriptEnv = nullptr; }
+		bScriptLoaded = false;
+
 		return false;
 	}
 }
@@ -261,8 +283,9 @@ void UScriptComponent::CreateObjTable()
 
 void UScriptComponent::CleanupLuaResources()
 {
-	// ScriptManager에서 등록 해제
-	if (bScriptLoaded)
+	// ScriptManager에서 등록 해제 (BeginPlay()에서 등록했으면 해제 필요)
+	// 처음부터 실패한 스크립트도 등록은 되어있으므로 ScriptPath 기준으로 해제
+	if (!ScriptPath.empty())
 	{
 		UScriptManager::GetInstance().UnregisterScriptComponent(this);
 	}
@@ -318,11 +341,8 @@ void UScriptComponent::ReloadScript()
 		}
 	}
 
-	// 2. ScriptManager에서 임시 등록 해제 (재등록은 LoadScript에서 수행)
-	if (bWasLoaded)
-	{
-		UScriptManager::GetInstance().UnregisterScriptComponent(this);
-	}
+	// 2. ScriptManager 등록은 BeginPlay()에서 이미 처리되어 유지됨
+	//    ReloadScript()는 Lua 리소스만 교체하고 등록 상태는 건드리지 않음
 
 	// 3. 스크립트 재로드 시도
 	bool bReloadSuccess = LoadScript();
@@ -380,8 +400,7 @@ void UScriptComponent::ReloadScript()
 			sol::state& lua = ScriptMgr.GetLuaState();
 			lua["obj"] = *ObjTable;
 
-			// ScriptManager에 재등록 (rollback 상태)
-			ScriptMgr.RegisterScriptComponent(this, ScriptPath);
+			// ScriptManager 재등록 불필요 (BeginPlay()에서 이미 등록됨)
 		}
 
 		// ========== Rollback 에러 로그 (디버깅용) ==========

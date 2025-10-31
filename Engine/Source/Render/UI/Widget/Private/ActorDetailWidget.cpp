@@ -530,13 +530,31 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 
 			if (!TemplateSourcePath.empty())
 			{
-				// Engine/Data/Scripts에 원본 복사
-				std::filesystem::copy_file(TemplateSourcePath, EngineNewScriptPath, std::filesystem::copy_options::overwrite_existing);
-				UE_LOG_SUCCESS("ScriptComponent: Engine 스크립트 저장 완료 - %s", EngineNewScriptPath.string().c_str());
+				// 기존 스크립트 존재 여부 확인
+				bool bEngineScriptExists = std::filesystem::exists(EngineNewScriptPath);
+				bool bBuildScriptExists = std::filesystem::exists(BuildNewScriptPath);
 
-				// Build/Data/Scripts에 실행용 복사
-				std::filesystem::copy_file(TemplateSourcePath, BuildNewScriptPath, std::filesystem::copy_options::overwrite_existing);
-				UE_LOG_SUCCESS("ScriptComponent: Build 스크립트 저장 완료 - %s", BuildNewScriptPath.string().c_str());
+				// Engine/Data/Scripts에 원본 복사 (이미 존재하면 덮어쓰지 않음)
+				if (bEngineScriptExists)
+				{
+					UE_LOG_INFO("ScriptComponent: Engine 스크립트가 이미 존재합니다. 기존 파일 사용 - %s", EngineNewScriptPath.string().c_str());
+				}
+				else
+				{
+					std::filesystem::copy_file(TemplateSourcePath, EngineNewScriptPath);
+					UE_LOG_SUCCESS("ScriptComponent: Engine 스크립트 생성 완료 - %s", EngineNewScriptPath.string().c_str());
+				}
+
+				// Build/Data/Scripts에 실행용 복사 (이미 존재하면 덮어쓰지 않음)
+				if (bBuildScriptExists)
+				{
+					UE_LOG_INFO("ScriptComponent: Build 스크립트가 이미 존재합니다. 기존 파일 사용 - %s", BuildNewScriptPath.string().c_str());
+				}
+				else
+				{
+					std::filesystem::copy_file(TemplateSourcePath, BuildNewScriptPath);
+					UE_LOG_SUCCESS("ScriptComponent: Build 스크립트 생성 완료 - %s", BuildNewScriptPath.string().c_str());
+				}
 
 				// 스크립트 경로 설정 (상대 경로)
 				ScriptComp->SetScriptPath(NewScriptName);
