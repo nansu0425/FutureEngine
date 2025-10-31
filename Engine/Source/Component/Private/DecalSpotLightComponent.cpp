@@ -8,9 +8,9 @@ IMPLEMENT_CLASS(UDecalSpotLightComponent, UDecalComponent)
 
 UDecalSpotLightComponent::UDecalSpotLightComponent()
 {
-	bOwnsBoundingBox = true;
-	SafeDelete(BoundingBox);
-	BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
+	bOwnsBoundingVolume = true;
+	SafeDelete(BoundingVolume);
+	BoundingVolume = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
@@ -33,8 +33,8 @@ void UDecalSpotLightComponent::TickComponent(float DeltaTime)
 
 void UDecalSpotLightComponent::UpdateProjectionMatrix()
 {
-	//FSpotLightOBB* Fobb = static_cast<FSpotLightOBB*>(BoundingBox);
-	FOBB* OBB = static_cast<FOBB*>(BoundingBox);
+	//FSpotLightOBB* Fobb = static_cast<FSpotLightOBB*>(BoundingVolume);
+	FOBB* OBB = static_cast<FOBB*>(BoundingVolume);
 	if (!OBB) { return; }
 
 	float W = OBB->Extents.X;
@@ -74,8 +74,8 @@ UObject* UDecalSpotLightComponent::Duplicate()
 {
 	UDecalSpotLightComponent* DuplicatedComponent = Cast<UDecalSpotLightComponent>(Super::Duplicate());
 
-	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingBox);
-	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingBox);
+	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingVolume);
+	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingVolume);
 	if (OriginalOBB && DuplicatedOBB)
 	{
 		DuplicatedOBB->Center = OriginalOBB->Center;
@@ -85,8 +85,8 @@ UObject* UDecalSpotLightComponent::Duplicate()
 	return DuplicatedComponent;
 }
 
-const IBoundingVolume* UDecalSpotLightComponent::GetBoundingBox()
+const IBoundingVolume* UDecalSpotLightComponent::GetBoundingVolume()
 {
 	SpotLightBoundingBox->Update(GetWorldTransformMatrix());
-	return Super::GetBoundingBox();
+	return Super::GetBoundingVolume();
 }

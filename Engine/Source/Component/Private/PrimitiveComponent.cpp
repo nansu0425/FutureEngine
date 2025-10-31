@@ -77,15 +77,15 @@ D3D11_PRIMITIVE_TOPOLOGY UPrimitiveComponent::GetTopology() const
 	return Topology;
 }
 
-const IBoundingVolume* UPrimitiveComponent::GetBoundingBox()
+const IBoundingVolume* UPrimitiveComponent::GetBoundingVolume()
 {
-	BoundingBox->Update(GetWorldTransformMatrix());
-	return BoundingBox;
+	BoundingVolume->Update(GetWorldTransformMatrix());
+	return BoundingVolume;
 }
 
 void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 {
-	if (!BoundingBox)
+	if (!BoundingVolume)
 	{
 		OutMin = FVector(); OutMax = FVector();
 		return;
@@ -93,9 +93,9 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 
 	if (bIsAABBCacheDirty)
 	{
-		if (BoundingBox->GetType() == EBoundingVolumeType::AABB)
+		if (BoundingVolume->GetType() == EBoundingVolumeType::AABB)
 		{
-			const FAABB* LocalAABB = static_cast<const FAABB*>(BoundingBox);
+			const FAABB* LocalAABB = static_cast<const FAABB*>(BoundingVolume);
 			FVector LocalCorners[8] =
 			{
 				FVector(LocalAABB->Min.X, LocalAABB->Min.Y, LocalAABB->Min.Z), FVector(LocalAABB->Max.X, LocalAABB->Min.Y, LocalAABB->Min.Z),
@@ -122,10 +122,10 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 			CachedWorldMin = WorldMin;
 			CachedWorldMax = WorldMax;
 		}
-		else if (BoundingBox->GetType() == EBoundingVolumeType::OBB ||
-			BoundingBox->GetType() == EBoundingVolumeType::SpotLight)
+		else if (BoundingVolume->GetType() == EBoundingVolumeType::OBB ||
+			BoundingVolume->GetType() == EBoundingVolumeType::SpotLight)
 		{
-			const FOBB* OBB = static_cast<const FOBB*>(GetBoundingBox());
+			const FOBB* OBB = static_cast<const FOBB*>(GetBoundingVolume());
 			FAABB AABB = OBB->ToWorldAABB();
 
 			CachedWorldMin = AABB.Min;
@@ -164,9 +164,9 @@ UObject* UPrimitiveComponent::Duplicate()
 	PrimitiveComponent->NumVertices = NumVertices;
 	PrimitiveComponent->NumIndices = NumIndices;
 
-	if (!bOwnsBoundingBox)
+	if (!bOwnsBoundingVolume)
 	{
-		PrimitiveComponent->BoundingBox = BoundingBox;
+		PrimitiveComponent->BoundingVolume = BoundingVolume;
 	}
 	
 	return PrimitiveComponent;

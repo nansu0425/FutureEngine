@@ -50,6 +50,12 @@ FBoundingCapsule UCapsuleComponent::GetWorldCapsule() const
 	return FBoundingCapsule(WorldCenter, WorldHalfHeight, WorldRadius, WorldOrientation);
 }
 
+const IBoundingVolume* UCapsuleComponent::GetBoundingVolume()
+{
+	CachedWorldCapsule = GetWorldCapsule();
+	return &CachedWorldCapsule;
+}
+
 bool UCapsuleComponent::CheckOverlapWith(const UPrimitiveComponent* Other) const
 {
 	if (!bGenerateOverlapEvents || !Other || !Other->GetGenerateOverlapEvents())

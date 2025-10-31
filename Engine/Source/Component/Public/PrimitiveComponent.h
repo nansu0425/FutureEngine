@@ -39,7 +39,7 @@ public:
 	FVector4 GetColor() const { return Color; }
 	void SetColor(const FVector4& InColor) { Color = InColor; }
 
-	virtual const IBoundingVolume* GetBoundingBox();
+	virtual const IBoundingVolume* GetBoundingVolume();
 	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
 
 	virtual void MarkAsDirty() override;
@@ -88,8 +88,8 @@ protected:
 	bool bVisible = true;
 	bool bCanPick = true;
 
-	IBoundingVolume* BoundingBox = nullptr;
-	bool bOwnsBoundingBox = false;
+	IBoundingVolume* BoundingVolume = nullptr;
+	bool bOwnsBoundingVolume = false;
 	
 	mutable FVector CachedWorldMin;
 	mutable FVector CachedWorldMax;

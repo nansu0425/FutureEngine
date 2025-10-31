@@ -24,19 +24,19 @@ public:
 	void GetAllPrimitives(TArray<UPrimitiveComponent*>& OutPrimitives) const;
 	TArray<UPrimitiveComponent*> FindNearestPrimitives(const FVector& FindPos, uint32 MaxPrimitiveCount);
 
-	const FAABB& GetBoundingBox() const { return BoundingBox; }
-	void SetBoundingBox(const FAABB& InAABB) { BoundingBox = InAABB; }
+	const FAABB& GetBoundingVolume() const { return BoundingVolume; }
+	void SetBoundingVolume(const FAABB& InAABB) { BoundingVolume = InAABB; }
 	bool IsLeafNode() const { return IsLeaf(); }
 	const TArray<UPrimitiveComponent*>& GetPrimitives() const { return Primitives; }
 	TArray<FOctree*>& GetChildren() { return Children; }
-	const TArray<FOctree*>& GetChildren() const { return Children; } 
+	const TArray<FOctree*>& GetChildren() const { return Children; }
 
 private:
 	bool IsLeaf() const { return Children[0] == nullptr; }
 	void Subdivide(UPrimitiveComponent* InPrimitive);
 	void TryMerge();
 
-	FAABB BoundingBox;
+	FAABB BoundingVolume;
 	int Depth;                       
 	TArray<UPrimitiveComponent*> Primitives;
 	TArray<FOctree*> Children;

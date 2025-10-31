@@ -3,6 +3,7 @@
 #include "Physics/Public/AABB.h"
 #include "Physics/Public/OBB.h"
 #include "Physics/Public/BoundingSphere.h"
+#include "Physics/Public/BoundingCapsule.h"
 
 UBoundingBoxLines::UBoundingBoxLines()
 	: Vertices(TArray<FVector>()),
@@ -259,6 +260,197 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 
 		break;
 	}
+	case EBoundingVolumeType::Capsule:
+	{
+		const FBoundingCapsule* Capsule = static_cast<const FBoundingCapsule*>(NewBoundingVolume);
+
+		const FVector Center = Capsule->Center;
+		const float HalfHeight = Capsule->HalfHeight;
+		const float Radius = Capsule->Radius;
+		const FQuaternion Orientation = Capsule->Orientation;
+
+		CurrentType = EBoundingVolumeType::Capsule;
+		CurrentNumVertices = CapsuleVertices;
+		Vertices.resize(CapsuleVertices);
+
+		// 회전 행렬 생성
+		FMatrix RotationMatrix = Orientation.ToRotationMatrix();
+
+		// 로컬 업 벡터 (캡슐 축)
+		FVector LocalUp(0, 0, 1);
+		FVector WorldUp = RotationMatrix.TransformVector(LocalUp);
+
+		// 상단 및 하단 원의 중심
+		FVector TopCenter = Center + WorldUp * HalfHeight;
+		FVector BottomCenter = Center - WorldUp * HalfHeight;
+
+		uint32 VertexIndex = 0;
+		constexpr int32 NumCircleSegments = 30;
+		constexpr int32 NumArcSegments = 22;
+
+		// 로컬 X, Y 축 계산
+		FVector LocalRight(1, 0, 0);
+		FVector LocalForward(0, 1, 0);
+		FVector WorldRight = RotationMatrix.TransformVector(LocalRight);
+		FVector WorldForward = RotationMatrix.TransformVector(LocalForward);
+
+		// 1) 상단 원 (30 vertices)
+		for (int32 Step = 0; Step < NumCircleSegments; ++Step)
+		{
+			const float AngleRadians = (360.0f / NumCircleSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldRight * (CosValue * Radius) + WorldForward * (SinValue * Radius);
+			Vertices[VertexIndex++] = TopCenter + Offset;
+		}
+
+		// 2) 하단 원 (30 vertices)
+		for (int32 Step = 0; Step < NumCircleSegments; ++Step)
+		{
+			const float AngleRadians = (360.0f / NumCircleSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldRight * (CosValue * Radius) + WorldForward * (SinValue * Radius);
+			Vertices[VertexIndex++] = BottomCenter + Offset;
+		}
+
+		// 3) 상단 반구 X-Z 평면 호 (23 vertices, 0° to 180°)
+		for (int32 Step = 0; Step <= NumArcSegments; ++Step)
+		{
+			const float AngleRadians = (180.0f / NumArcSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldRight * (CosValue * Radius) + WorldUp * (SinValue * Radius);
+			Vertices[VertexIndex++] = TopCenter + Offset;
+		}
+
+		// 4) 상단 반구 Y-Z 평면 호 (23 vertices, 0° to 180°)
+		for (int32 Step = 0; Step <= NumArcSegments; ++Step)
+		{
+			const float AngleRadians = (180.0f / NumArcSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldForward * (CosValue * Radius) + WorldUp * (SinValue * Radius);
+			Vertices[VertexIndex++] = TopCenter + Offset;
+		}
+
+		// 5) 하단 반구 X-Z 평면 호 (23 vertices, 180° to 360° = 0° to -180°)
+		for (int32 Step = 0; Step <= NumArcSegments; ++Step)
+		{
+			const float AngleRadians = (180.0f / NumArcSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldRight * (CosValue * Radius) - WorldUp * (SinValue * Radius);
+			Vertices[VertexIndex++] = BottomCenter + Offset;
+		}
+
+		// 6) 하단 반구 Y-Z 평면 호 (23 vertices, 180° to 360°)
+		for (int32 Step = 0; Step <= NumArcSegments; ++Step)
+		{
+			const float AngleRadians = (180.0f / NumArcSegments * Step) * (PI / 180.0f);
+			const float CosValue = cosf(AngleRadians);
+			const float SinValue = sinf(AngleRadians);
+
+			FVector Offset = WorldForward * (CosValue * Radius) - WorldUp * (SinValue * Radius);
+			Vertices[VertexIndex++] = BottomCenter + Offset;
+		}
+
+		// 인덱스 생성
+		int32 LineIndex = 0;
+
+		// 상단 원 인덱스 (30 segments)
+		{
+			const int32 Base = 0;
+			for (int32 Step = 0; Step < NumCircleSegments - 1; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+			CapsuleLineIdx[LineIndex++] = Base + NumCircleSegments - 1;
+			CapsuleLineIdx[LineIndex++] = Base + 0;
+		}
+
+		// 하단 원 인덱스 (30 segments)
+		{
+			const int32 Base = NumCircleSegments;
+			for (int32 Step = 0; Step < NumCircleSegments - 1; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+			CapsuleLineIdx[LineIndex++] = Base + NumCircleSegments - 1;
+			CapsuleLineIdx[LineIndex++] = Base + 0;
+		}
+
+		// 상단 반구 X-Z 호 인덱스 (22 segments)
+		{
+			const int32 Base = NumCircleSegments * 2;
+			for (int32 Step = 0; Step < NumArcSegments; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+		}
+
+		// 상단 반구 Y-Z 호 인덱스 (22 segments)
+		{
+			const int32 Base = NumCircleSegments * 2 + (NumArcSegments + 1);
+			for (int32 Step = 0; Step < NumArcSegments; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+		}
+
+		// 하단 반구 X-Z 호 인덱스 (22 segments)
+		{
+			const int32 Base = NumCircleSegments * 2 + (NumArcSegments + 1) * 2;
+			for (int32 Step = 0; Step < NumArcSegments; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+		}
+
+		// 하단 반구 Y-Z 호 인덱스 (22 segments)
+		{
+			const int32 Base = NumCircleSegments * 2 + (NumArcSegments + 1) * 3;
+			for (int32 Step = 0; Step < NumArcSegments; ++Step)
+			{
+				CapsuleLineIdx[LineIndex++] = Base + Step;
+				CapsuleLineIdx[LineIndex++] = Base + Step + 1;
+			}
+		}
+
+		// 수직 연결선 4개 (0°, 90°, 180°, 270°)
+		{
+			const int32 TopBase = 0;
+			const int32 BottomBase = NumCircleSegments;
+
+			// 0° (right)
+			CapsuleLineIdx[LineIndex++] = TopBase + 0;
+			CapsuleLineIdx[LineIndex++] = BottomBase + 0;
+
+			// 90° (forward)
+			CapsuleLineIdx[LineIndex++] = TopBase + NumCircleSegments / 4;
+			CapsuleLineIdx[LineIndex++] = BottomBase + NumCircleSegments / 4;
+
+			// 180° (left)
+			CapsuleLineIdx[LineIndex++] = TopBase + NumCircleSegments / 2;
+			CapsuleLineIdx[LineIndex++] = BottomBase + NumCircleSegments / 2;
+
+			// 270° (back)
+			CapsuleLineIdx[LineIndex++] = TopBase + NumCircleSegments * 3 / 4;
+			CapsuleLineIdx[LineIndex++] = BottomBase + NumCircleSegments * 3 / 4;
+		}
+
+		break;
+	}
 	default:
 		break;
 	}
@@ -366,6 +558,10 @@ int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 	{
 		return SphereLineIdx;
 	}
+	case EBoundingVolumeType::Capsule:
+	{
+		return CapsuleLineIdx;
+	}
 	default:
 		break;
 	}
@@ -385,6 +581,8 @@ uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) 
 		return static_cast<uint32>(SpotLightLineIdx.size());
 	case EBoundingVolumeType::Sphere:
 		return 360;
+	case EBoundingVolumeType::Capsule:
+		return 304;
 	default:
 		break;
 	}

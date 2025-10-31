@@ -1,7 +1,7 @@
 #pragma once
 #include "Component/Shape/Public/ShapeComponent.h"
+#include "Physics/Public/BoundingCapsule.h"
 
-struct FBoundingCapsule;
 class UBoxComponent;
 class USphereComponent;
 
@@ -30,6 +30,9 @@ public:
 	// World space Capsule 얻기
 	FBoundingCapsule GetWorldCapsule() const;
 
+	// IBoundingVolume 인터페이스
+	virtual const IBoundingVolume* GetBoundingVolume() override;
+
 	// 충돌 체크 오버라이드
 	virtual bool CheckOverlapWith(const UPrimitiveComponent* Other) const override;
 
@@ -41,6 +44,9 @@ protected:
 
 	// 캡슐의 반지름
 	float CapsuleRadius = 25.0f;
+
+	// Cached bounding volume for GetBoundingVolume()
+	mutable FBoundingCapsule CachedWorldCapsule;
 
 private:
 	// 개별 Shape와의 충돌 체크

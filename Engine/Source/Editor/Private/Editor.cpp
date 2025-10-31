@@ -280,15 +280,15 @@ void UEditor::UpdateBatchLines()
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
-				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
+				if (PrimitiveComponent->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
 				{
 					FVector WorldMin, WorldMax; PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);
 					FAABB AABB(WorldMin, WorldMax);
 					BatchLines.UpdateBoundingBoxVertices(&AABB);
 				}
-				else 
-				{ 
-					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox()); 
+				else
+				{
+					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume()); 
 
 					// 만약 선택된 타입이 decalspotlightcomponent라면
 					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))

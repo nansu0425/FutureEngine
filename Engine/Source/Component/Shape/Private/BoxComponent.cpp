@@ -65,6 +65,12 @@ FAABB UBoxComponent::GetWorldAABB() const
 	return FAABB(WorldMin, WorldMax);
 }
 
+const IBoundingVolume* UBoxComponent::GetBoundingVolume()
+{
+	CachedWorldAABB = GetWorldAABB();
+	return &CachedWorldAABB;
+}
+
 bool UBoxComponent::CheckOverlapWith(const UPrimitiveComponent* Other) const
 {
 	if (!bGenerateOverlapEvents || !Other || !Other->GetGenerateOverlapEvents())

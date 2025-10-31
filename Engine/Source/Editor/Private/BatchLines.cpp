@@ -201,7 +201,7 @@ void UBatchLines::TraverseOctree(const FOctree* InNode)
 	if (!InNode) { return; }
 
 	UBoundingBoxLines BoxLines;
-	BoxLines.UpdateVertices(&InNode->GetBoundingBox());
+	BoxLines.UpdateVertices(&InNode->GetBoundingVolume());
 	OctreeLines.push_back(BoxLines);
 
 	if (!InNode->IsLeafNode())

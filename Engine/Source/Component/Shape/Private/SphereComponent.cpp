@@ -40,6 +40,12 @@ FBoundingSphere USphereComponent::GetWorldSphere() const
 	return FBoundingSphere(WorldCenter, WorldRadius);
 }
 
+const IBoundingVolume* USphereComponent::GetBoundingVolume()
+{
+	CachedWorldSphere = GetWorldSphere();
+	return &CachedWorldSphere;
+}
+
 bool USphereComponent::CheckOverlapWith(const UPrimitiveComponent* Other) const
 {
 	if (!bGenerateOverlapEvents || !Other || !Other->GetGenerateOverlapEvents())

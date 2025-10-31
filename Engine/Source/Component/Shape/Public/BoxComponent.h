@@ -1,7 +1,7 @@
 #pragma once
 #include "Component/Shape/Public/ShapeComponent.h"
+#include "Physics/Public/AABB.h"
 
-struct FAABB;
 class USphereComponent;
 class UCapsuleComponent;
 
@@ -26,6 +26,9 @@ public:
 	// World space AABB 얻기
 	FAABB GetWorldAABB() const;
 
+	// IBoundingVolume 인터페이스
+	virtual const IBoundingVolume* GetBoundingVolume() override;
+
 	// 충돌 체크 오버라이드
 	virtual bool CheckOverlapWith(const UPrimitiveComponent* Other) const override;
 
@@ -34,6 +37,9 @@ public:
 protected:
 	// 박스의 반 크기 (Half-size)
 	FVector BoxExtent = FVector(32.0f, 32.0f, 32.0f);
+
+	// Cached bounding volume for GetBoundingVolume()
+	mutable FAABB CachedWorldAABB;
 
 private:
 	// 개별 Shape와의 충돌 체크
