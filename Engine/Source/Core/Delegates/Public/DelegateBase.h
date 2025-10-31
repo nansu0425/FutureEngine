@@ -211,7 +211,7 @@ private:
 
         int32 ValidInvocationListIndex = 0;
 
-        for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.size();)
+        for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.size(); ++InvocationListIndex)
         {
             auto& DelegateBaseRef = InvocationList[InvocationListIndex];
 

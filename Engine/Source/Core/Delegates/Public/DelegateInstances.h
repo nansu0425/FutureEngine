@@ -7,6 +7,9 @@
     TBaseStaticDelegateInstance
  -----------------------------------------------------------------------------*/
 
+template <typename FuncType>
+class TBaseStaticDelegateInstance;
+
 /**
  * @brief 전역 함수 또는 static 멤버 함수에 대한 바인딩
  */
@@ -75,6 +78,9 @@ private:
 /*-----------------------------------------------------------------------------
     TBaseRawMethodDelegateInstance
  -----------------------------------------------------------------------------*/
+
+template <bool bConst, class UserClass, typename FuncType>
+class TBaseRawMethodDelegateInstance;
 
 /**
  * @brief Raw C++ 객체의 멤버 함수에 대한 바인딩 (Unsafe)
@@ -161,6 +167,9 @@ private:
     TBaseSPMethodDelegateInstance
  -----------------------------------------------------------------------------*/
 
+template <bool bConst, class UserClass, typename FuncType>
+class TBaseSPMethodDelegateInstance;
+
 /**
  * @brief std::shared_ptr로 관리되는 C++ 객체의 멤버 함수에 대한 바인딩이다.
  */
@@ -245,6 +254,9 @@ private:
     TBaseFunctorDelegateInstance
  -----------------------------------------------------------------------------*/
 
+template <typename FuncType, typename FunctorType>
+class TBaseFunctorDelegateInstance;
+
 template <typename RetValType, typename... ParamTypes, typename FunctorType>
 class TBaseFunctorDelegateInstance<RetValType(ParamTypes...), FunctorType> : public IBaseDelegateInstance<RetValType(ParamTypes...)>
 {
@@ -309,6 +321,9 @@ private:
 /*-----------------------------------------------------------------------------
     TBaseUObjectMethodDelegateInstance
  -----------------------------------------------------------------------------*/
+
+template <bool bConst, class UserClass, typename FuncType>
+class TBaseUObjectMethodDelegateInstance;
 
 /**
  * @brief UObject 객체의 멤버 함수에 대한 바인딩이다. (FWeakObjectPtr로 안전성 확보)

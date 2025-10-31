@@ -10,6 +10,9 @@
     TDelegateRegistration
  -----------------------------------------------------------------------------*/
 
+template <typename FuncType>
+class TDelegateRegistration;
+
 template <typename RetValType, typename... ParamTypes>
 class TDelegateRegistration<RetValType(ParamTypes...)> : public TDelegateBase
 {
@@ -127,6 +130,9 @@ struct TIdentity
 
 template <typename T>
 using TIdentity_T = typename TIdentity<T>::Type;
+
+template <typename FuncType>
+class TDelegate;
 
 template <typename InRetValType, typename... ParamTypes>
 class TDelegate<InRetValType(ParamTypes...)> : public TDelegateRegistration<InRetValType(ParamTypes...)>
@@ -256,7 +262,7 @@ public:
      */
     RetValType Execute(ParamTypes... Params) const
     {
-        const DelegateInstanceInterfaceType* LocalDelegateInstance = GetDelegateInstanceProtected();
+        const DelegateInstanceInterfaceType* LocalDelegateInstance = Super::GetDelegateInstanceProtected();
 
         assert(LocalDelegateInstance != nullptr);
 
@@ -281,7 +287,7 @@ public:
     >
     inline bool ExecuteIfBound(ParamTypes... Params) const
     {
-        if (const DelegateInstanceInterfaceType* Ptr = GetDelegateInstanceProtected())
+        if (const DelegateInstanceInterfaceType* Ptr = Super::GetDelegateInstanceProtected())
         {
             return Ptr->ExecuteIfSafe(std::forward<ParamTypes>(Params)...);
         }
@@ -437,7 +443,7 @@ class TMulticastDelegate
 };
 
 template <typename RetValType, typename... ParamTypes>
-class TMultiCastDelegate<RetValType(ParamTypes...)>
+class TMulticastDelegate<RetValType(ParamTypes...)>
 {
     static_assert(sizeof(RetValType) == 0, "multi-cast 델리게이트의 반환 타입은 void여야 합니다.");
 };
@@ -485,11 +491,11 @@ public:
  * @brief 한 번에 하나의 함수에 바인딩되는 델리게이트를 선언한다.
  * @note 언리얼엔진과 달리 편의를 위해 _NParam 버전 대신 가변인자 버전을 제공한다.
  */
-#define DECLARE_DELEGATE(DelegateName, ReturnType, ...) FUNC_DECLARE_DELEGATE(DelegateName, ReturnType, ...)
+#define DECLARE_DELEGATE(DelegateName, ReturnType, ...) FUNC_DECLARE_DELEGATE(DelegateName, ReturnType, __VA_ARGS__)
 
 /**
  * @brief 다수의 함수와 동시에 바인딩될 수 있는 multi-cast 델리게이트를 선언한다.
  * @note 언리얼엔진과 달리 편의를 위해 _NParam 버전 대신 가변인자 버전을 제공한다.
  */
-#define DECLARE_MULTICAST_DELEGATE(DelegateName, ReturnType, ...) FUNC_DECLARE_MULTICAST_DELEGATE(DelegateName, ReturnType, ...)
+#define DECLARE_MULTICAST_DELEGATE(DelegateName, ...) FUNC_DECLARE_MULTICAST_DELEGATE(DelegateName, void, __VA_ARGS__)
 
