@@ -235,7 +235,68 @@ void UScriptManager::RegisterGlobalFunctions()
 		{
 			if (output.length() > 0)
 				output += " ";
-			output += sol::object(arg).as<std::string>();
+
+			sol::object obj = arg;
+			sol::type argType = obj.get_type();
+
+			// 타입별 처리
+			if (argType == sol::type::number)
+			{
+				// 정수 또는 실수 처리
+				if (obj.is<int32>())
+					output += std::to_string(obj.as<int32>());
+				else if (obj.is<double>())
+					output += std::to_string(obj.as<double>());
+				else
+					output += std::to_string(obj.as<float>());
+			}
+			else if (argType == sol::type::string)
+			{
+				output += obj.as<std::string>();
+			}
+			else if (argType == sol::type::boolean)
+			{
+				output += (obj.as<bool>() ? "true" : "false");
+			}
+			else if (argType == sol::type::nil)
+			{
+				output += "nil";
+			}
+			else if (argType == sol::type::table)
+			{
+				output += "[table]";
+			}
+			else if (argType == sol::type::function)
+			{
+				output += "[function]";
+			}
+			else if (argType == sol::type::userdata)
+			{
+				// FVector 처리
+				if (obj.is<FVector>())
+				{
+					FVector vec = obj.as<FVector>();
+					char buffer[128];
+					snprintf(buffer, sizeof(buffer), "(%.3f, %.3f, %.3f)", vec.X, vec.Y, vec.Z);
+					output += buffer;
+				}
+				// FQuaternion 처리
+				else if (obj.is<FQuaternion>())
+				{
+					FQuaternion quat = obj.as<FQuaternion>();
+					char buffer[128];
+					snprintf(buffer, sizeof(buffer), "(%.3f, %.3f, %.3f, %.3f)", quat.X, quat.Y, quat.Z, quat.W);
+					output += buffer;
+				}
+				else
+				{
+					output += "[userdata]";
+				}
+			}
+			else
+			{
+				output += "[unknown]";
+			}
 		}
 		UE_LOG("%s", output.c_str());
 	};
