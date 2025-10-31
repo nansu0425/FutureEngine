@@ -6,6 +6,10 @@
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/ScriptComponent.h"
 #include "Component/Public/TextComponent.h"
+#include "Component/Shape/Public/ShapeComponent.h"
+#include "Component/Shape/Public/BoxComponent.h"
+#include "Component/Shape/Public/SphereComponent.h"
+#include "Component/Shape/Public/CapsuleComponent.h"
 #include "Global/Vector.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Manager/Input/Public/InputManager.h"
@@ -782,6 +786,186 @@ void UActorDetailWidget::RenderTransformEdit()
 				OpenScriptInEditor(ScriptComp);
 			}
 		}
+
+		ImGui::PopID();
+		ImGui::Separator();
+	}
+
+	// --- BoxComponent Properties ---
+	if (UBoxComponent* BoxComp = Cast<UBoxComponent>(SelectedComponent))
+	{
+		ImGui::Text("Box Properties");
+		ImGui::PushID("BoxComponent");
+
+		// Box Extent
+		FVector BoxExtent = BoxComp->GetBoxExtent();
+		float ExtentArray[3] = { BoxExtent.X, BoxExtent.Y, BoxExtent.Z };
+		bool ExtentChanged = false;
+
+		// 색상 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+		ImGui::Text("Box Extent:");
+		ImGui::SetNextItemWidth(75.0f);
+		ExtentChanged |= ImGui::DragFloat("##ExtentX", &ExtentArray[0], 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("X: %.3f", ExtentArray[0]); }
+		ImGui::SameLine();
+
+		ImGui::SetNextItemWidth(75.0f);
+		ExtentChanged |= ImGui::DragFloat("##ExtentY", &ExtentArray[1], 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Y: %.3f", ExtentArray[1]); }
+		ImGui::SameLine();
+
+		ImGui::SetNextItemWidth(75.0f);
+		ExtentChanged |= ImGui::DragFloat("##ExtentZ", &ExtentArray[2], 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Z: %.3f", ExtentArray[2]); }
+
+		ImGui::PopStyleColor(3);
+
+		if (ExtentChanged)
+		{
+			BoxComp->SetBoxExtent(FVector(ExtentArray[0], ExtentArray[1], ExtentArray[2]));
+		}
+
+		ImGui::PopID();
+		ImGui::Separator();
+	}
+
+	// --- SphereComponent Properties ---
+	if (USphereComponent* SphereComp = Cast<USphereComponent>(SelectedComponent))
+	{
+		ImGui::Text("Sphere Properties");
+		ImGui::PushID("SphereComponent");
+
+		// Sphere Radius
+		float SphereRadius = SphereComp->GetSphereRadius();
+		bool RadiusChanged = false;
+
+		// 색상 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+		ImGui::Text("Sphere Radius:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(235.0f); // 75 * 3 + spacing
+		RadiusChanged = ImGui::DragFloat("##SphereRadius", &SphereRadius, 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Radius: %.3f", SphereRadius); }
+
+		ImGui::PopStyleColor(3);
+
+		if (RadiusChanged)
+		{
+			SphereComp->SetSphereRadius(SphereRadius);
+		}
+
+		ImGui::PopID();
+		ImGui::Separator();
+	}
+
+	// --- CapsuleComponent Properties ---
+	if (UCapsuleComponent* CapsuleComp = Cast<UCapsuleComponent>(SelectedComponent))
+	{
+		ImGui::Text("Capsule Properties");
+		ImGui::PushID("CapsuleComponent");
+
+		// Capsule Parameters
+		float CapsuleHalfHeight = CapsuleComp->GetCapsuleHalfHeight();
+		float CapsuleRadius = CapsuleComp->GetCapsuleRadius();
+		bool HalfHeightChanged = false;
+		bool RadiusChanged = false;
+
+		// 색상 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+		ImGui::Text("Capsule Half Height:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(165.0f);
+		HalfHeightChanged = ImGui::DragFloat("##CapsuleHalfHeight", &CapsuleHalfHeight, 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Half Height: %.3f", CapsuleHalfHeight); }
+
+		ImGui::Text("Capsule Radius:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(235.0f);
+		RadiusChanged = ImGui::DragFloat("##CapsuleRadius", &CapsuleRadius, 0.1f, 0.1f, 10000.0f, "%.3f");
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Radius: %.3f", CapsuleRadius); }
+
+		ImGui::PopStyleColor(3);
+
+		if (HalfHeightChanged)
+		{
+			CapsuleComp->SetCapsuleHalfHeight(CapsuleHalfHeight);
+		}
+		if (RadiusChanged)
+		{
+			CapsuleComp->SetCapsuleRadius(CapsuleRadius);
+		}
+
+		ImGui::PopID();
+		ImGui::Separator();
+	}
+
+	// --- ShapeComponent Properties (공통 속성) ---
+	if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(SelectedComponent))
+	{
+		ImGui::Text("Shape Properties");
+		ImGui::PushID("ShapeComponent");
+
+		// 색상 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+		// Shape Color (RGBA 0-255 범위)
+		FVector4 ShapeColor = ShapeComp->GetShapeColor();
+		float ColorArray[4] = {
+			ShapeColor.X / 255.0f,
+			ShapeColor.Y / 255.0f,
+			ShapeColor.Z / 255.0f,
+			ShapeColor.W / 255.0f
+		};
+
+		ImGui::Text("Shape Color:");
+		if (ImGui::ColorEdit4("##ShapeColor", ColorArray, ImGuiColorEditFlags_AlphaBar))
+		{
+			ShapeComp->SetShapeColor(FVector4(
+				ColorArray[0] * 255.0f,
+				ColorArray[1] * 255.0f,
+				ColorArray[2] * 255.0f,
+				ColorArray[3] * 255.0f
+			));
+		}
+
+		// Line Thickness
+		float LineThickness = ShapeComp->GetLineThickness();
+		ImGui::Text("Line Thickness:");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(235.0f);
+		if (ImGui::DragFloat("##LineThickness", &LineThickness, 0.1f, 0.1f, 20.0f, "%.1f"))
+		{
+			ShapeComp->SetLineThickness(LineThickness);
+		}
+		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Thickness: %.1f", LineThickness); }
+
+		ImGui::PopStyleColor(3);
+
+		// Draw Only If Selected (체크박스)
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+
+		bool bDrawOnlyIfSelected = ShapeComp->IsDrawOnlyIfSelected();
+		if (ImGui::Checkbox("Draw Only If Selected", &bDrawOnlyIfSelected))
+		{
+			ShapeComp->SetDrawOnlyIfSelected(bDrawOnlyIfSelected);
+		}
+
+		ImGui::PopStyleColor(4);
 
 		ImGui::PopID();
 		ImGui::Separator();
