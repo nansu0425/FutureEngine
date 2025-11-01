@@ -18,6 +18,7 @@ UScriptComponent::UScriptComponent()
 
 UScriptComponent::~UScriptComponent()
 {
+	UCoroutineManager::GetInstance().StopAllCoroutine(this);
 	// CleanupLuaResources();
 }
 

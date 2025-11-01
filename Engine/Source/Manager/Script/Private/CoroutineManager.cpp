@@ -102,7 +102,6 @@ void UCoroutineManager::StopCoroutine(UScriptComponent* Comp, const FString& Fun
     }
 }
 
-//제거 후 채워넣어야함 
 void UCoroutineManager::Update(const float DeltaTime)
 {
     //등록 대기중인 코루틴 등록
@@ -141,6 +140,7 @@ void UCoroutineManager::Update(const float DeltaTime)
 
         if (bEnd)
         {
+            //swap remove 방식으로 변경필요
             Coroutines.erase(Coroutines.begin() + i);
         }
     }
@@ -179,7 +179,9 @@ bool UCoroutineManager::ResumeCoroutine(CoroutineData& InData)
     return false;
 }
 void UCoroutineManager::StopAllCoroutine(UScriptComponent* Comp)
-{
+{            
+    //swap remove 방식으로 변경필요
+
     // 완료된 코루틴 제거
     Coroutines.erase(
         std::remove_if(Coroutines.begin(), Coroutines.end(),
