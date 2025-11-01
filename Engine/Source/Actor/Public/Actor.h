@@ -113,6 +113,12 @@ public:
 	bool IsPendingDestroy() const { return bIsPendingDestroy; }
 	void SetIsPendingDestroy(bool bInIsPendingDestroy) { bIsPendingDestroy = bInIsPendingDestroy; }
 
+	bool IsHidden() const { return bHidden; }
+	void SetActorHiddenInGame(bool bInHidden);
+
+	bool IsCollisionEnabled() const { return bActorEnableCollision; }
+	void SetActorEnableCollision(bool bInActorEnableCollision);
+
 	// Collision & Overlap
 	bool IsOverlappingActor(const AActor* Other) const;
 
@@ -122,8 +128,12 @@ protected:
 	bool bBegunPlay = false;
 	/** @brief True if the actor is marked for destruction. */  
 	bool bIsPendingDestroy = false;
+	bool bHidden = false;
+	bool bActorEnableCollision = false;
 
 private:
+	void UpdateComponentVisibility(bool bInHidden);
+	
 	USceneComponent* RootComponent = nullptr;
 	TArray<UActorComponent*> OwnedComponents;
 	
