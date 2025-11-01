@@ -24,6 +24,10 @@ public:
 
 	FAABB* GetDisabledBoundingBox() { return &DisabledBoundingBox; }
 
+	// Color 설정/가져오기
+	void SetColor(const FVector4& InColor) { Color = InColor; }
+	FVector4 GetColor() const { return Color; }
+
 private:
 	TArray<FVector> Vertices;
 	uint32 NumVertices = 8;
@@ -39,5 +43,8 @@ private:
 
 	int32 SphereLineIdx[360];         // 각 대원 60세그 × 2 인덱스 × 3개
 	int32 CapsuleLineIdx[304];        // 2원(120) + 4호(176) + 4수직선(8)
+
+	// 렌더링 색상 (RGBA, 0-1 범위) - 기본값 보라색
+	FVector4 Color = FVector4(0.784f, 0.0f, 1.0f, 1.0f);
 };
 

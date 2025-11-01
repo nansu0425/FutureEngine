@@ -940,17 +940,6 @@ void UActorDetailWidget::RenderTransformEdit()
 			));
 		}
 
-		// Line Thickness
-		float LineThickness = ShapeComp->GetLineThickness();
-		ImGui::Text("Line Thickness:");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(235.0f);
-		if (ImGui::DragFloat("##LineThickness", &LineThickness, 0.1f, 0.1f, 20.0f, "%.1f"))
-		{
-			ShapeComp->SetLineThickness(LineThickness);
-		}
-		if (ImGui::IsItemHovered()) { ImGui::SetTooltip("Thickness: %.1f", LineThickness); }
-
 		ImGui::PopStyleColor(3);
 
 		// Draw Only If Selected (체크박스)

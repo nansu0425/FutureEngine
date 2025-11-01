@@ -37,9 +37,12 @@ public:
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+	// Duplication
+	virtual UObject* Duplicate() override;
+
 protected:
 	// 박스의 반 크기 (Half-size)
-	FVector BoxExtent = FVector(32.0f, 32.0f, 32.0f);
+	FVector BoxExtent = FVector(2.0f, 2.0f, 2.0f);
 
 	// Cached bounding volume for GetBoundingVolume()
 	mutable FAABB CachedWorldAABB;

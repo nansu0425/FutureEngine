@@ -12,7 +12,6 @@ IMPLEMENT_CLASS(UBoxComponent, UShapeComponent)
 
 UBoxComponent::UBoxComponent()
 {
-	BoxExtent = FVector(50.0f, 50.0f, 50.0f);
 }
 
 UBoxComponent::~UBoxComponent()
@@ -129,6 +128,16 @@ bool UBoxComponent::CheckOverlapWithCapsule(const UCapsuleComponent* OtherCapsul
 	FBoundingCapsule OtherCap = OtherCapsule->GetWorldCapsule();
 
 	return CollisionDetection::CheckOverlap(MyAABB, OtherCap);
+}
+
+UObject* UBoxComponent::Duplicate()
+{
+	UBoxComponent* DuplicatedBoxComponent = Cast<UBoxComponent>(Super::Duplicate());
+
+	// BoxComponent 고유 속성 복사
+	DuplicatedBoxComponent->BoxExtent = BoxExtent;
+
+	return DuplicatedBoxComponent;
 }
 
 void UBoxComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

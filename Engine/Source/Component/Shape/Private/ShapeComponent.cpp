@@ -17,6 +17,17 @@ UShapeComponent::~UShapeComponent()
 {
 }
 
+UObject* UShapeComponent::Duplicate()
+{
+	UShapeComponent* DuplicatedShapeComponent = Cast<UShapeComponent>(Super::Duplicate());
+
+	// ShapeComponent 고유 속성 복사
+	DuplicatedShapeComponent->ShapeColor = ShapeColor;
+	DuplicatedShapeComponent->bDrawOnlyIfSelected = bDrawOnlyIfSelected;
+
+	return DuplicatedShapeComponent;
+}
+
 void UShapeComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
@@ -37,12 +48,6 @@ void UShapeComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FString DrawOnlyIfSelectedString;
 		FJsonSerializer::ReadString(InOutHandle, "bDrawOnlyIfSelected", DrawOnlyIfSelectedString, "false");
 		bDrawOnlyIfSelected = (DrawOnlyIfSelectedString == "true");
-
-		// Line Thickness
-		if (InOutHandle.hasKey("LineThickness"))
-		{
-			LineThickness = static_cast<float>(InOutHandle["LineThickness"].ToFloat());
-		}
 	}
 	else
 	{
@@ -56,8 +61,5 @@ void UShapeComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 		// Draw Only If Selected
 		InOutHandle["bDrawOnlyIfSelected"] = bDrawOnlyIfSelected ? "true" : "false";
-
-		// Line Thickness
-		InOutHandle["LineThickness"] = LineThickness;
 	}
 }

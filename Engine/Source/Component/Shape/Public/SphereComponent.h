@@ -34,9 +34,12 @@ public:
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+	// Duplication
+	virtual UObject* Duplicate() override;
+
 protected:
 	// 구의 반지름
-	float SphereRadius = 50.0f;
+	float SphereRadius = 3.0f;
 
 	// Cached bounding volume for GetBoundingVolume()
 	mutable FBoundingSphere CachedWorldSphere;

@@ -12,7 +12,6 @@ IMPLEMENT_CLASS(USphereComponent, UShapeComponent)
 
 USphereComponent::USphereComponent()
 {
-	SphereRadius = 50.0f;
 }
 
 USphereComponent::~USphereComponent()
@@ -99,6 +98,16 @@ bool USphereComponent::CheckOverlapWithCapsule(const UCapsuleComponent* OtherCap
 	FBoundingCapsule OtherCap = OtherCapsule->GetWorldCapsule();
 
 	return CollisionDetection::CheckOverlap(MySphere, OtherCap);
+}
+
+UObject* USphereComponent::Duplicate()
+{
+	USphereComponent* DuplicatedSphereComponent = Cast<USphereComponent>(Super::Duplicate());
+
+	// SphereComponent 고유 속성 복사
+	DuplicatedSphereComponent->SphereRadius = SphereRadius;
+
+	return DuplicatedSphereComponent;
 }
 
 void USphereComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

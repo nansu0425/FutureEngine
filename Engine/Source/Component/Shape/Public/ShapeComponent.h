@@ -23,10 +23,10 @@ public:
 	bool IsDrawOnlyIfSelected() const { return bDrawOnlyIfSelected; }
 	void SetDrawOnlyIfSelected(bool bInDrawOnlyIfSelected) { bDrawOnlyIfSelected = bInDrawOnlyIfSelected; }
 
-	float GetLineThickness() const { return LineThickness; }
-	void SetLineThickness(float InThickness) { LineThickness = InThickness; }
-
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
+	// Duplication
+	virtual UObject* Duplicate() override;
 
 protected:
 	// Shape 렌더링 색상 (RGBA, 0-255) - 보라색
@@ -34,7 +34,4 @@ protected:
 
 	// 선택된 경우에만 그리기
 	bool bDrawOnlyIfSelected = false;
-
-	// 선 두께
-	float LineThickness = 2.0f;
 };

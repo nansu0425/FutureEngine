@@ -97,6 +97,21 @@ void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVo
 	bChangedVertices = true;
 }
 
+void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume, const FVector4& Color)
+{
+	if (!NewBoundingVolume)
+	{
+		return;
+	}
+
+	UBoundingVolumeLines NewLine;
+	NewLine.UpdateVertices(NewBoundingVolume);
+	// ShapeColor는 0-255 범위, 렌더링은 0-1 범위 사용
+	NewLine.SetColor(FVector4(Color.X / 255.0f, Color.Y / 255.0f, Color.Z / 255.0f, Color.W / 255.0f));
+	ShapeComponentLines.push_back(NewLine);
+	bChangedVertices = true;
+}
+
 void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
 {
 	if (!SpotLightComponent)
@@ -325,22 +340,71 @@ void UBatchLines::Render()
 	Pipeline->SetIndexBuffer(Primitive.IndexBuffer, sizeof(uint32));
 
 	// 1. Grid 렌더링 (흰색)
+	uint32 IndexOffset = 0;
 	{
 		FVector4 WhiteColor(1.0f, 1.0f, 1.0f, 1.0f);
 		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &WhiteColor, 0, 0);
 		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
 
-		Pipeline->DrawIndexed(NumGridIndices, 0, 0);
+		Pipeline->DrawIndexed(NumGridIndices, IndexOffset, 0);
+		IndexOffset += NumGridIndices;
 	}
 
-	// 2. Bounding Volumes 렌더링 (보라색)
-	if (NumBoundingVolumeIndices > 0)
+	// 2. BoundingBoxLines 렌더링 (선택된 컴포넌트 - 설정된 색상 사용)
+	const uint32 NumBoundingBoxIndices = BoundingBoxLines.GetNumIndices(BoundingBoxLines.GetCurrentType());
+	if (NumBoundingBoxIndices > 0)
 	{
-		FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
-		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+		FVector4 BoundingBoxColor = BoundingBoxLines.GetColor();
+		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &BoundingBoxColor, 0, 0);
 		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
 
-		Pipeline->DrawIndexed(NumBoundingVolumeIndices, NumGridIndices, 0);
+		Pipeline->DrawIndexed(NumBoundingBoxIndices, IndexOffset, 0);
+		IndexOffset += NumBoundingBoxIndices;
+	}
+
+	// 3. 각 ShapeComponentLines 렌더링 (각각의 색상)
+	for (const auto& ShapeLine : ShapeComponentLines)
+	{
+		const uint32 NumShapeIndices = ShapeLine.GetNumIndices(ShapeLine.GetCurrentType());
+		if (NumShapeIndices > 0)
+		{
+			FVector4 ShapeColor = ShapeLine.GetColor();
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &ShapeColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumShapeIndices, IndexOffset, 0);
+			IndexOffset += NumShapeIndices;
+		}
+	}
+
+	// 4. SpotLightLines 렌더링 (보라색)
+	if (bRenderSpotLight)
+	{
+		const uint32 NumSpotLightIndices = SpotLightLines.GetNumIndices(SpotLightLines.GetCurrentType());
+		if (NumSpotLightIndices > 0)
+		{
+			FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumSpotLightIndices, IndexOffset, 0);
+			IndexOffset += NumSpotLightIndices;
+		}
+	}
+
+	// 5. OctreeLines 렌더링 (보라색)
+	for (const auto& OctreeLine : OctreeLines)
+	{
+		const uint32 NumOctreeIndices = OctreeLine.GetNumIndices(OctreeLine.GetCurrentType());
+		if (NumOctreeIndices > 0)
+		{
+			FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumOctreeIndices, IndexOffset, 0);
+			IndexOffset += NumOctreeIndices;
+		}
 	}
 }
 

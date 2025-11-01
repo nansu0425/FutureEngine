@@ -11,8 +11,6 @@ IMPLEMENT_CLASS(UCapsuleComponent, UShapeComponent)
 
 UCapsuleComponent::UCapsuleComponent()
 {
-	CapsuleHalfHeight = 50.0f;
-	CapsuleRadius = 25.0f;
 }
 
 UCapsuleComponent::~UCapsuleComponent()
@@ -104,6 +102,17 @@ bool UCapsuleComponent::CheckOverlapWithCapsule(const UCapsuleComponent* OtherCa
 	FBoundingCapsule OtherCap = OtherCapsule->GetWorldCapsule();
 
 	return MyCapsule.Intersects(OtherCap);
+}
+
+UObject* UCapsuleComponent::Duplicate()
+{
+	UCapsuleComponent* DuplicatedCapsuleComponent = Cast<UCapsuleComponent>(Super::Duplicate());
+
+	// CapsuleComponent 고유 속성 복사
+	DuplicatedCapsuleComponent->CapsuleHalfHeight = CapsuleHalfHeight;
+	DuplicatedCapsuleComponent->CapsuleRadius = CapsuleRadius;
+
+	return DuplicatedCapsuleComponent;
 }
 
 void UCapsuleComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

@@ -38,12 +38,15 @@ public:
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+	// Duplication
+	virtual UObject* Duplicate() override;
+
 protected:
 	// 실린더 부분의 절반 높이 (반구 제외)
-	float CapsuleHalfHeight = 50.0f;
+	float CapsuleHalfHeight = 2.0f;
 
 	// 캡슐의 반지름
-	float CapsuleRadius = 25.0f;
+	float CapsuleRadius = 2.0f;
 
 	// Cached bounding volume for GetBoundingVolume()
 	mutable FBoundingCapsule CachedWorldCapsule;

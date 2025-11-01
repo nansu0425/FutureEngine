@@ -285,6 +285,9 @@ void UEditor::UpdateBatchLines()
 			// ShapeComponent는 SF_Bounds 플래그와 무관하게 렌더링
 			// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
 			BatchLines.UpdateBoundingBoxVertices(ShapeComponent->GetBoundingVolume());
+			// ShapeComponent의 색상을 BoundingBoxLines에 설정 (0-255 → 0-1 범위 변환)
+			FVector4 ShapeColor = ShapeComponent->GetShapeColor();
+			BatchLines.SetBoundingBoxColor(FVector4(ShapeColor.X / 255.0f, ShapeColor.Y / 255.0f, ShapeColor.Z / 255.0f, ShapeColor.W / 255.0f));
 			bRenderedSelectedComponent = true;
 		}
 		else if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
@@ -293,6 +296,8 @@ void UEditor::UpdateBatchLines()
 			{
 				// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
 				BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume());
+				// 일반 PrimitiveComponent는 흰색으로 렌더링
+				BatchLines.SetBoundingBoxColor(FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 
 				// DecalSpotLightComponent 특수 처리
 				if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
@@ -326,6 +331,8 @@ void UEditor::UpdateBatchLines()
 
 						FBoundingSphere PointSphere(Center, Radius);
 						BatchLines.UpdateBoundingBoxVertices(&PointSphere);
+						// LightComponent는 흰색으로 렌더링
+						BatchLines.SetBoundingBoxColor(FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 						bRenderedSelectedComponent = true;
 						// return 제거
 					}
@@ -366,7 +373,8 @@ void UEditor::UpdateBatchLines()
 						ShapeComp->GetWorldTransformMatrix();
 
 						// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
-						BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume());
+						// ShapeColor를 함께 전달하여 커스터마이징된 색상으로 렌더링
+					BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume(), ShapeComp->GetShapeColor());
 					}
 				}
 				// StaticMeshComponent 처리 (SF_Bounds가 켜진 경우)

@@ -20,6 +20,12 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateOctreeVertices(const FOctree* InOctree);
+
+	// BoundingBoxLines 색상 설정
+	void SetBoundingBoxColor(const FVector4& Color)
+	{
+		BoundingBoxLines.SetColor(Color);
+	}
 	// Decal SpotLight용 불법 증축
 	void UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
 	void UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength
@@ -47,6 +53,7 @@ public:
 
 	// ShapeComponent용 추가
 	void AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume);
+	void AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume, const FVector4& Color);
 	void ClearShapeComponentLines()
 	{
 		ShapeComponentLines.clear();
