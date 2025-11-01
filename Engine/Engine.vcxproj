@@ -391,6 +391,7 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </ClInclude>
     <ClInclude Include="Source\Manager\Asset\Public\TextureManager.h" />
     <ClInclude Include="Source\Manager\Render\Public\CascadeManager.h" />
+    <ClInclude Include="Source\Manager\Script\Public\CoroutineManager.h" />
     <ClInclude Include="Source\Manager\Script\Public\ScriptManager.h" />
     <ClInclude Include="Source\Manager\UI\Public\ViewportManager.h" />
     <ClInclude Include="Source\Optimization\Public\OcclusionCuller.h" />
@@ -699,6 +700,7 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
     </ClCompile>
     <ClCompile Include="Source\Manager\Asset\Private\TextureManager.cpp" />
     <ClCompile Include="Source\Manager\Render\Private\CascadeManager.cpp" />
+    <ClCompile Include="Source\Manager\Script\Private\CoroutineManager.cpp" />
     <ClCompile Include="Source\Manager\Script\Private\ScriptManager.cpp" />
     <ClCompile Include="Source\Manager\UI\Private\ViewportManager.cpp" />
     <ClCompile Include="Source\Optimization\Private\OcclusionCuller.cpp" />
