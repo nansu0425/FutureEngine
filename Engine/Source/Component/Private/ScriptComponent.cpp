@@ -3,6 +3,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Manager/Script/Public/ScriptManager.h"
 #include "Manager/Path/Public/PathManager.h"
+#include "Manager/Script/Public/CoroutineManager.h"
 #include "Actor/Public/Actor.h"
 #include "json.hpp"
 
@@ -46,6 +47,7 @@ void UScriptComponent::TickComponent(float DeltaTime)
 	Super::TickComponent(DeltaTime);
 
 	CallLuaFunction("Tick", DeltaTime);
+
 }
 
 void UScriptComponent::EndPlay()
@@ -214,6 +216,9 @@ void UScriptComponent::SetInstanceTable(const sol::table GlobalTable)
 				UE_LOG("Location: (%.2f, %.2f, %.2f)", loc.X, loc.Y, loc.Z);
 			}
 		};
+
+		UCoroutineManager::GetInstance().RegisterEnvFunc(this, InstanceEnv);
+
 	}
 
 	// 3. 스크립트 함수들을 캐싱하고 environment 설정
@@ -247,225 +252,10 @@ void UScriptComponent::OnScriptReloaded(const sol::table& NewGlobalTable)
 
 	// Hot reload 후 BeginPlay()를 다시 호출하여 동적 프로퍼티 재초기화
 	// (obj.Velocity, obj.Speed 등 스크립트에서 설정한 변수들)
-	CallLuaFunction("BeginPlay");
+	//CallLuaFunction("BeginPlay");
 
 	UE_LOG_SUCCESS("ScriptComponent: Hot reload complete for '%s'", ScriptPath.c_str());
 }
-
-void UScriptComponent::SetCommonTable()
-{
-	//if (!GetOwner())
-	//	return;
-
-
-	//
-
-
-	//UScriptManager& ScriptMgr = UScriptManager::GetInstance();
-	//sol::state& lua = ScriptMgr.GetLuaState();
-
-	//AActor* OwnerActor = GetOwner();
-
-	//Table["_actor"] = OwnerActor;
-	//Table["Velocity"] = FVector(0.0f, 0.0f, 0.0f);
-	//sol::table mt = lua.create_table();
-
-	//// __index: 테이블 또는 Actor에서 프로퍼티 읽기
-	//mt[sol::meta_function::index] = [](sol::table self, const std::string& key) -> sol::object {
-	//	AActor* actor = self["_actor"];
-	//	sol::state_view lua = self.lua_state();
-
-	//	// Actor 프로퍼티 처리
-	//	if (key == "UUID")
-	//	{
-	//		return sol::make_object(lua, actor->GetUUID());
-	//	}
-	//	else if (key == "Location")
-	//	{
-	//		return sol::make_object(lua, actor->GetActorLocation());
-	//	}
-	//	else if (key == "Rotation")
-	//	{
-	//		return sol::make_object(lua, actor->GetActorRotation());
-	//	}
-	//	else if (key == "PrintLocation")
-	//	{
-	//		// 위치를 출력하는 함수 반환
-	//		return sol::make_object(lua, [actor]() {
-	//			FVector loc = actor->GetActorLocation();
-	//			UE_LOG("Location %.2f %.2f %.2f", loc.X, loc.Y, loc.Z);
-	//		});
-	//	}
-
-	//	// 동적 프로퍼티에 대한 원시 테이블 접근 (Velocity 등)
-	//	sol::object val = self.raw_get<sol::object>(key);
-	//	return val;
-	//};
-
-	//// __newindex: Actor 또는 테이블에 프로퍼티 쓰기
-	//mt[sol::meta_function::new_index] = [](sol::table self, const std::string& key, sol::object value) {
-	//	AActor* actor = self["_actor"];
-
-	//	// Actor에 다시 쓰여야 하는 프로퍼티 처리
-	//	if (key == "Location")
-	//	{
-	//		FVector newLoc = value.as<FVector>();
-	//		actor->SetActorLocation(newLoc);
-	//	}
-	//	else if (key == "Rotation")
-	//	{
-	//		FQuaternion newRot = value.as<FQuaternion>();
-	//		actor->SetActorRotation(newRot);
-	//	}
-	//	else
-	//	{
-	//		// 테이블에 동적 프로퍼티 저장 (Velocity, 커스텀 프로퍼티 등)
-	//		self.raw_set(key, value);
-	//	}
-	//};
-
-	//// 메타테이블 부착
-	//Table[sol::metatable_key] = mt;
-
-	//// 테스트: globals 사용 시에는 여기서 obj를 등록하지 않음
-	//// (LoadScript에서 lua["obj"] = *ObjTable로 설정함)
-}
-
-//void UScriptComponent::CleanupLuaResources()
-//{
-//	// ScriptManager에서 등록 해제 (BeginPlay()에서 등록했으면 해제 필요)
-//	// 처음부터 실패한 스크립트도 등록은 되어있으므로 ScriptPath 기준으로 해제
-//	if (!ScriptPath.empty())
-//	{
-//		UScriptManager::GetInstance().UnregisterScriptComponent(this);
-//	}
-//
-//	if (ObjTable)
-//	{
-//		delete ObjTable;
-//		ObjTable = nullptr;
-//	}
-//
-//	if (ScriptEnv)
-//	{
-//		delete ScriptEnv;
-//		ScriptEnv = nullptr;
-//	}
-//
-//	bScriptLoaded = false;
-//}
-
-//void UScriptComponent::ReloadScript()
-//{
-//	if (ScriptPath.empty())
-//	{
-//		UE_LOG_WARNING("ScriptComponent: 리로드할 스크립트 경로가 비어있습니다.");
-//		return;
-//	}
-//
-//	UE_LOG_INFO("ScriptComponent: 스크립트 리로드 시작 - %s", ScriptPath.c_str());
-//
-//	// ========== 백업: 기존 상태 저장 (Rollback용) ==========
-//	sol::table* OldObjTable = ObjTable;
-//	sol::environment* OldScriptEnv = ScriptEnv;
-//	bool bWasLoaded = bScriptLoaded;
-//
-//	// 새 리소스로 초기화 (백업은 유지)
-//	ObjTable = nullptr;
-//	ScriptEnv = nullptr;
-//	bScriptLoaded = false;
-//
-//	// 1. EndPlay 호출 (백업된 리소스 사용)
-//	if (bWasLoaded && OldObjTable)
-//	{
-//		try
-//		{
-//			UScriptManager& ScriptMgr = UScriptManager::GetInstance();
-//			sol::state& lua = ScriptMgr.GetLuaState();
-//			lua["obj"] = *OldObjTable;
-//			CallLuaFunction("EndPlay");
-//		}
-//		catch (const std::exception& e)
-//		{
-//			UE_LOG_WARNING("ScriptComponent: EndPlay 호출 중 예외 발생 (무시됨): %s", e.what());
-//		}
-//	}
-//
-//	// 2. ScriptManager 등록은 BeginPlay()에서 이미 처리되어 유지됨
-//	//    ReloadScript()는 Lua 리소스만 교체하고 등록 상태는 건드리지 않음
-//
-//	// 3. 스크립트 재로드 시도
-//	bool bReloadSuccess = LoadScript();
-//
-//	if (bReloadSuccess)
-//	{
-//		// ========== 성공: 백업 삭제 ==========
-//		if (OldObjTable)
-//		{
-//			delete OldObjTable;
-//			OldObjTable = nullptr;
-//		}
-//		if (OldScriptEnv)
-//		{
-//			delete OldScriptEnv;
-//			OldScriptEnv = nullptr;
-//		}
-//
-//		// 4. BeginPlay 재호출
-//		try
-//		{
-//			CallLuaFunction("BeginPlay");
-//			UE_LOG_SUCCESS("ScriptComponent: 스크립트 Hot Reload 완료 - %s", ScriptPath.c_str());
-//		}
-//		catch (const std::exception& e)
-//		{
-//			UE_LOG_ERROR("ScriptComponent: BeginPlay 호출 중 예외 발생: %s", e.what());
-//		}
-//	}
-//	else
-//	{
-//		// ========== 실패: Rollback (이전 상태로 복원) ==========
-//
-//		// 새로 생성된 리소스 정리 (실패했으므로)
-//		if (ObjTable)
-//		{
-//			delete ObjTable;
-//			ObjTable = nullptr;
-//		}
-//		if (ScriptEnv)
-//		{
-//			delete ScriptEnv;
-//			ScriptEnv = nullptr;
-//		}
-//
-//		// 백업된 리소스 복원
-//		ObjTable = OldObjTable;
-//		ScriptEnv = OldScriptEnv;
-//		bScriptLoaded = bWasLoaded;
-//
-//		// Lua globals에 obj 복원
-//		if (bWasLoaded && ObjTable)
-//		{
-//			UScriptManager& ScriptMgr = UScriptManager::GetInstance();
-//			sol::state& lua = ScriptMgr.GetLuaState();
-//			lua["obj"] = *ObjTable;
-//
-//			// ScriptManager 재등록 불필요 (BeginPlay()에서 이미 등록됨)
-//		}
-//
-//		// ========== Rollback 에러 로그 (디버깅용) ==========
-//		if (bWasLoaded)
-//		{
-//			UE_LOG_ERROR("ScriptComponent: Hot Reload 실패! 이전 정상 상태로 Rollback 완료 - %s", ScriptPath.c_str());
-//			UE_LOG_WARNING("  -> Actor는 이전 스크립트로 계속 동작합니다.");
-//		}
-//		else
-//		{
-//			UE_LOG_ERROR("ScriptComponent: 스크립트 리로드 실패 (이전 상태 없음) - %s", ScriptPath.c_str());
-//		}
-//	}
-//}
-
 /*-----------------------------------------------------------------------------
 	Overlap Delegate Binding
 -----------------------------------------------------------------------------*/

@@ -18,6 +18,7 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Manager/UI/Public/ViewportManager.h"
+#include "Manager/Script/Public/CoroutineManager.h"
 
 #ifdef IS_OBJ_VIEWER
 #include "Utility/Public/FileDialog.h"
@@ -97,6 +98,9 @@ int FClientApp::InitializeSystem() const
 	// 스크립트 매니저 초기화
 	auto& ScriptManager = UScriptManager::GetInstance();
 	ScriptManager.Initialize();
+
+	auto& CoroutineManager = UCoroutineManager::GetInstance();
+	CoroutineManager.Init();
 
 	// StatOverlay Initialize
 	auto& StatOverlay = UStatOverlay::GetInstance();

@@ -69,6 +69,8 @@ public:
 	 */
 	const FString& GetScriptPath() const { return ScriptPath; }
 
+	sol::environment& GetEnv() { return InstanceEnv; }
+
 	// 라이프사이클 오버라이드
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime) override;
@@ -107,8 +109,6 @@ public:
 	virtual UObject* Duplicate() override;
 
 private:
-	//루아 스크립트의 액터 래핑 테이블 적용
-	void SetCommonTable();
 	/**
 	 * Lua 리소스 정리
 	 */
