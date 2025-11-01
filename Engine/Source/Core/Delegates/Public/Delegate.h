@@ -52,6 +52,16 @@ public:
     }
 
     /*
+     * @brief 약한 참조로 관리되는 C++ 객체의 람다 델리게이트를 바인드한다.
+     * @note 기술적으로 모든 functor 타입에 대해 작동하지만, 람다가 가장 주된 사용처이다.
+     */
+    template <typename FunctorType>
+    inline void BindWeakLambda(const UObject* InUserObject, FunctorType&& InFunctor)
+    {
+        SetDelegatInstance(std::make_shared<TWeakBaseFunctorDelegateInstance<FuncType, std::decay_t<FunctorType>>>(InUserObject, std::forward<FunctorType>(InFunctor)));
+    }
+
+    /*
      * @brief raw C++ 포인터 델리게이트를 바인드한다.
      *
      * @note Raw 포인터는 수명이 자동으로 관리되지 않으므로, 함수호출이 안전하지 않을 수 있다.
@@ -180,11 +190,19 @@ public:
      * @brief C++ 람다 델리게이트를 생성한다.
      * @note 기술적으로 모든 functor 타입에 작동하지만, 람다가 가장 주된 사용처이다. 
      */
-    template<typename FunctorType>
+    template <typename FunctorType>
     [[nodiscard]] inline static TDelegate<RetValType(ParamTypes...)> CreateLambda(FunctorType&& InFunctor)
     {
         TDelegate<RetValType(ParamTypes...)> Result;
         Result.BindLambda(std::forward<FunctorType>(InFunctor));
+        return Result;
+    }
+
+    template <typename FunctorType>
+    [[nodiscard]] inline static TDelegate<RetValType(ParamTypes...)> CreateWeakLambda(const UObject* InUserObject, FunctorType&& InFunctor)
+    {
+        TDelegate<RetValType(ParamTypes...)> Result;
+        Result.BindWeakLambda(InUserObject, InFunctor);
         return Result;
     }
 
@@ -355,10 +373,16 @@ public:
      *
      * @param InFunctor Functor (e.g., 람다)
      */
-    template<typename FunctorType>
+    template <typename FunctorType>
     inline FDelegateHandle AddLambda(FunctorType&& InFunctor)
     {
         return Super::AddDelegateInstance(FDelegate::CreateLambda(std::forward<FunctorType>(InFunctor)));
+    }
+
+    template <typename UserClass, typename FunctorType>
+    inline FDelegateHandle AddWeakLambda(UserClass* InUserObject, FunctorType&& InFunctor)
+    {
+        return Super::AddDelegateInstance(FDelegate::CreateWeakLambda(InUserObject, std::forward<FunctorType>(InFunctor))); 
     }
 
     /**

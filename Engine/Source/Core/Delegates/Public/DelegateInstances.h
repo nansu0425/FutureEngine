@@ -319,6 +319,91 @@ private:
 };
 
 /*-----------------------------------------------------------------------------
+    TWeakBaseFunctorDelegateInstance
+ -----------------------------------------------------------------------------*/
+
+template <typename FuncType, typename FunctorType>
+class TWeakBaseFunctorDelegateInstance;
+
+template <typename RetValType, typename... ParamTypes, typename FunctorType>
+class TWeakBaseFunctorDelegateInstance<RetValType(ParamTypes...), FunctorType> : public IBaseDelegateInstance<RetValType(ParamTypes...)>
+{
+private:
+    static_assert(!std::is_reference_v<FunctorType>, "FunctorType은 레퍼런스가 될 수 없습니다.");
+    
+    using Super = IBaseDelegateInstance<RetValType(ParamTypes...)>;
+
+    /*
+     * 템플릿 파싱 단계(Phase 1)에서 UObject가 '불완전한 타입(incomplete type)'으로
+     * 간주되어 발생하는 컴파일 오류를 회피하기 위한 목적이다.
+     *
+     * std::conditional_t를 사용함으로써, UserClass의 타입 정의를
+     * 템플릿 파라미터 'ParamTypes'에 의존(dependent)하도록 만든다.
+     *
+     * 결과적으로 컴파일러는 UObject 타입의 유효성 검사를
+     * 템플릿이 실제 코드로 생성되는 인스턴스화 단계(Phase 2)로 지연시키게 된다.
+     *
+     * (이 조건문은 항상 'const UObject'를 반환하지만,
+     * 컴파일러의 타입 확인 시점을 늦추는 역할만 수행한다.)
+     */
+    using UserClass = std::conditional_t<sizeof...(ParamTypes) == 0, const UObject, const UObject>;
+    
+public:
+    template <typename InFunctorType>
+    TWeakBaseFunctorDelegateInstance(UserClass* InContextObject, InFunctorType&& InFunctor)
+        : ContextObject(InContextObject)
+        , Functor(std::forward<InFunctorType>(InFunctor))
+        , Handle(FDelegateHandle::GenerateNewHandle)
+    {
+    }
+
+    /*-----------------------------------------------------------------------------
+        IDelegateInstance 인터페이스
+     -----------------------------------------------------------------------------*/
+
+    UObject* GetUObject() const final
+    {
+        return ContextObject.Get();
+    }
+
+    bool IsSafeToExecute() const final
+    {
+        return ContextObject.IsValid();
+    }
+
+    FDelegateHandle GetHandle() const final
+    {
+        return Handle;
+    }
+    
+    /*-----------------------------------------------------------------------------
+        IBaseDelegateInstance 인터페이스
+     -----------------------------------------------------------------------------*/
+
+    RetValType Execute(ParamTypes... Params) const final
+    {
+        return Functor(std::forward<ParamTypes>(Params)...);
+    }
+
+    bool ExecuteIfSafe(ParamTypes... Params) const final
+    {
+        (void)Functor(std::forward<ParamTypes>(Params)...);
+        
+        return true;
+    }
+
+private:
+    FWeakObjectPtr ContextObject;
+    
+    // C++ functor
+    // mutable 람다를 바운드하고 실행하기 위해 mutable로 선언한다. 만약 const 델리게이트 객체를 복사한다면,
+    // const 속성이 전파되므로 이를 피하기 위해 const를 제거한다.
+    mutable std::remove_const_t<FunctorType> Functor;
+    
+    FDelegateHandle Handle;   
+};
+
+/*-----------------------------------------------------------------------------
     TBaseUObjectMethodDelegateInstance
  -----------------------------------------------------------------------------*/
 
