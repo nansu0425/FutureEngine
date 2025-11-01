@@ -36,12 +36,21 @@ public:
 	{
 		UpdateBoundingBoxVertices(BoundingBoxLines.GetDisabledBoundingBox());
 		bRenderSpotLight = false;
+		// bRenderShapeComponent는 독립적으로 관리됨 (제거)
 	}
 
 	void ClearOctreeLines()
 	{
 		OctreeLines.clear();
 		bChangedVertices = true;
+	}
+
+	// ShapeComponent용 추가
+	void UpdateShapeComponentVertices(const IBoundingVolume* NewBoundingVolume);
+	void DisableRenderShapeComponent()
+	{
+		bRenderShapeComponent = false;
+		bChangedVertices = true; // vertex buffer 업데이트 강제
 	}
 
 	//void UpdateConstant(FBoundingBox boundingBoxInfo);
@@ -67,10 +76,12 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+	UBoundingBoxLines ShapeComponentLines; // ShapeComponent 렌더링용 추가
 	UBoundingBoxLines SpotLightLines;
 	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
+	bool bRenderShapeComponent = false; // ShapeComponent 렌더링 플래그
 	bool bRenderSpotLight = false;
 };
 

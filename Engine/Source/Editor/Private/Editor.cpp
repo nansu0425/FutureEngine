@@ -19,6 +19,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/EditorIconComponent.h"
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Shape/Public/ShapeComponent.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/ui/Viewport/Public/ViewportClient.h"
@@ -274,9 +275,28 @@ void UEditor::UpdateBatchLines()
 		BatchLines.ClearOctreeLines();
 	}
 
+	// 1. 선택된 Component 렌더링 (BoundingBoxLines에)
+	bool bRenderedSelectedComponent = false;
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
-		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		if (UShapeComponent* ShapeComponent = Cast<UShapeComponent>(Component))
+		{
+			// ShapeComponent는 SF_Bounds 플래그와 무관하게 렌더링
+			if (ShapeComponent->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
+			{
+				FVector WorldMin, WorldMax;
+				ShapeComponent->GetWorldAABB(WorldMin, WorldMax);
+				FAABB AABB(WorldMin, WorldMax);
+				BatchLines.UpdateBoundingBoxVertices(&AABB);
+			}
+			else
+			{
+				BatchLines.UpdateBoundingBoxVertices(ShapeComponent->GetBoundingVolume());
+			}
+			bRenderedSelectedComponent = true;
+			// return 제거 - bDrawOnlyIfSelected=false인 ShapeComponent도 체크해야 함
+		}
+		else if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
@@ -288,7 +308,7 @@ void UEditor::UpdateBatchLines()
 				}
 				else
 				{
-					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume()); 
+					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume());
 
 					// 만약 선택된 타입이 decalspotlightcomponent라면
 					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
@@ -296,10 +316,11 @@ void UEditor::UpdateBatchLines()
 						BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
 					}
 				}
-				return; 
+				bRenderedSelectedComponent = true;
+				// return 제거 - bDrawOnlyIfSelected=false인 ShapeComponent도 체크해야 함
 			}
 		}
-		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
+		else if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
@@ -313,21 +334,86 @@ void UEditor::UpdateBatchLines()
 						const float InnerRadian = SpotLightComponent->GetInnerConeAngle();
 						FQuaternion Rotation = SpotLightComponent->GetWorldRotationAsQuaternion();
 						BatchLines.UpdateConeVertices(Center, Radius, OuterRadian, InnerRadian, Rotation);
-						return;
+						bRenderedSelectedComponent = true;
+						// return 제거
 					}
-					const FVector Center = PointLightComponent->GetWorldLocation();
-					const float Radius = PointLightComponent->GetAttenuationRadius();
+					else
+					{
+						const FVector Center = PointLightComponent->GetWorldLocation();
+						const float Radius = PointLightComponent->GetAttenuationRadius();
 
-					FBoundingSphere PointSphere(Center, Radius);
-					BatchLines.UpdateBoundingBoxVertices(&PointSphere);
-					return;
+						FBoundingSphere PointSphere(Center, Radius);
+						BatchLines.UpdateBoundingBoxVertices(&PointSphere);
+						bRenderedSelectedComponent = true;
+						// return 제거
+					}
 				}
-				
 			}
 		}
 	}
 
-	BatchLines.DisableRenderBoundingBox();
+	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 찾아서 ShapeComponentLines에 렌더링
+	// 단, 선택된 컴포넌트는 이미 Section 1에서 렌더링했으므로 제외
+	bool bRenderedShapeComponent = false;
+	UActorComponent* SelectedComponent = GetSelectedComponent();
+
+	if (EditorWorld && EditorWorld->GetLevel())
+	{
+		const auto& AllActors = EditorWorld->GetLevel()->GetLevelActors();
+		for (AActor* Actor : AllActors)
+		{
+			if (!Actor) continue;
+
+			const auto& Components = Actor->GetOwnedComponents();
+			for (UActorComponent* ActorComp : Components)
+			{
+				if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(ActorComp))
+				{
+					// 선택된 컴포넌트는 이미 BoundingBoxLines에 렌더링했으므로 스킵
+					if (ShapeComp == SelectedComponent)
+					{
+						continue;
+					}
+
+					// bDrawOnlyIfSelected가 false이면 ShapeComponentLines에 렌더링
+					if (!ShapeComp->IsDrawOnlyIfSelected())
+					{
+						// 부모가 움직였을 때 자식의 world transform이 캐시된 상태로 남아있을 수 있으므로
+						// bounding volume을 가져오기 전에 world transform을 강제로 재계산
+						ShapeComp->GetWorldTransformMatrix();
+
+						if (ShapeComp->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
+						{
+							FVector WorldMin, WorldMax;
+							ShapeComp->GetWorldAABB(WorldMin, WorldMax);
+							FAABB AABB(WorldMin, WorldMax);
+							BatchLines.UpdateShapeComponentVertices(&AABB);
+						}
+						else
+						{
+							BatchLines.UpdateShapeComponentVertices(ShapeComp->GetBoundingVolume());
+						}
+						bRenderedShapeComponent = true;
+						break; // 첫 번째만 렌더링
+					}
+				}
+			}
+			if (bRenderedShapeComponent) break;
+		}
+	}
+
+	// 3. 렌더링하지 않은 항목 비활성화
+	// 선택된 컴포넌트를 렌더링하지 않았으면 BoundingBoxLines 비활성화
+	if (!bRenderedSelectedComponent)
+	{
+		BatchLines.DisableRenderBoundingBox();
+	}
+
+	// ShapeComponent를 렌더링하지 않았으면 ShapeComponentLines 비활성화
+	if (!bRenderedShapeComponent)
+	{
+		BatchLines.DisableRenderShapeComponent();
+	}
 }
 
 
