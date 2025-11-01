@@ -352,9 +352,9 @@ void UEditor::UpdateBatchLines()
 		}
 	}
 
-	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 찾아서 ShapeComponentLines에 렌더링
+	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 모두 찾아서 ShapeComponentLines에 렌더링
 	// 단, 선택된 컴포넌트는 이미 Section 1에서 렌더링했으므로 제외
-	bool bRenderedShapeComponent = false;
+	BatchLines.ClearShapeComponentLines(); // 이전 프레임 데이터 초기화
 	UActorComponent* SelectedComponent = GetSelectedComponent();
 
 	if (EditorWorld && EditorWorld->GetLevel())
@@ -375,7 +375,7 @@ void UEditor::UpdateBatchLines()
 						continue;
 					}
 
-					// bDrawOnlyIfSelected가 false이면 ShapeComponentLines에 렌더링
+					// bDrawOnlyIfSelected가 false이면 ShapeComponentLines에 추가
 					if (!ShapeComp->IsDrawOnlyIfSelected())
 					{
 						// 부모가 움직였을 때 자식의 world transform이 캐시된 상태로 남아있을 수 있으므로
@@ -387,33 +387,24 @@ void UEditor::UpdateBatchLines()
 							FVector WorldMin, WorldMax;
 							ShapeComp->GetWorldAABB(WorldMin, WorldMax);
 							FAABB AABB(WorldMin, WorldMax);
-							BatchLines.UpdateShapeComponentVertices(&AABB);
+							BatchLines.AddShapeComponentVertices(&AABB);
 						}
 						else
 						{
-							BatchLines.UpdateShapeComponentVertices(ShapeComp->GetBoundingVolume());
+							BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume());
 						}
-						bRenderedShapeComponent = true;
-						break; // 첫 번째만 렌더링
 					}
 				}
 			}
-			if (bRenderedShapeComponent) break;
 		}
 	}
 
-	// 3. 렌더링하지 않은 항목 비활성화
-	// 선택된 컴포넌트를 렌더링하지 않았으면 BoundingBoxLines 비활성화
+	// 3. 선택된 컴포넌트를 렌더링하지 않았으면 BoundingBoxLines 비활성화
 	if (!bRenderedSelectedComponent)
 	{
 		BatchLines.DisableRenderBoundingBox();
 	}
-
-	// ShapeComponent를 렌더링하지 않았으면 ShapeComponentLines 비활성화
-	if (!bRenderedShapeComponent)
-	{
-		BatchLines.DisableRenderShapeComponent();
-	}
+	// ShapeComponentLines는 ClearShapeComponentLines()에서 이미 초기화되므로 별도 처리 불필요
 }
 
 

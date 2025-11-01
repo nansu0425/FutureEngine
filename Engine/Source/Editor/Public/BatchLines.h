@@ -46,10 +46,10 @@ public:
 	}
 
 	// ShapeComponent용 추가
-	void UpdateShapeComponentVertices(const IBoundingVolume* NewBoundingVolume);
-	void DisableRenderShapeComponent()
+	void AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume);
+	void ClearShapeComponentLines()
 	{
-		bRenderShapeComponent = false;
+		ShapeComponentLines.clear();
 		bChangedVertices = true; // vertex buffer 업데이트 강제
 	}
 
@@ -76,12 +76,11 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
-	UBoundingBoxLines ShapeComponentLines; // ShapeComponent 렌더링용 추가
+	TArray<UBoundingBoxLines> ShapeComponentLines; // ShapeComponent 렌더링용 (배열로 변경)
 	UBoundingBoxLines SpotLightLines;
 	TArray<UBoundingBoxLines> OctreeLines;
 
 	bool bRenderBox;
-	bool bRenderShapeComponent = false; // ShapeComponent 렌더링 플래그
 	bool bRenderSpotLight = false;
 };
 

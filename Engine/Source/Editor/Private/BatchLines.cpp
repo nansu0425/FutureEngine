@@ -74,16 +74,16 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	bChangedVertices = true;
 }
 
-void UBatchLines::UpdateShapeComponentVertices(const IBoundingVolume* NewBoundingVolume)
+void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume)
 {
 	if (!NewBoundingVolume)
 	{
-		bRenderShapeComponent = false;
 		return;
 	}
 
-	ShapeComponentLines.UpdateVertices(NewBoundingVolume);
-	bRenderShapeComponent = true;
+	UBoundingBoxLines NewLine;
+	NewLine.UpdateVertices(NewBoundingVolume);
+	ShapeComponentLines.push_back(NewLine);
 	bChangedVertices = true;
 }
 
@@ -232,7 +232,11 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
-		uint32 NumShapeComponentVertices = bRenderShapeComponent ? ShapeComponentLines.GetNumVertices() : 0;
+		uint32 NumShapeComponentVertices = 0;
+		for (const auto& Line : ShapeComponentLines)
+		{
+			NumShapeComponentVertices += Line.GetNumVertices();
+		}
 		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
@@ -246,10 +250,10 @@ void UBatchLines::UpdateVertexBuffer()
 		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
 
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
-		if (bRenderShapeComponent)
+		for (auto& Line : ShapeComponentLines)
 		{
-			ShapeComponentLines.MergeVerticesAt(Vertices, CurrentOffset);
-			CurrentOffset += ShapeComponentLines.GetNumVertices();
+			Line.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += Line.GetNumVertices();
 		}
 
 		if (bRenderSpotLight)
@@ -313,21 +317,23 @@ void UBatchLines::SetIndices()
 
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
 
-	if (bRenderShapeComponent)
+	for (auto& ShapeLine : ShapeComponentLines)
 	{
-		const EBoundingVolumeType ShapeComponentType = ShapeComponentLines.GetCurrentType();
-		int32* ShapeLineIdx = ShapeComponentLines.GetIndices(ShapeComponentType);
-		const uint32 NumShapeComponentIndices = ShapeComponentLines.GetNumIndices(ShapeComponentType);
+		const EBoundingVolumeType ShapeComponentType = ShapeLine.GetCurrentType();
+		int32* ShapeLineIdx = ShapeLine.GetIndices(ShapeComponentType);
+		const uint32 NumShapeComponentIndices = ShapeLine.GetNumIndices(ShapeComponentType);
 
-		if (ShapeLineIdx)
+		if (!ShapeLineIdx)
 		{
-			for (uint32 Idx = 0; Idx < NumShapeComponentIndices; ++Idx)
-			{
-				Indices.push_back(BaseVertexOffset + ShapeLineIdx[Idx]);
-			}
+			continue;
 		}
 
-		BaseVertexOffset += ShapeComponentLines.GetNumVertices();
+		for (uint32 Idx = 0; Idx < NumShapeComponentIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + ShapeLineIdx[Idx]);
+		}
+
+		BaseVertexOffset += ShapeLine.GetNumVertices();
 	}
 
 	if (bRenderSpotLight)
