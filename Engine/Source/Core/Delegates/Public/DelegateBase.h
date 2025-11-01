@@ -143,10 +143,10 @@ protected:
     void Broadcast(ParamTypes... Params) const
     {
         bool NeedsCompaction = false;
-        
+
         const InvocationListType& LocalInvocationList = GetInvocationList();
 
-        for (int32 InvocationListIndex = LocalInvocationList.size() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+        for (int32 InvocationListIndex = static_cast<int32>(LocalInvocationList.size()) - 1; InvocationListIndex >= 0; --InvocationListIndex)
         {
             const UnicastDelegateType& DelegateBase = LocalInvocationList[InvocationListIndex];
 
@@ -186,7 +186,7 @@ protected:
      */
     bool RemoveDelegateInstance(FDelegateHandle Handle)
     {
-        for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.size(); ++InvocationListIndex)
+        for (int32 InvocationListIndex = 0; InvocationListIndex < static_cast<int32>(InvocationList.size()); ++InvocationListIndex)
         {
             UnicastDelegateType& DelegateBase = InvocationList[InvocationListIndex];
 
@@ -207,11 +207,11 @@ private:
      */
     void CompactInvocationList()
     {
-        int32 OldNumItems = InvocationList.size();
+        int32 OldNumItems = static_cast<int32>(InvocationList.size());
 
         int32 ValidInvocationListIndex = 0;
 
-        for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.size(); ++InvocationListIndex)
+        for (int32 InvocationListIndex = 0; InvocationListIndex < static_cast<int32>(InvocationList.size()); ++InvocationListIndex)
         {
             auto& DelegateBaseRef = InvocationList[InvocationListIndex];
 

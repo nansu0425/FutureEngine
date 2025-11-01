@@ -15,25 +15,6 @@ UPrimitiveComponent::UPrimitiveComponent()
 
 void UPrimitiveComponent::BeginPlay()
 {
-	OnComponentBeginOverlap.AddLambda(
-		[] (FOverlapInfo OverlapInfo)
-		{
-			UE_LOG_SUCCESS("BeginOverlap: [%s]%s,",
-				OverlapInfo.OverlappingComponent->GetOwner()->GetName().ToString().c_str(),
-				OverlapInfo.OverlappingComponent->GetName().ToString().c_str()
-			);	
-		}
-	);
-
-	OnComponentEndOverlap.AddLambda(
-		[] (FOverlapInfo OverlapInfo)
-		{
-			UE_LOG_SUCCESS("EndOverlap: [%s]%s,",
-				OverlapInfo.OverlappingComponent->GetOwner()->GetName().ToString().c_str(),
-				OverlapInfo.OverlappingComponent->GetName().ToString().c_str()
-			);	
-		}
-	);
 }
 
 void UPrimitiveComponent::TickComponent(float DeltaTime)

@@ -41,6 +41,9 @@ private:
 	/** 마지막 Hot Reload 체크 시간 */
 	float LastHotReloadCheckTime = 0.0f;
 
+	/** 스크립트 경로별 사용 중인 컴포넌트 추적 (Hot Reload 알림용) */
+	TMap<FString, TArray<UScriptComponent*>> ScriptComponentRegistry;
+
 public:
 	/**
 	 * Lua VM 초기화 및 엔진 타입 등록
@@ -88,6 +91,20 @@ public:
 	 * 변경된 스크립트 파일들을 리로드
 	 */
 	void HotReloadScripts();
+
+	/**
+	 * 스크립트 사용 컴포넌트 등록 (Hot Reload 알림 받기 위함)
+	 * @param ScriptPath - 사용 중인 스크립트 경로
+	 * @param Component - 등록할 컴포넌트
+	 */
+	void RegisterScriptComponent(const FString& ScriptPath, UScriptComponent* Component);
+
+	/**
+	 * 스크립트 사용 컴포넌트 등록 해제
+	 * @param ScriptPath - 사용 중인 스크립트 경로
+	 * @param Component - 등록 해제할 컴포넌트
+	 */
+	void UnregisterScriptComponent(const FString& ScriptPath, UScriptComponent* Component);
 
 private:
 	/**

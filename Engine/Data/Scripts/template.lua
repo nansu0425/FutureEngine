@@ -3,18 +3,27 @@
 -- ==============================================================================
 -- This template provides the basic lifecycle functions for a scripted Actor.
 --
--- Available Functions:
---   - BeginPlay()         : Called when the Actor starts
---   - Tick(dt)            : Called every frame with delta time
---   - EndPlay()           : Called when the Actor is destroyed
---   - OnOverlap(OtherActor) : Called when overlapping with another Actor
+-- Available Lifecycle Functions:
+--   - BeginPlay()                 : Called when the Actor starts
+--   - Tick(dt)                    : Called every frame with delta time
+--   - EndPlay()                   : Called when the Actor is destroyed
+--   - OnBeginOverlap(OtherActor)  : Called when overlap starts with another Actor
+--   - OnEndOverlap(OtherActor)    : Called when overlap ends with another Actor
 --
 -- The "obj" variable represents the owner Actor and provides:
---   - obj.UUID          : Unique identifier (read-only)
---   - obj.Location      : Position (FVector, read/write)
---   - obj.Rotation      : Rotation (FQuaternion, read/write)
---   - obj.Velocity      : Custom velocity (FVector, read/write, script-managed)
---   - obj:PrintLocation(): Prints the current location to console
+--   - obj.UUID              : Unique identifier (read-only)
+--   - obj.Location          : Position (FVector, read/write)
+--   - obj.Rotation          : Rotation (FQuaternion, read/write)
+--   - obj.Velocity          : Custom velocity (FVector, read/write, script-managed)
+--   - obj:PrintLocation()   : Prints the current location to console
+--
+-- Global Functions:
+--   - Vector(x, y, z)       : Create a 3D vector
+--   - Quaternion(x,y,z,w)   : Create a quaternion
+--   - GetDeltaTime()        : Get current frame delta time
+--   - GetTime()             : Get total game time
+--   - ULog(message)         : Log to engine console
+--   - print(...)            : Print to console (supports vectors, tables, etc.)
 --
 -- Example Usage:
 --   obj.Velocity = Vector(10, 0, 0)
@@ -23,26 +32,56 @@
 
 -- Called once when the Actor begins play
 function BeginPlay()
-    -- Initialize velocity (dynamic property)
+    -- Initialize custom properties
     obj.Velocity = Vector(10, 0, 0)
-end
+    obj.Speed = 100.0
+    obj.OverlapCount = 0
 
--- Called once when the Actor ends play
-function EndPlay()
-    -- Cleanup code here
+    print("Actor started: " .. obj.UUID)
 end
-
--- TODO: overlapped function
--- Called when overlapping with another Actor
--- @param OtherActor: The Actor that overlapped with this one
--- function OnOverlap(OtherActor)
---     print("[OnOverlap] Collided with: " .. OtherActor:GetName())
---     OtherActor:PrintLocation()
--- end
 
 -- Called every frame
 -- @param dt: Delta time in seconds
 function Tick(dt)
     -- Update location based on velocity
-    obj.Location = obj.Location + obj.Velocity * dt
+    -- obj.Location = obj.Location + obj.Velocity * dt
+end
+
+-- Called once when the Actor ends play
+function EndPlay()
+    print("Actor ending: " .. obj.UUID)
+    print("Total overlaps detected: " .. obj.OverlapCount)
+end
+
+-- ==============================================================================
+-- Overlap Event Functions
+-- ==============================================================================
+
+-- Called when overlap starts with another Actor
+-- @param OtherActor: The Actor that began overlapping with this one
+function OnBeginOverlap(OtherActor)
+    obj.OverlapCount = obj.OverlapCount + 1
+
+    print("========== Overlap Started ==========")
+    print("  My Actor: " .. obj.UUID)
+    print("  Other Actor: " .. OtherActor:GetName())
+    print("  Other Location: " .. tostring(OtherActor.Location))
+    print("  Total Overlaps: " .. obj.OverlapCount)
+
+    -- Example: Stop moving when overlapping
+    -- obj.Velocity = Vector(0, 0, 0)
+
+    -- Example: Change location on overlap
+    -- obj.Location = obj.Location + Vector(0, 0, 10)
+end
+
+-- Called when overlap ends with another Actor
+-- @param OtherActor: The Actor that stopped overlapping with this one
+function OnEndOverlap(OtherActor)
+    print("========== Overlap Ended ==========")
+    print("  My Actor: " .. obj.UUID)
+    print("  Other Actor: " .. OtherActor:GetName())
+
+    -- Example: Resume movement after overlap
+    -- obj.Velocity = Vector(10, 0, 0)
 end
