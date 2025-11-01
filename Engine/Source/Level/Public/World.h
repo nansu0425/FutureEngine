@@ -70,6 +70,7 @@ private:
 	TArray<AActor*> PendingDestroyActors;
 
 	void FlushPendingDestroy(); // Destroy marking 된 액터들을 실제 삭제
+	void UpdateCollisions(); // 모든 PrimitiveComponent의 충돌 업데이트
 
 	void SwitchToLevel(ULevel* InNewLevel);
 	

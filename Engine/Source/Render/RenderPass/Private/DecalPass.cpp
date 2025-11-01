@@ -161,7 +161,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
     {
         if (!Decal || !Decal->IsVisible()) { continue; }
 
-        const IBoundingVolume* DecalBV = Decal->GetBoundingBox();
+        const IBoundingVolume* DecalBV = Decal->GetBoundingVolume();
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
         RenderedDecal++;
         
@@ -209,7 +209,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         {
             if (!Prim || !Prim->IsVisible() || Prim->IsVisualizationComponent() || !Prim->bReceivesDecals) { continue; }
 
-            const IBoundingVolume* PrimBV = Prim->GetBoundingBox();
+            const IBoundingVolume* PrimBV = Prim->GetBoundingVolume();
         	if (!PrimBV || PrimBV->GetType() != EBoundingVolumeType::AABB) { continue; }
         
         	FVector WorldMin, WorldMax;
@@ -251,9 +251,9 @@ void FDecalPass::Release()
 void FDecalPass::Query(FOctree* InOctree, UDecalComponent* InDecal, TArray<UPrimitiveComponent*>& OutPrimitives)
 {
     /** @todo Use polymorphism to gracefully handle collsion between decal and octree. For now, use explicit casting. */
-    auto BoundingBox = static_cast<const FOBB*>(InDecal->GetBoundingBox());
+    auto BoundingVolume = static_cast<const FOBB*>(InDecal->GetBoundingVolume());
 
-    if (!BoundingBox->Intersects(InOctree->GetBoundingBox()))
+    if (!BoundingVolume->Intersects(InOctree->GetBoundingVolume()))
     {
         return;
     }

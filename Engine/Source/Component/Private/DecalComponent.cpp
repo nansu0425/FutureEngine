@@ -14,8 +14,8 @@ IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
 
 UDecalComponent::UDecalComponent()
 {
-	bOwnsBoundingBox = true;
-    BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
+	bOwnsBoundingVolume = true;
+    BoundingVolume = new FOBB(FVector(0.f, 0.f, 0.f), FVector(0.5f, 0.5f, 0.5f), FMatrix::Identity());
 
 	const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
 	if (!TextureCache.empty()) { SetTexture(TextureCache.begin()->second); }
@@ -27,7 +27,7 @@ UDecalComponent::UDecalComponent()
 
 UDecalComponent::~UDecalComponent()
 	{
-    SafeDelete(BoundingBox);
+    SafeDelete(BoundingVolume);
     // DecalTexture is managed by AssetManager, no need to delete here
 	}
 
@@ -134,8 +134,8 @@ UObject* UDecalComponent::Duplicate()
 	DuplicatedComponent->DecalTexture = DecalTexture;
 	DuplicatedComponent->FadeTexture = FadeTexture;
 
-	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingBox);
-	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingBox);
+	FOBB* OriginalOBB = static_cast<FOBB*>(BoundingVolume);
+	FOBB* DuplicatedOBB = static_cast<FOBB*>(DuplicatedComponent->BoundingVolume);
 	if (OriginalOBB && DuplicatedOBB)
 	{
 		DuplicatedOBB->Center = OriginalOBB->Center;

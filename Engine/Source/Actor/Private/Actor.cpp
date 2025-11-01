@@ -4,6 +4,7 @@
 #include "Component/Public/BillBoardComponent.h"
 #include "Component/Public/EditorIconComponent.h"
 #include "Component/Public/LightComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Editor/Public/Editor.h"
@@ -529,4 +530,27 @@ void AActor::EndPlay()
 			Component->EndPlay();
 		}
 	}
+}
+
+// Collision & Overlap
+
+bool AActor::IsOverlappingActor(const AActor* Other) const
+{
+	if (!Other)
+	{
+		return false;
+	}
+
+	for (UActorComponent* OwnedComp : OwnedComponents)
+	{
+		if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(OwnedComp))
+		{
+			if ((PrimComp->GetOverlapInfos().size() > 0) && PrimComp->IsOverlappingActor(Other))
+			{
+				// found one, finished
+				return true;
+			}
+		}
+	}
+	return false;
 }

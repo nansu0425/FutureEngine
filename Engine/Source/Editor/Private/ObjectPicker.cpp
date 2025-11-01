@@ -424,7 +424,7 @@ bool UObjectPicker::FindCandidateFromOctree(FOctree* Node, const FRay& WorldRay,
 	if (!Node) { return false; }
 
 	// 1. 레이가 현재 노드와 겹치지 않으면 검사 생략.
-	if (CheckIntersectionRayBox(WorldRay, Node->GetBoundingBox()) == false) { return false; }
+	if (CheckIntersectionRayBox(WorldRay, Node->GetBoundingVolume()) == false) { return false; }
 
 	// 2. 현재 노드와 레이가 교차하므로, 이 노드에 직접 포함된 프리미티브들을 후보에 추가합니다.
 	const auto& CurrentNodePrimitives = Node->GetPrimitives();

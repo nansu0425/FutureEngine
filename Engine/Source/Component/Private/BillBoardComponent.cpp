@@ -26,7 +26,7 @@ UBillBoardComponent::UBillBoardComponent()
 
 	RenderState.CullMode = ECullMode::Back;
 	RenderState.FillMode = EFillMode::Solid;
-	BoundingBox = &ResourceManager.GetAABB(EPrimitiveType::Sprite);
+	BoundingVolume = &ResourceManager.GetAABB(EPrimitiveType::Sprite);
 
     const TMap<FName, UTexture*>& TextureCache = UAssetManager::GetInstance().GetTextureCache();
     if (!TextureCache.empty()) { Sprite = TextureCache.begin()->second; }

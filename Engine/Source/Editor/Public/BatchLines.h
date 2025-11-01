@@ -3,7 +3,7 @@
 #include "Global/CoreTypes.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Editor/Public/Grid.h"
-#include "Editor/Public/BoundingBoxLines.h"
+#include "Editor/Public/BoundingVolumeLines.h"
 
 struct FVertex;
 class FOctree;
@@ -20,6 +20,12 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateOctreeVertices(const FOctree* InOctree);
+
+	// BoundingBoxLines 색상 설정
+	void SetBoundingBoxColor(const FVector4& Color)
+	{
+		BoundingBoxLines.SetColor(Color);
+	}
 	// Decal SpotLight용 불법 증축
 	void UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent);
 	void UpdateConeVertices(const FVector& InCenter, float InGeneratingLineLength
@@ -36,12 +42,22 @@ public:
 	{
 		UpdateBoundingBoxVertices(BoundingBoxLines.GetDisabledBoundingBox());
 		bRenderSpotLight = false;
+		// bRenderShapeComponent는 독립적으로 관리됨 (제거)
 	}
 
 	void ClearOctreeLines()
 	{
 		OctreeLines.clear();
 		bChangedVertices = true;
+	}
+
+	// ShapeComponent용 추가
+	void AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume);
+	void AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume, const FVector4& Color);
+	void ClearShapeComponentLines()
+	{
+		ShapeComponentLines.clear();
+		bChangedVertices = true; // vertex buffer 업데이트 강제
 	}
 
 	//void UpdateConstant(FBoundingBox boundingBoxInfo);
@@ -64,11 +80,13 @@ private:
 	TArray<uint32> Indices; // 월드 그리드는 그냥 정점 순서, 바운딩 박스는 실제 인덱싱
 
 	FEditorPrimitive Primitive;
+	ID3D11Buffer* ColorBuffer = nullptr; // 라인 색상 constant buffer
 
 	UGrid Grid;
-	UBoundingBoxLines BoundingBoxLines;
-	UBoundingBoxLines SpotLightLines;
-	TArray<UBoundingBoxLines> OctreeLines;
+	UBoundingVolumeLines BoundingBoxLines;
+	TArray<UBoundingVolumeLines> ShapeComponentLines; // ShapeComponent 렌더링용 (배열로 변경)
+	UBoundingVolumeLines SpotLightLines;
+	TArray<UBoundingVolumeLines> OctreeLines;
 
 	bool bRenderBox;
 	bool bRenderSpotLight = false;

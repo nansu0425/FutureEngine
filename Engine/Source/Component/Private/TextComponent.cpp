@@ -84,5 +84,5 @@ void UTextComponent::RegulatePickingAreaByTextLength()
 			FVector(0.0f, -0.5f * NewStrLen, -0.5f),
 			FVector(0.0f, 0.5f * NewStrLen, 0.5f)
 		);
-	BoundingBox = &PickingAreaBoundingBox;
+	BoundingVolume = &PickingAreaBoundingBox;
 }

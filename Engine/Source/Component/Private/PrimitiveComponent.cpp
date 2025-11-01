@@ -77,15 +77,15 @@ D3D11_PRIMITIVE_TOPOLOGY UPrimitiveComponent::GetTopology() const
 	return Topology;
 }
 
-const IBoundingVolume* UPrimitiveComponent::GetBoundingBox()
+const IBoundingVolume* UPrimitiveComponent::GetBoundingVolume()
 {
-	BoundingBox->Update(GetWorldTransformMatrix());
-	return BoundingBox;
+	BoundingVolume->Update(GetWorldTransformMatrix());
+	return BoundingVolume;
 }
 
 void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 {
-	if (!BoundingBox)
+	if (!BoundingVolume)
 	{
 		OutMin = FVector(); OutMax = FVector();
 		return;
@@ -93,9 +93,9 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 
 	if (bIsAABBCacheDirty)
 	{
-		if (BoundingBox->GetType() == EBoundingVolumeType::AABB)
+		if (BoundingVolume->GetType() == EBoundingVolumeType::AABB)
 		{
-			const FAABB* LocalAABB = static_cast<const FAABB*>(BoundingBox);
+			const FAABB* LocalAABB = static_cast<const FAABB*>(BoundingVolume);
 			FVector LocalCorners[8] =
 			{
 				FVector(LocalAABB->Min.X, LocalAABB->Min.Y, LocalAABB->Min.Z), FVector(LocalAABB->Max.X, LocalAABB->Min.Y, LocalAABB->Min.Z),
@@ -122,10 +122,10 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 			CachedWorldMin = WorldMin;
 			CachedWorldMax = WorldMax;
 		}
-		else if (BoundingBox->GetType() == EBoundingVolumeType::OBB ||
-			BoundingBox->GetType() == EBoundingVolumeType::SpotLight)
+		else if (BoundingVolume->GetType() == EBoundingVolumeType::OBB ||
+			BoundingVolume->GetType() == EBoundingVolumeType::SpotLight)
 		{
-			const FOBB* OBB = static_cast<const FOBB*>(GetBoundingBox());
+			const FOBB* OBB = static_cast<const FOBB*>(GetBoundingVolume());
 			FAABB AABB = OBB->ToWorldAABB();
 
 			CachedWorldMin = AABB.Min;
@@ -164,9 +164,9 @@ UObject* UPrimitiveComponent::Duplicate()
 	PrimitiveComponent->NumVertices = NumVertices;
 	PrimitiveComponent->NumIndices = NumIndices;
 
-	if (!bOwnsBoundingBox)
+	if (!bOwnsBoundingVolume)
 	{
-		PrimitiveComponent->BoundingBox = BoundingBox;
+		PrimitiveComponent->BoundingVolume = BoundingVolume;
 	}
 	
 	return PrimitiveComponent;
@@ -192,4 +192,122 @@ void UPrimitiveComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle["bVisible"] = bVisible ? "true" : "false";
 	}
 
+}
+
+// Collision & Overlap Implementation
+
+bool UPrimitiveComponent::IsOverlappingComponent(const UPrimitiveComponent* Other) const
+{
+	if (!Other)
+		return false;
+
+	for (const FOverlapInfo& Info : OverlapInfos)
+	{
+		if (Info.OverlappingComponent == Other)
+			return true;
+	}
+
+	return false;
+}
+
+bool UPrimitiveComponent::IsOverlappingActor(const AActor* Other) const
+{
+	if (!Other)
+		return false;
+
+	for (const FOverlapInfo& Info : OverlapInfos)
+	{
+		if (Info.OverlappingComponent && Info.OverlappingComponent->GetOwner() == Other)
+			return true;
+	}
+
+	return false;
+}
+
+void UPrimitiveComponent::AddOverlapInfo(const FOverlapInfo& Info)
+{
+	// 중복 체크
+	for (const FOverlapInfo& ExistingInfo : OverlapInfos)
+	{
+		if (ExistingInfo == Info)
+			return;
+	}
+
+	OverlapInfos.push_back(Info);
+}
+
+void UPrimitiveComponent::RemoveOverlapInfo(const UPrimitiveComponent* Component)
+{
+	for (auto It = OverlapInfos.begin(); It != OverlapInfos.end(); ++It)
+	{
+		if (It->OverlappingComponent == Component)
+		{
+			OverlapInfos.erase(It);
+			return;
+		}
+	}
+}
+
+bool UPrimitiveComponent::CheckOverlapWith(const UPrimitiveComponent* Other) const
+{
+	// 기본 구현: 항상 false 반환
+	// Shape Component들이 오버라이드하여 실제 충돌 체크 수행
+	return false;
+}
+
+void UPrimitiveComponent::UpdateOverlaps(const TArray<UPrimitiveComponent*>& AllComponents)
+{
+	if (!bGenerateOverlapEvents)
+		return;
+
+	TArray<FOverlapInfo> NewOverlapInfos;
+
+	// 모든 컴포넌트와 충돌 체크
+	for (UPrimitiveComponent* Other : AllComponents)
+	{
+		if (Other == this || !Other->bGenerateOverlapEvents)
+			continue;
+
+		if (CheckOverlapWith(Other))
+		{
+			NewOverlapInfos.push_back(FOverlapInfo(Other));
+		}
+	}
+
+	// 새로 겹친 것 확인 (BeginOverlap)
+	for (const FOverlapInfo& NewInfo : NewOverlapInfos)
+	{
+		auto It = std::find(OverlapInfos.begin(), OverlapInfos.end(), NewInfo);
+		if (It == OverlapInfos.end())
+		{
+			// 새로 겹침 - 로그 출력
+			AActor* MyOwner = GetOwner();
+			AActor* OtherOwner = NewInfo.OverlappingComponent->GetOwner();
+			UE_LOG_SUCCESS("BeginOverlap: [%s]%s <-> [%s]%s",
+				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+				GetName().ToString().c_str(),
+				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+				NewInfo.OverlappingComponent->GetName().ToString().c_str());
+		}
+	}
+
+	// 분리된 것 확인 (EndOverlap)
+	for (const FOverlapInfo& OldInfo : OverlapInfos)
+	{
+		auto It = std::find(NewOverlapInfos.begin(), NewOverlapInfos.end(), OldInfo);
+		if (It == NewOverlapInfos.end())
+		{
+			// 분리됨 - 로그 출력
+			AActor* MyOwner = GetOwner();
+			AActor* OtherOwner = OldInfo.OverlappingComponent->GetOwner();
+			UE_LOG_WARNING("EndOverlap: [%s]%s <-> [%s]%s",
+				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+				GetName().ToString().c_str(),
+				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+				OldInfo.OverlappingComponent->GetName().ToString().c_str());
+		}
+	}
+
+	// 새로운 Overlap 정보로 업데이트
+	OverlapInfos = NewOverlapInfos;
 }

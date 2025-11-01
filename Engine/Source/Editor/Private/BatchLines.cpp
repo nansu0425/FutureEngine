@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/BatchLines.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/Renderer/Public/Pipeline.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
@@ -34,6 +35,14 @@ UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
 	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
 	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+
+	// 색상 constant buffer 생성
+	D3D11_BUFFER_DESC cbDesc = {};
+	cbDesc.ByteWidth = sizeof(FVector4);
+	cbDesc.Usage = D3D11_USAGE_DEFAULT;
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.CPUAccessFlags = 0;
+	URenderer::GetInstance().GetDevice()->CreateBuffer(&cbDesc, nullptr, &ColorBuffer);
 }
 
 UBatchLines::~UBatchLines()
@@ -43,6 +52,7 @@ UBatchLines::~UBatchLines()
 	SafeRelease(Primitive.PixelShader);
 	SafeRelease(Primitive.VertexBuffer);
 	SafeRelease(Primitive.IndexBuffer);
+	SafeRelease(ColorBuffer);
 }
 
 void UBatchLines::UpdateUGridVertices(const float newCellSize)
@@ -74,6 +84,34 @@ void UBatchLines::UpdateOctreeVertices(const FOctree* InOctree)
 	bChangedVertices = true;
 }
 
+void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume)
+{
+	if (!NewBoundingVolume)
+	{
+		return;
+	}
+
+	UBoundingVolumeLines NewLine;
+	NewLine.UpdateVertices(NewBoundingVolume);
+	ShapeComponentLines.push_back(NewLine);
+	bChangedVertices = true;
+}
+
+void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVolume, const FVector4& Color)
+{
+	if (!NewBoundingVolume)
+	{
+		return;
+	}
+
+	UBoundingVolumeLines NewLine;
+	NewLine.UpdateVertices(NewBoundingVolume);
+	// ShapeColor는 0-255 범위, 렌더링은 0-1 범위 사용
+	NewLine.SetColor(FVector4(Color.X / 255.0f, Color.Y / 255.0f, Color.Z / 255.0f, Color.W / 255.0f));
+	ShapeComponentLines.push_back(NewLine);
+	bChangedVertices = true;
+}
+
 void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLightComponent)
 {
 	if (!SpotLightComponent)
@@ -89,7 +127,7 @@ void UBatchLines::UpdateDecalSpotLightVertices(UDecalSpotLightComponent* SpotLig
 		bRenderSpotLight = false;
 		return;
 	}
-	
+
 	SpotLightLines.UpdateVertices(SpotLightBounding);
 	bRenderSpotLight = true;
 	bChangedVertices = true;
@@ -200,8 +238,8 @@ void UBatchLines::TraverseOctree(const FOctree* InNode)
 {
 	if (!InNode) { return; }
 
-	UBoundingBoxLines BoxLines;
-	BoxLines.UpdateVertices(&InNode->GetBoundingBox());
+	UBoundingVolumeLines BoxLines;
+	BoxLines.UpdateVertices(&InNode->GetBoundingVolume());
 	OctreeLines.push_back(BoxLines);
 
 	if (!InNode->IsLeafNode())
@@ -219,6 +257,11 @@ void UBatchLines::UpdateVertexBuffer()
 	{
 		uint32 NumGridVertices = Grid.GetNumVertices();
 		uint32 NumBoxVertices = BoundingBoxLines.GetNumVertices();
+		uint32 NumShapeComponentVertices = 0;
+		for (const auto& Line : ShapeComponentLines)
+		{
+			NumShapeComponentVertices += Line.GetNumVertices();
+		}
 		uint32 NumSpotLightVertices = bRenderSpotLight ? SpotLightLines.GetNumVertices() : 0;
 		uint32 NumOctreeVertices = 0;
 		for (const auto& Line : OctreeLines)
@@ -226,12 +269,18 @@ void UBatchLines::UpdateVertexBuffer()
 			NumOctreeVertices += Line.GetNumVertices();
 		}
 
-		Vertices.resize(NumGridVertices + NumBoxVertices + NumSpotLightVertices + NumOctreeVertices);
+		Vertices.resize(NumGridVertices + NumBoxVertices + NumShapeComponentVertices + NumSpotLightVertices + NumOctreeVertices);
 
 		Grid.MergeVerticesAt(Vertices, 0);
 		BoundingBoxLines.MergeVerticesAt(Vertices, NumGridVertices);
 
 		uint32 CurrentOffset = NumGridVertices + NumBoxVertices;
+		for (auto& Line : ShapeComponentLines)
+		{
+			Line.MergeVerticesAt(Vertices, CurrentOffset);
+			CurrentOffset += Line.GetNumVertices();
+		}
+
 		if (bRenderSpotLight)
 		{
 			SpotLightLines.MergeVerticesAt(Vertices, CurrentOffset);
@@ -261,9 +310,102 @@ void UBatchLines::UpdateVertexBuffer()
 void UBatchLines::Render()
 {
 	URenderer& Renderer = URenderer::GetInstance();
+	UPipeline* Pipeline = Renderer.GetPipeline();
+	ID3D11DeviceContext* Context = Renderer.GetDeviceContext();
 
-	// to do: 아래 함수를 batch에 맞게 수정해야 함.
-	Renderer.RenderEditorPrimitive(Primitive, Primitive.RenderState, sizeof(FVector), sizeof(uint32));
+	const uint32 NumGridIndices = Grid.GetNumVertices();
+	const uint32 NumTotalIndices = Primitive.NumIndices;
+	const uint32 NumBoundingVolumeIndices = NumTotalIndices - NumGridIndices;
+
+	// Set up pipeline state (similar to RenderEditorPrimitive)
+	FPipelineInfo PipelineInfo = {
+		Primitive.InputLayout,
+		Primitive.VertexShader,
+		FRenderResourceFactory::GetRasterizerState(Primitive.RenderState),
+		Primitive.bShouldAlwaysVisible ? Renderer.GetDisabledDepthStencilState() : Renderer.GetDefaultDepthStencilState(),
+		Primitive.PixelShader,
+		nullptr,
+		Primitive.Topology
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// Update model and view/proj constant buffers
+	FRenderResourceFactory::UpdateConstantBufferData(Renderer.GetConstantBufferModels(),
+		FMatrix::GetModelMatrix(Primitive.Location, Primitive.Rotation, Primitive.Scale));
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, Renderer.GetConstantBufferModels());
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, Renderer.GetConstantBufferViewProj());
+
+	// Set vertex and index buffers
+	Pipeline->SetVertexBuffer(Primitive.VertexBuffer, sizeof(FVector));
+	Pipeline->SetIndexBuffer(Primitive.IndexBuffer, sizeof(uint32));
+
+	// 1. Grid 렌더링 (흰색)
+	uint32 IndexOffset = 0;
+	{
+		FVector4 WhiteColor(1.0f, 1.0f, 1.0f, 1.0f);
+		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &WhiteColor, 0, 0);
+		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+		Pipeline->DrawIndexed(NumGridIndices, IndexOffset, 0);
+		IndexOffset += NumGridIndices;
+	}
+
+	// 2. BoundingBoxLines 렌더링 (선택된 컴포넌트 - 설정된 색상 사용)
+	const uint32 NumBoundingBoxIndices = BoundingBoxLines.GetNumIndices(BoundingBoxLines.GetCurrentType());
+	if (NumBoundingBoxIndices > 0)
+	{
+		FVector4 BoundingBoxColor = BoundingBoxLines.GetColor();
+		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &BoundingBoxColor, 0, 0);
+		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+		Pipeline->DrawIndexed(NumBoundingBoxIndices, IndexOffset, 0);
+		IndexOffset += NumBoundingBoxIndices;
+	}
+
+	// 3. 각 ShapeComponentLines 렌더링 (각각의 색상)
+	for (const auto& ShapeLine : ShapeComponentLines)
+	{
+		const uint32 NumShapeIndices = ShapeLine.GetNumIndices(ShapeLine.GetCurrentType());
+		if (NumShapeIndices > 0)
+		{
+			FVector4 ShapeColor = ShapeLine.GetColor();
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &ShapeColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumShapeIndices, IndexOffset, 0);
+			IndexOffset += NumShapeIndices;
+		}
+	}
+
+	// 4. SpotLightLines 렌더링 (보라색)
+	if (bRenderSpotLight)
+	{
+		const uint32 NumSpotLightIndices = SpotLightLines.GetNumIndices(SpotLightLines.GetCurrentType());
+		if (NumSpotLightIndices > 0)
+		{
+			FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumSpotLightIndices, IndexOffset, 0);
+			IndexOffset += NumSpotLightIndices;
+		}
+	}
+
+	// 5. OctreeLines 렌더링 (보라색)
+	for (const auto& OctreeLine : OctreeLines)
+	{
+		const uint32 NumOctreeIndices = OctreeLine.GetNumIndices(OctreeLine.GetCurrentType());
+		if (NumOctreeIndices > 0)
+		{
+			FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
+			Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+			Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+			Pipeline->DrawIndexed(NumOctreeIndices, IndexOffset, 0);
+			IndexOffset += NumOctreeIndices;
+		}
+	}
 }
 
 void UBatchLines::SetIndices()
@@ -292,6 +434,25 @@ void UBatchLines::SetIndices()
 	}
 
 	BaseVertexOffset += BoundingBoxLines.GetNumVertices();
+
+	for (auto& ShapeLine : ShapeComponentLines)
+	{
+		const EBoundingVolumeType ShapeComponentType = ShapeLine.GetCurrentType();
+		int32* ShapeLineIdx = ShapeLine.GetIndices(ShapeComponentType);
+		const uint32 NumShapeComponentIndices = ShapeLine.GetNumIndices(ShapeComponentType);
+
+		if (!ShapeLineIdx)
+		{
+			continue;
+		}
+
+		for (uint32 Idx = 0; Idx < NumShapeComponentIndices; ++Idx)
+		{
+			Indices.push_back(BaseVertexOffset + ShapeLineIdx[Idx]);
+		}
+
+		BaseVertexOffset += ShapeLine.GetNumVertices();
+	}
 
 	if (bRenderSpotLight)
 	{

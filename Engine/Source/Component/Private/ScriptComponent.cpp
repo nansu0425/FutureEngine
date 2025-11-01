@@ -104,7 +104,7 @@ UObject* UScriptComponent::Duplicate()
 	DuplicatedComp->ObjTable = nullptr;
 	DuplicatedComp->ScriptEnv = nullptr;
 	DuplicatedComp->bScriptLoaded = false;
-
+	 
 	// ScriptPath 복사 (Super::Duplicate()는 NewObject()를 호출하여 생성자에서 초기화되므로 명시적 복사 필요)
 	DuplicatedComp->ScriptPath = ScriptPath;
 

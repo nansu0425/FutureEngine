@@ -86,7 +86,7 @@ void ViewVolumeCuller::CullOctree(FOctree* Octree)
 		VisitngNodes.pop_back();
 
 		// 현재 옥트리 노드(자신)의 경계와 절두체의 관계를 확인합니다.
-		EBoundCheckResult result = CurrentFrustum.CheckIntersection(CurrentNode->GetBoundingBox());
+		EBoundCheckResult result = CurrentFrustum.CheckIntersection(CurrentNode->GetBoundingVolume());
 	
 		// Case 1. 노드가 절두체 밖에 있다면, 즉시 다음 노드로 넘어갑니다. 
 		if (result == EBoundCheckResult::Outside)

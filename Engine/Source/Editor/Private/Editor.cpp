@@ -8,6 +8,7 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Time/Public/TimeManager.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Level/Public/Level.h"
 #include "Global/Quaternion.h"
 #include "Utility/Public/ScopeCycleCounter.h"
@@ -19,6 +20,7 @@
 #include "Component/Public/SpotLightComponent.h"
 #include "Component/Public/EditorIconComponent.h"
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Shape/Public/ShapeComponent.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Render/UI/Overlay/Public/D2DOverlayManager.h"
 #include "Render/ui/Viewport/Public/ViewportClient.h"
@@ -274,32 +276,38 @@ void UEditor::UpdateBatchLines()
 		BatchLines.ClearOctreeLines();
 	}
 
+	// 1. 선택된 Component 렌더링 (BoundingBoxLines에)
+	bool bRenderedSelectedComponent = false;
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
-		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		if (UShapeComponent* ShapeComponent = Cast<UShapeComponent>(Component))
+		{
+			// ShapeComponent는 SF_Bounds 플래그와 무관하게 렌더링
+			// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+			BatchLines.UpdateBoundingBoxVertices(ShapeComponent->GetBoundingVolume());
+			// ShapeComponent의 색상을 BoundingBoxLines에 설정 (0-255 → 0-1 범위 변환)
+			FVector4 ShapeColor = ShapeComponent->GetShapeColor();
+			BatchLines.SetBoundingBoxColor(FVector4(ShapeColor.X / 255.0f, ShapeColor.Y / 255.0f, ShapeColor.Z / 255.0f, ShapeColor.W / 255.0f));
+			bRenderedSelectedComponent = true;
+		}
+		else if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
-				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
-				{
-					FVector WorldMin, WorldMax; PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);
-					FAABB AABB(WorldMin, WorldMax);
-					BatchLines.UpdateBoundingBoxVertices(&AABB);
-				}
-				else 
-				{ 
-					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox()); 
+				// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+				BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume());
+				// 일반 PrimitiveComponent는 흰색으로 렌더링
+				BatchLines.SetBoundingBoxColor(FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 
-					// 만약 선택된 타입이 decalspotlightcomponent라면
-					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
-					{
-						BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
-					}
+				// DecalSpotLightComponent 특수 처리
+				if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
+				{
+					BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
 				}
-				return; 
+				bRenderedSelectedComponent = true;
 			}
 		}
-		if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
+		else if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
@@ -313,21 +321,94 @@ void UEditor::UpdateBatchLines()
 						const float InnerRadian = SpotLightComponent->GetInnerConeAngle();
 						FQuaternion Rotation = SpotLightComponent->GetWorldRotationAsQuaternion();
 						BatchLines.UpdateConeVertices(Center, Radius, OuterRadian, InnerRadian, Rotation);
-						return;
+						bRenderedSelectedComponent = true;
+						// return 제거
 					}
-					const FVector Center = PointLightComponent->GetWorldLocation();
-					const float Radius = PointLightComponent->GetAttenuationRadius();
+					else
+					{
+						const FVector Center = PointLightComponent->GetWorldLocation();
+						const float Radius = PointLightComponent->GetAttenuationRadius();
 
-					FBoundingSphere PointSphere(Center, Radius);
-					BatchLines.UpdateBoundingBoxVertices(&PointSphere);
-					return;
+						FBoundingSphere PointSphere(Center, Radius);
+						BatchLines.UpdateBoundingBoxVertices(&PointSphere);
+						// LightComponent는 흰색으로 렌더링
+						BatchLines.SetBoundingBoxColor(FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+						bRenderedSelectedComponent = true;
+						// return 제거
+					}
 				}
-				
 			}
 		}
 	}
 
-	BatchLines.DisableRenderBoundingBox();
+	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 및 SF_Bounds가 켜진 경우 모든 StaticMeshComponent의 AABB 렌더링
+	// 단, 선택된 컴포넌트는 이미 Section 1에서 렌더링했으므로 제외
+	BatchLines.ClearShapeComponentLines(); // 이전 프레임 데이터 초기화
+	UActorComponent* SelectedComponent = GetSelectedComponent();
+
+	if (EditorWorld && EditorWorld->GetLevel())
+	{
+		const auto& AllActors = EditorWorld->GetLevel()->GetLevelActors();
+		for (AActor* Actor : AllActors)
+		{
+			if (!Actor) continue;
+
+			const auto& Components = Actor->GetOwnedComponents();
+			for (UActorComponent* ActorComp : Components)
+			{
+				// ShapeComponent 처리
+				if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(ActorComp))
+				{
+					// 선택된 컴포넌트는 이미 BoundingBoxLines에 렌더링했으므로 스킵
+					if (ShapeComp == SelectedComponent)
+					{
+						continue;
+					}
+
+					// bDrawOnlyIfSelected가 false이면 ShapeComponentLines에 추가
+					if (!ShapeComp->IsDrawOnlyIfSelected())
+					{
+						// 부모가 움직였을 때 자식의 world transform이 캐시된 상태로 남아있을 수 있으므로
+						// bounding volume을 가져오기 전에 world transform을 강제로 재계산
+						ShapeComp->GetWorldTransformMatrix();
+
+						// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+						// ShapeColor를 함께 전달하여 커스터마이징된 색상으로 렌더링
+					BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume(), ShapeComp->GetShapeColor());
+					}
+				}
+				// StaticMeshComponent 처리 (SF_Bounds가 켜진 경우)
+				else if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ActorComp))
+				{
+					// SF_Bounds 플래그가 켜져 있을 때만 렌더링
+					if (ShowFlags & EEngineShowFlags::SF_Bounds)
+					{
+						// 선택된 컴포넌트는 이미 BoundingBoxLines에 렌더링했으므로 스킵
+						if (StaticMeshComp == SelectedComponent)
+						{
+							continue;
+						}
+
+						// 부모가 움직였을 때 자식의 world transform이 캐시된 상태로 남아있을 수 있으므로
+						// bounding volume을 가져오기 전에 world transform을 강제로 재계산
+						StaticMeshComp->GetWorldTransformMatrix();
+
+						FVector WorldMin, WorldMax;
+						StaticMeshComp->GetWorldAABB(WorldMin, WorldMax);
+						FAABB AABB(WorldMin, WorldMax);
+						BatchLines.AddShapeComponentVertices(&AABB);
+					}
+				}
+			}
+		}
+	}
+
+	// 3. 선택된 컴포넌트를 렌더링하지 않았으면 BoundingBoxLines 비활성화
+	if (!bRenderedSelectedComponent)
+	{
+		BatchLines.DisableRenderBoundingBox();
+	}
+	// ShapeComponentLines는 ClearShapeComponentLines()에서 이미 초기화되므로 별도 처리 불필요
 }
 
 

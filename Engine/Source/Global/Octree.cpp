@@ -17,13 +17,13 @@ namespace
 }
 
 FOctree::FOctree()
-	: BoundingBox(), Depth(0)
+	: BoundingVolume(), Depth(0)
 {
 	Children.resize(8);
 }
 
 FOctree::FOctree(const FAABB& InBoundingBox, int InDepth)
-	: BoundingBox(InBoundingBox), Depth(InDepth)
+	: BoundingVolume(InBoundingBox), Depth(InDepth)
 {
 	Children.resize(8);
 }
@@ -32,8 +32,8 @@ FOctree::FOctree(const FVector& InPosition, float InSize, int InDepth)
 	: Depth(InDepth)
 {
 	const float HalfSize = InSize * 0.5f;
-	BoundingBox.Min = InPosition - FVector(HalfSize, HalfSize, HalfSize);
-	BoundingBox.Max = InPosition + FVector(HalfSize, HalfSize, HalfSize);
+	BoundingVolume.Min = InPosition - FVector(HalfSize, HalfSize, HalfSize);
+	BoundingVolume.Max = InPosition + FVector(HalfSize, HalfSize, HalfSize);
 	Children.resize(8);
 }
 
@@ -49,7 +49,7 @@ bool FOctree::Insert(UPrimitiveComponent* InPrimitive)
 	if (!InPrimitive) { return false; }
 
 	// 0. 영역 내에 객체가 없으면 종료
-	if (BoundingBox.IsIntersected(GetPrimitiveBoundingBox(InPrimitive)) == false) { return false; }
+	if (BoundingVolume.IsIntersected(GetPrimitiveBoundingBox(InPrimitive)) == false) { return false; }
 
 	if (IsLeaf())
 	{
@@ -71,7 +71,7 @@ bool FOctree::Insert(UPrimitiveComponent* InPrimitive)
 		for (int Index = 0; Index < 8; ++Index)
 		{
 			// 자식 노드를 보유하고 있고, 영역 내에 해당 객체가 존재한다면
-			if (Children[Index] && Children[Index]->BoundingBox.IsContains(GetPrimitiveBoundingBox(InPrimitive)))
+			if (Children[Index] && Children[Index]->BoundingVolume.IsContains(GetPrimitiveBoundingBox(InPrimitive)))
 			{
 				return Children[Index]->Insert(InPrimitive); // 자식 노드에게 넘겨준다
 			}
@@ -163,7 +163,7 @@ TArray<UPrimitiveComponent*> FOctree::FindNearestPrimitives(const FVector& FindP
 	Candidates.reserve(MaxPrimitiveCount);
 	FNodeQueue NodeQueue;
 
-	float RootDistance = this->GetBoundingBox().GetCenterDistanceSquared(FindPos);
+	float RootDistance = this->GetBoundingVolume().GetCenterDistanceSquared(FindPos);
 	NodeQueue.push({ RootDistance, this });
 
 	while (!NodeQueue.empty() && Candidates.size() < MaxPrimitiveCount)
@@ -185,7 +185,7 @@ TArray<UPrimitiveComponent*> FOctree::FindNearestPrimitives(const FVector& FindP
 				FOctree* Child = CurrentNode->Children[i];
 				if (Child)
 				{
-					float ChildDistance = Child->GetBoundingBox().GetCenterDistanceSquared(FindPos);
+					float ChildDistance = Child->GetBoundingVolume().GetCenterDistanceSquared(FindPos);
 					NodeQueue.push({ ChildDistance, Child });
 				}
 			}
@@ -197,8 +197,8 @@ TArray<UPrimitiveComponent*> FOctree::FindNearestPrimitives(const FVector& FindP
 
 void FOctree::Subdivide(UPrimitiveComponent* InPrimitive)
 {
-	const FVector& Min = BoundingBox.Min;
-	const FVector& Max = BoundingBox.Max;
+	const FVector& Min = BoundingVolume.Min;
+	const FVector& Max = BoundingVolume.Max;
 	const FVector Center = (Min + Max) * 0.5f;
 
 	Children[0] = new FOctree(FAABB(FVector(Min.X, Center.Y, Min.Z), FVector(Center.X, Max.Y, Center.Z)), Depth + 1); // Top-Back-Left
@@ -259,7 +259,7 @@ void FOctree::DeepCopy(FOctree* OutOctree) const
 	if (!OutOctree) { return; }
 
 	// 1) 필드 복사
-	OutOctree->BoundingBox = BoundingBox;
+	OutOctree->BoundingVolume = BoundingVolume;
 	OutOctree->Depth = Depth;
 
 	// 2) 기존 대상의 프리미티브/자식 정리 후 초기화
@@ -282,7 +282,7 @@ void FOctree::DeepCopy(FOctree* OutOctree) const
 			if (Children[Index] != nullptr)
 			{
 				// 자식 노드 생성 후 재귀 복사
-				OutOctree->Children[Index] = new FOctree(Children[Index]->BoundingBox, Children[Index]->Depth);
+				OutOctree->Children[Index] = new FOctree(Children[Index]->BoundingVolume, Children[Index]->Depth);
 				Children[Index]->DeepCopy(OutOctree->Children[Index]);
 			}
 		}

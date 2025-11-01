@@ -2,6 +2,8 @@
 #include "Level/Public/World.h"
 #include "Level/Public/Level.h"
 #include "Actor/Public/AmbientLight.h"
+#include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/ActorComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Path/Public/PathManager.h"
@@ -99,13 +101,16 @@ void UWorld::Tick(float DeltaTimes)
 			{
 				Actor->Tick(DeltaTimes);
 			}
-			
+
 			if (Actor->IsPendingDestroy())
 			{
 				DestroyActor(Actor);
 			}
 		}
 	}
+
+	// 충돌 감지 업데이트
+	UpdateCollisions();
 }
 
 ULevel* UWorld::GetLevel() const
@@ -268,6 +273,44 @@ void UWorld::FlushPendingDestroy()
 		{
 			UE_LOG_ERROR("World: Actor 삭제에 실패했습니다: %s", ActorToDestroy->GetName().ToString().c_str());
 		}
+	}
+}
+
+/**
+ * @brief 모든 PrimitiveComponent의 충돌을 업데이트합니다.
+ */
+void UWorld::UpdateCollisions()
+{
+	if (!Level)
+	{
+		return;
+	}
+
+	// 모든 PrimitiveComponent 수집
+	TArray<UPrimitiveComponent*> AllPrimitives;
+	for (AActor* Actor : Level->GetLevelActors())
+	{
+		if (!Actor)
+		{
+			continue;
+		}
+
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp))
+			{
+				if (PrimComp->GetGenerateOverlapEvents())
+				{
+					AllPrimitives.push_back(PrimComp);
+				}
+			}
+		}
+	}
+
+	// 각 컴포넌트의 충돌 업데이트
+	for (UPrimitiveComponent* PrimComp : AllPrimitives)
+	{
+		PrimComp->UpdateOverlaps(AllPrimitives);
 	}
 }
 

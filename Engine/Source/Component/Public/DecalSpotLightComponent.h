@@ -17,7 +17,7 @@ public:
 	void UpdateProjectionMatrix() override;
 	virtual UObject* Duplicate() override;
 	
-	virtual const IBoundingVolume* GetBoundingBox() override;
+	virtual const IBoundingVolume* GetBoundingVolume() override;
 	FSpotLightOBB* GetSpotLightBoundingBox() { return SpotLightBoundingBox; }
 
 private:
