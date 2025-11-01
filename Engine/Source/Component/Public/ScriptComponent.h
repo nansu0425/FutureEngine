@@ -1,5 +1,7 @@
 #pragma once
 #include "Component/Public/ActorComponent.h"
+#include "Core/Delegates/Public/Delegate.h"
+#include "Physics/Public/CollisionTypes.h"
 
 // JSON 타입 정의
 namespace json { class JSON; }
@@ -50,6 +52,10 @@ private:
 
 	/** 스크립트가 성공적으로 로드되었는지 여부 */
 	bool bScriptLoaded;
+
+	/** Overlap 델리게이트 핸들 (PrimitiveComponent -> Handle) */
+	TArray<TPair<UPrimitiveComponent*, FDelegateHandle>> BeginOverlapHandles;
+	TArray<TPair<UPrimitiveComponent*, FDelegateHandle>> EndOverlapHandles;
 
 public:
 	UScriptComponent();
@@ -120,6 +126,26 @@ private:
 	 * Lua 리소스 정리
 	 */
 	void CleanupLuaResources();
+
+	/**
+	 * Owner Actor의 모든 PrimitiveComponent에 Overlap 델리게이트 바인딩
+	 */
+	void BindOverlapDelegates();
+
+	/**
+	 * 모든 Overlap 델리게이트 바인딩 해제
+	 */
+	void UnbindOverlapDelegates();
+
+	/**
+	 * BeginOverlap 델리게이트 콜백 (Lua 함수 호출)
+	 */
+	void OnBeginOverlapCallback(const FOverlapInfo& OverlapInfo);
+
+	/**
+	 * EndOverlap 델리게이트 콜백 (Lua 함수 호출)
+	 */
+	void OnEndOverlapCallback(const FOverlapInfo& OverlapInfo);
 };
 
 // 템플릿 구현

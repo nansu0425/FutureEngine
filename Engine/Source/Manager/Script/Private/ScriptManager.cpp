@@ -11,6 +11,8 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/ScriptComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
+#include "Physics/Public/CollisionTypes.h"
 #include "Manager/Time/Public/TimeManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
@@ -221,7 +223,56 @@ void UScriptManager::RegisterCoreTypes()
 		}
 	);
 
-	UE_LOG_INFO("Lua core types registered (Vector, Quaternion, Actor)");
+	// ====================================================================
+	// FOverlapInfo - Overlap 정보 구조체
+	// ====================================================================
+	lua.new_usertype<FOverlapInfo>("FOverlapInfo",
+		sol::no_constructor,  // Lua에서 직접 생성 불가 (C++에서만)
+
+		// Properties
+		"OverlappingComponent", sol::property(
+			[](const FOverlapInfo& self) -> UPrimitiveComponent* {
+				return self.OverlappingComponent;
+			}
+		),
+
+		// Helper Methods
+		"GetOtherActor", [](const FOverlapInfo& self) -> AActor* {
+			return self.OverlappingComponent ?
+			       self.OverlappingComponent->GetOwner() : nullptr;
+		},
+
+		"GetOtherComponent", [](const FOverlapInfo& self) -> UPrimitiveComponent* {
+			return self.OverlappingComponent;
+		}
+	);
+
+	// ====================================================================
+	// UPrimitiveComponent - 충돌/렌더링 가능한 컴포넌트
+	// ====================================================================
+	lua.new_usertype<UPrimitiveComponent>("PrimitiveComponent",
+		sol::no_constructor,
+
+		// Collision properties
+		"GenerateOverlapEvents", sol::property(
+			&UPrimitiveComponent::GetGenerateOverlapEvents,
+			&UPrimitiveComponent::SetGenerateOverlapEvents
+		),
+
+		"BlockComponent", sol::property(
+			&UPrimitiveComponent::GetBlockComponent,
+			&UPrimitiveComponent::SetBlockComponent
+		),
+
+		// Overlap query methods
+		"IsOverlappingActor", &UPrimitiveComponent::IsOverlappingActor,
+		"IsOverlappingComponent", &UPrimitiveComponent::IsOverlappingComponent,
+
+		// Inherited from UActorComponent
+		"GetOwner", &UPrimitiveComponent::GetOwner
+	);
+
+	UE_LOG_INFO("Lua core types registered (Vector, Quaternion, Actor, OverlapInfo, PrimitiveComponent)");
 }
 
 void UScriptManager::RegisterGlobalFunctions()

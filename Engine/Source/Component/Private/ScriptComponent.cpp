@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Component/Public/ScriptComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
 #include "Manager/Script/Public/ScriptManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Actor/Public/Actor.h"
@@ -40,6 +41,9 @@ void UScriptComponent::BeginPlay()
 	{
 		// BeginPlay 호출
 		CallLuaFunction("BeginPlay");
+
+		// Overlap 델리게이트 바인딩
+		BindOverlapDelegates();
 	}
 	else
 	{
@@ -64,6 +68,9 @@ void UScriptComponent::EndPlay()
 		// EndPlay 호출
 		CallLuaFunction("EndPlay");
 	}
+
+	// Overlap 델리게이트 해제
+	UnbindOverlapDelegates();
 
 	CleanupLuaResources();
 
@@ -414,4 +421,119 @@ void UScriptComponent::ReloadScript()
 			UE_LOG_ERROR("ScriptComponent: 스크립트 리로드 실패 (이전 상태 없음) - %s", ScriptPath.c_str());
 		}
 	}
+}
+
+/*-----------------------------------------------------------------------------
+	Overlap Delegate Binding
+-----------------------------------------------------------------------------*/
+
+void UScriptComponent::BindOverlapDelegates()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !bScriptLoaded)
+		return;
+
+	// Owner Actor의 모든 Component 순회
+	const TArray<UActorComponent*>& Components = Owner->GetOwnedComponents();
+
+	for (UActorComponent* Component : Components)
+	{
+		// PrimitiveComponent만 처리
+		UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
+		if (!PrimComp)
+			continue;
+
+		// *** CRITICAL: Overlap 이벤트 생성 활성화 ***
+		// bGenerateOverlapEvents가 false면 UpdateOverlaps()가 바로 리턴하므로
+		// 델리게이트 바인딩만으로는 충분하지 않음 - 반드시 활성화 필요
+		PrimComp->SetGenerateOverlapEvents(true);
+
+		// BeginOverlap 델리게이트 바인딩
+		FDelegateHandle BeginHandle = PrimComp->OnComponentBeginOverlap.AddWeakLambda(
+			this,  // UObject for weak reference
+			[this](const FOverlapInfo& OverlapInfo)
+			{
+				OnBeginOverlapCallback(OverlapInfo);
+			}
+		);
+
+		// 핸들 저장 (나중에 해제용)
+		BeginOverlapHandles.push_back(TPair<UPrimitiveComponent*, FDelegateHandle>(PrimComp, BeginHandle));
+
+		// EndOverlap 델리게이트 바인딩
+		FDelegateHandle EndHandle = PrimComp->OnComponentEndOverlap.AddWeakLambda(
+			this,  // UObject for weak reference
+			[this](const FOverlapInfo& OverlapInfo)
+			{
+				OnEndOverlapCallback(OverlapInfo);
+			}
+		);
+
+		// 핸들 저장
+		EndOverlapHandles.push_back(TPair<UPrimitiveComponent*, FDelegateHandle>(PrimComp, EndHandle));
+	}
+
+	UE_LOG_DEBUG("ScriptComponent: Overlap 델리게이트 바인딩 완료 (%d PrimitiveComponents, GenerateOverlapEvents=true)",
+	             static_cast<int32>(BeginOverlapHandles.size()));
+}
+
+void UScriptComponent::UnbindOverlapDelegates()
+{
+	// BeginOverlap 핸들 제거
+	for (const auto& Pair : BeginOverlapHandles)
+	{
+		UPrimitiveComponent* Comp = Pair.first;
+		FDelegateHandle Handle = Pair.second;
+
+		if (Comp && Handle.IsValid())
+		{
+			Comp->OnComponentBeginOverlap.Remove(Handle);
+		}
+	}
+	BeginOverlapHandles.clear();
+
+	// EndOverlap 핸들 제거
+	for (const auto& Pair : EndOverlapHandles)
+	{
+		UPrimitiveComponent* Comp = Pair.first;
+		FDelegateHandle Handle = Pair.second;
+
+		if (Comp && Handle.IsValid())
+		{
+			Comp->OnComponentEndOverlap.Remove(Handle);
+		}
+	}
+	EndOverlapHandles.clear();
+}
+
+void UScriptComponent::OnBeginOverlapCallback(const FOverlapInfo& OverlapInfo)
+{
+	if (!bScriptLoaded)
+		return;
+
+	// 상대 Actor 가져오기
+	AActor* OtherActor = OverlapInfo.OverlappingComponent ?
+	                     OverlapInfo.OverlappingComponent->GetOwner() : nullptr;
+
+	if (!OtherActor)
+		return;
+
+	// Lua 함수 호출: OnBeginOverlap(OtherActor)
+	CallLuaFunction("OnBeginOverlap", OtherActor);
+}
+
+void UScriptComponent::OnEndOverlapCallback(const FOverlapInfo& OverlapInfo)
+{
+	if (!bScriptLoaded)
+		return;
+
+	// 상대 Actor 가져오기
+	AActor* OtherActor = OverlapInfo.OverlappingComponent ?
+	                     OverlapInfo.OverlappingComponent->GetOwner() : nullptr;
+
+	if (!OtherActor)
+		return;
+
+	// Lua 함수 호출: OnEndOverlap(OtherActor)
+	CallLuaFunction("OnEndOverlap", OtherActor);
 }

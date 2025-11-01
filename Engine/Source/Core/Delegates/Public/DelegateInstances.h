@@ -351,7 +351,7 @@ private:
 public:
     template <typename InFunctorType>
     TWeakBaseFunctorDelegateInstance(UserClass* InContextObject, InFunctorType&& InFunctor)
-        : ContextObject(InContextObject)
+        : ContextObject(const_cast<UObject*>(InContextObject))
         , Functor(std::forward<InFunctorType>(InFunctor))
         , Handle(FDelegateHandle::GenerateNewHandle)
     {
@@ -387,8 +387,14 @@ public:
 
     bool ExecuteIfSafe(ParamTypes... Params) const final
     {
+        // WeakPtr 유효성 체크 - ContextObject가 파괴되었으면 실행하지 않음
+        if (!IsSafeToExecute())
+        {
+            return false;
+        }
+
         (void)Functor(std::forward<ParamTypes>(Params)...);
-        
+
         return true;
     }
 
