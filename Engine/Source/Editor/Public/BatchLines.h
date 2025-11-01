@@ -3,7 +3,7 @@
 #include "Global/CoreTypes.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Editor/Public/Grid.h"
-#include "Editor/Public/BoundingBoxLines.h"
+#include "Editor/Public/BoundingVolumeLines.h"
 
 struct FVertex;
 class FOctree;
@@ -75,10 +75,10 @@ private:
 	FEditorPrimitive Primitive;
 
 	UGrid Grid;
-	UBoundingBoxLines BoundingBoxLines;
-	TArray<UBoundingBoxLines> ShapeComponentLines; // ShapeComponent 렌더링용 (배열로 변경)
-	UBoundingBoxLines SpotLightLines;
-	TArray<UBoundingBoxLines> OctreeLines;
+	UBoundingVolumeLines BoundingBoxLines;
+	TArray<UBoundingVolumeLines> ShapeComponentLines; // ShapeComponent 렌더링용 (배열로 변경)
+	UBoundingVolumeLines SpotLightLines;
+	TArray<UBoundingVolumeLines> OctreeLines;
 
 	bool bRenderBox;
 	bool bRenderSpotLight = false;

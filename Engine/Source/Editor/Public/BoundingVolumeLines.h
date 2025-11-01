@@ -2,11 +2,11 @@
 #include "Core/Public/Object.h"
 #include "Physics/Public/AABB.h"
 
-class UBoundingBoxLines : UObject
+class UBoundingVolumeLines : UObject
 {
 public:
-	UBoundingBoxLines();
-	~UBoundingBoxLines() = default;
+	UBoundingVolumeLines();
+	~UBoundingVolumeLines() = default;
 
 	void MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex);
 	void UpdateVertices(const IBoundingVolume* NewBoundingVolume);

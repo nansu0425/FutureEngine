@@ -81,7 +81,7 @@ void UBatchLines::AddShapeComponentVertices(const IBoundingVolume* NewBoundingVo
 		return;
 	}
 
-	UBoundingBoxLines NewLine;
+	UBoundingVolumeLines NewLine;
 	NewLine.UpdateVertices(NewBoundingVolume);
 	ShapeComponentLines.push_back(NewLine);
 	bChangedVertices = true;
@@ -213,7 +213,7 @@ void UBatchLines::TraverseOctree(const FOctree* InNode)
 {
 	if (!InNode) { return; }
 
-	UBoundingBoxLines BoxLines;
+	UBoundingVolumeLines BoxLines;
 	BoxLines.UpdateVertices(&InNode->GetBoundingVolume());
 	OctreeLines.push_back(BoxLines);
 

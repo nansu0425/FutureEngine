@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Editor/Public/BoundingBoxLines.h"
+#include "Editor/Public/BoundingVolumeLines.h"
 #include "Physics/Public/AABB.h"
 #include "Physics/Public/OBB.h"
 #include "Physics/Public/BoundingSphere.h"
 #include "Physics/Public/BoundingCapsule.h"
 
-UBoundingBoxLines::UBoundingBoxLines()
+UBoundingVolumeLines::UBoundingVolumeLines()
 	: Vertices(TArray<FVector>()),
 	BoundingBoxLineIdx{
 		// 앞면
@@ -32,7 +32,7 @@ UBoundingBoxLines::UBoundingBoxLines()
 
 }
 
-void UBoundingBoxLines::MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex)
+void UBoundingVolumeLines::MergeVerticesAt(TArray<FVector>& DestVertices, size_t InsertStartIndex)
 {
 	// 인덱스 범위 보정
 	InsertStartIndex = std::min(InsertStartIndex, DestVertices.size());
@@ -54,7 +54,7 @@ void UBoundingBoxLines::MergeVerticesAt(TArray<FVector>& DestVertices, size_t In
 	);
 }
 
-void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
+void UBoundingVolumeLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 {
 	switch (NewBoundingVolume->GetType())
 	{
@@ -456,7 +456,7 @@ void UBoundingBoxLines::UpdateVertices(const IBoundingVolume* NewBoundingVolume)
 	}
 }
 
-void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertices)
+void UBoundingVolumeLines::UpdateSpotLightVertices(const TArray<FVector>& InVertices)
 {
 	SpotLightLineIdx.clear();
 
@@ -538,7 +538,7 @@ void UBoundingBoxLines::UpdateSpotLightVertices(const TArray<FVector>& InVertice
 	}
 }
 
-int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
+int32* UBoundingVolumeLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 {
 	switch (BoundingVolumeType)
 	{
@@ -570,7 +570,7 @@ int32* UBoundingBoxLines::GetIndices(EBoundingVolumeType BoundingVolumeType)
 }
 
 
-uint32 UBoundingBoxLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) const
+uint32 UBoundingVolumeLines::GetNumIndices(EBoundingVolumeType BoundingVolumeType) const
 {
 	switch (BoundingVolumeType)
 	{
