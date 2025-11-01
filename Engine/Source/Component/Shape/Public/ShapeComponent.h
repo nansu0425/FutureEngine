@@ -29,8 +29,8 @@ public:
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 protected:
-	// Shape 렌더링 색상 (RGBA, 0-255)
-	FVector4 ShapeColor = FVector4(255.f, 0.f, 0.f, 255.f);
+	// Shape 렌더링 색상 (RGBA, 0-255) - 보라색
+	FVector4 ShapeColor = FVector4(200.f, 0.f, 255.f, 255.f);
 
 	// 선택된 경우에만 그리기
 	bool bDrawOnlyIfSelected = false;

@@ -73,6 +73,7 @@ private:
 	TArray<uint32> Indices; // 월드 그리드는 그냥 정점 순서, 바운딩 박스는 실제 인덱싱
 
 	FEditorPrimitive Primitive;
+	ID3D11Buffer* ColorBuffer = nullptr; // 라인 색상 constant buffer
 
 	UGrid Grid;
 	UBoundingVolumeLines BoundingBoxLines;

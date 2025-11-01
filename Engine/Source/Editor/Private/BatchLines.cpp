@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Editor/Public/BatchLines.h"
 #include "Render/Renderer/Public/Renderer.h"
+#include "Render/Renderer/Public/Pipeline.h"
 #include "Editor/Public/EditorPrimitive.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
@@ -34,6 +35,14 @@ UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
 	Primitive.NumIndices = static_cast<uint32>(Indices.size());
 	Primitive.VertexBuffer = FRenderResourceFactory::CreateVertexBuffer(Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
 	Primitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(Indices.data(), Primitive.NumIndices * sizeof(uint32));	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+
+	// 색상 constant buffer 생성
+	D3D11_BUFFER_DESC cbDesc = {};
+	cbDesc.ByteWidth = sizeof(FVector4);
+	cbDesc.Usage = D3D11_USAGE_DEFAULT;
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.CPUAccessFlags = 0;
+	URenderer::GetInstance().GetDevice()->CreateBuffer(&cbDesc, nullptr, &ColorBuffer);
 }
 
 UBatchLines::~UBatchLines()
@@ -43,6 +52,7 @@ UBatchLines::~UBatchLines()
 	SafeRelease(Primitive.PixelShader);
 	SafeRelease(Primitive.VertexBuffer);
 	SafeRelease(Primitive.IndexBuffer);
+	SafeRelease(ColorBuffer);
 }
 
 void UBatchLines::UpdateUGridVertices(const float newCellSize)
@@ -285,9 +295,53 @@ void UBatchLines::UpdateVertexBuffer()
 void UBatchLines::Render()
 {
 	URenderer& Renderer = URenderer::GetInstance();
+	UPipeline* Pipeline = Renderer.GetPipeline();
+	ID3D11DeviceContext* Context = Renderer.GetDeviceContext();
 
-	// to do: 아래 함수를 batch에 맞게 수정해야 함.
-	Renderer.RenderEditorPrimitive(Primitive, Primitive.RenderState, sizeof(FVector), sizeof(uint32));
+	const uint32 NumGridIndices = Grid.GetNumVertices();
+	const uint32 NumTotalIndices = Primitive.NumIndices;
+	const uint32 NumBoundingVolumeIndices = NumTotalIndices - NumGridIndices;
+
+	// Set up pipeline state (similar to RenderEditorPrimitive)
+	FPipelineInfo PipelineInfo = {
+		Primitive.InputLayout,
+		Primitive.VertexShader,
+		FRenderResourceFactory::GetRasterizerState(Primitive.RenderState),
+		Primitive.bShouldAlwaysVisible ? Renderer.GetDisabledDepthStencilState() : Renderer.GetDefaultDepthStencilState(),
+		Primitive.PixelShader,
+		nullptr,
+		Primitive.Topology
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// Update model and view/proj constant buffers
+	FRenderResourceFactory::UpdateConstantBufferData(Renderer.GetConstantBufferModels(),
+		FMatrix::GetModelMatrix(Primitive.Location, Primitive.Rotation, Primitive.Scale));
+	Pipeline->SetConstantBuffer(0, EShaderType::VS, Renderer.GetConstantBufferModels());
+	Pipeline->SetConstantBuffer(1, EShaderType::VS, Renderer.GetConstantBufferViewProj());
+
+	// Set vertex and index buffers
+	Pipeline->SetVertexBuffer(Primitive.VertexBuffer, sizeof(FVector));
+	Pipeline->SetIndexBuffer(Primitive.IndexBuffer, sizeof(uint32));
+
+	// 1. Grid 렌더링 (흰색)
+	{
+		FVector4 WhiteColor(1.0f, 1.0f, 1.0f, 1.0f);
+		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &WhiteColor, 0, 0);
+		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+		Pipeline->DrawIndexed(NumGridIndices, 0, 0);
+	}
+
+	// 2. Bounding Volumes 렌더링 (보라색)
+	if (NumBoundingVolumeIndices > 0)
+	{
+		FVector4 PurpleColor(0.784f, 0.0f, 1.0f, 1.0f);
+		Context->UpdateSubresource(ColorBuffer, 0, nullptr, &PurpleColor, 0, 0);
+		Context->PSSetConstantBuffers(0, 1, &ColorBuffer);
+
+		Pipeline->DrawIndexed(NumBoundingVolumeIndices, NumGridIndices, 0);
+	}
 }
 
 void UBatchLines::SetIndices()

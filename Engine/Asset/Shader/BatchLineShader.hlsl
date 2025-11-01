@@ -1,12 +1,14 @@
 
+cbuffer LineColor : register(b0)
+{
+	float4 Color; // Line color
+};
 
 cbuffer PerFrame : register(b1)
 {
 	row_major float4x4 View; // View Matrix Calculation of MVP Matrix
 	row_major float4x4 Projection; // Projection Matrix Calculation of MVP Matrix
 };
-
-
 
 struct VS_INPUT
 {
@@ -32,5 +34,5 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+	return Color;
 }
