@@ -14,7 +14,7 @@ public:
 	USceneComponent();
 
 	void BeginPlay() override;
-	    void TickComponent(float DeltaTime) override;
+	void TickComponent(float DeltaTime) override;
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	
 	virtual void MarkAsDirty();

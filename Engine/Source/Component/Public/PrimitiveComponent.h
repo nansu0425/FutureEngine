@@ -1,7 +1,20 @@
 #pragma once
 #include "Component/Public/SceneComponent.h"
+#include "Core/Delegates/Public/Delegate.h"
 #include "Physics/Public/BoundingVolume.h"
 #include "Physics/Public/CollisionTypes.h"
+
+/*-----------------------------------------------------------------------------
+	델리게이트 선언
+ -----------------------------------------------------------------------------*/
+
+DECLARE_MULTICAST_DELEGATE(FOnComponentHit, FHitResult)
+DECLARE_MULTICAST_DELEGATE(FOnComponentBeginOverlap, FOverlapInfo)
+DECLARE_MULTICAST_DELEGATE(FOnComponentEndOverlap, FOverlapInfo)
+
+/*-----------------------------------------------------------------------------
+	UPrimitiveComponent
+ -----------------------------------------------------------------------------*/
 
 UCLASS()
 class UPrimitiveComponent : public USceneComponent
@@ -12,6 +25,7 @@ class UPrimitiveComponent : public USceneComponent
 public:
 	UPrimitiveComponent();
 
+	void BeginPlay() override;
 	void TickComponent(float DeltaTime) override;
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
@@ -34,7 +48,6 @@ public:
 	
 	bool CanPick() const { return bCanPick; }
 	void SetCanPick(bool bInCanPick) { bCanPick = bInCanPick; }
-	
 
 	FVector4 GetColor() const { return Color; }
 	void SetColor(const FVector4& InColor) { Color = InColor; }
@@ -69,6 +82,11 @@ public:
 	// 다른 곳에서 사용할 인덱스
 	mutable int32 CachedAABBIndex = -1;
 	mutable uint32 CachedFrame = 0;
+
+	// --- 델리게이트 ---
+	FOnComponentHit OnComponentHit;
+	FOnComponentBeginOverlap OnComponentBeginOverlap;
+	FOnComponentEndOverlap OnComponentEndOverlap;
 
 protected:
 	const TArray<FNormalVertex>* Vertices = nullptr;

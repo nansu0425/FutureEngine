@@ -13,6 +13,29 @@ UPrimitiveComponent::UPrimitiveComponent()
 	bCanEverTick = true;
 }
 
+void UPrimitiveComponent::BeginPlay()
+{
+	OnComponentBeginOverlap.AddLambda(
+		[] (FOverlapInfo OverlapInfo)
+		{
+			UE_LOG_SUCCESS("BeginOverlap: [%s]%s,",
+				OverlapInfo.OverlappingComponent->GetOwner()->GetName().ToString().c_str(),
+				OverlapInfo.OverlappingComponent->GetName().ToString().c_str()
+			);	
+		}
+	);
+
+	OnComponentEndOverlap.AddLambda(
+		[] (FOverlapInfo OverlapInfo)
+		{
+			UE_LOG_SUCCESS("EndOverlap: [%s]%s,",
+				OverlapInfo.OverlappingComponent->GetOwner()->GetName().ToString().c_str(),
+				OverlapInfo.OverlappingComponent->GetName().ToString().c_str()
+			);	
+		}
+	);
+}
+
 void UPrimitiveComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
@@ -280,14 +303,15 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<UPrimitiveComponent*>& All
 		auto It = std::find(OverlapInfos.begin(), OverlapInfos.end(), NewInfo);
 		if (It == OverlapInfos.end())
 		{
+			OnComponentBeginOverlap.Broadcast(NewInfo);
 			// 새로 겹침 - 로그 출력
-			AActor* MyOwner = GetOwner();
-			AActor* OtherOwner = NewInfo.OverlappingComponent->GetOwner();
-			UE_LOG_SUCCESS("BeginOverlap: [%s]%s <-> [%s]%s",
-				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
-				GetName().ToString().c_str(),
-				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
-				NewInfo.OverlappingComponent->GetName().ToString().c_str());
+			// AActor* MyOwner = GetOwner();
+			// AActor* OtherOwner = NewInfo.OverlappingComponent->GetOwner();
+			// UE_LOG_SUCCESS("BeginOverlap: [%s]%s <-> [%s]%s",
+			// 	MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+			// 	GetName().ToString().c_str(),
+			// 	OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+			// 	NewInfo.OverlappingComponent->GetName().ToString().c_str());
 		}
 	}
 
@@ -297,14 +321,15 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<UPrimitiveComponent*>& All
 		auto It = std::find(NewOverlapInfos.begin(), NewOverlapInfos.end(), OldInfo);
 		if (It == NewOverlapInfos.end())
 		{
+			OnComponentEndOverlap.Broadcast(OldInfo);
 			// 분리됨 - 로그 출력
-			AActor* MyOwner = GetOwner();
-			AActor* OtherOwner = OldInfo.OverlappingComponent->GetOwner();
-			UE_LOG_WARNING("EndOverlap: [%s]%s <-> [%s]%s",
-				MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
-				GetName().ToString().c_str(),
-				OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
-				OldInfo.OverlappingComponent->GetName().ToString().c_str());
+			// AActor* MyOwner = GetOwner();
+			// AActor* OtherOwner = OldInfo.OverlappingComponent->GetOwner();
+			// UE_LOG_WARNING("EndOverlap: [%s]%s <-> [%s]%s",
+			// 	MyOwner ? MyOwner->GetName().ToString().c_str() : "None",
+			// 	GetName().ToString().c_str(),
+			// 	OtherOwner ? OtherOwner->GetName().ToString().c_str() : "None",
+			// 	OldInfo.OverlappingComponent->GetName().ToString().c_str());
 		}
 	}
 

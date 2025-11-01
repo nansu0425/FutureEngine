@@ -515,11 +515,11 @@ public:
  * @brief 한 번에 하나의 함수에 바인딩되는 델리게이트를 선언한다.
  * @note 언리얼엔진과 달리 편의를 위해 _NParam 버전 대신 가변인자 버전을 제공한다.
  */
-#define DECLARE_DELEGATE(DelegateName, ReturnType, ...) FUNC_DECLARE_DELEGATE(DelegateName, ReturnType, __VA_ARGS__)
+#define DECLARE_DELEGATE(DelegateName, ReturnType, ...) FUNC_DECLARE_DELEGATE(DelegateName, ReturnType, ##__VA_ARGS__)
 
 /**
  * @brief 다수의 함수와 동시에 바인딩될 수 있는 multi-cast 델리게이트를 선언한다.
  * @note 언리얼엔진과 달리 편의를 위해 _NParam 버전 대신 가변인자 버전을 제공한다.
  */
-#define DECLARE_MULTICAST_DELEGATE(DelegateName, ...) FUNC_DECLARE_MULTICAST_DELEGATE(DelegateName, void, __VA_ARGS__)
+#define DECLARE_MULTICAST_DELEGATE(DelegateName, ...) FUNC_DECLARE_MULTICAST_DELEGATE(DelegateName, void, ##__VA_ARGS__)
 
