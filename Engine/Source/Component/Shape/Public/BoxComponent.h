@@ -26,6 +26,9 @@ public:
 	// World space AABB 얻기
 	FAABB GetWorldAABB() const;
 
+	// UPrimitiveComponent 오버라이드 - World AABB 얻기 (out 파라미터 버전)
+	void GetWorldAABB(FVector& OutMin, FVector& OutMax);
+
 	// IBoundingVolume 인터페이스
 	virtual const IBoundingVolume* GetBoundingVolume() override;
 

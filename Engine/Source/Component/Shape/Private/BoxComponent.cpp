@@ -65,8 +65,17 @@ FAABB UBoxComponent::GetWorldAABB() const
 	return FAABB(WorldMin, WorldMax);
 }
 
+void UBoxComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
+{
+	// 이미 World Space AABB를 계산하므로 직접 반환
+	FAABB WorldAABB = GetWorldAABB();
+	OutMin = WorldAABB.Min;
+	OutMax = WorldAABB.Max;
+}
+
 const IBoundingVolume* UBoxComponent::GetBoundingVolume()
 {
+	// World Space AABB 반환 (BoundingVolumeLines가 World Space 기대, Sphere/Capsule과 일관성 유지)
 	CachedWorldAABB = GetWorldAABB();
 	return &CachedWorldAABB;
 }

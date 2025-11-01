@@ -283,42 +283,23 @@ void UEditor::UpdateBatchLines()
 		if (UShapeComponent* ShapeComponent = Cast<UShapeComponent>(Component))
 		{
 			// ShapeComponent는 SF_Bounds 플래그와 무관하게 렌더링
-			if (ShapeComponent->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
-			{
-				FVector WorldMin, WorldMax;
-				ShapeComponent->GetWorldAABB(WorldMin, WorldMax);
-				FAABB AABB(WorldMin, WorldMax);
-				BatchLines.UpdateBoundingBoxVertices(&AABB);
-			}
-			else
-			{
-				BatchLines.UpdateBoundingBoxVertices(ShapeComponent->GetBoundingVolume());
-			}
+			// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+			BatchLines.UpdateBoundingBoxVertices(ShapeComponent->GetBoundingVolume());
 			bRenderedSelectedComponent = true;
-			// return 제거 - bDrawOnlyIfSelected=false인 ShapeComponent도 체크해야 함
 		}
 		else if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 		{
 			if (ShowFlags & EEngineShowFlags::SF_Bounds)
 			{
-				if (PrimitiveComponent->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
-				{
-					FVector WorldMin, WorldMax; PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);
-					FAABB AABB(WorldMin, WorldMax);
-					BatchLines.UpdateBoundingBoxVertices(&AABB);
-				}
-				else
-				{
-					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume());
+				// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+				BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingVolume());
 
-					// 만약 선택된 타입이 decalspotlightcomponent라면
-					if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
-					{
-						BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
-					}
+				// DecalSpotLightComponent 특수 처리
+				if (Component->IsA(UDecalSpotLightComponent::StaticClass()))
+				{
+					BatchLines.UpdateDecalSpotLightVertices(Cast<UDecalSpotLightComponent>(Component));
 				}
 				bRenderedSelectedComponent = true;
-				// return 제거 - bDrawOnlyIfSelected=false인 ShapeComponent도 체크해야 함
 			}
 		}
 		else if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
@@ -384,17 +365,8 @@ void UEditor::UpdateBatchLines()
 						// bounding volume을 가져오기 전에 world transform을 강제로 재계산
 						ShapeComp->GetWorldTransformMatrix();
 
-						if (ShapeComp->GetBoundingVolume()->GetType() == EBoundingVolumeType::AABB)
-						{
-							FVector WorldMin, WorldMax;
-							ShapeComp->GetWorldAABB(WorldMin, WorldMax);
-							FAABB AABB(WorldMin, WorldMax);
-							BatchLines.AddShapeComponentVertices(&AABB);
-						}
-						else
-						{
-							BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume());
-						}
+						// GetBoundingVolume()은 World Space 반환 (가상 함수로 Dynamic Binding)
+						BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume());
 					}
 				}
 				// StaticMeshComponent 처리 (SF_Bounds가 켜진 경우)
