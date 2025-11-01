@@ -16,6 +16,7 @@
 #include "Global/Octree.h"
 #include "Global/Octree.h"
 #include "Level/Public/Level.h"
+#include "Manager/Script/Public/ScriptManager.h"
 #include "Manager/UI/Public/UIManager.h"
 #include "Manager/UI/Public/ViewportManager.h"
 #include "Manager/UI/Public/ViewportManager.h"
@@ -829,6 +830,16 @@ void URenderer::ReleaseSamplerState()
 
 void URenderer::Update()
 {
+	// Hot Reload (Editor 모드에서만)
+	if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
+	{
+		// Shader Hot Reload
+		HotReloadShaders();
+
+		// Script Hot Reload
+		UScriptManager::GetInstance().HotReloadScripts();
+	}
+
 	// 토글에 따라서 FXAA bool값 세팅
     if (const ULevel* CurrentLevel = GWorld->GetLevel())
     {

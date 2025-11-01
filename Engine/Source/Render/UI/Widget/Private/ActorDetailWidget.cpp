@@ -4,6 +4,7 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/ActorComponent.h"
 #include "Component/Public/SceneComponent.h"
+#include "Component/Public/ScriptComponent.h"
 #include "Component/Public/TextComponent.h"
 #include "Global/Vector.h"
 #include "Manager/Asset/Public/AssetManager.h"
@@ -464,11 +465,130 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 		return;
 	}
 
-	UActorComponent* NewComponent = InSelectedActor->AddComponent(ComponentClasses[InComponentName]); 
-	if (!NewComponent)
+	UActorComponent* NewComponent = nullptr;
+
+	// ScriptComponent는 특수 처리: 경로 설정 후 BeginPlay 호출
+	if (InComponentName == "ScriptComponent")
 	{
-		UE_LOG_ERROR("ActorDetailWidget: 알 수 없는 컴포넌트 타입 '%s'을(를) 추가할 수 없습니다.", InComponentName.data());
-		return;
+		UClass* ScriptCompClass = ComponentClasses[InComponentName];
+		if (!ScriptCompClass)
+		{
+			UE_LOG_ERROR("ActorDetailWidget: ScriptComponent 클래스를 찾을 수 없습니다.");
+			return;
+		}
+
+		// 1. 컴포넌트 생성 (BeginPlay 호출 안함)
+		UScriptComponent* ScriptComp = Cast<UScriptComponent>(NewObject(ScriptCompClass, InSelectedActor));
+		if (!ScriptComp)
+		{
+			UE_LOG_ERROR("ActorDetailWidget: ScriptComponent 생성에 실패했습니다.");
+			return;
+		}
+
+		// 2. template.lua 복제 및 경로 설정
+		UPathManager& PathMgr = UPathManager::GetInstance();
+
+		// Engine/Data/Scripts (원본 편집용)
+		path EngineScriptsDir = PathMgr.GetEngineDataPath() / "Scripts";
+		path EngineTemplatePath = EngineScriptsDir / "template.lua";
+
+		// Build/Data/Scripts (실행용)
+		path BuildScriptsDir = PathMgr.GetDataPath() / "Scripts";
+		path BuildTemplatePath = BuildScriptsDir / "template.lua";
+
+		// 스크립트 이름 생성: SceneName_ActorName.lua
+		FString SceneName = "Untitled";
+		if (GWorld && GWorld->GetLevel())
+		{
+			SceneName = GWorld->GetLevel()->GetName().ToString();
+		}
+
+		FString ActorName = InSelectedActor->GetName().ToString();
+		FString NewScriptName = SceneName + "_" + ActorName + ".lua";
+
+		path EngineNewScriptPath = EngineScriptsDir / NewScriptName.c_str();
+		path BuildNewScriptPath = BuildScriptsDir / NewScriptName.c_str();
+
+		try
+		{
+			// template.lua 위치 확인 (Engine 우선, 없으면 Build)
+			path TemplateSourcePath;
+			if (std::filesystem::exists(EngineTemplatePath))
+			{
+				TemplateSourcePath = EngineTemplatePath;
+			}
+			else if (std::filesystem::exists(BuildTemplatePath))
+			{
+				TemplateSourcePath = BuildTemplatePath;
+			}
+			else
+			{
+				UE_LOG_ERROR("ScriptComponent: template.lua 파일을 찾을 수 없습니다. 경로: %s 또는 %s",
+					EngineTemplatePath.string().c_str(), BuildTemplatePath.string().c_str());
+				TemplateSourcePath = "";
+			}
+
+			if (!TemplateSourcePath.empty())
+			{
+				// 기존 스크립트 존재 여부 확인
+				bool bEngineScriptExists = std::filesystem::exists(EngineNewScriptPath);
+				bool bBuildScriptExists = std::filesystem::exists(BuildNewScriptPath);
+
+				// Engine/Data/Scripts에 원본 복사 (이미 존재하면 덮어쓰지 않음)
+				if (bEngineScriptExists)
+				{
+					UE_LOG_INFO("ScriptComponent: Engine 스크립트가 이미 존재합니다. 기존 파일 사용 - %s", EngineNewScriptPath.string().c_str());
+				}
+				else
+				{
+					std::filesystem::copy_file(TemplateSourcePath, EngineNewScriptPath);
+					UE_LOG_SUCCESS("ScriptComponent: Engine 스크립트 생성 완료 - %s", EngineNewScriptPath.string().c_str());
+				}
+
+				// Build/Data/Scripts에 실행용 복사 (이미 존재하면 덮어쓰지 않음)
+				if (bBuildScriptExists)
+				{
+					UE_LOG_INFO("ScriptComponent: Build 스크립트가 이미 존재합니다. 기존 파일 사용 - %s", BuildNewScriptPath.string().c_str());
+				}
+				else
+				{
+					std::filesystem::copy_file(TemplateSourcePath, BuildNewScriptPath);
+					UE_LOG_SUCCESS("ScriptComponent: Build 스크립트 생성 완료 - %s", BuildNewScriptPath.string().c_str());
+				}
+
+				// 스크립트 경로 설정 (상대 경로)
+				ScriptComp->SetScriptPath(NewScriptName);
+				UE_LOG_SUCCESS("ScriptComponent: 스크립트 '%s' 설정 완료", NewScriptName.c_str());
+			}
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG_ERROR("ScriptComponent: 스크립트 복제 중 예외 발생: %s", e.what());
+		}
+
+		// 3. Actor의 Tick 자동 활성화 (스크립트가 Tick을 사용하므로 필수)
+		if (!InSelectedActor->CanTick())
+		{
+			InSelectedActor->SetCanTick(true);
+		}
+
+		// 4. 컴포넌트 등록
+		InSelectedActor->RegisterComponent(ScriptComp);
+
+		// 5. BeginPlay 호출 (스크립트 로드)
+		ScriptComp->BeginPlay();
+
+		NewComponent = ScriptComp;
+	}
+	else
+	{
+		// 일반 컴포넌트는 기존 방식대로
+		NewComponent = InSelectedActor->AddComponent(ComponentClasses[InComponentName]);
+		if (!NewComponent)
+		{
+			UE_LOG_ERROR("ActorDetailWidget: 알 수 없는 컴포넌트 타입 '%s'을(를) 추가할 수 없습니다.", InComponentName.data());
+			return;
+		}
 	}
 
 	if (!NewComponent)
@@ -583,6 +703,89 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	ImGui::PopID();
 	ImGui::Separator();
+
+	// --- ScriptComponent Properties ---
+	if (UScriptComponent* ScriptComp = Cast<UScriptComponent>(SelectedComponent))
+	{
+		ImGui::Text("Script Properties");
+		ImGui::PushID("ScriptComponent");
+
+		// Script Path 표시 (읽기 전용)
+		static char ScriptPathBuffer[256] = {};
+
+		// 현재 스크립트 경로를 버퍼에 복사 (처음 렌더링 시 또는 컴포넌트가 변경되었을 때)
+		static UScriptComponent* LastScriptComp = nullptr;
+		if (LastScriptComp != ScriptComp)
+		{
+			LastScriptComp = ScriptComp;
+			strncpy_s(ScriptPathBuffer, ScriptComp->GetScriptPath().c_str(), sizeof(ScriptPathBuffer) - 1);
+			ScriptPathBuffer[sizeof(ScriptPathBuffer) - 1] = '\0';
+		}
+
+		// 읽기 전용 입력 필드 색상 설정
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+
+		ImGui::Text("Script Path:");
+		ImGui::SameLine();
+
+		// Browse 버튼 너비만큼 Input 필드 줄이기
+		float buttonWidth = 80.0f;
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x);
+
+		// 읽기 전용 입력 필드
+		ImGui::InputText("##ScriptPath", ScriptPathBuffer, sizeof(ScriptPathBuffer), ImGuiInputTextFlags_ReadOnly);
+
+		// Browse 버튼 (같은 줄)
+		ImGui::SameLine();
+		if (ImGui::Button("Browse...", ImVec2(buttonWidth, 0)))
+		{
+			BrowseScriptFile(ScriptComp);
+
+			// 버튼 클릭 후 버퍼 업데이트
+			strncpy_s(ScriptPathBuffer, ScriptComp->GetScriptPath().c_str(), sizeof(ScriptPathBuffer) - 1);
+			ScriptPathBuffer[sizeof(ScriptPathBuffer) - 1] = '\0';
+		}
+
+		ImGui::PopStyleColor(3);
+
+		// 스크립트 로드 상태 표시
+		if (ScriptComp->IsScriptLoaded())
+		{
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Script Loaded: %s", ScriptComp->GetScriptPath().c_str());
+		}
+		else if (!ScriptComp->GetScriptPath().empty())
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Script Not Loaded");
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "No script path set");
+		}
+
+		// Reload Script 버튼과 Edit Script 버튼
+		if (!ScriptComp->GetScriptPath().empty())
+		{
+			if (ImGui::Button("Reload Script"))
+			{
+				// 스크립트 재로드 (EndPlay -> BeginPlay)
+				ScriptComp->EndPlay();
+				ScriptComp->BeginPlay();
+				UE_LOG_SUCCESS("ScriptComponent: 스크립트 재로드됨");
+			}
+
+			// Edit Script 버튼 (같은 줄에 배치)
+			ImGui::SameLine();
+			if (ImGui::Button("Edit Script"))
+			{
+				OpenScriptInEditor(ScriptComp);
+			}
+		}
+
+		ImGui::PopID();
+		ImGui::Separator();
+	}
 
 	// --- SceneComponent Transform Properties ---
 	USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedComponent);
@@ -1014,6 +1217,126 @@ void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
 				SceneA->AttachToComponent(ParentB);
 				SceneB->AttachToComponent(ParentA);
 			}
+	}
+}
+
+void UActorDetailWidget::OpenScriptInEditor(UScriptComponent* ScriptComp)
+{
+	if (!ScriptComp)
+	{
+		UE_LOG_WARNING("ActorDetailWidget: ScriptComponent가 null입니다.");
+		return;
+	}
+
+	FString ScriptPath = ScriptComp->GetScriptPath();
+	if (ScriptPath.empty())
+	{
+		UE_LOG_WARNING("ActorDetailWidget: 스크립트 경로가 비어있습니다.");
+		return;
+	}
+
+	// Engine/Data/Scripts 경로 구성 (편집은 Engine 경로에서)
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
+
+	if (!std::filesystem::exists(EngineScriptPath))
+	{
+		UE_LOG_ERROR("ActorDetailWidget: 스크립트 파일을 찾을 수 없습니다: %s", EngineScriptPath.string().c_str());
+		return;
+	}
+
+	// Windows ShellExecute로 기본 편집기 실행
+	FString FullPath = EngineScriptPath.string();
+	HINSTANCE result = ShellExecuteA(
+		nullptr,                 // 부모 윈도우 핸들
+		"open",                  // 동작 ("open"은 연결된 프로그램 실행)
+		FullPath.c_str(),        // 파일 경로
+		nullptr,                 // 파라미터
+		nullptr,                 // 작업 디렉토리
+		SW_SHOWNORMAL            // 표시 방법
+	);
+
+	// ShellExecute 결과 확인 (32 이하는 에러)
+	if ((INT_PTR)result <= 32)
+	{
+		UE_LOG_ERROR("ActorDetailWidget: 스크립트 편집기 실행 실패 (Error code: %d) - %s",
+			(int32)(INT_PTR)result, FullPath.c_str());
+	}
+	else
+	{
+		UE_LOG_SUCCESS("ActorDetailWidget: 스크립트 편집기 열림 - %s", FullPath.c_str());
+	}
+}
+
+void UActorDetailWidget::BrowseScriptFile(UScriptComponent* ScriptComp)
+{
+	if (!ScriptComp)
+	{
+		UE_LOG_WARNING("ActorDetailWidget: ScriptComponent가 null입니다.");
+		return;
+	}
+
+	// Engine/Data/Scripts 경로를 기본 경로로 설정
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path ScriptsDir = PathMgr.GetEngineDataPath() / "Scripts";
+	FString InitialDir = ScriptsDir.string();
+
+	// 파일 선택 대화상자 구조체 초기화
+	OPENFILENAMEA ofn = {};
+	char szFile[260] = {};
+
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = "Lua Scripts (*.lua)\0*.lua\0All Files (*.*)\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = InitialDir.c_str();
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+	// 파일 선택 대화상자 표시
+	if (GetOpenFileNameA(&ofn) == TRUE)
+	{
+		path SelectedFilePath = ofn.lpstrFile;
+
+		// 절대 경로를 Engine/Data/Scripts 기준 상대 경로로 변환
+		path RelativePath;
+		try
+		{
+			RelativePath = std::filesystem::relative(SelectedFilePath, ScriptsDir);
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG_ERROR("ActorDetailWidget: 상대 경로 변환 실패: %s", e.what());
+			return;
+		}
+
+		// 상대 경로 문자열 추출
+		FString RelativePathStr = RelativePath.string();
+
+		// Windows 경로 구분자를 /로 변환
+		std::replace(RelativePathStr.begin(), RelativePathStr.end(), '\\', '/');
+
+		UE_LOG_INFO("ActorDetailWidget: 스크립트 파일 선택됨 - %s", RelativePathStr.c_str());
+
+		// 기존 스크립트 종료
+		if (ScriptComp->IsScriptLoaded())
+		{
+			ScriptComp->EndPlay();
+		}
+
+		// 새 스크립트 경로 설정 및 로드
+		ScriptComp->SetScriptPath(RelativePathStr);
+		ScriptComp->BeginPlay();
+
+		UE_LOG_SUCCESS("ActorDetailWidget: 스크립트 로드 완료 - %s", RelativePathStr.c_str());
+	}
+	else
+	{
+		// 사용자가 취소를 누름
+		UE_LOG_INFO("ActorDetailWidget: 파일 선택 취소됨");
 	}
 }
 

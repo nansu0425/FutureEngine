@@ -47,6 +47,10 @@ private:
 	void RenderTransformEdit();
 	void SwapComponents(UActorComponent* A, UActorComponent* B);
 
+	// ScriptComponent helper
+	void OpenScriptInEditor(class UScriptComponent* ScriptComp);
+	void BrowseScriptFile(class UScriptComponent* ScriptComp);
+
 	void DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLocation, FVector& OutRotation, FVector& OutScale);
 
 	// 이름 변경 함수

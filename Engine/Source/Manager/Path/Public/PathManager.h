@@ -11,10 +11,14 @@ class UPathManager :
 public:
 	void Init();
 
-	// Base Path
+	// Base Path (Build directory)
 	const path& GetRootPath() const { return RootPath; }
 	const path& GetDataPath() const { return DataPath; }
 	const path& GetAssetPath() const { return AssetPath; }
+
+	// Engine Source Path (for editing original files)
+	const path& GetEngineRootPath() const { return EngineRootPath; }
+	const path& GetEngineDataPath() const { return EngineDataPath; }
 
 	// Detailed Asset Path
 	const path& GetShaderPath() const { return ShaderPath; }
@@ -26,6 +30,7 @@ public:
 	const path& GetFontPath() const { return FontPath; }
 
 private:
+	// Build directory paths (runtime)
 	path RootPath;
 	path DataPath;
 	path AssetPath;
@@ -36,6 +41,10 @@ private:
 	path WorldPath;
 	path ConfigPath;
 	path FontPath;
+
+	// Engine source directory paths (for editing)
+	path EngineRootPath;
+	path EngineDataPath;
 
 	void InitializeRootPath();
 	void GetEssentialPath();

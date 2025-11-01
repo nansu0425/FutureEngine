@@ -151,23 +151,9 @@ void UDeviceResources::CreateFrameBuffer()
  */
 void UDeviceResources::ReleaseFrameBuffer()
 {
-	if (FrameBuffer)
-	{
-		FrameBuffer->Release();
-		FrameBuffer = nullptr;
-	}
-
-	if (FrameBufferRTV)
-	{
-		FrameBufferRTV->Release();
-		FrameBufferRTV = nullptr;
-	}
-
-	if (FrameBufferSRV)
-	{
-		FrameBufferSRV->Release();
-		FrameBufferSRV = nullptr;
-	}
+	SafeRelease(FrameBufferSRV);
+	SafeRelease(FrameBufferRTV);
+	SafeRelease(FrameBuffer);
 }
 
 void UDeviceResources::CreateNormalBuffer()
@@ -205,23 +191,9 @@ void UDeviceResources::CreateNormalBuffer()
 
 void UDeviceResources::ReleaseNormalBuffer()
 {
-	if (NormalBuffer)
-	{
-		NormalBuffer->Release();
-		NormalBuffer = nullptr;
-	}
-
-	if (NormalBufferRTV)
-	{
-		NormalBufferRTV->Release();
-		NormalBufferRTV = nullptr;
-	}
-
-	if (NormalBufferSRV)
-	{
-		NormalBufferSRV->Release();
-		NormalBufferSRV = nullptr;
-	}
+	SafeRelease(NormalBufferSRV);
+	SafeRelease(NormalBufferRTV);
+	SafeRelease(NormalBuffer);
 }
 
 
@@ -387,26 +359,10 @@ void UDeviceResources::CreateDepthBuffer()
 
 void UDeviceResources::ReleaseDepthBuffer()
 {
-	if (DepthStencilView)
-	{
-		DepthStencilView->Release();
-		DepthStencilView = nullptr;
-	}
-	if (DepthStencilSRV)
-	{
-		DepthStencilSRV->Release();
-		DepthStencilSRV = nullptr;
-	}
-	if (DepthBuffer)
-	{
-		DepthBuffer->Release();
-		DepthBuffer = nullptr;
-	}
-	if (DepthBufferSRV)
-	{
-		DepthBufferSRV->Release();
-		DepthBufferSRV = nullptr;
-	}
+	SafeRelease(DepthStencilView);
+	SafeRelease(DepthStencilSRV);
+	SafeRelease(DepthBufferSRV);
+	SafeRelease(DepthBuffer);
 }
 
 

@@ -1197,8 +1197,7 @@ void FShadowMapPass::Release()
 
 	for (auto& Pair : LightRasterizerStates)
 	{
-		if (Pair.second)
-			Pair.second->Release();
+		SafeRelease(Pair.second);
 	}
 	LightRasterizerStates.clear();
 
@@ -1223,29 +1222,10 @@ void FShadowMapPass::Release()
 	PointShadowMaps.clear();
 
 	// States 해제
-	if (ShadowDepthStencilState)
-	{
-		ShadowDepthStencilState->Release();
-		ShadowDepthStencilState = nullptr;
-	}
-
-	if (ShadowRasterizerState)
-	{
-		ShadowRasterizerState->Release();
-		ShadowRasterizerState = nullptr;
-	}
-
-	if (ShadowViewProjConstantBuffer)
-	{
-		ShadowViewProjConstantBuffer->Release();
-		ShadowViewProjConstantBuffer = nullptr;
-	}
-
-	if (PointLightShadowParamsBuffer)
-	{
-		PointLightShadowParamsBuffer->Release();
-		PointLightShadowParamsBuffer = nullptr;
-	}
+	SafeRelease(ShadowDepthStencilState);
+	SafeRelease(ShadowRasterizerState);
+	SafeRelease(ShadowViewProjConstantBuffer);
+	SafeRelease(PointLightShadowParamsBuffer);
 
 	ShadowAtlas.Release();
 
