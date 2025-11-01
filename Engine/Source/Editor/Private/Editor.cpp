@@ -8,6 +8,7 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Time/Public/TimeManager.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Level/Public/Level.h"
 #include "Global/Quaternion.h"
 #include "Utility/Public/ScopeCycleCounter.h"
@@ -352,7 +353,7 @@ void UEditor::UpdateBatchLines()
 		}
 	}
 
-	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 모두 찾아서 ShapeComponentLines에 렌더링
+	// 2. bDrawOnlyIfSelected=false인 ShapeComponent 및 SF_Bounds가 켜진 경우 모든 StaticMeshComponent의 AABB 렌더링
 	// 단, 선택된 컴포넌트는 이미 Section 1에서 렌더링했으므로 제외
 	BatchLines.ClearShapeComponentLines(); // 이전 프레임 데이터 초기화
 	UActorComponent* SelectedComponent = GetSelectedComponent();
@@ -367,6 +368,7 @@ void UEditor::UpdateBatchLines()
 			const auto& Components = Actor->GetOwnedComponents();
 			for (UActorComponent* ActorComp : Components)
 			{
+				// ShapeComponent 처리
 				if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(ActorComp))
 				{
 					// 선택된 컴포넌트는 이미 BoundingBoxLines에 렌더링했으므로 스킵
@@ -393,6 +395,28 @@ void UEditor::UpdateBatchLines()
 						{
 							BatchLines.AddShapeComponentVertices(ShapeComp->GetBoundingVolume());
 						}
+					}
+				}
+				// StaticMeshComponent 처리 (SF_Bounds가 켜진 경우)
+				else if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ActorComp))
+				{
+					// SF_Bounds 플래그가 켜져 있을 때만 렌더링
+					if (ShowFlags & EEngineShowFlags::SF_Bounds)
+					{
+						// 선택된 컴포넌트는 이미 BoundingBoxLines에 렌더링했으므로 스킵
+						if (StaticMeshComp == SelectedComponent)
+						{
+							continue;
+						}
+
+						// 부모가 움직였을 때 자식의 world transform이 캐시된 상태로 남아있을 수 있으므로
+						// bounding volume을 가져오기 전에 world transform을 강제로 재계산
+						StaticMeshComp->GetWorldTransformMatrix();
+
+						FVector WorldMin, WorldMax;
+						StaticMeshComp->GetWorldAABB(WorldMin, WorldMax);
+						FAABB AABB(WorldMin, WorldMax);
+						BatchLines.AddShapeComponentVertices(&AABB);
 					}
 				}
 			}
