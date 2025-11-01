@@ -44,14 +44,11 @@ private:
 	/** Lua 스크립트 파일 경로 (Data/Scripts/ 기준 상대 경로) */
 	FString ScriptPath;
 
-	/** 이 스크립트를 위한 격리된 Lua 환경 */
-	sol::environment* ScriptEnv;
+	/** 인스턴스별 Lua Environment (obj, Velocity 등 instance 데이터 저장) */
+	sol::environment InstanceEnv;
 
-	/** Owner Actor를 래핑하는 Lua 테이블 ("obj" 변수) */
-	sol::table* ObjTable;
-
-	/** 스크립트가 성공적으로 로드되었는지 여부 */
-	bool bScriptLoaded;
+	/** 캐싱된 Lua 함수들 (environment가 설정된 함수) */
+	TMap<FString, sol::function> CachedFunctions;
 
 	/** Overlap 델리게이트 핸들 (PrimitiveComponent -> Handle) */
 	TArray<TPair<UPrimitiveComponent*, FDelegateHandle>> BeginOverlapHandles;
@@ -71,11 +68,6 @@ public:
 	 * 현재 스크립트 경로 가져오기
 	 */
 	const FString& GetScriptPath() const { return ScriptPath; }
-
-	/**
-	 * 스크립트가 로드되고 준비되었는지 확인
-	 */
-	bool IsScriptLoaded() const { return bScriptLoaded; }
 
 	// 라이프사이클 오버라이드
 	virtual void BeginPlay() override;
@@ -100,7 +92,13 @@ public:
 	 * 스크립트 Hot Reload (ScriptManager가 호출)
 	 * 기존 스크립트를 정리하고 재로드합니다.
 	 */
-	void ReloadScript();
+	void SetInstanceTable(const sol::table GlobalTable);
+
+	/**
+	 * Hot Reload 알림 콜백 (ScriptManager가 호출)
+	 * @param NewGlobalTable - 리로드된 새 GlobalTable
+	 */
+	void OnScriptReloaded(const sol::table& NewGlobalTable);
 
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
@@ -109,23 +107,12 @@ public:
 	virtual UObject* Duplicate() override;
 
 private:
-	/**
-	 * Lua 스크립트 로드 및 격리된 환경 생성
-	 * @return 스크립트 로드 성공 여부
-	 */
-	bool LoadScript();
-
-	/**
-	 * Owner Actor를 래핑하는 "obj" 테이블 생성
-	 * 이 테이블은 정적 Actor 프로퍼티(UUID, Location 등)와
-	 * 동적 스크립트 프로퍼티(Velocity 등)를 모두 지원합니다.
-	 */
-	void CreateObjTable();
-
+	//루아 스크립트의 액터 래핑 테이블 적용
+	void SetCommonTable();
 	/**
 	 * Lua 리소스 정리
 	 */
-	void CleanupLuaResources();
+	// void CleanupLuaResources();
 
 	/**
 	 * Owner Actor의 모든 PrimitiveComponent에 Overlap 델리게이트 바인딩
@@ -152,31 +139,27 @@ private:
 template<typename... Args>
 void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 {
-	if (!bScriptLoaded)
+	if (!InstanceEnv.valid())
 		return;
 
 	try
 	{
-		UScriptManager& ScriptMgr = UScriptManager::GetInstance();
-		sol::state& lua = ScriptMgr.GetLuaState();
-
-		// CRITICAL: globals의 obj를 현재 컴포넌트의 ObjTable로 동기화
-		// 여러 World가 같은 Lua state를 공유하므로, 함수 호출 전에 반드시 obj를 설정해야 함
-		if (ObjTable)
+		// 캐싱된 함수에서 찾기 (이미 environment가 설정됨)
+		auto it = CachedFunctions.find(FString(FunctionName));
+		if (it != CachedFunctions.end())
 		{
-			lua["obj"] = *ObjTable;
-		}
-
-		sol::optional<sol::function> func = lua[FunctionName];
-		if (func)
-		{
-			sol::protected_function_result result = (*func)(std::forward<Args>(args)...);
+			// 캐싱된 함수 호출 (environment가 InstanceEnv로 설정되어 있음)
+			sol::protected_function_result result = it->second(std::forward<Args>(args)...);
 
 			if (!result.valid())
 			{
 				sol::error err = result;
 				UE_LOG_ERROR("Lua function '%s' error: %s", FunctionName, err.what());
 			}
+		}
+		else
+		{
+			UE_LOG_WARNING("Lua function '%s' not found or not cached", FunctionName);
 		}
 	}
 	catch (const std::exception& e)

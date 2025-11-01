@@ -51,7 +51,7 @@ void UActorDetailWidget::RenderWidget()
 	{
 		ImGui::TextUnformatted("No Object Selected");
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Detail 확인을 위해 Object를 선택해주세요");
-		SelectedComponent = nullptr; 
+		SelectedComponent = nullptr;
 		CachedSelectedActor = nullptr;
 		return;
 	}
@@ -63,45 +63,45 @@ void UActorDetailWidget::RenderWidget()
 		SelectedComponent = SelectedActor->GetRootComponent();
 	}
 
-	    // Actor 헤더 렌더링 (이름 + rename 기능)
-	    RenderActorHeader(SelectedActor);
-	
-	    ImGui::Separator();
-	
-	    // CollapsingHeader 검은색 스타일 적용
-	    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-	    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-	    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-	    
-	    if (ImGui::CollapsingHeader("Tick Settings"))
-	    {
-	        // 체크박스 검은색 스타일 적용
-	        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-	        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-	        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-	        ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-	        
-	        bool bCanEverTick = SelectedActor->CanTick();
-	        if (ImGui::Checkbox("Enable Tick", &bCanEverTick))
-	        {
-	            SelectedActor->SetCanTick(bCanEverTick);
-	        }
-	
-	        bool bTickInEditor = SelectedActor->CanTickInEditor();
-	        if (ImGui::Checkbox("Tick in Editor", &bTickInEditor))
-	        {
-	            SelectedActor->SetTickInEditor(bTickInEditor);
-	        }
-	        
-	        ImGui::PopStyleColor(4);
-	    }
-	    
-	    ImGui::PopStyleColor(3);
+	// Actor 헤더 렌더링 (이름 + rename 기능)
+	RenderActorHeader(SelectedActor);
+
+	ImGui::Separator();
+
+	// CollapsingHeader 검은색 스타일 적용
+	ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+	if (ImGui::CollapsingHeader("Tick Settings"))
+	{
+		// 체크박스 검은색 스타일 적용
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+
+		bool bCanEverTick = SelectedActor->CanTick();
+		if (ImGui::Checkbox("Enable Tick", &bCanEverTick))
+		{
+			SelectedActor->SetCanTick(bCanEverTick);
+		}
+
+		bool bTickInEditor = SelectedActor->CanTickInEditor();
+		if (ImGui::Checkbox("Tick in Editor", &bTickInEditor))
+		{
+			SelectedActor->SetTickInEditor(bTickInEditor);
+		}
+
+		ImGui::PopStyleColor(4);
+	}
+
+	ImGui::PopStyleColor(3);
 	ImGui::Separator();
 
 	// 컴포넌트 트리 렌더링
 	RenderComponents(SelectedActor);
-	
+
 	// 선택된 컴포넌트의 트랜스폼 정보 렌더링
 	RenderTransformEdit();
 }
@@ -137,14 +137,14 @@ void UActorDetailWidget::RenderActorHeader(AActor* InSelectedActor)
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-		
+
 		ImGui::SetKeyboardFocusHere();
 		if (ImGui::InputText("##ActorRename", ActorNameBuffer, sizeof(ActorNameBuffer),
-		                     ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+			ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
 		{
 			FinishRenamingActor(InSelectedActor);
 		}
-		
+
 		ImGui::PopStyleColor(3);
 
 		// ESC로 취소, InputManager보다 일단 내부 API로 입력 받는 것으로 처리
@@ -190,13 +190,13 @@ void UActorDetailWidget::RenderComponents(AActor* InSelectedActor)
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "No components");
 		return;
 	}
-	
+
 	if (InSelectedActor->GetRootComponent())
 	{
 		RenderSceneComponents(InSelectedActor->GetRootComponent());
 	}
 	ImGui::Separator();
-	
+
 	bool bHasActorComponents = false;
 	for (UActorComponent* Component : Components)
 	{
@@ -280,13 +280,13 @@ void UActorDetailWidget::RenderSceneComponents(USceneComponent* InSceneComponent
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
 				return;
 			}
-			
+
 			if (DraggedComp->GetAttachParent() == InSceneComponent)
 			{
 				ImGui::EndDragDropTarget();		ImGui::TreePop();
 				return;
 			}
-			
+
 			// -----------------------------
 			// 자기 자신이나 자식에게 Drop 방지
 			// -----------------------------
@@ -397,7 +397,7 @@ void UActorDetailWidget::RenderActorComponent(UActorComponent* InActorComponent)
 		SelectedComponent = InActorComponent;
 		GEditor->GetEditorModule()->SelectComponent(SelectedComponent);
 	}
-    
+
 	if (bNodeOpen)
 	{
 		ImGui::TreePop();
@@ -417,12 +417,12 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		ImGui::OpenPopup("AddComponentPopup");
 	}
 
-    ImGui::SetNextWindowContentSize(ImVec2(200.0f, 0.0f)); 
+	ImGui::SetNextWindowContentSize(ImVec2(200.0f, 0.0f));
 	if (ImGui::BeginPopup("AddComponentPopup"))
 	{
 		ImGui::Text("Add Component");
 		ImGui::Separator();
-		
+
 		for (auto& Pair : ComponentClasses)
 		{
 			const char* CName = Pair.first.c_str();
@@ -623,7 +623,7 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 
 		NewSceneComponent->SetRelativeLocation(FVector::Zero());
 		NewSceneComponent->SetRelativeRotation(FQuaternion::Identity());
-		NewSceneComponent->SetRelativeScale3D({1, 1, 1});
+		NewSceneComponent->SetRelativeScale3D({ 1, 1, 1 });
 	}
 	else
 	{
@@ -678,7 +678,7 @@ void UActorDetailWidget::CancelRenamingActor()
 void UActorDetailWidget::RenderTransformEdit()
 {
 	if (!SelectedComponent) { return; }
-	
+
 	// --- Component General Properties ---
 	ImGui::Text("Component Properties");
 	ImGui::PushID(SelectedComponent);
@@ -688,7 +688,7 @@ void UActorDetailWidget::RenderTransformEdit()
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-	
+
 	// bCanEverTick 체크박스
 	bool bTickEnabled = SelectedComponent->CanEverTick();
 	if (ImGui::Checkbox("Enable Tick (bCanEverTick)", &bTickEnabled))
@@ -702,7 +702,7 @@ void UActorDetailWidget::RenderTransformEdit()
 	{
 		SelectedComponent->SetIsEditorOnly(bIsEditorOnly);
 	}
-	
+
 	ImGui::PopStyleColor(4);
 
 	ImGui::PopID();
@@ -755,7 +755,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		ImGui::PopStyleColor(3);
 
 		// 스크립트 로드 상태 표시
-		if (ScriptComp->IsScriptLoaded())
+		if (UScriptManager::GetInstance().IsLoadedScript(ScriptComp->GetScriptPath()))
 		{
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Script Loaded: %s", ScriptComp->GetScriptPath().c_str());
 		}
@@ -773,10 +773,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		{
 			if (ImGui::Button("Reload Script"))
 			{
-				// 스크립트 재로드 (EndPlay -> BeginPlay)
-				ScriptComp->EndPlay();
-				ScriptComp->BeginPlay();
-				UE_LOG_SUCCESS("ScriptComponent: 스크립트 재로드됨");
+				UScriptManager::GetInstance().LoadLuaScript(ScriptComp->GetScriptPath());
 			}
 
 			// Edit Script 버튼 (같은 줄에 배치)
@@ -790,7 +787,6 @@ void UActorDetailWidget::RenderTransformEdit()
 		ImGui::PopID();
 		ImGui::Separator();
 	}
-
 	// --- BoxComponent Properties ---
 	if (UBoxComponent* BoxComp = Cast<UBoxComponent>(SelectedComponent))
 	{
@@ -1093,7 +1089,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	// 기즈모로 회전 중인지 확인
 	bool bIsGizmoDragging = GEditor->GetEditorModule()->GetGizmo()->IsDragging() &&
-	                        GEditor->GetEditorModule()->GetGizmo()->GetGizmoMode() == EGizmoMode::Rotate;
+		GEditor->GetEditorModule()->GetGizmo()->GetGizmoMode() == EGizmoMode::Rotate;
 
 	// 컴포넌트 전환 또는 World / Local 모드 전환 시 캐싱
 	if (lastDraggedComponent != SceneComponent || lastShowWorldRotation != bShowWorldRotation)
@@ -1274,7 +1270,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 		if (ScaleChanged)
 		{
-			SceneComponent->SetRelativeScale3D({UniformScale, UniformScale, UniformScale});
+			SceneComponent->SetRelativeScale3D({ UniformScale, UniformScale, UniformScale });
 		}
 	}
 	else
@@ -1335,20 +1331,20 @@ void UActorDetailWidget::RenderTransformEdit()
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
 	}
-	
+
 	ImGui::PopStyleColor(3);
-	
+
 	// Uniform Scale 체크박스 색상 설정
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-	
+
 	ImGui::Checkbox("Uniform Scale", &bUniformScale);
 	SceneComponent->SetUniformScale(bUniformScale);
-	
+
 	ImGui::PopStyleColor(4);
-	
+
 	ImGui::PopID();
 }
 
@@ -1494,12 +1490,6 @@ void UActorDetailWidget::BrowseScriptFile(UScriptComponent* ScriptComp)
 
 		UE_LOG_INFO("ActorDetailWidget: 스크립트 파일 선택됨 - %s", RelativePathStr.c_str());
 
-		// 기존 스크립트 종료
-		if (ScriptComp->IsScriptLoaded())
-		{
-			ScriptComp->EndPlay();
-		}
-
 		// 새 스크립트 경로 설정 및 로드
 		ScriptComp->SetScriptPath(RelativePathStr);
 		ScriptComp->BeginPlay();
@@ -1515,18 +1505,18 @@ void UActorDetailWidget::BrowseScriptFile(UScriptComponent* ScriptComp)
 
 void UActorDetailWidget::DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLocation, FVector& OutRotation, FVector& OutScale)
 {
-    // 스케일 추출
-    OutScale.X = FVector(InMatrix.Data[0][0], InMatrix.Data[0][1], InMatrix.Data[0][2]).Length();
-    OutScale.Y = FVector(InMatrix.Data[1][0], InMatrix.Data[1][1], InMatrix.Data[1][2]).Length();
-    OutScale.Z = FVector(InMatrix.Data[2][0], InMatrix.Data[2][1], InMatrix.Data[2][2]).Length();
+	// 스케일 추출
+	OutScale.X = FVector(InMatrix.Data[0][0], InMatrix.Data[0][1], InMatrix.Data[0][2]).Length();
+	OutScale.Y = FVector(InMatrix.Data[1][0], InMatrix.Data[1][1], InMatrix.Data[1][2]).Length();
+	OutScale.Z = FVector(InMatrix.Data[2][0], InMatrix.Data[2][1], InMatrix.Data[2][2]).Length();
 
-    // 위치 추출
-    OutLocation.X = InMatrix.Data[3][0];
-    OutLocation.Y = InMatrix.Data[3][1];
-    OutLocation.Z = InMatrix.Data[3][2];
+	// 위치 추출
+	OutLocation.X = InMatrix.Data[3][0];
+	OutLocation.Y = InMatrix.Data[3][1];
+	OutLocation.Z = InMatrix.Data[3][2];
 
-    // 회전 행렬 추출 (스케일 제거)
-    FMatrix RotationMatrix;
+	// 회전 행렬 추출 (스케일 제거)
+	FMatrix RotationMatrix;
 	for (int i = 0; i < 3; ++i)
 	{
 		RotationMatrix.Data[i][0] = InMatrix.Data[i][0] / OutScale.X;
@@ -1534,10 +1524,10 @@ void UActorDetailWidget::DecomposeMatrix(const FMatrix& InMatrix, FVector& OutLo
 		RotationMatrix.Data[i][2] = InMatrix.Data[i][2] / OutScale.Z;
 	}
 
-    // 오일러 각으로 변환 (Pitch, Yaw, Roll)
-    OutRotation.X = atan2(RotationMatrix.Data[2][1], RotationMatrix.Data[2][2]);
-    OutRotation.Y = atan2(-RotationMatrix.Data[2][0], sqrt(RotationMatrix.Data[2][1] * RotationMatrix.Data[2][1] + RotationMatrix.Data[2][2] * RotationMatrix.Data[2][2]));
-    OutRotation.Z = atan2(RotationMatrix.Data[1][0], RotationMatrix.Data[0][0]);
+	// 오일러 각으로 변환 (Pitch, Yaw, Roll)
+	OutRotation.X = atan2(RotationMatrix.Data[2][1], RotationMatrix.Data[2][2]);
+	OutRotation.Y = atan2(-RotationMatrix.Data[2][0], sqrt(RotationMatrix.Data[2][1] * RotationMatrix.Data[2][1] + RotationMatrix.Data[2][2] * RotationMatrix.Data[2][2]));
+	OutRotation.Z = atan2(RotationMatrix.Data[1][0], RotationMatrix.Data[0][0]);
 
 	OutRotation = FVector::GetRadianToDegree(OutRotation);
 }
@@ -1622,7 +1612,7 @@ UTexture* UActorDetailWidget::GetIconForActor(AActor* InActor)
 	// 클래스 이름 가져오기
 	FString OriginalClassName = InActor->GetClass()->GetName().ToString();
 	FString ClassName = OriginalClassName;
-	
+
 	// 'A' 접두사 제거 (예: AStaticMeshActor -> StaticMeshActor)
 	if (ClassName.size() > 1 && ClassName[0] == 'A')
 	{
