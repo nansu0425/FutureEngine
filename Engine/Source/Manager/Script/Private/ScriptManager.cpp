@@ -8,6 +8,8 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/ScriptComponent.h"
+#include "Component/Public/PrimitiveComponent.h"
+#include "Physics/Public/CollisionTypes.h"
 #include "Manager/Time/Public/TimeManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Render/UI/Window/Public/ConsoleWindow.h"
@@ -61,6 +63,10 @@ void UScriptManager::Shutdown()
 {
 	if (LuaState)
 	{
+		// ✅ CRITICAL: LuaState를 삭제하기 전에 모든 sol::table을 먼저 해제
+		// 그렇지 않으면 sol::table 소멸자가 이미 삭제된 LuaState에 접근하여 Access Violation 발생
+		LuaScriptMap.clear();
+
 		delete LuaState;
 		LuaState = nullptr;
 		UE_LOG_SYSTEM("Lua 매니저 종료");
@@ -79,18 +85,51 @@ sol::state& UScriptManager::GetLuaState()
 }
 sol::table UScriptManager::GetTable(const FString& ScriptPath)
 {
-	auto it = LuaScriptMap.find(ScriptPath);
-	if (it != LuaScriptMap.end())
+	// CRITICAL: 각 ScriptComponent가 독립적인 environment를 가지도록
+	// 매번 새로운 environment를 생성하여 스크립트를 재실행
+	// (캐싱된 GlobalTable을 공유하면 set_on()이 마지막 호출만 적용됨)
+
+	// 스크립트가 로드되지 않았으면 먼저 로드 (Hot Reload 등록용)
+	if (!IsLoadedScript(ScriptPath))
 	{
-		return LuaScriptMap[ScriptPath].GlobalTable;
+		LoadLuaScript(ScriptPath);
 	}
 
-	bool LoadSuccess = LoadLuaScript(ScriptPath);
-	if (LoadSuccess)
+	// 스크립트 파일 경로 찾기
+	UPathManager& PathMgr = UPathManager::GetInstance();
+	path EngineScriptPath = PathMgr.GetEngineDataPath() / "Scripts" / ScriptPath.c_str();
+	path BuildScriptPath = PathMgr.GetDataPath() / "Scripts" / ScriptPath.c_str();
+
+	path FullPath;
+	if (std::filesystem::exists(EngineScriptPath))
 	{
-		return LuaScriptMap[ScriptPath].GlobalTable;
+		FullPath = EngineScriptPath;
 	}
-	return LuaState->create_table();
+	else if (std::filesystem::exists(BuildScriptPath))
+	{
+		FullPath = BuildScriptPath;
+	}
+	else
+	{
+		UE_LOG_WARNING("ScriptManager: 스크립트 파일을 찾을 수 없음: %s", ScriptPath.c_str());
+		return LuaState->create_table();
+	}
+
+	try
+	{
+		// 매번 새로운 environment 생성
+		sol::environment new_env(*LuaState, sol::create, LuaState->globals());
+
+		// 스크립트를 이 environment에서 실행
+		LuaState->script_file(FullPath.string(), new_env);
+
+		return new_env;
+	}
+	catch (const sol::error& e)
+	{
+		UE_LOG_ERROR("Lua script execution error in GetTable: %s", e.what());
+		return LuaState->create_table();
+	}
 }
 bool UScriptManager::IsLoadedScript(const FString& ScriptPath)
 {
@@ -132,10 +171,18 @@ bool UScriptManager::LoadLuaScript(const FString& ScriptPath)
 
 		try
 		{
-			sol::table GlobalTable = LuaState->script_file(FullPath.string());
+			// lua globals를 fallback으로 하는 environment 생성
+			// 스크립트의 함수 정의들은 env에 저장되고, 찾지 못한 것은 globals에서 찾음
+			sol::environment env(*LuaState, sol::create, LuaState->globals());
+
+			// environment 내에서 스크립트 실행
+			LuaState->script_file(FullPath.string(), env);
+
+			// env 자체가 sol::table을 상속하므로 바로 저장 가능
+			// env에는 스크립트에서 정의한 모든 함수가 들어있음 (Tick, BeginPlay 등)
 			LuaScriptMap[ScriptPath].Path = ScriptPath;
 			LuaScriptMap[ScriptPath].LastCompileTime = LastWriteTime;
-			LuaScriptMap[ScriptPath].GlobalTable = GlobalTable;
+			LuaScriptMap[ScriptPath].GlobalTable = env;
 		}
 		catch (const sol::error& e)
 		{
@@ -293,7 +340,56 @@ void UScriptManager::RegisterCoreTypes()
 		}
 	);
 
-	UE_LOG_INFO("Lua core types registered (Vector, Quaternion, Actor)");
+	// ====================================================================
+	// FOverlapInfo - Overlap 정보 구조체
+	// ====================================================================
+	lua.new_usertype<FOverlapInfo>("FOverlapInfo",
+		sol::no_constructor,  // Lua에서 직접 생성 불가 (C++에서만)
+
+		// Properties
+		"OverlappingComponent", sol::property(
+			[](const FOverlapInfo& self) -> UPrimitiveComponent* {
+				return self.OverlappingComponent;
+			}
+		),
+
+		// Helper Methods
+		"GetOtherActor", [](const FOverlapInfo& self) -> AActor* {
+			return self.OverlappingComponent ?
+			       self.OverlappingComponent->GetOwner() : nullptr;
+		},
+
+		"GetOtherComponent", [](const FOverlapInfo& self) -> UPrimitiveComponent* {
+			return self.OverlappingComponent;
+		}
+	);
+
+	// ====================================================================
+	// UPrimitiveComponent - 충돌/렌더링 가능한 컴포넌트
+	// ====================================================================
+	lua.new_usertype<UPrimitiveComponent>("PrimitiveComponent",
+		sol::no_constructor,
+
+		// Collision properties
+		"GenerateOverlapEvents", sol::property(
+			&UPrimitiveComponent::GetGenerateOverlapEvents,
+			&UPrimitiveComponent::SetGenerateOverlapEvents
+		),
+
+		"BlockComponent", sol::property(
+			&UPrimitiveComponent::GetBlockComponent,
+			&UPrimitiveComponent::SetBlockComponent
+		),
+
+		// Overlap query methods
+		"IsOverlappingActor", &UPrimitiveComponent::IsOverlappingActor,
+		"IsOverlappingComponent", &UPrimitiveComponent::IsOverlappingComponent,
+
+		// Inherited from UActorComponent
+		"GetOwner", &UPrimitiveComponent::GetOwner
+	);
+
+	UE_LOG_INFO("Lua core types registered (Vector, Quaternion, Actor, OverlapInfo, PrimitiveComponent)");
 }
 
 void UScriptManager::RegisterGlobalFunctions()
@@ -443,6 +539,43 @@ TSet<FString> UScriptManager::GatherHotReloadTargets()
 	return HotReloadTargets;
 }
 
+void UScriptManager::RegisterScriptComponent(const FString& ScriptPath, UScriptComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	auto& Components = ScriptComponentRegistry[ScriptPath];
+
+	// 중복 등록 방지
+	if (std::find(Components.begin(), Components.end(), Component) == Components.end())
+	{
+		Components.push_back(Component);
+	}
+}
+
+void UScriptManager::UnregisterScriptComponent(const FString& ScriptPath, UScriptComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	auto It = ScriptComponentRegistry.find(ScriptPath);
+	if (It != ScriptComponentRegistry.end())
+	{
+		auto& Components = It->second;
+		Components.erase(std::remove(Components.begin(), Components.end(), Component), Components.end());
+
+		// 컴포넌트가 없으면 엔트리 제거
+		if (Components.empty())
+		{
+			ScriptComponentRegistry.erase(It);
+		}
+	}
+}
+
 void UScriptManager::HotReloadScripts()
 {
 	// Hot Reload 체크 주기 제한 (성능 최적화)
@@ -475,6 +608,26 @@ void UScriptManager::HotReloadScripts()
 			continue;
 		}
 
+		// 스크립트 리로드
 		LoadLuaScript(ScriptPath);
+
+		// 이 스크립트를 사용하는 모든 컴포넌트에게 알림
+		auto ComponentIt = ScriptComponentRegistry.find(ScriptPath);
+		if (ComponentIt != ScriptComponentRegistry.end())
+		{
+			const TArray<UScriptComponent*>& Components = ComponentIt->second;
+			sol::table NewGlobalTable = It->second.GlobalTable;
+
+			UE_LOG_INFO("  Notifying %d component(s) using script '%s'",
+				static_cast<int32>(Components.size()), ScriptPath.c_str());
+
+			for (UScriptComponent* Component : Components)
+			{
+				if (Component)
+				{
+					Component->OnScriptReloaded(NewGlobalTable);
+				}
+			}
+		}
 	}
 }

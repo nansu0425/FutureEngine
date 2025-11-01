@@ -58,7 +58,7 @@ public:
     template <typename FunctorType>
     inline void BindWeakLambda(const UObject* InUserObject, FunctorType&& InFunctor)
     {
-        SetDelegatInstance(std::make_shared<TWeakBaseFunctorDelegateInstance<FuncType, std::decay_t<FunctorType>>>(InUserObject, std::forward<FunctorType>(InFunctor)));
+        SetDelegateInstance(std::make_shared<TWeakBaseFunctorDelegateInstance<FuncType, std::decay_t<FunctorType>>>(InUserObject, std::forward<FunctorType>(InFunctor)));
     }
 
     /*

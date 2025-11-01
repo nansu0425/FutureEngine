@@ -18,7 +18,8 @@ FWeakObjectPtr::FWeakObjectPtr(UObject* InObject)
 
 UObject* FWeakObjectPtr::Get() const
 {
-    if (InternalIndex != INDEX_NONE)
+    // ✅ FIX: InternalIndex가 유효하지 않으면 nullptr 반환
+    if (InternalIndex == INDEX_NONE)
     {
         return nullptr;
     }

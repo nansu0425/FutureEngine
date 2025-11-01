@@ -1,5 +1,7 @@
 #pragma once
 #include "Component/Public/ActorComponent.h"
+#include "Core/Delegates/Public/Delegate.h"
+#include "Physics/Public/CollisionTypes.h"
 
 // JSON 타입 정의
 namespace json { class JSON; }
@@ -42,8 +44,15 @@ private:
 	/** Lua 스크립트 파일 경로 (Data/Scripts/ 기준 상대 경로) */
 	FString ScriptPath;
 
-	/** Owner Actor를 래핑하는 Lua 테이블 ("obj" 변수) */
-	sol::table Table;
+	/** 인스턴스별 Lua Environment (obj, Velocity 등 instance 데이터 저장) */
+	sol::environment InstanceEnv;
+
+	/** 캐싱된 Lua 함수들 (environment가 설정된 함수) */
+	TMap<FString, sol::function> CachedFunctions;
+
+	/** Overlap 델리게이트 핸들 (PrimitiveComponent -> Handle) */
+	TArray<TPair<UPrimitiveComponent*, FDelegateHandle>> BeginOverlapHandles;
+	TArray<TPair<UPrimitiveComponent*, FDelegateHandle>> EndOverlapHandles;
 
 public:
 	UScriptComponent();
@@ -85,6 +94,12 @@ public:
 	 */
 	void SetInstanceTable(const sol::table GlobalTable);
 
+	/**
+	 * Hot Reload 알림 콜백 (ScriptManager가 호출)
+	 * @param NewGlobalTable - 리로드된 새 GlobalTable
+	 */
+	void OnScriptReloaded(const sol::table& NewGlobalTable);
+
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
@@ -97,24 +112,44 @@ private:
 	/**
 	 * Lua 리소스 정리
 	 */
-	void CleanupLuaResources();
+	// void CleanupLuaResources();
+
+	/**
+	 * Owner Actor의 모든 PrimitiveComponent에 Overlap 델리게이트 바인딩
+	 */
+	void BindOverlapDelegates();
+
+	/**
+	 * 모든 Overlap 델리게이트 바인딩 해제
+	 */
+	void UnbindOverlapDelegates();
+
+	/**
+	 * BeginOverlap 델리게이트 콜백 (Lua 함수 호출)
+	 */
+	void OnBeginOverlapCallback(const FOverlapInfo& OverlapInfo);
+
+	/**
+	 * EndOverlap 델리게이트 콜백 (Lua 함수 호출)
+	 */
+	void OnEndOverlapCallback(const FOverlapInfo& OverlapInfo);
 };
 
 // 템플릿 구현
 template<typename... Args>
 void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 {
-	if (!Table.valid())
+	if (!InstanceEnv.valid())
 		return;
 
 	try
 	{
-		// ObjTable(Table)에서 함수 가져오기
-		sol::optional<sol::function> func = Table[FunctionName];
-		if (func)
+		// 캐싱된 함수에서 찾기 (이미 environment가 설정됨)
+		auto it = CachedFunctions.find(FString(FunctionName));
+		if (it != CachedFunctions.end())
 		{
-			// 첫 번째 인자로 self(ObjTable)를 전달
-			sol::protected_function_result result = (*func)(Table, std::forward<Args>(args)...);
+			// 캐싱된 함수 호출 (environment가 InstanceEnv로 설정되어 있음)
+			sol::protected_function_result result = it->second(std::forward<Args>(args)...);
 
 			if (!result.valid())
 			{
@@ -124,7 +159,7 @@ void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 		}
 		else
 		{
-			UE_LOG_WARNING("Lua function '%s' not found in instance table", FunctionName);
+			UE_LOG_WARNING("Lua function '%s' not found or not cached", FunctionName);
 		}
 	}
 	catch (const std::exception& e)
