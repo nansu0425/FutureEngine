@@ -377,6 +377,17 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete, bool bShouldD
     return true;
 }
 
+void AActor::UpdateComponentVisibility(bool bInHidden)
+{
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		{
+			PrimitiveComponent->SetVisibility(!bInHidden);
+		}
+	}
+}
+
 UObject* AActor::Duplicate()
 {
 	AActor* Actor = Cast<AActor>(Super::Duplicate());
@@ -533,6 +544,32 @@ void AActor::EndPlay()
 }
 
 // Collision & Overlap
+
+void AActor::SetActorHiddenInGame(bool bInHidden)
+{
+	if (bHidden != bInHidden)
+	{
+		bHidden = bInHidden;
+		UpdateComponentVisibility(bInHidden);
+	}
+}
+
+void AActor::SetActorEnableCollision(bool bInActorEnableCollision)
+{
+	if (bActorEnableCollision != bInActorEnableCollision)
+	{
+		bActorEnableCollision = bInActorEnableCollision;
+
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+			{
+				PrimitiveComponent->SetGenerateOverlapEvents(bInActorEnableCollision);
+				PrimitiveComponent->SetBlockComponent(bInActorEnableCollision);	
+			}
+		}
+	}
+}
 
 bool AActor::IsOverlappingActor(const AActor* Other) const
 {

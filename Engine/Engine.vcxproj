@@ -319,6 +319,7 @@ xcopy "$(SolutionDir)External\Library\Lua\lua54.dll" "$(OutDir)" /Y</Command>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Actor\Public\Actor.h" />
+    <ClInclude Include="Source\Actor\Public\ActorPool.h" />
     <ClInclude Include="Source\Actor\Public\AmbientLight.h" />
     <ClInclude Include="Source\Actor\Public\BillBoardActor.h" />
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
