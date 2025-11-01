@@ -54,7 +54,7 @@ void UCoroutineManager::RegisterEnvFunc(UScriptComponent* Comp, sol::environment
     //StartCoroutine
     Env["StartCoroutine"] = [Comp](const FString& FuncName)
     {
-        UCoroutineManager::GetInstance().StartCoroutine(Comp, FuncName);
+        UCoroutineManager::GetInstance().RegisterPendingCoroutine(Comp, FuncName);
     };
 
     //StopCoroutine
@@ -65,7 +65,12 @@ void UCoroutineManager::RegisterEnvFunc(UScriptComponent* Comp, sol::environment
 
 
 }
-void UCoroutineManager::StartCoroutine(UScriptComponent* Comp, const FString& FuncName)
+void UCoroutineManager::RegisterPendingCoroutine(UScriptComponent* Comp, const FString& FuncName)
+{
+    PendingCoroutines.push_back(UCoroutineManager::PendingCoroutineData{ FuncName, Comp });
+}
+
+void UCoroutineManager::MakeCoroutine(UScriptComponent* Comp, const FString& FuncName)
 {
     sol::state& LuaState = UScriptManager::GetInstance().GetLuaState();
     sol::environment& Env = Comp->GetEnv();
@@ -82,10 +87,7 @@ void UCoroutineManager::StartCoroutine(UScriptComponent* Comp, const FString& Fu
     Data.GCRef = sol::make_reference(LuaState, Data.Thread);
     Data.FuncName = FName(FuncName);
 
-    if (ResumeCoroutine(Data) == false)
-    {
-        Coroutines.push_back(Data);
-    }
+    Coroutines.push_back(Data);
 }
 void UCoroutineManager::StopCoroutine(UScriptComponent* Comp, const FString& FuncName)
 {
@@ -100,9 +102,16 @@ void UCoroutineManager::StopCoroutine(UScriptComponent* Comp, const FString& Fun
     }
 }
 
-
+//제거 후 채워넣어야함 
 void UCoroutineManager::Update(const float DeltaTime)
 {
+    //등록 대기중인 코루틴 등록
+    for (auto& pendingData : PendingCoroutines)
+    {
+        MakeCoroutine(pendingData.Comp, pendingData.FuncName.ToString());
+    }
+    PendingCoroutines.clear();
+
     int CoroutineCount = Coroutines.size();
 
     for (int i = Coroutines.size() - 1; i >= 0; --i)
@@ -176,5 +185,11 @@ void UCoroutineManager::StopAllCoroutine(UScriptComponent* Comp)
         std::remove_if(Coroutines.begin(), Coroutines.end(),
             [Comp](CoroutineData& Data) { return Data.Comp == Comp; }),
         Coroutines.end()
+    );
+
+    PendingCoroutines.erase(
+        std::remove_if(PendingCoroutines.begin(), PendingCoroutines.end(),
+            [Comp](PendingCoroutineData& Data) { return Data.Comp == Comp; }),
+        PendingCoroutines.end()
     );
 }

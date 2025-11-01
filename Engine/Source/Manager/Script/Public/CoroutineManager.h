@@ -56,15 +56,21 @@ class UCoroutineManager : public UObject
 		sol::reference GCRef;
 		FName FuncName;
 	};
-
+	struct PendingCoroutineData
+	{
+		FName FuncName;
+		UScriptComponent* Comp;
+	};
 private:
+	TArray<PendingCoroutineData> PendingCoroutines;
 	TArray<CoroutineData> Coroutines;
 public:
 	// 생성자 및 소멸자
 	void Init();
 	void RegisterStateFunc();
 	void RegisterEnvFunc(UScriptComponent* Comp, sol::environment& Env);
-	void StartCoroutine(UScriptComponent* Comp, const FString& FuncName);
+	void RegisterPendingCoroutine(UScriptComponent* Comp, const FString& FuncName);
+	void MakeCoroutine(UScriptComponent* Comp, const FString& FuncName);
 	void StopCoroutine(UScriptComponent* Comp, const FString& FuncName);
 	bool ResumeCoroutine(CoroutineData& Coroutine);
 	void Update(const float DeltaTime);
