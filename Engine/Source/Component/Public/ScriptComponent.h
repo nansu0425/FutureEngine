@@ -42,14 +42,8 @@ private:
 	/** Lua 스크립트 파일 경로 (Data/Scripts/ 기준 상대 경로) */
 	FString ScriptPath;
 
-	/** 이 스크립트를 위한 격리된 Lua 환경 */
-	sol::environment* ScriptEnv;
-
 	/** Owner Actor를 래핑하는 Lua 테이블 ("obj" 변수) */
-	sol::table* ObjTable;
-
-	/** 스크립트가 성공적으로 로드되었는지 여부 */
-	bool bScriptLoaded;
+	sol::table Table;
 
 public:
 	UScriptComponent();
@@ -65,11 +59,6 @@ public:
 	 * 현재 스크립트 경로 가져오기
 	 */
 	const FString& GetScriptPath() const { return ScriptPath; }
-
-	/**
-	 * 스크립트가 로드되고 준비되었는지 확인
-	 */
-	bool IsScriptLoaded() const { return bScriptLoaded; }
 
 	// 라이프사이클 오버라이드
 	virtual void BeginPlay() override;
@@ -94,7 +83,7 @@ public:
 	 * 스크립트 Hot Reload (ScriptManager가 호출)
 	 * 기존 스크립트를 정리하고 재로드합니다.
 	 */
-	void ReloadScript();
+	void SetInstanceTable(const sol::table GlobalTable);
 
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
@@ -103,19 +92,8 @@ public:
 	virtual UObject* Duplicate() override;
 
 private:
-	/**
-	 * Lua 스크립트 로드 및 격리된 환경 생성
-	 * @return 스크립트 로드 성공 여부
-	 */
-	bool LoadScript();
-
-	/**
-	 * Owner Actor를 래핑하는 "obj" 테이블 생성
-	 * 이 테이블은 정적 Actor 프로퍼티(UUID, Location 등)와
-	 * 동적 스크립트 프로퍼티(Velocity 등)를 모두 지원합니다.
-	 */
-	void CreateObjTable();
-
+	//루아 스크립트의 액터 래핑 테이블 적용
+	void SetCommonTable();
 	/**
 	 * Lua 리소스 정리
 	 */
@@ -126,31 +104,27 @@ private:
 template<typename... Args>
 void UScriptComponent::CallLuaFunction(const char* FunctionName, Args&&... args)
 {
-	if (!bScriptLoaded)
+	if (!Table.valid())
 		return;
 
 	try
 	{
-		UScriptManager& ScriptMgr = UScriptManager::GetInstance();
-		sol::state& lua = ScriptMgr.GetLuaState();
-
-		// CRITICAL: globals의 obj를 현재 컴포넌트의 ObjTable로 동기화
-		// 여러 World가 같은 Lua state를 공유하므로, 함수 호출 전에 반드시 obj를 설정해야 함
-		if (ObjTable)
-		{
-			lua["obj"] = *ObjTable;
-		}
-
-		sol::optional<sol::function> func = lua[FunctionName];
+		// ObjTable(Table)에서 함수 가져오기
+		sol::optional<sol::function> func = Table[FunctionName];
 		if (func)
 		{
-			sol::protected_function_result result = (*func)(std::forward<Args>(args)...);
+			// 첫 번째 인자로 self(ObjTable)를 전달
+			sol::protected_function_result result = (*func)(Table, std::forward<Args>(args)...);
 
 			if (!result.valid())
 			{
 				sol::error err = result;
 				UE_LOG_ERROR("Lua function '%s' error: %s", FunctionName, err.what());
 			}
+		}
+		else
+		{
+			UE_LOG_WARNING("Lua function '%s' not found in instance table", FunctionName);
 		}
 	}
 	catch (const std::exception& e)
