@@ -84,6 +84,12 @@ sol::table UScriptManager::GetTable(const FString& ScriptPath)
 	{
 		return LuaScriptMap[ScriptPath].GlobalTable;
 	}
+
+	bool LoadSuccess = LoadLuaScript(ScriptPath);
+	if (LoadSuccess)
+	{
+		return LuaScriptMap[ScriptPath].GlobalTable;
+	}
 	return LuaState->create_table();
 }
 bool UScriptManager::IsLoadedScript(const FString& ScriptPath)

@@ -62,6 +62,7 @@ void UScriptComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		if (InOutHandle.hasKey("ScriptPath"))
 		{
 			ScriptPath = InOutHandle["ScriptPath"].ToString();
+			SetInstanceTable(UScriptManager::GetInstance().GetTable(ScriptPath));
 		}
 	}
 	else
